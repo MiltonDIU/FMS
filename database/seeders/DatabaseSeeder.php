@@ -15,8 +15,18 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Existing seeder (keeps existing users)
         $this->call([
             FMSSeeder::class,
+        ]);
+
+        // FMS Core Table Seeders
+        $this->call([
+            FacultySeeder::class,
+            DepartmentSeeder::class,
+            DesignationSeeder::class,
+            AdministrativeRoleSeeder::class,
+            TeacherSeeder::class,
         ]);
     }
 }
