@@ -8,10 +8,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
-class Teacher extends Model
+class Teacher extends Model implements HasMedia
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, InteractsWithMedia;
 
     protected $fillable = [
         'user_id',
@@ -214,5 +217,37 @@ class Teacher extends Model
     public function activeVersion()
     {
         return $this->hasOne(TeacherVersion::class)->where('is_active', true);
+    }
+
+    /**
+     * Register media collections for the teacher.
+     */
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('avatar')
+            ->singleFile()
+            ->useFallbackUrl('/images/default-avatar.png')
+            ->useFallbackPath(public_path('/images/default-avatar.png'));
+
+        $this->addMediaCollection('documents');
+        
+        $this->addMediaCollection('certificates');
+    }
+
+    /**
+     * Register media conversions.
+     */
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        $this->addMediaConversion('thumb')
+            ->width(100)
+            ->height(100)
+            ->sharpen(10)
+            ->performOnCollections('avatar');
+
+        $this->addMediaConversion('medium')
+            ->width(300)
+            ->height(300)
+            ->performOnCollections('avatar');
     }
 }
