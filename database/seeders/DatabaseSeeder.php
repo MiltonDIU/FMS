@@ -27,6 +27,7 @@ class DatabaseSeeder extends Seeder
             DesignationSeeder::class,
             AdministrativeRoleSeeder::class,
             TeacherSeeder::class,
+            TeacherPermissionSeeder::class,
         ]);
     }
 }

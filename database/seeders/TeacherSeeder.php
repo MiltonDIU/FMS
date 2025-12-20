@@ -64,6 +64,9 @@ class TeacherSeeder extends Seeder
             return;
         }
 
+        // Create profile for the specific demo teacher
+        $this->createSpecificTeacherProfile();
+
         $this->command->info("Creating {$numberOfTeachers} teacher profiles with all related data...");
 
         $created = 0;
@@ -81,6 +84,61 @@ class TeacherSeeder extends Seeder
         }
 
         $this->command->info("Successfully created {$created} complete teacher profiles.");
+    }
+
+    /**
+     * Create profile for the default teacher user
+     */
+    private function createSpecificTeacherProfile(): void
+    {
+        $user = User::where('email', 'teacher@fms.diu.edu.bd')->first();
+
+        if (! $user) {
+            return;
+        }
+
+        // Check if teacher profile already exists
+        if (Teacher::where('user_id', $user->id)->exists()) {
+            return;
+        }
+
+        $department = $this->departments->first();
+        $designation = $this->designations->first();
+
+        $teacher = Teacher::create([
+            'user_id' => $user->id,
+            'department_id' => $department->id,
+            'designation_id' => $designation->id,
+            'employee_id' => '710000001',
+            'first_name' => 'Faculty',
+            'last_name' => 'Teacher',
+            'phone' => '01700000000',
+            'personal_phone' => '01800000000',
+            'secondary_email' => 'teacher.personal@example.com',
+            'date_of_birth' => '1990-01-01',
+            'gender' => 'male',
+            'blood_group' => 'A+',
+            'nationality' => 'Bangladeshi',
+            'religion' => 'Islam',
+            'present_address' => 'Dhaka, Bangladesh',
+            'permanent_address' => 'Dhaka, Bangladesh',
+            'joining_date' => '2020-01-01',
+            'work_location' => 'Main Campus',
+            'office_room' => 'AB1-101',
+            'bio' => 'I am a faculty teacher at DIU.',
+            'research_interest' => 'Software Engineering, AI',
+            'profile_status' => 'approved',
+            'is_public' => true,
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        $this->createEducations($teacher);
+        $this->createPublications($teacher);
+        $this->createResearchProjects($teacher);
+        $this->createSkills($teacher);
+        
+        $this->command->info("Created profile for teacher@fms.diu.edu.bd");
     }
 
     /**

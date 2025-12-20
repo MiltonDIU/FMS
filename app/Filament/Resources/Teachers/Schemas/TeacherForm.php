@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Teachers\Schemas;
 
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\TextInput;
@@ -16,7 +17,7 @@ use Filament\Schemas\Schema;
 
 class TeacherForm
 {
-    public static function configure(Schema $schema): Schema
+    public static function configure(Schema $schema, bool $isOwnProfile = false): Schema
     {
         return $schema
             ->components([
@@ -37,23 +38,33 @@ class TeacherForm
                                         ->label('User Account')
                                         ->searchable()
                                         ->preload()
-                                        ->required(),
+                                        ->required()
+                                        ->disabled($isOwnProfile)
+                                        ->dehydrated(! $isOwnProfile),
                                     Select::make('department_id')
                                         ->relationship('department', 'name')
                                         ->label('Department')
                                         ->searchable()
                                         ->preload()
-                                        ->required(),
+                                        ->required()
+                                        ->disabled($isOwnProfile)
+                                        ->dehydrated(! $isOwnProfile),
                                     Select::make('designation_id')
                                         ->relationship('designation', 'name')
                                         ->label('Designation')
                                         ->searchable()
                                         ->preload()
-                                        ->required(),
+                                        ->required()
+                                        ->disabled($isOwnProfile)
+                                        ->dehydrated(! $isOwnProfile),
                                 ]),
                                 Grid::make(3)->schema([
-                                    TextInput::make('employee_id')->label('Employee ID'),
-                                    DatePicker::make('joining_date'),
+                                    TextInput::make('employee_id')->label('Employee ID')
+                                        ->disabled($isOwnProfile)
+                                        ->dehydrated(! $isOwnProfile),
+                                    DatePicker::make('joining_date')
+                                        ->disabled($isOwnProfile)
+                                        ->dehydrated(! $isOwnProfile),
                                     TextInput::make('work_location'),
                                 ]),
                                 Grid::make(3)->schema([
@@ -79,6 +90,23 @@ class TeacherForm
                                     Textarea::make('present_address')->rows(2),
                                     Textarea::make('permanent_address')->rows(2),
                                 ]),
+                                Repeater::make('socialLinks')
+                                    ->relationship()
+                                    ->itemLabel(fn (array $state): ?string => $state['platform'] ?? null)
+                                    ->schema([
+                                        Select::make('platform')
+                                            ->options([
+                                                'Facebook' => 'Facebook',
+                                                'Twitter' => 'Twitter',
+                                                'LinkedIn' => 'LinkedIn',
+                                                'GitHub' => 'GitHub',
+                                                'Website' => 'Website',
+                                            ])
+                                            ->required(),
+                                        TextInput::make('url')->url()->required(),
+                                    ])
+                                    ->columns(2)
+                                    ->collapsed(),
                             ]),
 
                         Tab::make('Personal Details')
@@ -113,6 +141,98 @@ class TeacherForm
                                     ])->collapsed(),
                             ]),
 
+                        Tab::make('Education & Research')
+                            ->icon('heroicon-o-book-open')
+                            ->schema([
+                                Repeater::make('educations')
+                                    ->relationship()
+                                    ->itemLabel(fn (array $state): ?string => ($state['degree'] ?? '') . ' - ' . ($state['institution'] ?? ''))
+                                    ->schema([
+                                        Select::make('level_of_education')
+                                            ->label('Level')
+                                            ->options([
+                                                'Doctorate' => 'Doctorate',
+                                                'Masters' => 'Masters',
+                                                'Bachelor' => 'Bachelor',
+                                                'Higher Secondary' => 'Higher Secondary',
+                                                'Secondary' => 'Secondary',
+                                            ])
+                                            ->required(),
+                                        TextInput::make('degree')->required(),
+                                        TextInput::make('field_of_study')->required(),
+                                        TextInput::make('institution')->required(),
+                                        TextInput::make('passing_year')->numeric(),
+                                        TextInput::make('result_type'),
+                                        TextInput::make('cgpa')->numeric()->label('CGPA/GPA'),
+                                    ])
+                                    ->columns(2)
+                                    ->collapsed(),
+
+                                Repeater::make('publications')
+                                    ->relationship()
+                                    ->itemLabel(fn (array $state): ?string => $state['title'] ?? null)
+                                    ->schema([
+                                        TextInput::make('title')->required()->columnSpanFull(),
+                                        TextInput::make('journal_name'),
+                                        TextInput::make('publication_year')->numeric(),
+                                        TextInput::make('doi')->label('DOI'),
+                                        TextInput::make('url')->url(),
+                                    ])
+                                    ->columns(2)
+                                    ->collapsed(),
+                            ]),
+
+                        Tab::make('Experience & Skills')
+                            ->icon('heroicon-o-briefcase')
+                            ->schema([
+                                Repeater::make('jobExperiences')
+                                    ->relationship()
+                                    ->itemLabel(fn (array $state): ?string => ($state['position'] ?? '') . ' at ' . ($state['organization'] ?? ''))
+                                    ->schema([
+                                        TextInput::make('position')->required(),
+                                        TextInput::make('organization')->required(),
+                                        DatePicker::make('start_date')->required(),
+                                        DatePicker::make('end_date'),
+                                        Toggle::make('is_current')->label('Currently Working'),
+                                    ])
+                                    ->columns(2)
+                                    ->collapsed(),
+
+                                Repeater::make('awards')
+                                    ->relationship()
+                                    ->itemLabel(fn (array $state): ?string => $state['title'] ?? null)
+                                    ->schema([
+                                        TextInput::make('title')->required(),
+                                        TextInput::make('awarding_body'),
+                                        TextInput::make('year')->numeric(),
+                                    ])
+                                    ->columns(2)
+                                    ->collapsed(),
+
+                                Repeater::make('skills')
+                                    ->relationship()
+                                    ->itemLabel(fn (array $state): ?string => $state['name'] ?? null)
+                                    ->schema([
+                                        TextInput::make('name')->required(),
+                                        Select::make('proficiency')
+                                            ->options([
+                                                'Beginner' => 'Beginner',
+                                                'Intermediate' => 'Intermediate',
+                                                'Expert' => 'Expert',
+                                            ]),
+                                    ])
+                                    ->columns(2)
+                                    ->collapsed(),
+
+                                Repeater::make('teachingAreas')
+                                    ->relationship()
+                                    ->itemLabel(fn (array $state): ?string => $state['area'] ?? null)
+                                    ->schema([
+                                        TextInput::make('area')->required(),
+                                    ])
+                                    ->collapsed(),
+                            ]),
+
                         Tab::make('Settings')
                             ->icon('heroicon-o-cog-6-tooth')
                             ->schema([
@@ -125,10 +245,18 @@ class TeacherForm
                                             'rejected' => 'Rejected',
                                         ])
                                         ->default('draft')
-                                        ->required(),
-                                    Toggle::make('is_public')->label('Publicly Visible'),
-                                    Toggle::make('is_active')->label('Active Account')->default(true),
-                                    TextInput::make('sort_order')->numeric()->default(0),
+                                        ->required()
+                                        ->disabled($isOwnProfile)
+                                        ->dehydrated(! $isOwnProfile),
+                                    Toggle::make('is_public')->label('Publicly Visible')
+                                        ->disabled($isOwnProfile)
+                                        ->dehydrated(! $isOwnProfile),
+                                    Toggle::make('is_active')->label('Active Account')->default(true)
+                                        ->disabled($isOwnProfile)
+                                        ->dehydrated(! $isOwnProfile),
+                                    TextInput::make('sort_order')->numeric()->default(0)
+                                        ->disabled($isOwnProfile)
+                                        ->dehydrated(! $isOwnProfile),
                                 ]),
                             ]),
                     ])->columnSpanFull(),

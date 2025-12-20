@@ -36,13 +36,13 @@ class TeacherResource extends Resource
     public static function getRelations(): array
     {
         return [
-            RelationManagers\EducationsRelationManager::class,
-            RelationManagers\PublicationsRelationManager::class,
-            RelationManagers\JobExperiencesRelationManager::class,
-            RelationManagers\SkillsRelationManager::class,
-            RelationManagers\TeachingAreasRelationManager::class,
-            RelationManagers\AwardsRelationManager::class,
-            RelationManagers\SocialLinksRelationManager::class,
+            // RelationManagers\EducationsRelationManager::class,
+            // RelationManagers\PublicationsRelationManager::class,
+            // RelationManagers\JobExperiencesRelationManager::class,
+            // RelationManagers\SkillsRelationManager::class,
+            // RelationManagers\TeachingAreasRelationManager::class,
+            // RelationManagers\AwardsRelationManager::class,
+            // RelationManagers\SocialLinksRelationManager::class,
             RelationManagers\VersionsRelationManager::class,
         ];
     }
@@ -62,5 +62,21 @@ class TeacherResource extends Resource
             ->withoutGlobalScopes([
                 SoftDeletingScope::class,
             ]);
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        if (auth()->check()) {
+            /** @var \App\Models\User $user */
+            $user = auth()->user();
+            
+            if ($user->hasRole('teacher') && ! ($user->hasRole('super_admin') || $user->hasRole('admin'))) {
+                $query->where('user_id', $user->id);
+            }
+        }
+
+        return $query;
     }
 }
