@@ -1,0 +1,162 @@
+# Faculty Management System (FMS) 
+
+## Project Objectives & Scope Document - (Final)
+
+---
+
+## 1. Introduction
+
+This document defines the **objectives, scope, and phased vision** of the proposed **Faculty Management System (FMS)** for **Daffodil International University (DIU)**. The purpose of this project is to modernize the existing faculty profile management process by introducing a **self-service, approval-based, version-controlled, and scalable digital platform**.
+
+The document is aligned with the **latest approved Software Requirements Specification (SRS)** and is structured to support **phased approval**, allowing the university to implement core faculty profile management independently, while keeping advanced automation and research integrations optional.
+
+---
+
+## 2. Background & Current Challenges (As-Is System)
+
+The existing faculty profile management process primarily depends on **department-level accounts**, where teacher information is manually collected through **PDF/DOC files** and entered by department users, Registrar Office staff, or administrators.
+
+### Key Challenges
+
+* Teachers cannot update their own profiles
+* Heavy dependency on Registrar Office and Admin for manual data entry
+* Academic data stored as unstructured text (tables/paragraphs)
+* No statistics on publications, experience, or research output
+* No version history or rollback capability
+* Outdated UI/UX
+* Public profiles become outdated quickly
+* No ERP-driven onboarding or automation
+
+---
+
+## 3. Proposed Solution (To-Be System)
+
+The proposed FMS introduces a **teacher self-service model** combined with **institutional governance through approval workflows**.
+
+### Core Principles
+
+* Teachers manage and update their own profiles
+* All changes are saved as **draft versions**
+* Only **approved versions** are published publicly
+* Complete **version history** with rollback support
+* Clear separation of **academic designation** and **administrative roles**
+* Administrative roles automatically generate experience history
+* Role-based dashboards and statistics
+
+---
+
+## 4. Project Objectives
+
+### 4.1 Primary Objectives
+
+* Enable teacher self-service profile management
+* Reduce manual workload of Registrar Office and Admin
+* Introduce approval-based publishing for data accuracy
+* Maintain full version history with rollback capability
+* Transform unstructured academic data into structured, reportable formats
+* Support multiple concurrent roles per user
+* Automatically record administrative responsibilities as experience
+* Provide role-based dashboards and analytics
+* Modernize UI/UX for administrative and public users
+
+### 4.2 Secondary Objectives
+
+* Enable faculty- and department-level statistics
+* Improve accreditation and audit readiness
+* Establish a centralized faculty data repository
+* Ensure long-term scalability and extensibility
+
+---
+
+## 5. Scope of the Project
+
+### 5.1 In Scope (Phase-1: Core Faculty Profile Management)
+
+* Teacher self-service profile editing
+* Structured academic and professional data modules
+* Approval workflow with **Registrar Office as final authority**
+* Draft, approval, rejection, and publish lifecycle
+* Profile versioning and rollback
+* Faculty → Department → Teacher hierarchy
+* Academic designation management
+* Administrative role management (Dean, Head, Coordinator, Acting roles)
+* Automatic experience timeline generation from role lifecycle
+* Role-based dashboards and statistics
+* Public faculty profile portal
+
+> **Phase-1 is fully functional and independent. Approval of Phase-1 alone enables complete faculty profile management.**
+
+---
+
+### 5.2 Optional Enhancements (Future-Ready, Not Mandatory for Phase-1)
+
+The system architecture will support the following enhancements without impacting Phase-1 stability.
+
+#### 5.2.1 Advanced Approval Workflow (Future)
+
+* Multi-office approval routing (HR, Research Team, Registrar)
+* Approval flow configurable by Super Admin
+* Registrar Office remains default final authority unless changed by policy
+
+---
+
+## 6. Phase-2 Scope: ERP-Based Profile Automation (Optional)
+
+Phase-2 focuses on **reducing manual data entry** through ERP integration. This phase is dependent on ERP system readiness and approval.
+
+### Objectives
+
+* Search faculty records using Employee ID
+* Fetch verified core teacher information from ERP
+* Automatically create faculty profiles
+* Reduce duplicate data entry and human error
+
+> Phase-2 may be approved independently and does not affect Phase-1 usability.
+
+---
+
+## 7. Phase-3 Scope: Research & Publication Alignment (Optional)
+
+Phase-3 aligns faculty profiles with institutional research and publication management.
+
+### Objectives
+
+* Centralized publication entry by Research Team
+* Automatic linking of publications to faculty profiles
+* ERP-based author identity verification
+* Support for non-teacher contributors (backend only)
+* Eliminate duplicate publication data entry across systems
+* Provide research dashboards and statistics
+
+> Public profiles will display publications **only for verified teachers**.
+
+---
+
+## 8. Out of Scope
+
+* Payroll and financial systems
+* Attendance and leave management
+* Student academic records
+* Performance appraisal systems
+
+---
+
+## 9. Key Benefits
+
+* Significant reduction in administrative workload
+* Improved accuracy and consistency of faculty data
+* Structured, analytics-ready information
+* Transparent approval and audit trails
+* Enhanced public visibility of faculty achievements
+* Modular, future-proof system design
+
+---
+
+## 10. Conclusion
+
+The Faculty Management System is designed as a **governance-driven, scalable, and faculty-centric platform**. By separating core profile management from optional ERP and research integrations, the university gains flexibility in approval, reduced implementation risk, and immediate operational benefits.
+
+---
+
+**Document Status:** Updated (Aligned with Latest SRS)  
+**Purpose:** Management Approval, Project Planning, and Implementation Reference

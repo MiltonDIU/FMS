@@ -1,0 +1,51 @@
+# Legacy → New System Mapping (Final)
+
+**Faculty Management System (FMS)**  
+**Milestone 1 – Planning & Design**
+
+---
+
+## 1. Purpose
+
+This document maps the data fields, modules, and workflows from the **existing legacy system** to the **new Faculty Management System (FMS)**. It ensures clear traceability of features, reduces data migration errors, and guides the development and ERD design process.
+
+---
+
+## 2. Mapping Table
+
+| Legacy System Module / Field             | Legacy Data Type / Notes                            | New FMS Module / Table / Field                   | Comments / Transformation Notes                         |
+| ---------------------------------------- | --------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------- |
+| Department Account Login                 | Department user and password                        | `users` + `roles` + `department_id`              | Admin/ Teacher login maintained via RBAC/               |
+| Teacher Personal Information             | Collect to PDF / DOC and Admin entry teachers table | `teachers` table: `name`, `dob`, `email`, etc.   | Converted to structured fields                          |
+| Academic Qualification                   | Text field                                          | `educations` table                               | Multi-row, normalized                                   |
+| Training Experience                      | Text field                                          | `training_experiences` table                     | Multi-row, normalized                                   |
+| Teaching Area                            | Text field                                          | `teaching_areas` table                           | Multi-row normalized                                    |
+| Publications (Books, Journals, Articles) | Text field / PDF                                    | `publications` table                             | Multi row normalized                                    |
+| Research Projects                        | Text field                                          | `research` table                                 | Multi row normalized                                    |
+| Memberships & Professional Affiliations  | Text field                                          | `memberships` table                              | Multi-entry allowed                                     |
+| Awards & Scholarships                    | Text / List                                         | `awards` table                                   | Normalized for reporting                                |
+| Previous Employment                      | Text field                                          | `previous_employments` table                     | Multi-row, structured                                   |
+| Profile Updates / Approvals              | Manual PDF / DOC review                             | Approval workflow in FMS (`drafts` + `approval`) | Version control & optional admin review                 |
+| Role Assignments                         | Department-only admin                               | `roles` + `teacher_roles` table                  | Multiple roles per teacher, audit trail                 |
+| Statistics / Reporting                   | None / manual                                       | Dashboards and statistics modules                | Faculty/Department/Teacher-level reports                |
+| ERP Integration                          | Not available                                       | API integration for teacher data                 | Phase-2 optional, auto-sync when create teacher profile |
+| Public Profile Display                   | single profile / outdated design                    | `teachers` module                                | Only approved versions visible                          |
+| Audit Trail                              | No logs                                             | `audit_logs` table                               | All updates, approvals, rollbacks logged                |
+
+---
+
+## 3. Notes
+
+1. **Normalization:** All previously unstructured text fields are converted into normalized tables to enable reporting and version tracking.
+2. **Versioning:** Publications, profile updates, and experiences maintain full version history with rollback capability.
+3. **Role-Based Access Control (RBAC):** Mapping considers multiple roles per user and admin approval requirements.
+4. **ERP Integration:** Data mapping includes a placeholder for Phase-2 ERP API fields.
+5. **Public vs Internal Data:** Only verified teachers’ information is publicly viewable; student or unknown contributor data is stored internally for reference.
+
+---
+
+This document will act as the reference for:
+
+* Database schema (ERD) design
+* Workflow & approval system implementation
+* Data migration strategy from legacy to new FMS

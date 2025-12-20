@@ -1,0 +1,171 @@
+# RBAC Matrix & Workflow Diagrams – Faculty Management System (Final)
+
+## Faculty Management System (FMS)
+
+---
+
+## 1. Purpose of This Document
+
+This document defines the **Role-Based Access Control (RBAC)** structure and **core system workflows** for the Faculty Management System (FMS). It establishes authority boundaries, approval responsibilities, data visibility rules, and operational flows required for governance, security, and accountability.
+
+This document is part of **Milestone-1: Planning & Design** and does not include implementation or UI-level details.
+
+---
+
+## 2. User Role Definitions
+
+### 2.1 Super Admin
+
+* Full system-level authority
+* Configures approval routing and role policies
+* Has override and rollback permissions
+* Can view all teacher publications and public faculty profiles
+
+### 2.2 Admin
+
+* Manages users and role assignments
+* Creates and maintains initial faculty profiles
+* Performs optional review of profile updates
+* Controls publishing of public profiles
+* Faculty & Department Wise statistics Dashboard
+* Can view all teacher publications and public faculty profiles
+
+### 2.3 Registrar Office
+
+* Final approval authority for faculty profiles
+* Ensures academic and institutional data validity
+* Controls publishing of public profiles
+* Faculty & Department Wise statistics Dashboard
+* Individual teachers statistics/profile report
+* Can view all teacher publications and public faculty profiles
+
+### 2.4 Teacher
+
+* Maintains own faculty profile
+* Submits profile updates for approval
+* Views personal dashboard and statistics
+* Can view own publications and public faculty profiles
+
+### 2.5 Research Team (Future Phase)
+
+* Manages research and publication entries
+* Faculty & Department Wise statistics Dashboard
+* Individual teachers statistics/profile report
+* Publication count per teacher
+* Verifies author identity and affiliations
+* Public profile access for all faculty members
+* Can view all teacher publications and public faculty profiles
+
+### 2.6 IT / Developer
+
+* Technical maintenance and system support
+* No access to academic or approval data
+
+> A single user may hold **multiple roles simultaneously**.
+
+---
+
+## 3. High-Level Permission Matrix
+
+| Feature / Action                     | Super Admin | Admin | Registrar Office | Teacher | Research Team |
+| ------------------------------------ | ----------- | ----- | ---------------- | ------- | ------------- |
+| Edit own profile                     | ❌           | ❌     | ❌                | ✅       | ❌             |
+| Submit profile for approval          | ❌           | ❌     | ❌                | ✅       | ❌             |
+| Create/Optional Review profile       | ❌           | ✅     | ✅                | ❌       | ❌             |
+| Final profile approval               | ❌           | ❌     | ✅                | ❌       | ❌             |
+| Assign administrative roles          | ✅           | ✅     | ❌                | ❌       | ❌             |
+| View department statistics           | ✅           | ✅     | ✅                | ❌       | ✅             |
+| View faculty-wide statistics         | ✅           | ✅     | ✅                | ❌       | ✅             |
+| Manage publications                  | ✅           | ❌     | ❌                | ❌       | ✅             |
+| View individual teacher publications | ✅           | ✅     | ✅                | ✅       | ✅             |
+| Public faculty profiles              | ✅           | ✅     | ✅                | ✅       | ✅             |
+| Override approvals / rollback        | ✅           | ❌     | ❌                | ❌       | ❌             |
+
+---
+
+## 4. Data Visibility Scope Rules
+
+* **Teacher:** Own profile, publications, and personal statistics only
+* **Department Head:** Statistics limited to own department
+* **Faculty Dean:** Statistics for all departments under the faculty
+* **Admin / Registrar Office:** System-wide visibility including all teacher publications and public faculty profiles
+* **Research Team:** Department/faculty wise research statistics, individual teacher publications, and public profile access
+* **Super Admin:** Unrestricted access, including all teacher publications and public faculty profiles
+
+---
+
+## 5. Profile Update & Approval Workflow
+
+### 5.1 Standard Profile Update Flow
+
+```
+Teacher (Draft)
+      ↓
+Optional Admin Review
+      ↓
+Registrar Office Approval
+      ↓
+Published Profile (Live)
+```
+
+* Teachers, Admin, or Registrar Office can update or add all teacher-related information, including personal info, education, publications, experience, membership, awards, and other relevant academic data.
+* All edits are saved as draft versions
+* Only one approved version can be live at any time
+* Rejected versions remain archived
+
+---
+
+## 6. Version Control & Audit Workflow
+
+* Each submission creates a new profile version
+* Approved versions are timestamped and archived
+* Admin or Registrar Office may restore previous approved versions
+* All actions are logged with user, role, and time
+
+---
+
+## 7. Administrative Role Assignment Workflow
+
+```
+Admin Assigns Role
+      ↓
+System Auto-Creates Experience (Start Date)
+      ↓
+Role Removal / Expiry
+      ↓
+Experience End Date Auto-Updated
+```
+
+* Academic designation remains unchanged
+* Only one administrative role allowed per department at a time
+
+---
+
+## 8. Experience Management Rules
+
+* Experiences may be system-generated or manually entered
+* Teachers and authorized Admin/Registrar users may edit experience records
+* All experience edits follow the same approval workflow
+
+---
+
+## 9. Notification & Escalation Rules
+
+* Profile submission notifications to reviewers
+* Pending approval reminders
+* Rejection feedback to teachers
+* Escalation to Super Admin if approval stalls
+
+---
+
+## 10. Exception & Override Rules
+
+* Super Admin may override approval flow
+* Emergency rollback supported
+* Approval authority routing is configurable
+
+---
+
+**Document Status:** Draft  
+**Milestone:** 1 – Planning & Design  
+**Purpose:** Governance, Role Definition & Workflow Reference

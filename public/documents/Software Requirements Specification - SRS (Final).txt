@@ -1,0 +1,329 @@
+# Faculty Management System (FMS)
+
+## Software Requirements Specification - SRS (Final)
+
+---
+
+## 1. Introduction
+
+### 1.1 Purpose of the Document
+
+This Software Requirements Specification (SRS) defines the functional and non-functional requirements of the **Faculty Management System (FMS)**. The document serves as a single source of truth for university management, stakeholders, designers, and developers to understand *what the system must do*, *what it will not do*, and *how it should behave*.
+
+This SRS is written to support **phased approval and development**, where **Phase-1 (Core Faculty Profile Management)** is fully independent, and later phases may be approved or deferred without impacting the usability of Phase-1.
+
+### 1.2 Intended Audience
+
+* University Management
+* Registrar Office
+* IT & Development Team
+* Quality Assurance Team
+* External Vendors (if any)
+
+### 1.3 Scope of the System
+
+The Faculty Management System (FMS) is a centralized digital platform for managing faculty profiles, academic records, administrative roles, and public faculty information through a **self-service, approval-based, and version-controlled** workflow.
+
+---
+
+## 2. Overall Description
+
+### 2.1 System Overview
+
+FMS replaces manual, document-based faculty profile handling with a structured web-based system where:
+
+* Teachers manage their own profiles
+* All changes follow a review and approval workflow
+* Only approved data is publicly visible
+* Administrative roles are tracked independently from academic designations
+* The system supports future ERP and research publication integrations
+
+### 2.2 User Classes and Roles
+
+| Role                | Description                                      |
+| ------------------- | ------------------------------------------------ |
+| Super Admin         | Full system access, configuration, and oversight |
+| Admin               | Manages users, approvals, and system data        |
+| Registrar Office    | Verifies and approves faculty data               |
+| Teacher             | Manages own profile and views personal dashboard |
+| IT User (Developer) | Technical maintenance and support                |
+
+> A single user may hold **multiple roles simultaneously**.
+
+### 2.3 Operating Environment
+
+* Web-based application
+* Modern browsers (Chrome, Firefox, Edge)
+* Backend: API-driven architecture
+* Database-driven, normalized schema
+
+---
+
+## 3. System Features & Functional Requirements (Phase-1)
+
+### 3.0 Role-wise CRUD Responsibilities (High-Level Parent Tasks)
+
+This section defines **what type of Create, Read, Update, Delete (CRUD) operations** each role is responsible for at a **parent-task level**. Detailed field-level permissions will be finalized during implementation.
+
+---
+
+### 3.0.1 Super Admin – System Configuration & Governance
+
+**Create**
+
+* System roles and role categories
+* Approval workflows (single-office / multi-office)
+* System-level configurations
+* Dashboard visibility rules
+
+**Read**
+
+* All faculty profiles (all versions)
+* System-wide statistics and audit logs
+* Approval routing and status
+
+**Update**
+
+* Role-permission mappings (RBAC)
+* Approval routing rules
+* Office-wise authority configuration
+* Global system settings
+
+**Delete / Disable**
+
+* Deactivate roles or permissions
+* Disable workflows (not delete data)
+
+---
+
+### 3.0.2 Admin – Operational Management
+
+**Create**
+
+* Faculty user accounts
+* Administrative role assignments
+* Experience records (on behalf of teachers)
+
+**Read**
+
+* All faculty profiles
+* Department and faculty statistics
+* Approval queues
+
+**Update**
+
+* Faculty profile data (all teachers)
+* Administrative role assignments
+* Experience records (subject to approval)
+
+**Delete / Remove**
+
+* Remove administrative role assignments
+* Archive incorrect entries (logical delete)
+
+---
+
+### 3.0.3 Registrar Office – Verification & Approval Authority
+
+**Create**
+
+* Review remarks
+* Approval decisions
+
+**Read**
+
+* Submitted profile versions
+* Full faculty profiles
+* Approval history
+
+**Update**
+
+* Approve, reject, or request revision of profiles
+* Edit verified data if required
+
+**Delete / Rollback**
+
+* Rollback to previously approved profile versions
+
+---
+
+### 3.0.4 Teacher – Self Profile Management
+
+**Create**
+
+* Own profile data entries
+* Draft versions
+* Experience records (self)
+
+**Read**
+
+* Own profile (all versions)
+* Own dashboard and statistics
+* Public profiles of other faculty
+* Individual teacher publications
+
+**Update**
+
+* Own profile information
+* Own experience, education, publications (draft)
+
+**Delete**
+
+* Own draft entries (before submission)
+
+---
+
+### 3.0.5 Research Team (Phase-3 – Optional)
+
+**Create**
+
+* Publication entries
+* Research contributor records
+
+**Read**
+
+* Faculty-wise and department-wise publication statistics
+* Individual teacher publications
+* Public faculty profiles
+
+**Update**
+
+* Publication metadata (subject to approval)
+
+**Delete**
+
+* Archive invalid publication records
+
+---
+
+### 3.0.6 Public User (No Login)
+
+**Read Only**
+
+* Public faculty profiles
+* Approved publications
+
+---
+
+### 3.1 User & Access Management
+
+**FR-1:** The system shall support role-based access control (RBAC).
+
+**FR-2:** A user may be assigned multiple roles.
+
+**FR-3:** Permissions shall be enforced based on role combinations.
+
+---
+
+(Optional – ERP Integration)
+
+**FR-25:** Admin users shall be able to search faculty records in ERP.
+
+**FR-26:** The system shall fetch verified faculty core data from ERP.
+
+**FR-27:** ERP-sourced data may be used to auto-create faculty profiles.
+
+**FR-28:** ERP synchronization shall be configurable and controlled.
+
+> Phase-2 is optional and does not affect Phase-1 operation.
+
+---
+
+## 5. Phase-3 Functional Requirements (Optional – Research & Publications)
+
+**FR-29:** Research Team users shall manage centralized publication entries.
+
+**FR-30:** Publications shall be linked to existing teacher profiles automatically.
+
+**FR-31:** Unknown authors shall be verified via ERP lookup.
+
+**FR-32:** Non-teacher contributors shall be stored internally without public profiles.
+
+**FR-33:** Approved publications shall reflect on faculty public profiles.
+
+---
+
+## 6. Data Requirements (Logical Level)
+
+> Physical table fields will be finalized later.
+
+### Core Data Entities (Identified)
+
+* Users
+* Roles
+* Role Assignments
+* Teachers
+* Faculty Profiles
+* Profile Versions
+* Academic Designations
+* Administrative Roles
+* Experiences
+* Publications
+* Research Contributors
+* Departments
+* Audit Logs
+
+---
+
+## 7. Non-Functional Requirements
+
+### 7.1 Usability
+
+* Responsive UI
+* Simple teacher self-service workflows
+
+### 7.2 Security
+
+* Role-based authorization
+* Secure authentication
+* Access isolation between roles
+
+### 7.3 Performance
+
+* Profile load time under acceptable limits
+* Dashboard queries optimized
+
+### 7.4 Maintainability
+
+* Modular architecture
+* API-driven backend
+
+---
+
+## 8. Constraints & Assumptions
+
+* ERP integration depends on ERP system availability
+* Research module approval is optional
+* Internet access is required
+
+---
+
+## 9. Risks & Open Points
+
+* ERP API readiness
+* Role conflict resolution
+* Publication author identity verification
+
+---
+
+## 10. Open Questions (To Be Clarified)
+
+> All previously identified open questions have been clarified and incorporated into this SRS.
+
+## 11. Approval Strategy
+
+* **Phase-1:**
+
+  * Single-step approval
+  * Final authority: Registrar Office
+
+* **Future Enhancement (Configurable):**
+
+  * Multi-office approval workflows (e.g., HR, Research Team, Registrar)
+  * Routing rules configurable by Super Admin
+  * Final publishing authority may remain centralized or distributed based on policy
+
+---
+
+**Document Status:** Draft SRS  
+**Purpose:** Development & Implementation Reference
