@@ -23,7 +23,6 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'teacher_id',
         'sort_order',
         'is_active',
         
@@ -50,10 +49,5 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
-    }
-
-    public function teacher()
-    {
-        return $this->belongsTo(Teacher::class);
     }
 }
