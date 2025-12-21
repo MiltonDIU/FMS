@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Observers\TeacherObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,6 +14,7 @@ use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
+#[ObservedBy([TeacherObserver::class])]
 class Teacher extends Model implements HasMedia
 {
     use HasFactory, SoftDeletes, InteractsWithMedia;
@@ -21,6 +24,7 @@ class Teacher extends Model implements HasMedia
         'department_id',
         'designation_id',
         'employee_id',
+        'webpage',
         'first_name',
         'middle_name',
         'last_name',
@@ -47,6 +51,8 @@ class Teacher extends Model implements HasMedia
         'profile_status',
         'is_public',
         'is_active',
+        'employment_status',
+        'is_archived',
         'sort_order',
     ];
 
@@ -55,7 +61,24 @@ class Teacher extends Model implements HasMedia
         'joining_date' => 'date',
         'is_public' => 'boolean',
         'is_active' => 'boolean',
+        'is_archived' => 'boolean',
     ];
+
+    /**
+     * Scope: Only active (non-archived) teachers.
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('is_archived', false);
+    }
+
+    /**
+     * Scope: Only archived teachers.
+     */
+    public function scopeArchived($query)
+    {
+        return $query->where('is_archived', true);
+    }
 
     /**
      * Get the full name of the teacher.

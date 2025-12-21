@@ -40,9 +40,8 @@ class TeacherForm
                                         ->label('User Account')
                                         ->searchable()
                                         ->preload()
-                                        ->required()
-                                        ->disabled($isOwnProfile)
-                                        ->dehydrated(! $isOwnProfile),
+                                        ->hiddenOn('create')  // Auto-created by observer
+                                        ->disabled(),  // Read-only reference on edit
                                     Select::make('department_id')
                                         ->relationship('department', 'name')
                                         ->label('Department')
@@ -64,9 +63,17 @@ class TeacherForm
                                     TextInput::make('employee_id')->label('Employee ID')
                                         ->disabled($isOwnProfile)
                                         ->dehydrated(! $isOwnProfile),
+                                    TextInput::make('webpage')
+                                        ->label('Profile URL Slug')
+                                        ->unique(ignoreRecord: true)
+                                        ->helperText('Unique identifier for public profile URL')
+                                        ->disabled($isOwnProfile)
+                                        ->dehydrated(! $isOwnProfile),
                                     DatePicker::make('joining_date')
                                         ->disabled($isOwnProfile)
                                         ->dehydrated(! $isOwnProfile),
+                                ]),
+                                Grid::make(3)->schema([
                                     TextInput::make('work_location'),
                                 ]),
                                 Grid::make(3)->schema([
@@ -145,6 +152,7 @@ class TeacherForm
                                         TextInput::make('cgpa')->numeric()->label('CGPA/GPA'),
                                     ])
                                     ->columns(2)
+                                    ->defaultItems(0)
                                     ->collapsed(),
                             ]),
 
@@ -163,6 +171,7 @@ class TeacherForm
                                         TextInput::make('url')->url(),
                                     ])
                                     ->columns(2)
+                                    ->defaultItems(0)
                                     ->collapsed(),
                             ]),
 
@@ -181,6 +190,7 @@ class TeacherForm
                                         Toggle::make('is_current')->label('Currently Working'),
                                     ])
                                     ->columns(2)
+                                    ->defaultItems(0)
                                     ->collapsed(),
                             ]),
 
@@ -197,6 +207,7 @@ class TeacherForm
                                         TextInput::make('year')->numeric(),
                                     ])
                                     ->columns(2)
+                                    ->defaultItems(0)
                                     ->collapsed(),
                             ]),
 
@@ -217,6 +228,7 @@ class TeacherForm
                                             ]),
                                     ])
                                     ->columns(2)
+                                    ->defaultItems(0)
                                     ->collapsed(),
                             ]),
 
@@ -230,6 +242,7 @@ class TeacherForm
                                     ->schema([
                                         TextInput::make('area')->required(),
                                     ])
+                                    ->defaultItems(0)
                                     ->collapsed(),
                             ]),
 
@@ -253,6 +266,7 @@ class TeacherForm
                                         TextInput::make('url')->url()->required(),
                                     ])
                                     ->columns(2)
+                                    ->defaultItems(0)
                                     ->collapsed(),
                             ]),
 
@@ -283,10 +297,27 @@ class TeacherForm
                                         ->required()
                                         ->disabled($isOwnProfile)
                                         ->dehydrated(! $isOwnProfile),
+                                    Select::make('employment_status')
+                                        ->options([
+                                            'active' => 'Active',
+                                            'study_leave' => 'Study Leave',
+                                            'on_leave' => 'On Leave',
+                                            'deputation' => 'Deputation',
+                                            'retired' => 'Retired',
+                                            'resigned' => 'Resigned',
+                                        ])
+                                        ->default('active')
+                                        ->required()
+                                        ->disabled($isOwnProfile)
+                                        ->dehydrated(! $isOwnProfile),
                                     Toggle::make('is_public')->label('Publicly Visible')
                                         ->disabled($isOwnProfile)
                                         ->dehydrated(! $isOwnProfile),
                                     Toggle::make('is_active')->label('Active Account')->default(true)
+                                        ->disabled($isOwnProfile)
+                                        ->dehydrated(! $isOwnProfile),
+                                    Toggle::make('is_archived')->label('Archived')
+                                        ->helperText('Archived teachers are hidden from main list')
                                         ->disabled($isOwnProfile)
                                         ->dehydrated(! $isOwnProfile),
                                     TextInput::make('sort_order')->numeric()->default(0)

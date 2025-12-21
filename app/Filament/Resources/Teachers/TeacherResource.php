@@ -21,7 +21,7 @@ class TeacherResource extends Resource
 {
     protected static ?string $model = Teacher::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserPlus;
 
     /**
      * Hide navigation for teacher role - they use "My Profile" instead.
@@ -80,7 +80,7 @@ class TeacherResource extends Resource
         if (auth()->check()) {
             /** @var \App\Models\User $user */
             $user = auth()->user();
-            
+
             if ($user->hasRole('teacher') && ! ($user->hasRole('super_admin') || $user->hasRole('admin'))) {
                 $query->where('user_id', $user->id);
             }
