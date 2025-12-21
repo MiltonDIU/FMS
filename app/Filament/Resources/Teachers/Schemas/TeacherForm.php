@@ -60,21 +60,72 @@ class TeacherForm
                                         ->dehydrated(! $isOwnProfile),
                                 ]),
                                 Grid::make(3)->schema([
-                                    TextInput::make('employee_id')->label('Employee ID')
+                                    TextInput::make('employee_id')
+                                        ->label('Employee ID')
+                                        ->required()
+                                        ->unique(ignoreRecord: true)
+                                        ->maxLength(50)
+                                        ->live(onBlur: true)
+                                        ->hint(function ($state, $record) {
+                                            if (empty($state)) return null;
+                                            $exists = \App\Models\Teacher::where('employee_id', $state)
+                                                ->when($record, fn($q) => $q->where('id', '!=', $record->id))
+                                                ->exists();
+                                            return $exists
+                                                ? new \Illuminate\Support\HtmlString('<span class="text-danger-500">✗ Already taken</span>')
+                                                : new \Illuminate\Support\HtmlString('<span class="text-success-500">✓ Available</span>');
+                                        })
                                         ->disabled($isOwnProfile)
                                         ->dehydrated(! $isOwnProfile),
+                                    TextInput::make('email')
+                                        ->label('Login Email')
+                                        ->email()
+                                        ->required(fn ($record): bool => $record === null)  // Required only on create
+                                        ->unique('users', 'email', ignoreRecord: true)
+                                        ->live(onBlur: true)
+                                        ->hint(function ($state, $record) use ($isOwnProfile) {
+                                            if (empty($state) || $isOwnProfile) return null;
+                                            // Check if email exists for another user
+                                            $query = \App\Models\User::where('email', $state);
+                                            if ($record?->user_id) {
+                                                $query->where('id', '!=', $record->user_id);
+                                            }
+                                            $exists = $query->exists();
+                                            return $exists
+                                                ? new \Illuminate\Support\HtmlString('<span class="text-danger-500">✗ Email already registered</span>')
+                                                : new \Illuminate\Support\HtmlString('<span class="text-success-500">✓ Available</span>');
+                                        })
+                                        ->disabled($isOwnProfile)  // Teacher cannot edit own email
+                                        ->dehydrated(! $isOwnProfile),  // Don't save when disabled
                                     TextInput::make('webpage')
                                         ->label('Profile URL Slug')
+                                        ->required()
                                         ->unique(ignoreRecord: true)
-                                        ->helperText('Unique identifier for public profile URL')
+                                        ->alphaDash()
+                                        ->maxLength(100)
+                                        ->live(onBlur: true)
+                                        ->hint(function ($state, $record) {
+                                            if (empty($state)) return null;
+                                            $exists = \App\Models\Teacher::where('webpage', $state)
+                                                ->when($record, fn($q) => $q->where('id', '!=', $record->id))
+                                                ->exists();
+                                            return $exists
+                                                ? new \Illuminate\Support\HtmlString('<span class="text-danger-500">✗ URL slug taken</span>')
+                                                : new \Illuminate\Support\HtmlString('<span class="text-success-500">✓ Available</span>');
+                                        })
+                                        ->helperText('Letters, numbers, dashes only')
                                         ->disabled($isOwnProfile)
                                         ->dehydrated(! $isOwnProfile),
+
+                                ]),
+                                Grid::make(3)->schema([
                                     DatePicker::make('joining_date')
                                         ->disabled($isOwnProfile)
                                         ->dehydrated(! $isOwnProfile),
-                                ]),
-                                Grid::make(3)->schema([
-                                    TextInput::make('work_location'),
+
+                                    TextInput::make('work_location')->default('Main Campus')
+                                        ->disabled($isOwnProfile)
+                                        ->dehydrated(! $isOwnProfile),
                                 ]),
                                 Grid::make(3)->schema([
                                     TextInput::make('first_name')->required(),
@@ -89,11 +140,15 @@ class TeacherForm
                         Tab::make('Contact Info')
                             ->icon('heroicon-o-map-pin')
                             ->schema([
-                                Grid::make(2)->schema([
+                                Grid::make(3)->schema([
                                     TextInput::make('phone')->tel()->required(),
                                     TextInput::make('personal_phone')->tel(),
-                                    TextInput::make('secondary_email')->email(),
+                                    TextInput::make('extension_no')
+                                        ->label('Extension No')
+                                        ->maxLength(20),
                                     TextInput::make('office_room'),
+                                    TextInput::make('secondary_email')->email(),
+
                                 ]),
                                 Grid::make(2)->schema([
                                     Textarea::make('present_address')->rows(2),
@@ -106,11 +161,23 @@ class TeacherForm
                             ->schema([
                                 Grid::make(3)->schema([
                                     DatePicker::make('date_of_birth'),
-                                    Select::make('gender')
-                                        ->options(['male' => 'Male', 'female' => 'Female', 'other' => 'Other']),
-                                    TextInput::make('blood_group'),
-                                    TextInput::make('nationality')->default('Bangladeshi')->required(),
-                                    TextInput::make('religion'),
+                                    Select::make('gender_id')
+                                        ->relationship('gender', 'name')
+                                        ->searchable()
+                                        ->preload(),
+                                    Select::make('blood_group_id')
+                                        ->relationship('bloodGroup', 'name')
+                                        ->searchable()
+                                        ->preload(),
+                                    Select::make('nationality_id')
+                                        ->relationship('nationality', 'name')
+                                        ->searchable()
+                                        ->preload()
+                                        ->default(fn () => \App\Models\Nationality::where('slug', 'bangladeshi')->first()?->id),
+                                    Select::make('religion_id')
+                                        ->relationship('religion', 'name')
+                                        ->searchable()
+                                        ->preload(),
                                 ]),
                             ]),
 

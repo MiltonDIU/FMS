@@ -21,6 +21,10 @@ use App\Models\User;
 use Faker\Factory as Faker;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use App\Models\BloodGroup;
+use App\Models\Gender;
+use App\Models\Nationality;
+use App\Models\Religion;
 use Spatie\Permission\Models\Role;
 
 class TeacherSeeder extends Seeder
@@ -117,10 +121,10 @@ class TeacherSeeder extends Seeder
             'personal_phone' => '01800000000',
             'secondary_email' => 'teacher.personal@example.com',
             'date_of_birth' => '1990-01-01',
-            'gender' => 'male',
-            'blood_group' => 'A+',
-            'nationality' => 'Bangladeshi',
-            'religion' => 'Islam',
+            'gender_id' => Gender::where('slug', 'male')->first()?->id ?? Gender::first()->id,
+            'blood_group_id' => BloodGroup::where('name', 'A+')->first()?->id ?? BloodGroup::first()->id,
+            'nationality_id' => Nationality::where('slug', 'bangladesh')->first()?->id ?? Nationality::first()->id,
+            'religion_id' => Religion::where('slug', 'islam')->first()?->id ?? Religion::first()->id,
             'present_address' => 'Dhaka, Bangladesh',
             'permanent_address' => 'Dhaka, Bangladesh',
             'joining_date' => '2020-01-01',
@@ -187,10 +191,10 @@ class TeacherSeeder extends Seeder
             'personal_phone' => '018' . $this->faker->numerify('########'),
             'secondary_email' => $this->faker->optional(0.5)->email,
             'date_of_birth' => $this->faker->dateTimeBetween('-60 years', '-25 years')->format('Y-m-d'),
-            'gender' => $this->faker->randomElement(['male', 'female']),
-            'blood_group' => $this->faker->randomElement(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']),
-            'nationality' => 'Bangladeshi',
-            'religion' => $this->faker->randomElement(['Islam', 'Hinduism', 'Buddhism', 'Christianity']),
+            'gender_id' => Gender::inRandomOrder()->first()->id,
+            'blood_group_id' => BloodGroup::inRandomOrder()->first()->id,
+            'nationality_id' => Nationality::where('slug', 'bangladesh')->first()->id, // Mostly Bangladeshi
+            'religion_id' => Religion::inRandomOrder()->first()->id,
             'present_address' => $this->faker->address,
             'permanent_address' => $this->faker->address,
             'joining_date' => $this->faker->dateTimeBetween('-20 years', '-1 year')->format('Y-m-d'),

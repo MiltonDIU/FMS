@@ -37,17 +37,20 @@ class MyProfile extends Page
         $teacher = auth()->user()->teacher;
 
         if ($teacher) {
-            $this->form->fill(
-                $teacher->load([
-                    'educations',
-                    'publications',
-                    'jobExperiences',
-                    'awards',
-                    'skills',
-                    'teachingAreas',
-                    'socialLinks',
-                ])->toArray()
-            );
+            $formData = $teacher->load([
+                'educations',
+                'publications',
+                'jobExperiences',
+                'awards',
+                'skills',
+                'teachingAreas',
+                'socialLinks',
+            ])->toArray();
+            
+            // Add user email for display
+            $formData['email'] = auth()->user()->email;
+            
+            $this->form->fill($formData);
         }
     }
 

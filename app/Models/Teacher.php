@@ -20,7 +20,6 @@ class Teacher extends Model implements HasMedia
     use HasFactory, SoftDeletes, InteractsWithMedia;
 
     protected $fillable = [
-        'user_id',
         'department_id',
         'designation_id',
         'employee_id',
@@ -29,13 +28,14 @@ class Teacher extends Model implements HasMedia
         'middle_name',
         'last_name',
         'phone',
+        'extension_no',
         'personal_phone',
         'secondary_email',
         'date_of_birth',
-        'gender',
-        'blood_group',
-        'nationality',
-        'religion',
+        'gender_id',
+        'blood_group_id',
+        'nationality_id',
+        'religion_id',
         'present_address',
         'permanent_address',
         'joining_date',
@@ -110,6 +110,26 @@ class Teacher extends Model implements HasMedia
     public function designation(): BelongsTo
     {
         return $this->belongsTo(Designation::class);
+    }
+
+    public function gender(): BelongsTo
+    {
+        return $this->belongsTo(Gender::class);
+    }
+
+    public function bloodGroup(): BelongsTo
+    {
+        return $this->belongsTo(BloodGroup::class);
+    }
+
+    public function nationality(): BelongsTo
+    {
+        return $this->belongsTo(Nationality::class);
+    }
+
+    public function religion(): BelongsTo
+    {
+        return $this->belongsTo(Religion::class);
     }
 
     /**
@@ -253,7 +273,7 @@ class Teacher extends Model implements HasMedia
             ->useFallbackPath(public_path('/images/default-avatar.png'));
 
         $this->addMediaCollection('documents');
-        
+
         $this->addMediaCollection('certificates');
     }
 
