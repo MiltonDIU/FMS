@@ -22,8 +22,10 @@ class TeacherForm
         return $schema
             ->components([
                 Tabs::make('Teacher Profile')
+                    ->vertical()
+                    ->extraAttributes(['class' => 'responsive-vertical-tabs'])
                     ->tabs([
-                        Tab::make('Basic Information')
+                        Tab::make('Basic Info')
                             ->icon('heroicon-o-user')
                             ->schema([
                                 Grid::make(3)->schema([
@@ -77,7 +79,7 @@ class TeacherForm
                                     ->columnSpanFull(),
                             ]),
 
-                        Tab::make('Contact & Address')
+                        Tab::make('Contact Info')
                             ->icon('heroicon-o-map-pin')
                             ->schema([
                                 Grid::make(2)->schema([
@@ -90,23 +92,6 @@ class TeacherForm
                                     Textarea::make('present_address')->rows(2),
                                     Textarea::make('permanent_address')->rows(2),
                                 ]),
-                                Repeater::make('socialLinks')
-                                    ->relationship()
-                                    ->itemLabel(fn (array $state): ?string => $state['platform'] ?? null)
-                                    ->schema([
-                                        Select::make('platform')
-                                            ->options([
-                                                'Facebook' => 'Facebook',
-                                                'Twitter' => 'Twitter',
-                                                'LinkedIn' => 'LinkedIn',
-                                                'GitHub' => 'GitHub',
-                                                'Website' => 'Website',
-                                            ])
-                                            ->required(),
-                                        TextInput::make('url')->url()->required(),
-                                    ])
-                                    ->columns(2)
-                                    ->collapsed(),
                             ]),
 
                         Tab::make('Personal Details')
@@ -122,7 +107,7 @@ class TeacherForm
                                 ]),
                             ]),
 
-                        Tab::make('Academic & Social')
+                        Tab::make('Academic Info')
                             ->icon('heroicon-o-academic-cap')
                             ->schema([
                                 Textarea::make('research_interest')->rows(2)->columnSpanFull(),
@@ -132,17 +117,11 @@ class TeacherForm
                                     TextInput::make('research_gate')->label('ResearchGate Profile'),
                                     TextInput::make('orcid')->label('ORCID'),
                                 ]),
-                                Section::make('Documents & Certificates')
-                                    ->schema([
-                                        SpatieMediaLibraryFileUpload::make('documents')
-                                            ->collection('documents')
-                                            ->multiple()
-                                            ->downloadable(),
-                                    ])->collapsed(),
                             ]),
 
-                        Tab::make('Education & Research')
+                        Tab::make('Educations')
                             ->icon('heroicon-o-book-open')
+                            ->badge(fn ($record) => $record?->educations()->count())
                             ->schema([
                                 Repeater::make('educations')
                                     ->relationship()
@@ -167,7 +146,12 @@ class TeacherForm
                                     ])
                                     ->columns(2)
                                     ->collapsed(),
+                            ]),
 
+                        Tab::make('Publications')
+                            ->icon('heroicon-o-document-text')
+                            ->badge(fn ($record) => $record?->publications()->count())
+                            ->schema([
                                 Repeater::make('publications')
                                     ->relationship()
                                     ->itemLabel(fn (array $state): ?string => $state['title'] ?? null)
@@ -182,8 +166,9 @@ class TeacherForm
                                     ->collapsed(),
                             ]),
 
-                        Tab::make('Experience & Skills')
+                        Tab::make('Job Experience')
                             ->icon('heroicon-o-briefcase')
+                            ->badge(fn ($record) => $record?->jobExperiences()->count())
                             ->schema([
                                 Repeater::make('jobExperiences')
                                     ->relationship()
@@ -197,7 +182,12 @@ class TeacherForm
                                     ])
                                     ->columns(2)
                                     ->collapsed(),
+                            ]),
 
+                        Tab::make('Awards')
+                            ->icon('heroicon-o-trophy')
+                            ->badge(fn ($record) => $record?->awards()->count())
+                            ->schema([
                                 Repeater::make('awards')
                                     ->relationship()
                                     ->itemLabel(fn (array $state): ?string => $state['title'] ?? null)
@@ -208,7 +198,12 @@ class TeacherForm
                                     ])
                                     ->columns(2)
                                     ->collapsed(),
+                            ]),
 
+                        Tab::make('Skills')
+                            ->icon('heroicon-o-sparkles')
+                            ->badge(fn ($record) => $record?->skills()->count())
+                            ->schema([
                                 Repeater::make('skills')
                                     ->relationship()
                                     ->itemLabel(fn (array $state): ?string => $state['name'] ?? null)
@@ -223,7 +218,12 @@ class TeacherForm
                                     ])
                                     ->columns(2)
                                     ->collapsed(),
+                            ]),
 
+                        Tab::make('Teaching Areas')
+                            ->icon('heroicon-o-presentation-chart-line')
+                            ->badge(fn ($record) => $record?->teachingAreas()->count())
+                            ->schema([
                                 Repeater::make('teachingAreas')
                                     ->relationship()
                                     ->itemLabel(fn (array $state): ?string => $state['area'] ?? null)
@@ -231,6 +231,41 @@ class TeacherForm
                                         TextInput::make('area')->required(),
                                     ])
                                     ->collapsed(),
+                            ]),
+
+                        Tab::make('Social Links')
+                            ->icon('heroicon-o-link')
+                            ->badge(fn ($record) => $record?->socialLinks()->count())
+                            ->schema([
+                                Repeater::make('socialLinks')
+                                    ->relationship()
+                                    ->itemLabel(fn (array $state): ?string => $state['platform'] ?? null)
+                                    ->schema([
+                                        Select::make('platform')
+                                            ->options([
+                                                'Facebook' => 'Facebook',
+                                                'Twitter' => 'Twitter',
+                                                'LinkedIn' => 'LinkedIn',
+                                                'GitHub' => 'GitHub',
+                                                'Website' => 'Website',
+                                            ])
+                                            ->required(),
+                                        TextInput::make('url')->url()->required(),
+                                    ])
+                                    ->columns(2)
+                                    ->collapsed(),
+                            ]),
+
+                        Tab::make('Documents')
+                            ->icon('heroicon-o-document-duplicate')
+                            ->schema([
+                                Section::make('Documents & Certificates')
+                                    ->schema([
+                                        SpatieMediaLibraryFileUpload::make('documents')
+                                            ->collection('documents')
+                                            ->multiple()
+                                            ->downloadable(),
+                                    ])->collapsed(),
                             ]),
 
                         Tab::make('Settings')
