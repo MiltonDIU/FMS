@@ -19,7 +19,7 @@ class TeacherPolicy
 
     public function view(AuthUser $authUser, Teacher $teacher): bool
     {
-        return $authUser->can('View:Teacher') || $authUser->id === $teacher->user_id;
+        return $authUser->can('View:Teacher');
     }
 
     public function create(AuthUser $authUser): bool
@@ -29,7 +29,7 @@ class TeacherPolicy
 
     public function update(AuthUser $authUser, Teacher $teacher): bool
     {
-        return $authUser->can('Update:Teacher') || $authUser->id === $teacher->user_id;
+        return $authUser->can('Update:Teacher');
     }
 
     public function delete(AuthUser $authUser, Teacher $teacher): bool

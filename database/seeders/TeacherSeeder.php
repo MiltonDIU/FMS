@@ -110,6 +110,7 @@ class TeacherSeeder extends Seeder
             'department_id' => $department->id,
             'designation_id' => $designation->id,
             'employee_id' => '710000001',
+            'webpage' => 'faculty-teacher',
             'first_name' => 'Faculty',
             'last_name' => 'Teacher',
             'phone' => '01700000000',
@@ -130,6 +131,8 @@ class TeacherSeeder extends Seeder
             'profile_status' => 'approved',
             'is_public' => true,
             'is_active' => true,
+            'employment_status' => 'active',
+            'is_archived' => false,
             'sort_order' => 1,
         ]);
 
@@ -176,6 +179,7 @@ class TeacherSeeder extends Seeder
             'department_id' => $department->id,
             'designation_id' => $designation->id,
             'employee_id' => '7' . $uniqueSuffix . str_pad($index, 3, '0', STR_PAD_LEFT),
+            'webpage' => strtolower($firstName) . '-' . strtolower($lastName) . '-' . $uniqueSuffix,
             'first_name' => $firstName,
             'middle_name' => $this->faker->optional(0.3)->firstName,
             'last_name' => $lastName,
@@ -201,6 +205,8 @@ class TeacherSeeder extends Seeder
             'profile_status' => $this->faker->randomElement(['draft', 'pending', 'approved']),
             'is_public' => $this->faker->boolean(70),
             'is_active' => true,
+            'employment_status' => $this->faker->randomElement(['active', 'active', 'active', 'study_leave', 'on_leave', 'deputation']),
+            'is_archived' => $this->faker->boolean(5), // 5% archived
             'sort_order' => $index,
         ]);
 
