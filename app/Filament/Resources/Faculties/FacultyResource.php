@@ -15,12 +15,25 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-
+use UnitEnum;
 class FacultyResource extends Resource
 {
     protected static ?string $model = Faculty::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedAcademicCap;
+
+    // Navigation Group - UnitEnum|string|null type
+    protected static UnitEnum|string|null $navigationGroup = 'Settings';
+    protected static ?int $navigationSort = 1;
+    // Navigation Label (ঐচ্ছিক)
+    protected static ?string $navigationLabel = 'Faculties';
+
+    // Plural Label (ঐচ্ছিক)
+    protected static ?string $pluralLabel = 'Faculties';
+
+    // Model Label (ঐচ্ছিক)
+    protected static ?string $modelLabel = 'Faculty';
+
 
     public static function form(Schema $schema): Schema
     {

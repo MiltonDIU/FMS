@@ -15,13 +15,23 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-
+use UnitEnum;
 class DesignationResource extends Resource
 {
     protected static ?string $model = Designation::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedIdentification;
+    // Navigation Group - UnitEnum|string|null type
+    protected static UnitEnum|string|null $navigationGroup = 'Settings';
+    protected static ?int $navigationSort = 3;
+    // Navigation Label (ঐচ্ছিক)
+    protected static ?string $navigationLabel = 'Designations';
 
+    // Plural Label (ঐচ্ছিক)
+    protected static ?string $pluralLabel = 'Designations';
+
+    // Model Label (ঐচ্ছিক)
+    protected static ?string $modelLabel = 'Designation';
     public static function form(Schema $schema): Schema
     {
         return DesignationForm::configure($schema);
