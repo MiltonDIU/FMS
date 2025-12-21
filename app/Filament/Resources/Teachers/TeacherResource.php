@@ -23,6 +23,15 @@ class TeacherResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
+    /**
+     * Hide navigation for teacher role - they use "My Profile" instead.
+     * Only users with ViewAny:Teacher permission (via Shield) can see this menu.
+     */
+    public static function shouldRegisterNavigation(): bool
+    {
+        return auth()->user()?->can('ViewAny:Teacher') ?? false;
+    }
+
     public static function form(Schema $schema): Schema
     {
         return TeacherForm::configure($schema);

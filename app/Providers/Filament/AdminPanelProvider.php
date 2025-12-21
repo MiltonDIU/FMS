@@ -31,6 +31,9 @@ class AdminPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Amber,
             ])
+            // ->sidebarWidth('14rem')  // More compact sidebar (default ~18rem)
+            ->sidebarCollapsibleOnDesktop()  // User can collapse sidebar
+            ->maxContentWidth('full')
             ->resources([
                 \App\Filament\Resources\Users\UserResource::class, // Users first
             ])
