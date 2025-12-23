@@ -19,34 +19,77 @@ class PublicationsTable
         return $table
             ->columns([
                 TextColumn::make('title')
-                    ->searchable(),
+                    ->searchable()
+                    ->wrap(),
+                TextColumn::make('authors_list')
+                    ->label('Authors')
+                    ->state(function ($record) {
+                        return $record->teachers->sortBy(function ($teacher) {
+                            $role = $teacher->pivot->author_role;
+                            $order = $teacher->pivot->sort_order;
+                            
+                            // Priority: First (1), Corresponding (2), Co-Author (3)
+                            $rolePriority = match ($role) {
+                                'first' => 1,
+                                'corresponding' => 2,
+                                default => 3,
+                            };
+                            
+                            return sprintf('%d-%04d', $rolePriority, $order);
+                        })->map(function ($teacher) {
+                            $roleLabel = match ($teacher->pivot->author_role) {
+                                'first' => 'First Author',
+                                'corresponding' => 'Corresponding',
+                                'co_author' => 'Co-Author',
+                                default => ucfirst($teacher->pivot->author_role),
+                            };
+                            
+                            // Highlight First Author
+                            $style = $teacher->pivot->author_role === 'first' ? 'font-weight: bold;' : '';
+                            
+                            $fullName = trim("{$teacher->first_name} {$teacher->middle_name} {$teacher->last_name}");
+                            $details = "ID: {$teacher->employee_id}";
+                            if ($teacher->phone) {
+                                $details .= " | PH: {$teacher->phone}";
+                            }
+
+                            return "
+                                <div style='margin-bottom: 4px;'>
+                                    <span style='{$style}'>{$fullName}</span> 
+                                    <span class='text-gray-500 text-xs'>({$roleLabel})</span>
+                                    <div class='text-xs text-gray-400'>{$details}</div>
+                                </div>
+                            ";
+                        })->implode('');
+                    })
+                    ->html()
+                    ->searchable(query: function (\Illuminate\Database\Eloquent\Builder $query, string $search): \Illuminate\Database\Eloquent\Builder {
+                         return $query->whereHas('teachers', function ($q) use ($search) {
+                            $q->where('first_name', 'like', "%{$search}%")
+                                ->orWhere('middle_name', 'like', "%{$search}%")
+                                ->orWhere('last_name', 'like', "%{$search}%")
+                                ->orWhere('employee_id', 'like', "%{$search}%")
+                                ->orWhere('phone', 'like', "%{$search}%");
+                        });
+                    }),
+                TextColumn::make('type.name')
+                    ->label('Type')
+                    ->sortable(),
                 TextColumn::make('journal_name')
-                    ->searchable(),
-                TextColumn::make('publication_year'),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('publication_year')
+                    ->sortable(),
                 TextColumn::make('status')
-                    ->badge(),
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'draft' => 'gray',
+                        'pending' => 'warning',
+                        'approved' => 'success',
+                        'rejected' => 'danger',
+                    }),
                 IconColumn::make('is_featured')
                     ->boolean(),
-                TextColumn::make('sort_order')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('deleted_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('teacher_id')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('type')
-                    ->searchable(),
             ])
             ->filters([
                 TrashedFilter::make(),
