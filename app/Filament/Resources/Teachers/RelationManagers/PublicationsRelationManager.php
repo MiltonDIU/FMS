@@ -43,3 +43,4 @@ class PublicationsRelationManager extends RelationManager
             ]);
     }
 }
+ 

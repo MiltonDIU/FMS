@@ -29,7 +29,7 @@ class DatabaseSeeder extends Seeder
             BloodGroupSeeder::class,
             ReligionSeeder::class,
             SocialMediaPlatformSeeder::class,
-
+            PublicationLookupSeeder::class,
             TeacherSeeder::class,
             TeacherPermissionSeeder::class,
         ]);

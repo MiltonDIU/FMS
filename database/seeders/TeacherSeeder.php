@@ -47,7 +47,7 @@ class TeacherSeeder extends Seeder
         // ============================================
         // CONFIGURE NUMBER OF TEACHERS TO CREATE HERE
         // ============================================
-        $numberOfTeachers = 100; // Change this number as needed (e.g., 100, 500, 1000, 5000)
+        $numberOfTeachers = 50; // Change this number as needed (e.g., 100, 500, 1000, 5000)
         // ============================================
 
         $this->faker = Faker::create('en_US');
@@ -281,26 +281,87 @@ class TeacherSeeder extends Seeder
 
     private function createPublications(Teacher $teacher): void
     {
-        $count = $this->faker->numberBetween(0, 10);
+        $count = $this->faker->numberBetween(2, 8); // Ensure some publications
+
+        $types = \App\Models\PublicationType::pluck('id')->toArray();
+        $linkages = \App\Models\PublicationLinkage::pluck('id')->toArray();
+        $quartiles = \App\Models\PublicationQuartile::pluck('id')->toArray();
+        $grants = \App\Models\GrantType::pluck('id')->toArray();
+        $collabs = \App\Models\ResearchCollaboration::pluck('id')->toArray();
+
+        if (empty($types)) return;
 
         for ($i = 0; $i < $count; $i++) {
-            Publication::create([
-                'teacher_id' => $teacher->id,
-                'type' => $this->faker->randomElement(['journal', 'conference', 'book', 'book_chapter']),
+            $pub = Publication::create([
+                'publication_type_id' => $this->faker->randomElement($types),
+                'publication_linkage_id' => !empty($linkages) ? $this->faker->randomElement($linkages) : null,
+                'publication_quartile_id' => !empty($quartiles) ? $this->faker->randomElement($quartiles) : null,
+                'grant_type_id' => !empty($grants) ? $this->faker->randomElement($grants) : null,
+                'research_collaboration_id' => !empty($collabs) ? $this->faker->randomElement($collabs) : null,
+
                 'title' => $this->faker->sentence(8),
-                'authors' => $teacher->full_name . ', ' . $this->faker->name,
                 'journal_name' => $this->faker->company . ' Journal',
-                'publisher' => $this->faker->optional(0.5)->company,
-                'indexed_by' => $this->faker->randomElement(['Scopus', 'Web of Science', 'IEEE', 'ACM', null]),
-                'doi' => $this->faker->optional(0.6)->regexify('10\.[0-9]{4}/[a-z]{5}[0-9]{4}'),
-                'volume' => (string) $this->faker->numberBetween(1, 50),
-                'issue' => (string) $this->faker->numberBetween(1, 12),
-                'pages' => $this->faker->numberBetween(1, 20) . '-' . $this->faker->numberBetween(21, 50),
-                'publication_year' => $this->faker->numberBetween(2010, 2024),
-                'is_international' => $this->faker->boolean(60),
+                'journal_link' => $this->faker->url,
+                'publication_date' => $this->faker->date(),
+                'publication_year' => $this->faker->year(),
                 'status' => $this->faker->randomElement(['draft', 'approved']),
+                'is_featured' => $this->faker->boolean(20),
                 'sort_order' => $i + 1,
             ]);
+
+            // 1. Determine Main Teacher's Role
+            // 50% First, 30% Co-Author, 20% Corresponding
+            $mainRole = $this->faker->randomElement(array_merge(
+                array_fill(0, 5, 'first'),
+                array_fill(0, 3, 'co_author'),
+                array_fill(0, 2, 'corresponding')
+            ));
+
+            $pub->teachers()->attach($teacher->id, [
+                'author_role' => $mainRole,
+                'sort_order' => $mainRole === 'first' ? 1 : ($mainRole === 'corresponding' ? 2 : 3)
+            ]);
+
+            // 2. Fetch Potential Collaborators (Other Teachers)
+            $collaborators = Teacher::where('id', '!=', $teacher->id)
+                ->inRandomOrder()
+                ->take($this->faker->numberBetween(1, 3))
+                ->get();
+
+            $currentSortOrder = 2;
+
+            foreach ($collaborators as $collaborator) {
+                // Determine collaborator role based on what's already taken by Main Teacher
+                $collabRole = 'co_author';
+
+                // If main teacher isn't First, we need a First author (and we haven't assigned one yet)
+                $hasFirst = ($mainRole === 'first') || $pub->teachers()->wherePivot('author_role', 'first')->exists();
+                if (!$hasFirst) {
+                    $collabRole = 'first';
+                }
+                // Else if main teacher isn't Corresponding, maybe make this one Corresponding
+                else {
+                    $hasCorresponding = ($mainRole === 'corresponding') || $pub->teachers()->wherePivot('author_role', 'corresponding')->exists();
+                    if (!$hasCorresponding && $this->faker->boolean(50)) {
+                        $collabRole = 'corresponding';
+                    }
+                }
+
+                // Attach collaborator
+                // Use syncWithoutDetaching to avoid errors if ID matches (though query excludes)
+                if (!$pub->teachers()->where('teachers.id', $collaborator->id)->exists()) {
+                     $pub->teachers()->attach($collaborator->id, [
+                        'author_role' => $collabRole,
+                        'sort_order' => $collabRole === 'first' ? 0 : $currentSortOrder++
+                    ]);
+                }
+            }
+
+            // Safety: Ensure at least one First Author if main teacher wasn't it and no collaborators filled it
+            // (Only happens if no collaborators found, e.g., first run)
+            if ($mainRole !== 'first' && $collaborators->isEmpty()) {
+                 $pub->teachers()->updateExistingPivot($teacher->id, ['author_role' => 'first', 'sort_order' => 1]);
+            }
         }
     }
 
