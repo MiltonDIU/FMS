@@ -27,7 +27,7 @@ class FacultyForm
                 TextInput::make('sort_order')
                     ->required()
                     ->numeric()
-                    ->default(0),
+                    ->default(fn () => (\App\Models\Faculty::max('sort_order') ?? 0) + 1),
             ]);
     }
 }

@@ -26,10 +26,6 @@ return new class extends Migration
             $table->string('personal_phone')->nullable();
             $table->string('secondary_email')->nullable();
             $table->date('date_of_birth')->nullable();
-            $table->enum('gender', ['male', 'female', 'other'])->nullable();
-            $table->string('blood_group')->nullable();
-            $table->string('nationality')->default('Bangladeshi');
-            $table->string('religion')->nullable();
             $table->text('present_address')->nullable();
             $table->text('permanent_address')->nullable();
 
@@ -37,14 +33,10 @@ return new class extends Migration
             $table->date('joining_date')->nullable();
             $table->string('work_location')->nullable();
             $table->string('office_room')->nullable();
+            $table->string('extension_no')->nullable();
             $table->string('photo')->nullable();
             $table->text('bio')->nullable();
             $table->text('research_interest')->nullable();
-            $table->string('personal_website')->nullable();
-            $table->string('google_scholar')->nullable();
-            $table->string('research_gate')->nullable();
-            $table->string('orcid')->nullable();
-
             // Profile Status
             $table->enum('profile_status', ['draft', 'pending', 'approved', 'rejected'])->default('draft');
             $table->boolean('is_public')->default(false);

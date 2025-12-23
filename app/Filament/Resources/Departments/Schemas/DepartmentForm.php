@@ -31,7 +31,7 @@ class DepartmentForm
                 TextInput::make('sort_order')
                     ->required()
                     ->numeric()
-                    ->default(0),
+                    ->default(fn () => (\App\Models\Department::max('sort_order') ?? 0) + 1),
             ]);
     }
 }

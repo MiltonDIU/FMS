@@ -144,7 +144,7 @@ class TeacherSeeder extends Seeder
         $this->createPublications($teacher);
         $this->createResearchProjects($teacher);
         $this->createSkills($teacher);
-        
+
         $this->command->info("Created profile for teacher@fms.diu.edu.bd");
     }
 
@@ -202,10 +202,6 @@ class TeacherSeeder extends Seeder
             'office_room' => 'AB' . $this->faker->numberBetween(1, 5) . '-' . $this->faker->numberBetween(101, 510),
             'bio' => $this->faker->paragraph(3),
             'research_interest' => implode(', ', $this->faker->words(5)),
-            'personal_website' => $this->faker->optional(0.3)->url,
-            'google_scholar' => $this->faker->optional(0.5)->url,
-            'research_gate' => $this->faker->optional(0.4)->url,
-            'orcid' => $this->faker->optional(0.4)->regexify('[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{4}'),
             'profile_status' => $this->faker->randomElement(['draft', 'pending', 'approved']),
             'is_public' => $this->faker->boolean(70),
             'is_active' => true,
@@ -470,23 +466,24 @@ class TeacherSeeder extends Seeder
 
     private function createSocialLinks(Teacher $teacher): void
     {
-        $platforms = [
-            ['platform' => 'LinkedIn', 'url' => 'https://linkedin.com/in/'],
-            ['platform' => 'Facebook', 'url' => 'https://facebook.com/'],
-            ['platform' => 'Twitter', 'url' => 'https://twitter.com/'],
-            ['platform' => 'GitHub', 'url' => 'https://github.com/'],
-        ];
+        $platforms = \App\Models\SocialMediaPlatform::where('is_active', true)->get();
 
-        $count = $this->faker->numberBetween(0, 4);
-        $selectedPlatforms = $this->faker->randomElements($platforms, min($count, count($platforms)));
+        if ($platforms->isEmpty()) {
+             return;
+        }
+
+        $count = $this->faker->numberBetween(0, min(4, $platforms->count()));
+        $selectedPlatforms = $platforms->random($count);
 
         foreach ($selectedPlatforms as $index => $platform) {
             $username = strtolower($teacher->first_name . $teacher->last_name);
+            $url = $platform->base_url ? $platform->base_url . $username : 'https://example.com/' . $username;
+
             SocialLink::create([
                 'teacher_id' => $teacher->id,
-                'platform' => $platform['platform'],
+                'social_media_platform_id' => $platform->id,
                 'username' => $username,
-                'url' => $platform['url'] . $username,
+                'url' => $url,
                 'sort_order' => $index + 1,
             ]);
         }

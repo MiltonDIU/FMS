@@ -11,18 +11,20 @@ class GenderSeeder extends Seeder
     public function run(): void
     {
         $genders = [
-            ["name" => "Female", "active" => true],
-            ["name" => "Male", "active" => true],
-            ["name" => "Other", "active" => true],
+            ["name" => "Female", "code"=>"F", "active" => true],
+            ["name" => "Male","code"=>"M", "active" => true],
+            ["name" => "Other","code"=>"O", "active" => true],
         ];
 
-        foreach ($genders as $data) {
+        foreach ($genders as $index=> $data) {
             DB::table('genders')->updateOrInsert(
                 ['slug' => Str::slug($data['name'])],
                 [
                     'name' => trim($data['name']),
+                    'code' => trim($data['code']),
                     'is_active' => $data['active'],
                     'slug' => Str::slug($data['name']),
+                    'sort_order' => $index + 1,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]

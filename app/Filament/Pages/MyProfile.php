@@ -27,7 +27,7 @@ class MyProfile extends Page
     {
         // Allow access if user has 'teacher' role OR has specific permission
         // This handles cases where a user might have multiple roles
-        return auth()->user()->hasRole('teacher') || auth()->user()->can('page_MyProfile');
+        return  auth()->user()->can('View:MyProfile') & auth()->user()?->hasRole('teacher') ?? false;
     }
 
     public ?array $data = [];
@@ -46,10 +46,10 @@ class MyProfile extends Page
                 'teachingAreas',
                 'socialLinks',
             ])->toArray();
-            
+
             // Add user email for display
             $formData['email'] = auth()->user()->email;
-            
+
             $this->form->fill($formData);
         }
     }
@@ -65,15 +65,15 @@ class MyProfile extends Page
     {
         try {
             $data = $this->form->getState();
-            
+
             $teacher = auth()->user()->teacher;
-            
+
             if ($teacher) {
                 $teacher->update($data);
-                
+
                 // Save relationships (Repeaters)
                 $this->form->model($teacher)->saveRelationships();
-                
+
                 Notification::make()
                     ->success()
                     ->title(__('Profile saved successfully'))
@@ -88,7 +88,7 @@ class MyProfile extends Page
             return;
         }
     }
-    
+
     public function getFormActions(): array
     {
         return [

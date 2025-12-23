@@ -20,6 +20,10 @@ class ReligionForm
                     ->disabled()
                     ->dehydrated(false)
                     ->visible(fn ($record) => $record !== null),
+
+                TextInput::make('sort_order')
+                    ->numeric()
+                    ->default(fn () => (\App\Models\Religion::max('sort_order') ?? 0) + 1),
                 Toggle::make('is_active')
                     ->default(true),
             ]);

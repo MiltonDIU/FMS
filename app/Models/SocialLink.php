@@ -12,7 +12,7 @@ class SocialLink extends Model
 
     protected $fillable = [
         'teacher_id',
-        'platform',
+        'social_media_platform_id',
         'username',
         'url',
         'sort_order',
@@ -24,5 +24,10 @@ class SocialLink extends Model
     public function teacher(): BelongsTo
     {
         return $this->belongsTo(Teacher::class);
+    }
+
+    public function platform(): BelongsTo
+    {
+        return $this->belongsTo(SocialMediaPlatform::class, 'social_media_platform_id');
     }
 }

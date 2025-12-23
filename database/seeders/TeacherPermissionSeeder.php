@@ -17,14 +17,12 @@ class TeacherPermissionSeeder extends Seeder
         // The TeacherPolicy allows teachers to update their OWN profile based on user_id.
         // We do NOT give 'ViewAny:Teacher' so they don't see the full list.
         $permissions = [
-            // 'ViewAny:Teacher',
-            // 'View:Teacher',
-            'page_MyProfile',
+            'View:MyProfile',
         ];
 
         foreach ($permissions as $permissionName) {
             $permission = Permission::firstOrCreate(['name' => $permissionName, 'guard_name' => 'web']);
-            
+
             if (! $teacherRole->hasPermissionTo($permission)) {
                 $teacherRole->givePermissionTo($permission);
             }

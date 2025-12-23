@@ -19,13 +19,14 @@ class ReligionSeeder extends Seeder
             ["name" => "Sikh", "active" => true],
         ];
 
-        foreach ($religions as $data) {
+        foreach ($religions as $index=> $data) {
             DB::table('religions')->updateOrInsert(
                 ['slug' => Str::slug($data['name'])],
                 [
                     'name' => trim($data['name']),
                     'is_active' => $data['active'],
                     'slug' => Str::slug($data['name']),
+                    'sort_order' => $index + 1,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]

@@ -63,7 +63,12 @@ class TeacherForm
                                     TextInput::make('employee_id')
                                         ->label('Employee ID')
                                         ->required()
-                                        ->unique(ignoreRecord: true)
+                                        ->unique(ignoreRecord: true, modifyRuleUsing: function ($rule) use ($isOwnProfile) {
+                                            if ($isOwnProfile && ($teacher = auth()->user()->teacher)) {
+                                                return $rule->ignore($teacher->id);
+                                            }
+                                            return $rule;
+                                        })
                                         ->maxLength(50)
                                         ->live(onBlur: true)
                                         ->hint(function ($state, $record) {
@@ -81,7 +86,12 @@ class TeacherForm
                                         ->label('Login Email')
                                         ->email()
                                         ->required(fn ($record): bool => $record === null)  // Required only on create
-                                        ->unique('users', 'email', ignoreRecord: true)
+                                        ->unique('users', 'email', ignoreRecord: true, modifyRuleUsing: function ($rule) use ($isOwnProfile) {
+                                            if ($isOwnProfile) {
+                                                return $rule->ignore(auth()->id());
+                                            }
+                                            return $rule;
+                                        })
                                         ->live(onBlur: true)
                                         ->hint(function ($state, $record) use ($isOwnProfile) {
                                             if (empty($state) || $isOwnProfile) return null;
@@ -100,7 +110,12 @@ class TeacherForm
                                     TextInput::make('webpage')
                                         ->label('Profile URL Slug')
                                         ->required()
-                                        ->unique(ignoreRecord: true)
+                                        ->unique(ignoreRecord: true, modifyRuleUsing: function ($rule) use ($isOwnProfile) {
+                                            if ($isOwnProfile && ($teacher = auth()->user()->teacher)) {
+                                                return $rule->ignore($teacher->id);
+                                            }
+                                            return $rule;
+                                        })
                                         ->alphaDash()
                                         ->maxLength(100)
                                         ->live(onBlur: true)
@@ -185,12 +200,6 @@ class TeacherForm
                             ->icon('heroicon-o-academic-cap')
                             ->schema([
                                 Textarea::make('research_interest')->rows(2)->columnSpanFull(),
-                                Grid::make(2)->schema([
-                                    TextInput::make('personal_website')->url()->prefix('https://'),
-                                    TextInput::make('google_scholar')->label('Google Scholar ID/URL'),
-                                    TextInput::make('research_gate')->label('ResearchGate Profile'),
-                                    TextInput::make('orcid')->label('ORCID'),
-                                ]),
                             ]),
 
                         Tab::make('Educations')
@@ -319,16 +328,15 @@ class TeacherForm
                             ->schema([
                                 Repeater::make('socialLinks')
                                     ->relationship()
-                                    ->itemLabel(fn (array $state): ?string => $state['platform'] ?? null)
+                                    ->orderColumn('sort_order')
+                                    ->reorderable()
+                                    ->itemLabel(fn (array $state): ?string => \App\Models\SocialMediaPlatform::find($state['social_media_platform_id'] ?? null)?->name)
                                     ->schema([
-                                        Select::make('platform')
-                                            ->options([
-                                                'Facebook' => 'Facebook',
-                                                'Twitter' => 'Twitter',
-                                                'LinkedIn' => 'LinkedIn',
-                                                'GitHub' => 'GitHub',
-                                                'Website' => 'Website',
-                                            ])
+                                        Select::make('social_media_platform_id')
+                                            ->label('Platform')
+                                            ->relationship('platform', 'name', modifyQueryUsing: fn (\Illuminate\Database\Eloquent\Builder $query) => $query->orderBy('sort_order')) // Sort by order
+                                            ->searchable()
+                                            ->preload()
                                             ->required(),
                                         TextInput::make('url')->url()->required(),
                                     ])
@@ -387,7 +395,8 @@ class TeacherForm
                                         ->helperText('Archived teachers are hidden from main list')
                                         ->disabled($isOwnProfile)
                                         ->dehydrated(! $isOwnProfile),
-                                    TextInput::make('sort_order')->numeric()->default(0)
+                                    TextInput::make('sort_order')->numeric()
+                                        ->default(fn () => (\App\Models\Teacher::max('sort_order') ?? 0) + 1)
                                         ->disabled($isOwnProfile)
                                         ->dehydrated(! $isOwnProfile),
                                 ]),

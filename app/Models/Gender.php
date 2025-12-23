@@ -13,6 +13,7 @@ class Gender extends Model
 
     protected $fillable = [
         'name',
+        'code',
         'slug',
         'is_active',
         'sort_order',
