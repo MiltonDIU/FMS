@@ -20,30 +20,26 @@ class PublicationsRelationManager extends RelationManager
 
     public function form(Schema $form): Schema
     {
-        return $form->components([
-            TextInput::make('title')
-                ->required(),
-            TextInput::make('journal_name'),
-            TextInput::make('doi_link')
-                ->url(),
-            DatePicker::make('publication_date'),
-        ]);
+        return \App\Filament\Resources\Publications\Schemas\PublicationForm::configure($form);
     }
 
     public function table(Table $table): Table
     {
-        return $table
-            ->columns([
-                Tables\Columns\TextColumn::make('title'),
-                Tables\Columns\TextColumn::make('journal_name'),
-                Tables\Columns\TextColumn::make('publication_date')->date(),
-            ])
+        return \App\Filament\Resources\Publications\Tables\PublicationsTable::configure($table)
             ->headerActions([
-                CreateAction::make(),
+                Tables\Actions\CreateAction::make(),
+                Tables\Actions\AttachAction::make()->preloadRecordSelect(),
             ])
             ->actions([
-                EditAction::make(),
-                DeleteAction::make(),
+                Tables\Actions\EditAction::make(),
+                Tables\Actions\DetachAction::make(),
+                Tables\Actions\DeleteAction::make(),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DetachBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
             ]);
     }
 }

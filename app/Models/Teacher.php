@@ -143,9 +143,11 @@ class Teacher extends Model implements HasMedia
     /**
      * Get the publications for the teacher.
      */
-    public function publications(): HasMany
+    public function publications(): \Illuminate\Database\Eloquent\Relations\MorphToMany
     {
-        return $this->hasMany(Publication::class)->orderBy('sort_order');
+        return $this->morphToMany(Publication::class, 'authorable', 'publication_authors')
+            ->withPivot(['author_role', 'sort_order'])
+            ->withTimestamps();
     }
 
     /**

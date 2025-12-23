@@ -12,38 +12,65 @@ class Publication extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'teacher_id',
-        'type',
+        'publication_type_id',
+        'publication_linkage_id',
+        'publication_quartile_id',
+        'grant_type_id',
+        'research_collaboration_id',
         'title',
-        'authors',
         'journal_name',
-        'publisher',
-        'indexed_by',
-        'doi',
-        'url',
-        'volume',
-        'issue',
-        'pages',
+        'journal_link',
+        'publication_date',
         'publication_year',
-        'country',
+        'research_area',
+        'h_index',
+        'citescore',
+        'impact_factor',
+        'student_involvement',
         'keywords',
         'abstract',
-        'is_international',
         'status',
         'is_featured',
         'sort_order',
     ];
 
     protected $casts = [
-        'is_international' => 'boolean',
+        'student_involvement' => 'boolean',
         'is_featured' => 'boolean',
+        'publication_date' => 'date',
+        'citescore' => 'decimal:2',
+        'impact_factor' => 'decimal:2',
     ];
 
-    /**
-     * Get the teacher that owns the publication.
-     */
-    public function teacher(): BelongsTo
+    public function teachers()
     {
-        return $this->belongsTo(Teacher::class);
+        return $this->morphedByMany(Teacher::class, 'authorable', 'publication_authors')
+            ->withPivot(['author_role', 'sort_order'])
+            ->withTimestamps();
+    }
+
+    public function type(): BelongsTo
+    {
+        return $this->belongsTo(PublicationType::class, 'publication_type_id');
+    }
+
+    public function linkage(): BelongsTo
+    {
+        return $this->belongsTo(PublicationLinkage::class, 'publication_linkage_id');
+    }
+
+    public function quartile(): BelongsTo
+    {
+        return $this->belongsTo(PublicationQuartile::class, 'publication_quartile_id');
+    }
+
+    public function grant(): BelongsTo
+    {
+        return $this->belongsTo(GrantType::class, 'grant_type_id');
+    }
+
+    public function collaboration(): BelongsTo
+    {
+        return $this->belongsTo(ResearchCollaboration::class, 'research_collaboration_id');
     }
 }
