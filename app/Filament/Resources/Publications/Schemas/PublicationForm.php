@@ -17,21 +17,44 @@ class PublicationForm
     {
         return $schema
             ->components([
-                \Filament\Schemas\Components\Section::make('Publication Details')
+                \Filament\Schemas\Components\Group::make()
                     ->schema([
-                        Select::make('publication_type_id')
-                            ->relationship('type', 'name')
-                            ->required(),
-                        Select::make('publication_linkage_id')
-                            ->relationship('linkage', 'name')
-                            ->required(),
-                        Select::make('publication_quartile_id')
-                            ->relationship('quartile', 'name'),
-                        Select::make('grant_type_id')
-                            ->relationship('grant', 'name'),
-                        Select::make('research_collaboration_id')
-                            ->relationship('collaboration', 'name'),
-                    ])->columns(3),
+                        \Filament\Schemas\Components\Section::make('Publication Details')
+                            ->schema([
+                                Select::make('publication_type_id')
+                                    ->relationship('type', 'name')
+                                    ->required(),
+                                Select::make('publication_linkage_id')
+                                    ->relationship('linkage', 'name')
+                                    ->required(),
+                                Select::make('publication_quartile_id')
+                                    ->relationship('quartile', 'name'),
+                                Select::make('grant_type_id')
+                                    ->relationship('grant', 'name'),
+                                Select::make('research_collaboration_id')
+                                    ->relationship('collaboration', 'name'),
+                            ])->columns(3),
+
+
+
+                        \Filament\Schemas\Components\Section::make('Core Information')
+                            ->schema([
+                                TextInput::make('title')
+                                    ->required()
+                                    ->columnSpanFull(),
+                                Textarea::make('abstract')
+                                    ->columnSpanFull(),
+                                TextInput::make('research_area')
+                                    ->columnSpanFull(),
+                                Textarea::make('keywords')
+                                    ->columnSpanFull(),
+                            ]),
+
+
+                    ]),
+                \Filament\Schemas\Components\Group::make()
+                    ->schema([
+
 
                 \Filament\Schemas\Components\Section::make('Journal / Conference')
                     ->schema([
@@ -40,20 +63,6 @@ class PublicationForm
                         \Filament\Forms\Components\DatePicker::make('publication_date'),
                         TextInput::make('publication_year')->numeric(),
                     ])->columns(2),
-
-
-                \Filament\Schemas\Components\Section::make('Core Information')
-                    ->schema([
-                        TextInput::make('title')
-                            ->required()
-                            ->columnSpanFull(),
-                        Textarea::make('abstract')
-                            ->columnSpanFull(),
-                        TextInput::make('research_area')
-                             ->columnSpanFull(),
-                        Textarea::make('keywords')
-                            ->columnSpanFull(),
-                    ]),
 
                 \Filament\Schemas\Components\Section::make('Authorship')
                     ->schema([
@@ -99,6 +108,7 @@ class PublicationForm
                             ->required(),
                        TextInput::make('sort_order')->numeric()->default(0),
                     ])->columns(4),
+                    ]),
             ]);
     }
 }
