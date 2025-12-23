@@ -162,20 +162,20 @@ class TeacherForm
                                 Grid::make(3)->schema([
                                     DatePicker::make('date_of_birth'),
                                     Select::make('gender_id')
-                                        ->relationship('gender', 'name')
+                                        ->relationship('gender', 'name', modifyQueryUsing: fn (\Illuminate\Database\Eloquent\Builder $query) => $query->orderBy('sort_order'))
                                         ->searchable()
                                         ->preload(),
                                     Select::make('blood_group_id')
-                                        ->relationship('bloodGroup', 'name')
+                                        ->relationship('bloodGroup', 'name', modifyQueryUsing: fn (\Illuminate\Database\Eloquent\Builder $query) => $query->orderBy('sort_order'))
                                         ->searchable()
                                         ->preload(),
                                     Select::make('nationality_id')
-                                        ->relationship('nationality', 'name')
+                                        ->relationship('nationality', 'name', modifyQueryUsing: fn (\Illuminate\Database\Eloquent\Builder $query) => $query->orderBy('sort_order'))
                                         ->searchable()
                                         ->preload()
                                         ->default(fn () => \App\Models\Nationality::where('slug', 'bangladeshi')->first()?->id),
                                     Select::make('religion_id')
-                                        ->relationship('religion', 'name')
+                                        ->relationship('religion', 'name', modifyQueryUsing: fn (\Illuminate\Database\Eloquent\Builder $query) => $query->orderBy('sort_order'))
                                         ->searchable()
                                         ->preload(),
                                 ]),
