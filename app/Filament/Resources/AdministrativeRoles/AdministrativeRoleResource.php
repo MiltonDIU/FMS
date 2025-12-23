@@ -20,7 +20,7 @@ class AdministrativeRoleResource extends Resource
 {
     protected static ?string $model = AdministrativeRole::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTag;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCommandLine;
     // Navigation Group - UnitEnum|string|null type
     protected static UnitEnum|string|null $navigationGroup = 'Settings';
     protected static ?int $navigationSort = 4;

@@ -8,16 +8,26 @@ use App\Filament\Resources\BloodGroups\Tables\BloodGroupsTable;
 use App\Models\BloodGroup;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
-
+use UnitEnum;
+use BackedEnum;
 class BloodGroupResource extends Resource
 {
     protected static ?string $model = BloodGroup::class;
 
-    protected static \UnitEnum|string|null $navigationGroup = 'Settings';
-    
-    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-tag';
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedHeart;
+    // Navigation Group - UnitEnum|string|null type
+    protected static UnitEnum|string|null $navigationGroup = 'Settings';
+    protected static ?int $navigationSort = 5;
+    // Navigation Label (ঐচ্ছিক)
+    protected static ?string $navigationLabel = 'Blood Groups';
 
+    // Plural Label (ঐচ্ছিক)
+    protected static ?string $pluralLabel = 'Blood Groups';
+
+    // Model Label (ঐচ্ছিক)
+    protected static ?string $modelLabel = 'Blood Group';
     public static function form(Schema $schema): Schema
     {
         return BloodGroupForm::configure($schema);

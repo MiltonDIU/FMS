@@ -8,15 +8,26 @@ use App\Filament\Resources\Nationalities\Tables\NationalitiesTable;
 use App\Models\Nationality;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
-
+use UnitEnum;
+use BackedEnum;
 class NationalityResource extends Resource
 {
     protected static ?string $model = Nationality::class;
 
-    protected static \UnitEnum|string|null $navigationGroup = 'Settings';
-    
-    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-tag';
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedFlag;
+    // Navigation Group - UnitEnum|string|null type
+    protected static UnitEnum|string|null $navigationGroup = 'Settings';
+    protected static ?int $navigationSort = 8;
+    // Navigation Label (ঐচ্ছিক)
+    protected static ?string $navigationLabel = 'Nationalities';
+
+    // Plural Label (ঐচ্ছিক)
+    protected static ?string $pluralLabel = 'Nationalities';
+
+    // Model Label (ঐচ্ছিক)
+    protected static ?string $modelLabel = 'Nationality';
 
     public static function form(Schema $schema): Schema
     {
