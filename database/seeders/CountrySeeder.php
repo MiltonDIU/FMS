@@ -6,11 +6,11 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
-class NationalitySeeder extends Seeder
+class CountrySeeder extends Seeder
 {
     public function run(): void
     {
-        $nationalities = [
+        $countries = [
             ["name" => "Afghanistan", "code" => "AFG", "active" => true],
             ["name" => "Albania", "code" => "ALB", "active" => true],
             ["name" => "Algeria", "code" => "DZA", "active" => true],
@@ -274,16 +274,16 @@ class NationalitySeeder extends Seeder
             ["name" => "Zambia", "code" => "ZMB", "active" => true],
             ["name" => "Zimbabwe", "code" => "ZWE", "active" => true],
             ["name" => "Åland Islands", "code" => "ALA", "active" => true]
-        ];
+            ];
 
-        foreach ($nationalities as $index=> $data) {
-            DB::table('nationalities')->updateOrInsert(
-                ['slug' => Str::slug($data['name'])], // Check by slug
+        foreach ($countries as $index => $data) {
+            DB::table('countries')->updateOrInsert(
+                ['slug' => Str::slug($data['name'])],
                 [
                     'name' => trim($data['name']),
                     'is_active' => $data['active'],
                     'slug' => Str::slug($data['name']),
-                    'code' =>$data['code'],
+                    'code' => $data['code'],
                     'sort_order' => $index + 1,
                     'created_at' => now(),
                     'updated_at' => now(),

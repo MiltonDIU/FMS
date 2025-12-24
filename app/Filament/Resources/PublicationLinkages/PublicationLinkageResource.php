@@ -13,13 +13,24 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
-
+use UnitEnum;
 class PublicationLinkageResource extends Resource
 {
     protected static ?string $model = PublicationLinkage::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedLink;
 
+    // Navigation Group - UnitEnum|string|null type
+    protected static UnitEnum|string|null $navigationGroup = 'Publications';
+    protected static ?int $navigationSort = 2;
+    // Navigation Label (ঐচ্ছিক)
+    protected static ?string $navigationLabel = 'Publication Linkages ';
+
+    // Plural Label (ঐচ্ছিক)
+    protected static ?string $pluralLabel = 'Publication Linkages';
+
+    // Model Label (ঐচ্ছিক)
+    protected static ?string $modelLabel = 'Publication Linkage';
     public static function form(Schema $schema): Schema
     {
         return PublicationLinkageForm::configure($schema);

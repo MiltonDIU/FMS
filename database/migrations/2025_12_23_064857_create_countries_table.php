@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         // Nationalities
-        if (!Schema::hasTable('nationalities')) {
-            Schema::create('nationalities', function (Blueprint $table) {
+        if (!Schema::hasTable('countries')) {
+            Schema::create('countries', function (Blueprint $table) {
                 $table->id();
                 $table->string('name')->unique();
                 $table->string('code')->unique();
@@ -31,6 +31,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('nationalities');
+        Schema::dropIfExists('countries');
     }
 };

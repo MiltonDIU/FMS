@@ -13,12 +13,25 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
-
+use UnitEnum;
 class PublicationQuartileResource extends Resource
 {
     protected static ?string $model = PublicationQuartile::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+
+
+    // Navigation Group - UnitEnum|string|null type
+    protected static UnitEnum|string|null $navigationGroup = 'Publications';
+    protected static ?int $navigationSort = 3;
+    // Navigation Label (ঐচ্ছিক)
+    protected static ?string $navigationLabel = 'Publication Quartiles';
+
+    // Plural Label (ঐচ্ছিক)
+    protected static ?string $pluralLabel = 'Publication Quartiles';
+
+    // Model Label (ঐচ্ছিক)
+    protected static ?string $modelLabel = 'Publication Quartile';
 
     public static function form(Schema $schema): Schema
     {

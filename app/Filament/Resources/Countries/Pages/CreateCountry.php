@@ -1,14 +1,14 @@
 <?php
 
-namespace App\Filament\Resources\Nationalities\Pages;
+namespace App\Filament\Resources\Countries\Pages;
 
-use App\Filament\Resources\Nationalities\NationalityResource;
+use App\Filament\Resources\Countries\CountryResource;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Str;
 
-class CreateNationality extends CreateRecord
+class CreateCountry extends CreateRecord
 {
-    protected static string $resource = NationalityResource::class;
+    protected static string $resource = CountryResource::class;
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {

@@ -20,7 +20,7 @@ class Education extends Model
         'field_of_study',
         'institution',
         'board',
-        'country',
+        'country_id',
         'passing_year',
         'duration',
         'result_type',
@@ -44,5 +44,10 @@ class Education extends Model
     public function teacher(): BelongsTo
     {
         return $this->belongsTo(Teacher::class);
+    }
+
+    public function country(): BelongsTo
+    {
+        return $this->belongsTo(Country::class);
     }
 }

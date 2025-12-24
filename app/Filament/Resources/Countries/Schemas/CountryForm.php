@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Filament\Resources\Nationalities\Schemas;
+namespace App\Filament\Resources\Countries\Schemas;
 
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
 
-class NationalityForm
+class CountryForm
 {
     public static function configure(Schema $schema): Schema
     {
@@ -27,7 +27,7 @@ class NationalityForm
 
                 TextInput::make('sort_order')
                     ->numeric()
-                    ->default(fn () => (\App\Models\Nationality::max('sort_order') ?? 0) + 1),
+                    ->default(fn () => (\App\Models\Country::max('sort_order') ?? 0) + 1),
                 Toggle::make('is_active')
                     ->default(true),
             ]);

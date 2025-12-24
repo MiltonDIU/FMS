@@ -184,11 +184,11 @@ class TeacherForm
                                         ->relationship('bloodGroup', 'name', modifyQueryUsing: fn (\Illuminate\Database\Eloquent\Builder $query) => $query->orderBy('sort_order'))
                                         ->searchable()
                                         ->preload(),
-                                    Select::make('nationality_id')
-                                        ->relationship('nationality', 'name', modifyQueryUsing: fn (\Illuminate\Database\Eloquent\Builder $query) => $query->orderBy('sort_order'))
+                                    Select::make('country_id')
+                                        ->relationship('country', 'name', modifyQueryUsing: fn (\Illuminate\Database\Eloquent\Builder $query) => $query->orderBy('sort_order')) // Country relationship
                                         ->searchable()
                                         ->preload()
-                                        ->default(fn () => \App\Models\Nationality::where('slug', 'bangladeshi')->first()?->id),
+                                        ->default(fn () => \App\Models\Country::where('slug', 'bangladeshi')->first()?->id ?? \App\Models\Country::where('slug', 'bangladesh')->first()?->id),
                                     Select::make('religion_id')
                                         ->relationship('religion', 'name', modifyQueryUsing: fn (\Illuminate\Database\Eloquent\Builder $query) => $query->orderBy('sort_order'))
                                         ->searchable()
@@ -223,6 +223,11 @@ class TeacherForm
                                         TextInput::make('degree')->required(),
                                         TextInput::make('field_of_study')->required(),
                                         TextInput::make('institution')->required(),
+                                        Select::make('country_id')
+                                            ->relationship('country', 'name')
+                                            ->searchable()
+                                            ->preload()
+                                            ->default(fn () => \App\Models\Country::where('slug', 'bangladesh')->first()?->id),
                                         TextInput::make('passing_year')->numeric(),
                                         TextInput::make('result_type'),
                                         TextInput::make('cgpa')->numeric()->label('CGPA/GPA'),
@@ -261,6 +266,11 @@ class TeacherForm
                                     ->schema([
                                         TextInput::make('position')->required(),
                                         TextInput::make('organization')->required(),
+                                        Select::make('country_id')
+                                            ->relationship('country', 'name')
+                                            ->searchable()
+                                            ->preload()
+                                            ->default(fn () => \App\Models\Country::where('slug', 'bangladesh')->first()?->id),
                                         DatePicker::make('start_date')->required(),
                                         DatePicker::make('end_date'),
                                         Toggle::make('is_current')->label('Currently Working'),

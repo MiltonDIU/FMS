@@ -24,7 +24,7 @@ class DatabaseSeeder extends Seeder
             DepartmentSeeder::class,
             DesignationSeeder::class,
             AdministrativeRoleSeeder::class,
-            NationalitySeeder::class,
+            CountrySeeder::class,
             GenderSeeder::class,
             BloodGroupSeeder::class,
             ReligionSeeder::class,

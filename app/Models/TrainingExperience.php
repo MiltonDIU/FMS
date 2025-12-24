@@ -19,7 +19,7 @@ class TrainingExperience extends Model
         'duration_days',
         'completion_date',
         'year',
-        'country',
+        'country_id',
         'certificate_url',
         'is_online',
         'description',
@@ -37,5 +37,10 @@ class TrainingExperience extends Model
     public function teacher(): BelongsTo
     {
         return $this->belongsTo(Teacher::class);
+    }
+
+    public function country(): BelongsTo
+    {
+        return $this->belongsTo(Country::class);
     }
 }

@@ -15,12 +15,25 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-
+use UnitEnum;
 class SocialMediaPlatformResource extends Resource
 {
     protected static ?string $model = SocialMediaPlatform::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedLink;
+
+
+    // Navigation Group - UnitEnum|string|null type
+    protected static UnitEnum|string|null $navigationGroup = 'Settings';
+    protected static ?int $navigationSort = 9;
+    // Navigation Label (ঐচ্ছিক)
+    protected static ?string $navigationLabel = 'Social Media Platforms';
+
+    // Plural Label (ঐচ্ছিক)
+    protected static ?string $pluralLabel = 'Social Media Platforms';
+
+    // Model Label (ঐচ্ছিক)
+    protected static ?string $modelLabel = 'Social Media Platform';
 
     public static function form(Schema $schema): Schema
     {

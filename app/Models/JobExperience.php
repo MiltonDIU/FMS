@@ -17,7 +17,7 @@ class JobExperience extends Model
         'organization',
         'department',
         'location',
-        'country',
+        'country_id',
         'start_date',
         'end_date',
         'is_current',
@@ -39,6 +39,11 @@ class JobExperience extends Model
     public function teacher(): BelongsTo
     {
         return $this->belongsTo(Teacher::class);
+    }
+
+    public function country(): BelongsTo
+    {
+        return $this->belongsTo(Country::class);
     }
 
     /**

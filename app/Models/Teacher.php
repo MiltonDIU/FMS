@@ -34,7 +34,7 @@ class Teacher extends Model implements HasMedia
         'date_of_birth',
         'gender_id',
         'blood_group_id',
-        'nationality_id',
+        'country_id',
         'religion_id',
         'present_address',
         'permanent_address',
@@ -122,9 +122,9 @@ class Teacher extends Model implements HasMedia
         return $this->belongsTo(BloodGroup::class);
     }
 
-    public function nationality(): BelongsTo
+    public function country(): BelongsTo
     {
-        return $this->belongsTo(Nationality::class);
+        return $this->belongsTo(Country::class);
     }
 
     public function religion(): BelongsTo

@@ -23,7 +23,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use App\Models\BloodGroup;
 use App\Models\Gender;
-use App\Models\Nationality;
+use App\Models\Country;
 use App\Models\Religion;
 use Spatie\Permission\Models\Role;
 
@@ -33,6 +33,7 @@ class TeacherSeeder extends Seeder
     protected $departments;
     protected $designations;
     protected $teacherRole;
+    protected $countries;
 
     /**
      * Run the database seeds.
@@ -62,9 +63,10 @@ class TeacherSeeder extends Seeder
         // Cache departments and designations
         $this->departments = Department::all();
         $this->designations = Designation::all();
+        $this->countries = Country::all();
 
-        if ($this->departments->isEmpty() || $this->designations->isEmpty()) {
-            $this->command->error('Please run FacultySeeder, DepartmentSeeder, and DesignationSeeder first.');
+        if ($this->departments->isEmpty() || $this->designations->isEmpty() || $this->countries->isEmpty()) {
+            $this->command->error('Please run FacultySeeder, DepartmentSeeder, DesignationSeeder, and CountrySeeder first.');
             return;
         }
 
@@ -108,6 +110,7 @@ class TeacherSeeder extends Seeder
 
         $department = $this->departments->first();
         $designation = $this->designations->first();
+        $bangladesh = $this->countries->firstWhere('slug', 'bangladesh') ?? $this->countries->first();
 
         $teacher = Teacher::create([
             'user_id' => $user->id,
@@ -123,7 +126,7 @@ class TeacherSeeder extends Seeder
             'date_of_birth' => '1990-01-01',
             'gender_id' => Gender::where('slug', 'male')->first()?->id ?? Gender::first()->id,
             'blood_group_id' => BloodGroup::where('name', 'A+')->first()?->id ?? BloodGroup::first()->id,
-            'nationality_id' => Nationality::where('slug', 'bangladesh')->first()?->id ?? Nationality::first()->id,
+            'country_id' => $bangladesh->id,
             'religion_id' => Religion::where('slug', 'islam')->first()?->id ?? Religion::first()->id,
             'present_address' => 'Dhaka, Bangladesh',
             'permanent_address' => 'Dhaka, Bangladesh',
@@ -177,6 +180,7 @@ class TeacherSeeder extends Seeder
         // 3. Create Teacher Profile
         $department = $this->departments->random();
         $designation = $this->designations->random();
+        $bangladesh = $this->countries->firstWhere('slug', 'bangladesh') ?? $this->countries->first();
 
         $teacher = Teacher::create([
             'user_id' => $user->id,
@@ -193,7 +197,7 @@ class TeacherSeeder extends Seeder
             'date_of_birth' => $this->faker->dateTimeBetween('-60 years', '-25 years')->format('Y-m-d'),
             'gender_id' => Gender::inRandomOrder()->first()->id,
             'blood_group_id' => BloodGroup::inRandomOrder()->first()->id,
-            'nationality_id' => Nationality::where('slug', 'bangladesh')->first()->id, // Mostly Bangladeshi
+            'country_id' => $bangladesh->id, // Mostly Bangladeshi
             'religion_id' => Religion::inRandomOrder()->first()->id,
             'present_address' => $this->faker->address,
             'permanent_address' => $this->faker->address,
@@ -268,7 +272,7 @@ class TeacherSeeder extends Seeder
                 'field_of_study' => $this->faker->randomElement(['Computer Science', 'Software Engineering', 'Information Technology', 'Electronics', 'Physics', 'Mathematics']),
                 'institution' => $this->faker->company . ' University',
                 'board' => $edu['level'] === 'Secondary' || $edu['level'] === 'Higher Secondary' ? $this->faker->randomElement(['Dhaka', 'Technical', 'Rajshahi']) : null,
-                'country' => $this->faker->randomElement(['Bangladesh', 'USA', 'UK', 'Australia', 'Japan', 'Malaysia']),
+                'country_id' => $this->countries->random()->id,
                 'passing_year' => $this->faker->numberBetween(1990, 2023),
                 'duration' => $this->faker->randomElement(['2', '3', '4', '5']),
                 'result_type' => $this->faker->randomElement(['CGPA', 'Grade', 'Division']),
@@ -400,7 +404,7 @@ class TeacherSeeder extends Seeder
                 'duration_days' => $this->faker->numberBetween(1, 30),
                 'completion_date' => $this->faker->dateTimeBetween('-10 years', 'now')->format('Y-m-d'),
                 'year' => $this->faker->numberBetween(2015, 2024),
-                'country' => $this->faker->randomElement(['Bangladesh', 'India', 'Malaysia', 'Singapore']),
+                'country_id' => $this->countries->random()->id,
                 'is_online' => $this->faker->boolean(40),
                 'sort_order' => $i + 1,
             ]);
@@ -505,6 +509,7 @@ class TeacherSeeder extends Seeder
     private function createJobExperiences(Teacher $teacher): void
     {
         $count = $this->faker->numberBetween(1, 5);
+        $bangladesh = $this->countries->firstWhere('slug', 'bangladesh') ?? $this->countries->first();
 
         for ($i = 0; $i < $count; $i++) {
             $isCurrent = $i === 0;
@@ -514,7 +519,7 @@ class TeacherSeeder extends Seeder
                 'organization' => $isCurrent ? 'Daffodil International University' : $this->faker->company,
                 'department' => $this->faker->randomElement(['CSE', 'IT', 'Research', 'Development']),
                 'location' => $this->faker->city,
-                'country' => 'Bangladesh',
+                'country_id' => $bangladesh->id,
                 'start_date' => $this->faker->dateTimeBetween('-15 years', '-1 year')->format('Y-m-d'),
                 'end_date' => $isCurrent ? null : $this->faker->dateTimeBetween('-1 year', 'now')->format('Y-m-d'),
                 'is_current' => $isCurrent,
