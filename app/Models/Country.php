@@ -26,4 +26,10 @@ class Country extends Model
     {
         return $this->hasMany(Teacher::class);
     }
+
+    public function JobExperience(): HasMany
+    {
+        return $this->hasMany(JobExperience::class);
+    }
+
 }

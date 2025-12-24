@@ -48,7 +48,7 @@ class TeacherSeeder extends Seeder
         // ============================================
         // CONFIGURE NUMBER OF TEACHERS TO CREATE HERE
         // ============================================
-        $numberOfTeachers = 50; // Change this number as needed (e.g., 100, 500, 1000, 5000)
+        $numberOfTeachers = 5; // Change this number as needed (e.g., 100, 500, 1000, 5000)
         // ============================================
 
         $this->faker = Faker::create('en_US');
@@ -253,33 +253,71 @@ class TeacherSeeder extends Seeder
 
     private function createEducations(Teacher $teacher): void
     {
-        $levels = [
-            ['level' => 'Doctorate', 'degree' => 'Ph.D.'],
-            ['level' => 'Masters', 'degree' => 'M.Sc.'],
-            ['level' => 'Bachelor', 'degree' => 'B.Sc.'],
-            ['level' => 'Higher Secondary', 'degree' => 'HSC'],
-            ['level' => 'Secondary', 'degree' => 'SSC'],
-        ];
+        // Fetch Lookups
+        $degreeTypes = \App\Models\DegreeType::all()->groupBy(fn($dt) => $dt->level->name);
+        $results = \App\Models\ResultType::all();
+
+        // Check if data exists
+        if ($degreeTypes->isEmpty() || $results->isEmpty()) {
+            return;
+        }
+
+        // Define hierarchy preference
+        $hierarchy = ['Doctoral', 'Master', 'Bachelor', 'High School'];
 
         $count = $this->faker->numberBetween(2, 4);
-        $selectedLevels = array_slice($levels, 0, $count);
+        $created = 0;
 
-        foreach ($selectedLevels as $index => $edu) {
-            Education::create([
-                'teacher_id' => $teacher->id,
-                'level_of_education' => $edu['level'],
-                'degree' => $edu['degree'],
-                'field_of_study' => $this->faker->randomElement(['Computer Science', 'Software Engineering', 'Information Technology', 'Electronics', 'Physics', 'Mathematics']),
-                'institution' => $this->faker->company . ' University',
-                'board' => $edu['level'] === 'Secondary' || $edu['level'] === 'Higher Secondary' ? $this->faker->randomElement(['Dhaka', 'Technical', 'Rajshahi']) : null,
-                'country_id' => $this->countries->random()->id,
-                'passing_year' => $this->faker->numberBetween(1990, 2023),
-                'duration' => $this->faker->randomElement(['2', '3', '4', '5']),
-                'result_type' => $this->faker->randomElement(['CGPA', 'Grade', 'Division']),
-                'cgpa' => $this->faker->randomFloat(2, 3.0, 4.0),
-                'scale' => 4.0,
-                'sort_order' => $index + 1,
-            ]);
+        foreach ($hierarchy as $levelName) {
+            if ($created >= $count) break;
+
+            $types = $degreeTypes->get($levelName) ?? collect();
+
+            if ($types->isNotEmpty()) {
+                // Pick a random degree type
+                $degreeType = $types->random();
+
+                // Pick a random result type
+                $resultType = $results->random();
+
+                // Base education data
+                $educationData = [
+                    'teacher_id' => $teacher->id,
+                    'degree_type_id' => $degreeType->id,
+                    'major' => $this->faker->randomElement([
+                        'Computer Science', 'Electrical Engineering', 'Mathematics',
+                        'Physics', 'Chemistry', 'Business Administration',
+                        'Economics', 'English Literature', 'Civil Engineering'
+                    ]),
+                    'institution' => $this->faker->company . ' University',
+                    'country_id' => $this->countries->random()->id,
+                    'passing_year' => $this->faker->numberBetween(1990, 2023),
+                    'duration' => $this->faker->randomElement(['2 years', '3 years', '4 years', '5 years']),
+                    'result_type_id' => $resultType->id,
+                    'sort_order' => $created + 1,
+                ];
+
+                // Add result-specific fields based on result type
+                switch ($resultType->type_name) {
+                    case 'CGPA':
+                    case 'GPA':
+                        $educationData['cgpa'] = $this->faker->randomFloat(2, 3.0, 4.0);
+                        $educationData['scale'] = 4.0;
+                        break;
+                    case 'Percentage':
+                        $educationData['marks'] = $this->faker->randomFloat(2, 60, 95);
+                        break;
+                    case 'Grade':
+                    case 'Pass/Fail':
+                        $educationData['grade'] = $this->faker->randomElement([
+                            'First Class', 'Second Class', 'A+', 'A', 'B+', 'Pass'
+                        ]);
+                        break;
+                }
+
+                Education::create($educationData);
+                $created++;
+            }
         }
     }
 

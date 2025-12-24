@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Filament\Resources\Genders\GenderResource;
+use App\Models\DegreeLevel;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -30,6 +31,9 @@ class DatabaseSeeder extends Seeder
             ReligionSeeder::class,
             SocialMediaPlatformSeeder::class,
             PublicationLookupSeeder::class,
+            DegreeLevelSeeder::class,
+            ResultTypeSeeder::class,
+            DegreeTypeSeeder::class,
             TeacherSeeder::class,
             TeacherPermissionSeeder::class,
         ]);

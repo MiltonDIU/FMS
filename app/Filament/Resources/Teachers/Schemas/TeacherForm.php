@@ -9,12 +9,12 @@ use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\Placeholder;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
-
 class TeacherForm
 {
     public static function configure(Schema $schema, bool $isOwnProfile = false): Schema
@@ -208,30 +208,176 @@ class TeacherForm
                             ->schema([
                                 Repeater::make('educations')
                                     ->relationship()
-                                    ->itemLabel(fn (array $state): ?string => ($state['degree'] ?? '') . ' - ' . ($state['institution'] ?? ''))
+                                    ->itemLabel(fn (array $state): ?string => \App\Models\DegreeType::find($state['degree_type_id'] ?? null)?->name . ' - ' . ($state['institution'] ?? ''))
                                     ->schema([
-                                        Select::make('level_of_education')
-                                            ->label('Level')
-                                            ->options([
-                                                'Doctorate' => 'Doctorate',
-                                                'Masters' => 'Masters',
-                                                'Bachelor' => 'Bachelor',
-                                                'Higher Secondary' => 'Higher Secondary',
-                                                'Secondary' => 'Secondary',
+
+// Step 1: Degree Level (helper field, not saved to DB)
+                                        Select::make('_degree_level_id')
+                                            ->label('Degree Level')
+                                            ->options(\App\Models\DegreeLevel::orderBy('sort_order')->pluck('name', 'id'))
+                                            ->placeholder('Select level first')
+                                            ->live()
+                                            ->afterStateUpdated(fn (callable $set) => $set('degree_type_id', null))
+                                            ->dehydrated(false)
+                                            ->columnSpan(1),
+
+// Step 2: Degree Type (filtered by level, SAVED to DB)
+                                        Select::make('degree_type_id')
+                                            ->label('Degree Type')
+                                            ->options(function ($get) {
+                                                $levelId = $get('_degree_level_id');
+                                                if (!$levelId) {
+                                                    return \App\Models\DegreeType::query()
+                                                        ->with('level')
+                                                        ->get()
+                                                        ->mapWithKeys(fn ($dt) => [$dt->id => "{$dt->level->name} - {$dt->name}"])
+                                                        ->toArray();
+                                                }
+                                                return \App\Models\DegreeType::where('degree_level_id', $levelId)
+                                                    ->orderBy('name')
+                                                    ->pluck('name', 'id');
+                                            })
+                                            ->searchable()
+                                            ->required()
+                                            ->afterStateHydrated(function ($state, callable $set) {
+                                                if ($state) {
+                                                    $degreeType = \App\Models\DegreeType::find($state);
+                                                    if ($degreeType) {
+                                                        $set('_degree_level_id', $degreeType->degree_level_id);
+                                                    }
+                                                }
+                                            })
+                                            ->disabled(fn ($get) => !$get('_degree_level_id'))
+                                            ->createOptionForm([
+                                                Select::make('degree_level_id')
+                                                    ->label('Level')
+                                                    ->relationship('level', 'name')
+                                                    ->required(),
+                                                TextInput::make('code')->required()->unique('degree_types', 'code'),
+                                                TextInput::make('name')->required(),
                                             ])
-                                            ->required(),
-                                        TextInput::make('degree')->required(),
-                                        TextInput::make('field_of_study')->required(),
-                                        TextInput::make('institution')->required(),
+                                            ->columnSpan(1),
+
+// Major / Field of Study (text input)
+                                        TextInput::make('major')
+                                            ->label('Major / Field of Study')
+                                            ->required()
+                                            ->maxLength(255)
+                                            ->placeholder('e.g., Computer Science, Mathematics')
+                                            ->datalist([
+                                                'Computer Science',
+                                                'Electrical Engineering',
+                                                'Mechanical Engineering',
+                                                'Civil Engineering',
+                                                'Mathematics',
+                                                'Physics',
+                                                'Chemistry',
+                                                'Business Administration',
+                                                'Economics',
+                                                'English Literature',
+                                                'Accounting',
+                                                'Medicine',
+                                            ])
+                                            ->columnSpan(2),
+
+// Institution
+                                        TextInput::make('institution')
+                                            ->required()
+                                            ->maxLength(255),
+
+
+// Country
                                         Select::make('country_id')
+                                            ->label('Country')
                                             ->relationship('country', 'name')
                                             ->searchable()
                                             ->preload()
                                             ->default(fn () => \App\Models\Country::where('slug', 'bangladesh')->first()?->id),
-                                        TextInput::make('passing_year')->numeric(),
-                                        TextInput::make('result_type'),
-                                        TextInput::make('cgpa')->numeric()->label('CGPA/GPA'),
-                                    ])
+
+// Passing Year
+                                        TextInput::make('passing_year')
+                                            ->label('Passing Year')
+                                            ->numeric()
+                                            ->minValue(1950)
+                                            ->maxValue(date('Y') + 5),
+
+// Duration
+                                        TextInput::make('duration')
+                                            ->placeholder('e.g., 4 years')
+                                            ->maxLength(50),
+
+// Result Type (triggers conditional fields)
+                                        Select::make('result_type_id')
+                                            ->label('Result Type')
+                                            ->relationship('resultType', 'type_name')
+                                            ->searchable()
+                                            ->preload()
+                                            ->required()
+                                            ->live()
+                                            ->columnSpan(2),
+
+// === CONDITIONAL RESULT FIELDS ===
+
+// CGPA (for CGPA/GPA types)
+                                        TextInput::make('cgpa')
+                                            ->label('CGPA/GPA')
+                                            ->numeric()
+                                            ->step(0.01)
+                                            ->minValue(0)
+                                            ->maxValue(fn ($get) => (float) ($get('scale') ?? 5.0))
+                                            ->hidden(function ($get) {
+                                                $resultTypeId = $get('result_type_id');
+                                                if (!$resultTypeId) return true;
+                                                $resultType = \App\Models\ResultType::find($resultTypeId);
+                                                return !in_array($resultType?->type_name, ['CGPA', 'GPA']);
+                                            }),
+
+// Scale (for CGPA/GPA types)
+                                        TextInput::make('scale')
+                                            ->label('Out of (Scale)')
+                                            ->numeric()
+                                            ->step(0.1)
+                                            ->default(4.0)
+                                            ->minValue(1)
+                                            ->maxValue(10)
+                                            ->hidden(function ($get) {
+                                                $resultTypeId = $get('result_type_id');
+                                                if (!$resultTypeId) return true;
+                                                $resultType = \App\Models\ResultType::find($resultTypeId);
+                                                return !in_array($resultType?->type_name, ['CGPA', 'GPA']);
+                                            }),
+
+// Marks (for Percentage type)
+                                        TextInput::make('marks')
+                                            ->label('Marks/Percentage')
+                                            ->numeric()
+                                            ->step(0.01)
+                                            ->minValue(0)
+                                            ->maxValue(100)
+                                            ->suffix('%')
+                                            ->hidden(function ($get) {
+                                                $resultTypeId = $get('result_type_id');
+                                                if (!$resultTypeId) return true;
+                                                $resultType = \App\Models\ResultType::find($resultTypeId);
+                                                return $resultType?->type_name !== 'Percentage';
+                                            })
+                                            ->columnSpan(2),
+
+// Grade (for Grade/Pass-Fail types)
+                                        TextInput::make('grade')
+                                            ->label('Grade/Division/Class')
+                                            ->placeholder('e.g., First Class, A+, Pass')
+                                            ->maxLength(50)
+                                            ->hidden(function ($get) {
+                                                $resultTypeId = $get('result_type_id');
+                                                if (!$resultTypeId) return true;
+                                                $resultType = \App\Models\ResultType::find($resultTypeId);
+                                                return !in_array($resultType?->type_name, ['Grade', 'Pass/Fail']);
+                                            })
+                                            ->columnSpan(2),
+
+
+])
                                     ->columns(2)
                                     ->defaultItems(0)
                                     ->collapsed(),

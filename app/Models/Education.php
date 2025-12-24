@@ -15,20 +15,18 @@ class Education extends Model
 
     protected $fillable = [
         'teacher_id',
-        'level_of_education',
-        'degree',
-        'field_of_study',
-        'institution',
-        'board',
+        'degree_type_id', // Replaces degree and level_of_education
         'country_id',
+        'result_type_id', // Replaces result_type
+        'major',
+        'institution',
         'passing_year',
         'duration',
-        'result_type',
+
         'cgpa',
         'scale',
         'marks',
-        'thesis_title',
-        'description',
+        'grade', // For Grade/Division results
         'sort_order',
     ];
 
@@ -49,5 +47,20 @@ class Education extends Model
     public function country(): BelongsTo
     {
         return $this->belongsTo(Country::class);
+    }
+
+    public function degreeType(): BelongsTo
+    {
+        return $this->belongsTo(DegreeType::class);
+    }
+    public function degreeLevel(): BelongsTo
+    {
+        return $this->belongsTo(DegreeLevel::class);
+    }
+
+
+    public function resultType(): BelongsTo
+    {
+        return $this->belongsTo(ResultType::class);
     }
 }
