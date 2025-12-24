@@ -41,9 +41,10 @@ class JobExperience extends Model
         return $this->belongsTo(Teacher::class);
     }
 
+
     public function country(): BelongsTo
     {
-        return $this->belongsTo(Country::class);
+        return $this->belongsTo(Country::class, 'country_id');
     }
 
     /**

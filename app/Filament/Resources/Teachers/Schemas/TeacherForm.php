@@ -86,10 +86,16 @@ class TeacherForm
                                         ->label('Login Email')
                                         ->email()
                                         ->required(fn ($record): bool => $record === null)  // Required only on create
-                                        ->unique('users', 'email', ignoreRecord: true, modifyRuleUsing: function ($rule) use ($isOwnProfile) {
+                                        ->unique('users', 'email', ignoreRecord: false, modifyRuleUsing: function ($rule, $record) use ($isOwnProfile) {
                                             if ($isOwnProfile) {
                                                 return $rule->ignore(auth()->id());
                                             }
+                                            
+                                            // Manual ignore of User ID associated with Teacher
+                                            if ($record && $record->user_id) {
+                                                return $rule->ignore($record->user_id);
+                                            }
+                                            
                                             return $rule;
                                         })
                                         ->live(onBlur: true)
@@ -224,20 +230,16 @@ class TeacherForm
 // Step 2: Degree Type (filtered by level, SAVED to DB)
                                         Select::make('degree_type_id')
                                             ->label('Degree Type')
-                                            ->options(function ($get) {
+                                            ->relationship('degreeType', 'name', modifyQueryUsing: function ($query, $get) {
                                                 $levelId = $get('_degree_level_id');
-                                                if (!$levelId) {
-                                                    return \App\Models\DegreeType::query()
-                                                        ->with('level')
-                                                        ->get()
-                                                        ->mapWithKeys(fn ($dt) => [$dt->id => "{$dt->level->name} - {$dt->name}"])
-                                                        ->toArray();
+                                                if ($levelId) {
+                                                    $query->where('degree_level_id', $levelId);
                                                 }
-                                                return \App\Models\DegreeType::where('degree_level_id', $levelId)
-                                                    ->orderBy('name')
-                                                    ->pluck('name', 'id');
+                                                return $query->with('level')->orderBy('name');
                                             })
+                                            ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->level->name} - {$record->name}")
                                             ->searchable()
+                                            ->preload()
                                             ->required()
                                             ->afterStateHydrated(function ($state, callable $set) {
                                                 if ($state) {
@@ -253,8 +255,16 @@ class TeacherForm
                                                     ->label('Level')
                                                     ->relationship('level', 'name')
                                                     ->required(),
-                                                TextInput::make('code')->required()->unique('degree_types', 'code'),
-                                                TextInput::make('name')->required(),
+                                                TextInput::make('code')
+                                                    ->required()
+                                                    ->unique('degree_types', 'code', modifyRuleUsing: function ($rule, $get) {
+                                                        return $rule->where('degree_level_id', $get('degree_level_id'));
+                                                    }),
+                                                TextInput::make('name')
+                                                    ->required()
+                                                    ->unique('degree_types', 'name', modifyRuleUsing: function ($rule, $get) {
+                                                        return $rule->where('degree_level_id', $get('degree_level_id'));
+                                                    }),
                                             ])
                                             ->columnSpan(1),
 
@@ -413,13 +423,42 @@ class TeacherForm
                                         TextInput::make('position')->required(),
                                         TextInput::make('organization')->required(),
                                         Select::make('country_id')
-                                            ->relationship('country', 'name')
+                                            ->label('Country')
+                                            ->options(\App\Models\Country::pluck('name', 'id'))
                                             ->searchable()
                                             ->preload()
                                             ->default(fn () => \App\Models\Country::where('slug', 'bangladesh')->first()?->id),
                                         DatePicker::make('start_date')->required(),
                                         DatePicker::make('end_date'),
                                         Toggle::make('is_current')->label('Currently Working'),
+                                    ])
+                                    ->columns(2)
+                                    ->defaultItems(0)
+                                    ->collapsed(),
+                            ]),
+
+                        Tab::make('Training Experience')
+                            ->icon('heroicon-o-academic-cap')
+                            ->badge(fn ($record) => $record?->trainingExperiences()->count())
+                            ->schema([
+                                Repeater::make('trainingExperiences')
+                                    ->relationship()
+                                    ->itemLabel(fn (array $state): ?string => $state['title'] ?? null)
+                                    ->schema([
+                                        TextInput::make('title')->required(),
+                                        TextInput::make('organization')->required(),
+                                        TextInput::make('category'),
+                                        Select::make('country_id')
+                                            ->label('Country')
+                                            ->options(\App\Models\Country::pluck('name', 'id'))
+                                            ->searchable()
+                                            ->preload()
+                                            ->default(fn () => \App\Models\Country::where('slug', 'bangladesh')->first()?->id),
+                                        TextInput::make('year')->numeric(),
+                                        DatePicker::make('completion_date'),
+                                        TextInput::make('duration_days')->numeric()->label('Duration (Days)'),
+                                        Toggle::make('is_online')->label('Online'),
+                                        Textarea::make('description')->columnSpanFull(),
                                     ])
                                     ->columns(2)
                                     ->defaultItems(0)

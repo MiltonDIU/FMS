@@ -30,6 +30,11 @@ class JobExperiencesRelationManager extends RelationManager
                 TextInput::make('organization')
                     ->required()
                     ->maxLength(255),
+                \Filament\Forms\Components\Select::make('country_id')
+                    ->relationship('country', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->required(),
                 DatePicker::make('start_date'),
                 DatePicker::make('end_date'),
             ]);
