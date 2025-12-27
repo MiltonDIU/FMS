@@ -401,11 +401,86 @@ class TeacherForm
                                     ->relationship()
                                     ->itemLabel(fn (array $state): ?string => $state['title'] ?? null)
                                     ->schema([
-                                        TextInput::make('title')->required()->columnSpanFull(),
-                                        TextInput::make('journal_name'),
-                                        TextInput::make('publication_year')->numeric(),
-                                        TextInput::make('doi')->label('DOI'),
-                                        TextInput::make('url')->url(),
+                                        \Filament\Schemas\Components\Group::make()
+                                            ->schema([
+                                                \Filament\Schemas\Components\Section::make('Publication Details')
+                                                    ->schema([
+                                                        Select::make('faculty_id')
+                                                            ->label('Faculty')
+                                                            ->relationship('faculty', 'name')
+                                                            ->searchable()
+                                                            ->preload()
+                                                            ->live()
+                                                            ->afterStateUpdated(fn (callable $set) => $set('department_id', null)),
+                                                        Select::make('department_id')
+                                                            ->label('Department')
+                                                            ->relationship('department', 'name', modifyQueryUsing: function ($query, callable $get) {
+                                                                $facultyId = $get('faculty_id');
+                                                                if (!$facultyId) {
+                                                                    return $query;
+                                                                }
+                                                                return $query->where('faculty_id', $facultyId);
+                                                            })
+                                                            ->searchable()
+                                                            ->preload(),
+                                                        Select::make('publication_type_id')
+                                                            ->relationship('type', 'name')
+                                                            ->required(),
+                                                        Select::make('publication_linkage_id')
+                                                            ->relationship('linkage', 'name')
+                                                            ->required(),
+                                                        Select::make('publication_quartile_id')
+                                                            ->relationship('quartile', 'name'),
+                                                        Select::make('grant_type_id')
+                                                            ->relationship('grant', 'name'),
+                                                        Select::make('research_collaboration_id')
+                                                            ->relationship('collaboration', 'name'),
+                                                    ])->columns(3)->collapsible(),
+                                                
+                                                \Filament\Schemas\Components\Section::make('Core Information')
+                                                    ->schema([
+                                                        TextInput::make('title')
+                                                            ->required()
+                                                            ->columnSpanFull(),
+                                                        Textarea::make('abstract')
+                                                            ->columnSpanFull(),
+                                                        TextInput::make('research_area')
+                                                            ->columnSpanFull(),
+                                                        Textarea::make('keywords')
+                                                            ->columnSpanFull(),
+                                                    ])->collapsible(),
+                                            ])
+                                            ->columnSpan(1),
+                                        
+                                        \Filament\Schemas\Components\Group::make()
+                                            ->schema([
+                                                \Filament\Schemas\Components\Section::make('Journal / Conference')
+                                                    ->schema([
+                                                        TextInput::make('journal_name'),
+                                                        TextInput::make('journal_link')->url(),
+                                                        DatePicker::make('publication_date'),
+                                                        TextInput::make('publication_year')->numeric(),
+                                                    ])->columns(2)->collapsible(),
+                                                
+                                                \Filament\Schemas\Components\Section::make('Metrics')
+                                                    ->schema([
+                                                        TextInput::make('h_index'),
+                                                        TextInput::make('citescore')->numeric(),
+                                                        TextInput::make('impact_factor')->numeric(),
+                                                    ])->columns(3)->collapsible(),
+                                                
+                                                \Filament\Schemas\Components\Section::make('Status & Flags')
+                                                    ->schema([
+                                                        Toggle::make('student_involvement'),
+                                                        Toggle::make('is_featured'),
+                                                        Select::make('status')
+                                                            ->options(['draft' => 'Draft', 'pending' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected'])
+                                                            ->default('draft')
+                                                            ->required(),
+                                                        TextInput::make('sort_order')->numeric()->default(0),
+                                                    ])->columns(4)->collapsible(),
+                                            ])
+                                            ->columnSpan(1),
                                     ])
                                     ->columns(2)
                                     ->defaultItems(0)
@@ -554,7 +629,7 @@ class TeacherForm
 
                                                         $rows = $get('../../socialLinks');
                                                         if (!is_array($rows)) return;
-                                                        
+
                                                         // Count occurrences of this platform in the repeater
                                                         $count = collect($rows)->where('social_media_platform_id', $value)->count();
                                                         if ($count > 1) {
