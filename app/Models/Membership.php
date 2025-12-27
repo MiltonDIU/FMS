@@ -13,6 +13,7 @@ class Membership extends Model
 
     protected $fillable = [
         'teacher_id',
+        'membership_organization_id',
         'organization',
         'membership_type',
         'membership_id',
@@ -34,5 +35,13 @@ class Membership extends Model
     public function teacher(): BelongsTo
     {
         return $this->belongsTo(Teacher::class);
+    }
+
+    /**
+     * Get the organization for this membership.
+     */
+    public function membershipOrganization(): BelongsTo
+    {
+        return $this->belongsTo(MembershipOrganization::class);
     }
 }

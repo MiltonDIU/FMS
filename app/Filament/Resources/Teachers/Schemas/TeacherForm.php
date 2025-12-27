@@ -595,6 +595,77 @@ class TeacherForm
                                     ->collapsed(),
                             ]),
 
+                        Tab::make('Memberships')
+                            ->icon('heroicon-o-building-office-2')
+                            ->badge(fn ($record) => $record?->memberships()->count())
+                            ->schema([
+                                Repeater::make('memberships')
+                                    ->relationship()
+                                    ->itemLabel(fn (array $state): ?string => \App\Models\MembershipOrganization::find($state['membership_organization_id'] ?? null)?->name)
+                                    ->schema([
+                                        Select::make('membership_organization_id')
+                                            ->label('Organization')
+                                            ->relationship(
+                                                'membershipOrganization',
+                                                'name',
+                                                modifyQueryUsing: fn ($query, $get) => $query->where(function ($q) use ($get) {
+                                                    // Show active organizations OR organizations created by this teacher
+                                                    $q->where('is_active', true)
+                                                      ->orWhere('created_by', auth()->user()?->teacher?->id);
+                                                })->orderBy('name')
+                                            )
+                                            ->searchable()
+                                            ->preload()
+                                            ->createOptionForm([
+                                                TextInput::make('name')
+                                                    ->required()
+                                                    ->unique('membership_organizations', 'name')
+                                                    ->maxLength(255),
+                                                Textarea::make('description')
+                                                    ->rows(2),
+                                            ])
+                                            ->createOptionUsing(function (array $data) {
+                                                $teacherId = auth()->user()?->teacher?->id;
+                                                
+                                                $org = \App\Models\MembershipOrganization::create([
+                                                    'name' => $data['name'],
+                                                    'description' => $data['description'] ?? null,
+                                                    'is_active' => false,
+                                                    'created_by' => $teacherId,
+                                                ]);
+
+                                                // Check for duplicates and activate if found
+                                                \App\Models\MembershipOrganization::checkAndActivateDuplicate($data['name'], $teacherId);
+
+                                                return $org->id;
+                                            })
+                                            ->required(),
+                                        TextInput::make('membership_type')
+                                            ->label('Membership Type')
+                                            ->placeholder('e.g., Student Member, Professional Member'),
+                                        TextInput::make('membership_id')
+                                            ->label('Membership ID'),
+                                        DatePicker::make('start_date')
+                                            ->label('Start Date'),
+                                        DatePicker::make('end_date')
+                                            ->label('End Date'),
+                                        Select::make('status')
+                                            ->options([
+                                                'active' => 'Active',
+                                                'expired' => 'Expired',
+                                                'pending' => 'Pending',
+                                            ])
+                                            ->default('active'),
+                                        Textarea::make('description')
+                                            ->label('Notes')
+                                            ->columnSpanFull()
+                                            ->rows(2),
+                                    ])
+                                    ->columns(3)
+                                    ->defaultItems(0)
+                                    ->collapsed(),
+                            ]),
+
                         Tab::make('Social Links')
                             ->icon('heroicon-o-link')
                             ->badge(fn ($record) => $record?->socialLinks()->count())
