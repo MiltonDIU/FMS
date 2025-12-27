@@ -21,6 +21,24 @@ class PublicationForm
                     ->schema([
                         \Filament\Schemas\Components\Section::make('Publication Details')
                             ->schema([
+                                Select::make('faculty_id')
+                                    ->label('Faculty')
+                                    ->relationship('faculty', 'name')
+                                    ->searchable()
+                                    ->preload()
+                                    ->live()
+                                    ->afterStateUpdated(fn (callable $set) => $set('department_id', null)),
+                                Select::make('department_id')
+                                    ->label('Department')
+                                    ->relationship('department', 'name', modifyQueryUsing: function ($query, callable $get) {
+                                        $facultyId = $get('faculty_id');
+                                        if (!$facultyId) {
+                                            return $query;
+                                        }
+                                        return $query->where('faculty_id', $facultyId);
+                                    })
+                                    ->searchable()
+                                    ->preload(),
                                 Select::make('publication_type_id')
                                     ->relationship('type', 'name')
                                     ->required(),

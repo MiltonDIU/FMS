@@ -12,6 +12,8 @@ class Publication extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'faculty_id',
+        'department_id',
         'publication_type_id',
         'publication_linkage_id',
         'publication_quartile_id',
@@ -33,6 +35,16 @@ class Publication extends Model
         'is_featured',
         'sort_order',
     ];
+
+    public function faculty(): BelongsTo
+    {
+        return $this->belongsTo(Faculty::class);
+    }
+
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class);
+    }
 
     protected $casts = [
         'student_involvement' => 'boolean',

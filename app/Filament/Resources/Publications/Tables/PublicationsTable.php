@@ -75,6 +75,14 @@ class PublicationsTable
                 TextColumn::make('type.name')
                     ->label('Type')
                     ->sortable(),
+                TextColumn::make('faculty.name')
+                    ->label('Faculty')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('department.name')
+                    ->label('Department')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('journal_name')
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
