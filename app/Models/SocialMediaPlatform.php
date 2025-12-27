@@ -17,6 +17,7 @@ class SocialMediaPlatform extends Model
         'base_url',
         'is_active',
         'sort_order',
+        'allow_multiple',
     ];
 
     protected $casts = [

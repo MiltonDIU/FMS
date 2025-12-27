@@ -63,6 +63,29 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->plugins([
                 \BezhanSalleh\FilamentShield\FilamentShieldPlugin::make(),
-            ]);
+            ])
+            ->renderHook(
+                'panels::head.end',
+                fn (): string => '<style>
+                    @media (max-width: 1024px) {
+                        .responsive-vertical-tabs {
+                            display: flex !important;
+                            flex-direction: column !important;
+                        }
+                        .responsive-vertical-tabs nav[role="tablist"] {
+                            flex-direction: row !important;
+                            overflow-x: auto !important;
+                            width: 100% !important;
+                            border-right: none !important;
+                            border-bottom: 1px solid #e5e7eb; /* gray-200 */
+                            padding-bottom: 10px;
+                            margin-bottom: 15px;
+                        }
+                        .responsive-vertical-tabs nav[role="tablist"] > * {
+                             flex-shrink: 0 !important;
+                        }
+                    }
+                </style>'
+            );
     }
 }

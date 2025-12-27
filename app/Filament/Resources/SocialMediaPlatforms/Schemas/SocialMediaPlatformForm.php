@@ -5,9 +5,9 @@ namespace App\Filament\Resources\SocialMediaPlatforms\Schemas;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Str;
-use Filament\Forms\Set;
 
 class SocialMediaPlatformForm
 {
@@ -36,6 +36,8 @@ class SocialMediaPlatformForm
                         ->helperText('Base URL for profile link generation'),
                     Toggle::make('is_active')
                         ->default(true),
+                Toggle::make('allow_multiple')
+                    ->default(false),
                     TextInput::make('sort_order')
                         ->numeric()
                         ->default(fn () => (\App\Models\SocialMediaPlatform::max('sort_order') ?? 0) + 1),

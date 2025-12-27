@@ -90,12 +90,12 @@ class TeacherForm
                                             if ($isOwnProfile) {
                                                 return $rule->ignore(auth()->id());
                                             }
-                                            
+
                                             // Manual ignore of User ID associated with Teacher
                                             if ($record && $record->user_id) {
                                                 return $rule->ignore($record->user_id);
                                             }
-                                            
+
                                             return $rule;
                                         })
                                         ->live(onBlur: true)
@@ -431,8 +431,11 @@ class TeacherForm
                                         DatePicker::make('start_date')->required(),
                                         DatePicker::make('end_date'),
                                         Toggle::make('is_current')->label('Currently Working'),
+                                        TextInput::make('department'),
+                                        Textarea::make('responsibilities')->label('Responsibilities')->columnSpanFull(),
+
                                     ])
-                                    ->columns(2)
+                                    ->columns(3)
                                     ->defaultItems(0)
                                     ->collapsed(),
                             ]),
@@ -529,13 +532,41 @@ class TeacherForm
                                     ->schema([
                                         Select::make('social_media_platform_id')
                                             ->label('Platform')
-                                            ->relationship('platform', 'name', modifyQueryUsing: fn (\Illuminate\Database\Eloquent\Builder $query) => $query->orderBy('sort_order')) // Sort by order
+                                            ->relationship('platform', 'name', modifyQueryUsing: fn (\Illuminate\Database\Eloquent\Builder $query) => $query->orderBy('sort_order'))
                                             ->searchable()
                                             ->preload()
-                                            ->required(),
-                                        TextInput::make('url')->url()->required(),
+                                            ->required()
+                                            ->reactive()
+                                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                                $username = $get('username');
+                                                if ($state && $username) {
+                                                    $platform = \App\Models\SocialMediaPlatform::find($state);
+                                                    if ($platform && $platform->base_url) {
+                                                        $set('url', rtrim($platform->base_url, '/') . '/' . ltrim($username, '/'));
+                                                    }
+                                                }
+                                            }),
+
+                                        TextInput::make('username')
+                                            ->required()
+                                            ->reactive()
+                                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                                $platformId = $get('social_media_platform_id');
+                                                if ($platformId && $state) {
+                                                    $platform = \App\Models\SocialMediaPlatform::find($platformId);
+                                                    if ($platform && $platform->base_url) {
+                                                        $set('url', rtrim($platform->base_url, '/') . '/' . ltrim($state, '/'));
+                                                    }
+                                                }
+                                            }),
+
+                                        TextInput::make('url')
+                                            ->url()
+                                            ->required()
+                                            //->disabled() // URL field disabled করে দিন যাতে manually edit করা না যায়
+                                            ->dehydrated(), // Database এ save হবে
                                     ])
-                                    ->columns(2)
+                                    ->columns(3)
                                     ->defaultItems(0)
                                     ->collapsed(),
                             ]),
