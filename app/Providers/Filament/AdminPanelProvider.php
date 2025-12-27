@@ -88,4 +88,12 @@ class AdminPanelProvider extends PanelProvider
                 </style>'
             );
     }
+    public function boot(): void
+    {
+        \Filament\Tables\Table::configureUsing(function (\Filament\Tables\Table $table): void {
+            $table
+                ->paginationPageOptions([10, 20, 50, 100, 'all'])
+                ->defaultPaginationPageOption(20);
+        });
+    }
 }
