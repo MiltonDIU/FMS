@@ -33,7 +33,22 @@ class PublicationsRelationManager extends RelationManager
         return \App\Filament\Resources\Publications\Tables\PublicationsTable::configure($table)
             ->headerActions([
                 CreateAction::make(),
-                AttachAction::make()->preloadRecordSelect(),
+                AttachAction::make()
+                    ->preloadRecordSelect()
+                    ->form(fn (AttachAction $action): array => [
+                        $action->getRecordSelect(),
+                        \Filament\Forms\Components\Select::make('author_role')
+                            ->label('Author Role')
+                            ->options([
+                                'first' => 'First Author',
+                                'corresponding' => 'Corresponding Author',
+                                'co_author' => 'Co-Author',
+                            ])
+                            ->required(),
+                        \Filament\Forms\Components\TextInput::make('sort_order')
+                            ->numeric()
+                            ->default(0),
+                    ]),
             ])
             ->actions([
                 EditAction::make(),
