@@ -24,19 +24,19 @@ class JobExperiencesRelationManager extends RelationManager
     {
         return $form
             ->components([
-                TextInput::make('position')
-                    ->required()
-                    ->maxLength(255),
-                TextInput::make('organization')
-                    ->required()
-                    ->maxLength(255),
+                TextInput::make('position')->required(),
+                TextInput::make('organization')->required(),
                 \Filament\Forms\Components\Select::make('country_id')
-                    ->relationship('country', 'name')
+                    ->label('Country')
+                    ->options(\App\Models\Country::pluck('name', 'id'))
                     ->searchable()
                     ->preload()
-                    ->required(),
-                DatePicker::make('start_date'),
+                    ->default(fn () => \App\Models\Country::where('slug', 'bangladesh')->first()?->id),
+                DatePicker::make('start_date')->required(),
                 DatePicker::make('end_date'),
+                \Filament\Forms\Components\Toggle::make('is_current')->label('Currently Working'),
+                TextInput::make('department'),
+                \Filament\Forms\Components\Textarea::make('responsibilities')->label('Responsibilities')->columnSpanFull(),
             ]);
     }
 

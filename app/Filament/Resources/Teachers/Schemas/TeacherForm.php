@@ -545,7 +545,24 @@ class TeacherForm
                                                         $set('url', rtrim($platform->base_url, '/') . '/' . ltrim($username, '/'));
                                                     }
                                                 }
-                                            }),
+                                            })
+                                            ->rules([
+                                                function ($get) {
+                                                    return function (string $attribute, $value, \Closure $fail) use ($get) {
+                                                        $platform = \App\Models\SocialMediaPlatform::find($value);
+                                                        if (!$platform || $platform->allow_multiple) return;
+
+                                                        $rows = $get('../../socialLinks');
+                                                        if (!is_array($rows)) return;
+                                                        
+                                                        // Count occurrences of this platform in the repeater
+                                                        $count = collect($rows)->where('social_media_platform_id', $value)->count();
+                                                        if ($count > 1) {
+                                                             $fail("The {$platform->name} platform allows only one link.");
+                                                        }
+                                                    };
+                                                }
+                                            ]),
 
                                         TextInput::make('username')
                                             ->required()

@@ -36,10 +36,11 @@ class TrainingExperiencesRelationManager extends RelationManager
                 TextInput::make('category')
                     ->maxLength(255),
                 Select::make('country_id')
-                    ->relationship('country', 'name')
+                    ->label('Country')
+                    ->options(\App\Models\Country::pluck('name', 'id'))
                     ->searchable()
                     ->preload()
-                    ->required(),
+                    ->default(fn () => \App\Models\Country::where('slug', 'bangladesh')->first()?->id),
                 TextInput::make('year')
                     ->numeric()
                     ->maxLength(4),

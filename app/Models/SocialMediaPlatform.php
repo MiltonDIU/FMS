@@ -22,5 +22,6 @@ class SocialMediaPlatform extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
+        'allow_multiple' => 'boolean',
     ];
 }

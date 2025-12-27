@@ -51,6 +51,7 @@ class TeacherResource extends Resource
             RelationManagers\AwardsRelationManager::class,
             RelationManagers\SkillsRelationManager::class,
             RelationManagers\TeachingAreasRelationManager::class,
+            RelationManagers\TrainingExperiencesRelationManager::class,
             // RelationManagers\MembershipsRelationManager::class,  // Missing file
             RelationManagers\SocialLinksRelationManager::class,
             // RelationManagers\TeacherAdministrativeRolesRelationManager::class, // Missing file

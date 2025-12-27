@@ -29,10 +29,9 @@ class SkillsRelationManager extends RelationManager
                     ->maxLength(255),
                 Select::make('proficiency')
                     ->options([
-                        'beginner' => 'Beginner',
-                        'intermediate' => 'Intermediate',
-                        'advanced' => 'Advanced',
-                        'expert' => 'Expert',
+                        'Beginner' => 'Beginner',
+                        'Intermediate' => 'Intermediate',
+                        'Expert' => 'Expert',
                     ]),
             ]);
     }

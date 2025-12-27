@@ -24,12 +24,9 @@ class AwardsRelationManager extends RelationManager
     {
         return $form
             ->components([
-                TextInput::make('title')
-                    ->required()
-                    ->maxLength(255),
-                TextInput::make('organization')
-                    ->maxLength(255),
-                DatePicker::make('date_received'),
+                TextInput::make('title')->required(),
+                TextInput::make('awarding_body'),
+                TextInput::make('year')->numeric(),
             ]);
     }
 
