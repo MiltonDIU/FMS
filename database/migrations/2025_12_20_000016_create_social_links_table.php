@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('url');
 
             $table->integer('sort_order')->default(0);
-            $table->enum('allow_multiple',[true,false])->default(false);
+
             $table->timestamps();
 
             $table->index('teacher_id');

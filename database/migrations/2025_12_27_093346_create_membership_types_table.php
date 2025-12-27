@@ -11,17 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('social_media_platforms', function (Blueprint $table) {
+        Schema::create('membership_types', function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique();
-            $table->string('slug')->unique();
-            $table->string('icon_class')->nullable(); // e.g. "fab fa-facebook"
-            $table->string('base_url')->nullable(); // e.g. "https://facebook.com/"
-            $table->boolean('is_active')->default(true);
+            $table->text('description')->nullable();
             $table->integer('sort_order')->default(0);
-            $table->enum('allow_multiple',[0,1])->default(0);
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
-            $table->softDeletes();
         });
     }
 
@@ -30,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('social_media_platforms');
+        Schema::dropIfExists('membership_types');
     }
 };

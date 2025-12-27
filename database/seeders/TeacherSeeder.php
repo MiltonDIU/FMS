@@ -9,6 +9,7 @@ use App\Models\Designation;
 use App\Models\Education;
 use App\Models\JobExperience;
 use App\Models\Membership;
+use App\Models\MembershipOrganization;
 use App\Models\Publication;
 use App\Models\ResearchProject;
 use App\Models\Skill;
@@ -48,7 +49,7 @@ class TeacherSeeder extends Seeder
         // ============================================
         // CONFIGURE NUMBER OF TEACHERS TO CREATE HERE
         // ============================================
-        $numberOfTeachers = 5; // Change this number as needed (e.g., 100, 500, 1000, 5000)
+        $numberOfTeachers = 50; // Change this number as needed (e.g., 100, 500, 1000, 5000)
         // ============================================
 
         $this->faker = Faker::create('en_US');
@@ -437,7 +438,7 @@ class TeacherSeeder extends Seeder
             TrainingExperience::create([
                 'teacher_id' => $teacher->id,
                 'title' => $this->faker->sentence(4) . ' Training',
-                'organization' => $this->faker->company,
+                'organization' => $this->faker->company(),
                 'category' => $this->faker->randomElement(['Technical', 'Pedagogy', 'Research Methodology', 'Leadership']),
                 'duration_days' => $this->faker->numberBetween(1, 30),
                 'completion_date' => $this->faker->dateTimeBetween('-10 years', 'now')->format('Y-m-d'),
@@ -511,14 +512,20 @@ class TeacherSeeder extends Seeder
 
     private function createMemberships(Teacher $teacher): void
     {
-        $orgs = ['IEEE', 'ACM', 'Bangladesh Computer Society', 'ISTE', 'CSI'];
+
         $count = $this->faker->numberBetween(0, 3);
 
         for ($i = 0; $i < $count; $i++) {
+
+
+            // Get random membership type
+            $typeId = \App\Models\MembershipType::where('is_active', true)->inRandomOrder()->first()?->id;
+            $orgId = \App\Models\MembershipOrganization::where('is_active', true)->inRandomOrder()->first()?->id;
+
             Membership::create([
                 'teacher_id' => $teacher->id,
-                'organization' => $this->faker->randomElement($orgs),
-                'membership_type' => $this->faker->randomElement(['Student', 'Professional', 'Senior', 'Fellow']),
+                'membership_organization_id' => $orgId,
+                'membership_type_id' => $typeId,
                 'membership_id' => strtoupper($this->faker->bothify('???######')),
                 'start_date' => $this->faker->dateTimeBetween('-10 years', '-1 year')->format('Y-m-d'),
                 'status' => $this->faker->randomElement(['active', 'expired']),

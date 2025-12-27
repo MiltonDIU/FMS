@@ -640,9 +640,11 @@ class TeacherForm
                                                 return $org->id;
                                             })
                                             ->required(),
-                                        TextInput::make('membership_type')
+                                        Select::make('membership_type_id')
                                             ->label('Membership Type')
-                                            ->placeholder('e.g., Student Member, Professional Member'),
+                                            ->relationship('membershipType', 'name', modifyQueryUsing: fn ($query) => $query->where('is_active', true)->orderBy('sort_order'))
+                                            ->searchable()
+                                            ->preload(),
                                         TextInput::make('membership_id')
                                             ->label('Membership ID'),
                                         DatePicker::make('start_date')

@@ -34,6 +34,8 @@ class DatabaseSeeder extends Seeder
             DegreeLevelSeeder::class,
             ResultTypeSeeder::class,
             DegreeTypeSeeder::class,
+            MembershipTypeSeeder::class,
+            MembershipOrganizationSeeder::class,
             TeacherSeeder::class,
             TeacherPermissionSeeder::class,
         ]);

@@ -10,15 +10,23 @@ use App\Filament\Resources\MembershipOrganizations\Tables\MembershipOrganization
 use App\Models\MembershipOrganization;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use UnitEnum;
+use BackedEnum;
 
-use Filament\Support\Icons\Heroicon;
 class MembershipOrganizationResource extends Resource
 {
     protected static ?string $model = MembershipOrganization::class;
+
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedAcademicCap;
+
+
+
+
 
 
 
@@ -27,7 +35,7 @@ class MembershipOrganizationResource extends Resource
 
     // Navigation Group - UnitEnum|string|null type
     protected static UnitEnum|string|null $navigationGroup = 'Settings';
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 11;
     // Navigation Label (ঐচ্ছিক)
     protected static ?string $navigationLabel = 'Membership Organizations';
 

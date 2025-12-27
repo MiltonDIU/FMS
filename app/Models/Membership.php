@@ -14,14 +14,14 @@ class Membership extends Model
     protected $fillable = [
         'teacher_id',
         'membership_organization_id',
-        'organization',
-        'membership_type',
+        'membership_type_id',
         'membership_id',
         'start_date',
         'end_date',
         'status',
         'description',
         'sort_order',
+        'is_active',
     ];
 
     protected $casts = [
@@ -43,5 +43,13 @@ class Membership extends Model
     public function membershipOrganization(): BelongsTo
     {
         return $this->belongsTo(MembershipOrganization::class);
+    }
+
+    /**
+     * Get the type for this membership.
+     */
+    public function membershipType(): BelongsTo
+    {
+        return $this->belongsTo(MembershipType::class);
     }
 }
