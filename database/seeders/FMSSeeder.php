@@ -19,6 +19,8 @@ class FMSSeeder extends Seeder
             'admin',
             'registrar',
             'teacher',
+            'dean',
+            'head',
             'research_team',
         ];
 
@@ -65,6 +67,14 @@ class FMSSeeder extends Seeder
             'research_team' => [
                 'email' => 'researcher@fms.diu.edu.bd',
                 'name'  => 'Research Staff',
+            ],
+            'dean' => [
+                'email' => 'dean@fms.diu.edu.bd',
+                'name'  => 'Dean of Faculty',
+            ],
+            'head' => [
+                'email' => 'head@fms.diu.edu.bd',
+                'name'  => 'Head of Department',
             ],
         ];
 
