@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Models\Setting;
 use App\Models\Teacher;
 use App\Models\User;
+use App\Services\TeacherVersionService;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -71,6 +72,66 @@ class TeacherObserver
                         \Log::error('Failed to send teacher welcome email: ' . $e->getMessage());
                     }
                 }
+            }
+        }
+    }
+
+    /**
+     * Handle the Teacher "updating" event.
+     * Process approval settings and create versions if needed.
+     */
+    public function updating(Teacher $teacher): void
+    {
+        // 1. Check if third-party is updating (Admin etc.)
+        if (auth()->check() && $teacher->user_id && auth()->id() !== $teacher->user_id) {
+            // If someone else is updating, notify the teacher
+            // We use afterCommit to ensure notification is sent only if update succeeds
+            // But since Observer doesn't have afterCommit easily here without trait, we'll do it carefully
+            
+            // Note: If versioning is triggered, the actual update might be reverted.
+            // So we should only notify if it's NOT a versioned update OR if it's an auto-update.
+            // For simplicity, we'll handle this check inside processUpdate or here.
+            
+            // Let's defer to service if versioning is on, but if versioning OFF or Skipped, we notify here.
+            // Actually, we should check if we should notify.
+        }
+
+        // Check if versioning is enabled
+        if (!config('app.teacher_versioning_enabled', true)) {
+            // If versioning disabled, but third-party updated, notify teacher
+            $this->notifyTeacherIfThirdPartyUpdate($teacher);
+            return; 
+        }
+
+        // Skip versioning for console/seeder operations
+        if (app()->runningInConsole()) {
+            return;
+        }
+
+        // Get dirty fields (excluding relationship updates)
+        $dirtyFields = array_keys($teacher->getDirty());
+        
+        if (empty($dirtyFields)) {
+            return;
+        }
+
+        // Use service to process the update
+        // We pass the updater ID to handle third-party logic inside service if needed
+        app(TeacherVersionService::class)->processUpdate($teacher, $dirtyFields);
+        
+        // Also check third party update here for auto-update parts
+        $this->notifyTeacherIfThirdPartyUpdate($teacher);
+    }
+    
+    private function notifyTeacherIfThirdPartyUpdate(Teacher $teacher): void
+    {
+        if (auth()->check() && $teacher->user && auth()->id() !== $teacher->user_id) {
+            // Prevent duplicate notifications if multiple fields update
+            // Ideally should be queued or debounced, but for now direct
+            try {
+                $teacher->user->notify(new \App\Notifications\TeacherProfileUpdatedByAdmin($teacher, auth()->user()));
+            } catch (\Exception $e) {
+                // Ignore if notification fails
             }
         }
     }
