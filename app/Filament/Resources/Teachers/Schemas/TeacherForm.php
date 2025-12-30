@@ -15,6 +15,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
+
 class TeacherForm
 {
     public static function configure(Schema $schema, bool $isOwnProfile = false): Schema
@@ -40,8 +41,8 @@ class TeacherForm
                                         ->label('User Account')
                                         ->searchable()
                                         ->preload()
-                                        ->hiddenOn('create')  // Auto-created by observer
-                                        ->disabled(),  // Read-only reference on edit
+                                        ->hiddenOn('create')
+                                        ->disabled(),
                                     Select::make('department_id')
                                         ->relationship('department', 'name')
                                         ->label('Department')
@@ -85,23 +86,19 @@ class TeacherForm
                                     TextInput::make('email')
                                         ->label('Login Email')
                                         ->email()
-                                        ->required(fn ($record): bool => $record === null)  // Required only on create
+                                        ->required(fn ($record): bool => $record === null)
                                         ->unique('users', 'email', ignoreRecord: false, modifyRuleUsing: function ($rule, $record) use ($isOwnProfile) {
                                             if ($isOwnProfile) {
                                                 return $rule->ignore(auth()->id());
                                             }
-
-                                            // Manual ignore of User ID associated with Teacher
                                             if ($record && $record->user_id) {
                                                 return $rule->ignore($record->user_id);
                                             }
-
                                             return $rule;
                                         })
                                         ->live(onBlur: true)
                                         ->hint(function ($state, $record) use ($isOwnProfile) {
                                             if (empty($state) || $isOwnProfile) return null;
-                                            // Check if email exists for another user
                                             $query = \App\Models\User::where('email', $state);
                                             if ($record?->user_id) {
                                                 $query->where('id', '!=', $record->user_id);
@@ -111,8 +108,8 @@ class TeacherForm
                                                 ? new \Illuminate\Support\HtmlString('<span class="text-danger-500">✗ Email already registered</span>')
                                                 : new \Illuminate\Support\HtmlString('<span class="text-success-500">✓ Available</span>');
                                         })
-                                        ->disabled($isOwnProfile)  // Teacher cannot edit own email
-                                        ->dehydrated(! $isOwnProfile),  // Don't save when disabled
+                                        ->disabled($isOwnProfile)
+                                        ->dehydrated(! $isOwnProfile),
                                     TextInput::make('webpage')
                                         ->label('Profile URL Slug')
                                         ->required()
@@ -137,13 +134,11 @@ class TeacherForm
                                         ->helperText('Letters, numbers, dashes only')
                                         ->disabled($isOwnProfile)
                                         ->dehydrated(! $isOwnProfile),
-
                                 ]),
                                 Grid::make(3)->schema([
                                     DatePicker::make('joining_date')
                                         ->disabled($isOwnProfile)
                                         ->dehydrated(! $isOwnProfile),
-
                                     TextInput::make('work_location')->default('Main Campus')
                                         ->disabled($isOwnProfile)
                                         ->dehydrated(! $isOwnProfile),
@@ -169,7 +164,6 @@ class TeacherForm
                                         ->maxLength(20),
                                     TextInput::make('office_room'),
                                     TextInput::make('secondary_email')->email(),
-
                                 ]),
                                 Grid::make(2)->schema([
                                     Textarea::make('present_address')->rows(2),
@@ -191,7 +185,7 @@ class TeacherForm
                                         ->searchable()
                                         ->preload(),
                                     Select::make('country_id')
-                                        ->relationship('country', 'name', modifyQueryUsing: fn (\Illuminate\Database\Eloquent\Builder $query) => $query->orderBy('sort_order')) // Country relationship
+                                        ->relationship('country', 'name', modifyQueryUsing: fn (\Illuminate\Database\Eloquent\Builder $query) => $query->orderBy('sort_order'))
                                         ->searchable()
                                         ->preload()
                                         ->default(fn () => \App\Models\Country::where('slug', 'bangladeshi')->first()?->id ?? \App\Models\Country::where('slug', 'bangladesh')->first()?->id),
@@ -216,8 +210,6 @@ class TeacherForm
                                     ->relationship()
                                     ->itemLabel(fn (array $state): ?string => \App\Models\DegreeType::find($state['degree_type_id'] ?? null)?->name . ' - ' . ($state['institution'] ?? ''))
                                     ->schema([
-
-// Step 1: Degree Level (helper field, not saved to DB)
                                         Select::make('_degree_level_id')
                                             ->label('Degree Level')
                                             ->options(\App\Models\DegreeLevel::orderBy('sort_order')->pluck('name', 'id'))
@@ -226,8 +218,6 @@ class TeacherForm
                                             ->afterStateUpdated(fn (callable $set) => $set('degree_type_id', null))
                                             ->dehydrated(false)
                                             ->columnSpan(1),
-
-// Step 2: Degree Type (filtered by level, SAVED to DB)
                                         Select::make('degree_type_id')
                                             ->label('Degree Type')
                                             ->relationship('degreeType', 'name', modifyQueryUsing: function ($query, $get) {
@@ -267,8 +257,6 @@ class TeacherForm
                                                     }),
                                             ])
                                             ->columnSpan(1),
-
-// Major / Field of Study (text input)
                                         TextInput::make('major')
                                             ->label('Major / Field of Study')
                                             ->required()
@@ -289,34 +277,23 @@ class TeacherForm
                                                 'Medicine',
                                             ])
                                             ->columnSpan(2),
-
-// Institution
                                         TextInput::make('institution')
                                             ->required()
                                             ->maxLength(255),
-
-
-// Country
                                         Select::make('country_id')
                                             ->label('Country')
                                             ->relationship('country', 'name')
                                             ->searchable()
                                             ->preload()
                                             ->default(fn () => \App\Models\Country::where('slug', 'bangladesh')->first()?->id),
-
-// Passing Year
                                         TextInput::make('passing_year')
                                             ->label('Passing Year')
                                             ->numeric()
                                             ->minValue(1950)
                                             ->maxValue(date('Y') + 5),
-
-// Duration
                                         TextInput::make('duration')
                                             ->placeholder('e.g., 4 years')
                                             ->maxLength(50),
-
-// Result Type (triggers conditional fields)
                                         Select::make('result_type_id')
                                             ->label('Result Type')
                                             ->relationship('resultType', 'type_name')
@@ -325,10 +302,6 @@ class TeacherForm
                                             ->required()
                                             ->live()
                                             ->columnSpan(2),
-
-// === CONDITIONAL RESULT FIELDS ===
-
-// CGPA (for CGPA/GPA types)
                                         TextInput::make('cgpa')
                                             ->label('CGPA/GPA')
                                             ->numeric()
@@ -341,8 +314,6 @@ class TeacherForm
                                                 $resultType = \App\Models\ResultType::find($resultTypeId);
                                                 return !in_array($resultType?->type_name, ['CGPA', 'GPA']);
                                             }),
-
-// Scale (for CGPA/GPA types)
                                         TextInput::make('scale')
                                             ->label('Out of (Scale)')
                                             ->numeric()
@@ -356,8 +327,6 @@ class TeacherForm
                                                 $resultType = \App\Models\ResultType::find($resultTypeId);
                                                 return !in_array($resultType?->type_name, ['CGPA', 'GPA']);
                                             }),
-
-// Marks (for Percentage type)
                                         TextInput::make('marks')
                                             ->label('Marks/Percentage')
                                             ->numeric()
@@ -372,8 +341,6 @@ class TeacherForm
                                                 return $resultType?->type_name !== 'Percentage';
                                             })
                                             ->columnSpan(2),
-
-// Grade (for Grade/Pass-Fail types)
                                         TextInput::make('grade')
                                             ->label('Grade/Division/Class')
                                             ->placeholder('e.g., First Class, A+, Pass')
@@ -385,12 +352,39 @@ class TeacherForm
                                                 return !in_array($resultType?->type_name, ['Grade', 'Pass/Fail']);
                                             })
                                             ->columnSpan(2),
-
-
-])
+                                    ])
                                     ->columns(2)
                                     ->defaultItems(0)
-                                    ->collapsed(),
+                                    ->collapsed()
+                                    ->reorderable(false)
+                                    ->deletable(true)
+                                    ->addable(true)
+                                    ->saveRelationshipsUsing(function (Repeater $component, $state, $record) {
+                                        // Delete removed items
+                                        $existingIds = collect($state)->pluck('id')->filter()->toArray();
+                                        $record->educations()->whereNotIn('id', $existingIds)->delete();
+
+                                        foreach ($state ?? [] as $item) {
+                                            $data = [
+                                                'degree_type_id' => $item['degree_type_id'],
+                                                'major' => $item['major'],
+                                                'institution' => $item['institution'],
+                                                'country_id' => $item['country_id'] ?? null,
+                                                'passing_year' => $item['passing_year'] ?? null,
+                                                'duration' => $item['duration'] ?? null,
+                                                'result_type_id' => $item['result_type_id'],
+                                                'cgpa' => $item['cgpa'] ?? null,
+                                                'scale' => $item['scale'] ?? null,
+                                                'marks' => $item['marks'] ?? null,
+                                                'grade' => $item['grade'] ?? null,
+                                            ];
+                                            if (isset($item['id'])) {
+                                                $record->educations()->where('id', $item['id'])->update($data);
+                                            } else {
+                                                $record->educations()->create($data);
+                                            }
+                                        }
+                                    }),
                             ]),
 
                         Tab::make('Publications')
@@ -436,7 +430,6 @@ class TeacherForm
                                                         Select::make('research_collaboration_id')
                                                             ->relationship('collaboration', 'name'),
                                                     ])->columns(3)->collapsible(),
-                                                
                                                 \Filament\Schemas\Components\Section::make('Core Information')
                                                     ->schema([
                                                         TextInput::make('title')
@@ -451,7 +444,6 @@ class TeacherForm
                                                     ])->collapsible(),
                                             ])
                                             ->columnSpan(1),
-                                        
                                         \Filament\Schemas\Components\Group::make()
                                             ->schema([
                                                 \Filament\Schemas\Components\Section::make('Journal / Conference')
@@ -461,14 +453,12 @@ class TeacherForm
                                                         DatePicker::make('publication_date'),
                                                         TextInput::make('publication_year')->numeric(),
                                                     ])->columns(2)->collapsible(),
-                                                
                                                 \Filament\Schemas\Components\Section::make('Metrics')
                                                     ->schema([
                                                         TextInput::make('h_index'),
                                                         TextInput::make('citescore')->numeric(),
                                                         TextInput::make('impact_factor')->numeric(),
                                                     ])->columns(3)->collapsible(),
-                                                
                                                 \Filament\Schemas\Components\Section::make('Status & Flags')
                                                     ->schema([
                                                         Toggle::make('student_involvement'),
@@ -484,7 +474,48 @@ class TeacherForm
                                     ])
                                     ->columns(2)
                                     ->defaultItems(0)
-                                    ->collapsed(),
+                                    ->collapsed()
+                                    ->reorderable(false)
+                                    ->deletable(true)
+                                    ->addable(true)
+                                    ->saveRelationshipsUsing(function (Repeater $component, $state, $record) {
+                                        // Delete removed items - use table qualified ID for MorphToMany
+                                        $existingIds = collect($state)->pluck('id')->filter()->toArray();
+                                        $record->publications()->whereNotIn('publications.id', $existingIds)->delete();
+
+                                        foreach ($state ?? [] as $item) {
+                                            $data = [
+                                                'faculty_id' => $item['faculty_id'] ?? null,
+                                                'department_id' => $item['department_id'] ?? null,
+                                                'publication_type_id' => $item['publication_type_id'],
+                                                'publication_linkage_id' => $item['publication_linkage_id'],
+                                                'publication_quartile_id' => $item['publication_quartile_id'] ?? null,
+                                                'grant_type_id' => $item['grant_type_id'] ?? null,
+                                                'research_collaboration_id' => $item['research_collaboration_id'] ?? null,
+                                                'title' => $item['title'],
+                                                'abstract' => $item['abstract'] ?? null,
+                                                'research_area' => $item['research_area'] ?? null,
+                                                'keywords' => $item['keywords'] ?? null,
+                                                'journal_name' => $item['journal_name'] ?? null,
+                                                'journal_link' => $item['journal_link'] ?? null,
+                                                'publication_date' => $item['publication_date'] ?? null,
+                                                'publication_year' => $item['publication_year'] ?? null,
+                                                'h_index' => $item['h_index'] ?? null,
+                                                'citescore' => $item['citescore'] ?? null,
+                                                'impact_factor' => $item['impact_factor'] ?? null,
+                                                'student_involvement' => $item['student_involvement'] ?? false,
+                                                'is_featured' => $item['is_featured'] ?? false,
+                                                'status' => $item['status'],
+                                                'sort_order' => $item['sort_order'] ?? 0,
+                                            ];
+                                            if (isset($item['id'])) {
+                                                // Use Model directly to avoid ambiguous column issues in MorphToMany update
+                                                \App\Models\Publication::where('id', $item['id'])->update($data);
+                                            } else {
+                                                $record->publications()->create($data);
+                                            }
+                                        }
+                                    }),
                             ]),
 
                         Tab::make('Job Experience')
@@ -508,11 +539,35 @@ class TeacherForm
                                         Toggle::make('is_current')->label('Currently Working'),
                                         TextInput::make('department'),
                                         Textarea::make('responsibilities')->label('Responsibilities')->columnSpanFull(),
-
                                     ])
                                     ->columns(3)
                                     ->defaultItems(0)
-                                    ->collapsed(),
+                                    ->collapsed()
+                                    ->reorderable(false)
+                                    ->deletable(true)
+                                    ->addable(true)
+                                    ->saveRelationshipsUsing(function (Repeater $component, $state, $record) {
+                                        $existingIds = collect($state)->pluck('id')->filter()->toArray();
+                                        $record->jobExperiences()->whereNotIn('id', $existingIds)->delete();
+
+                                        foreach ($state ?? [] as $item) {
+                                            $data = [
+                                                'position' => $item['position'],
+                                                'organization' => $item['organization'],
+                                                'country_id' => $item['country_id'] ?? null,
+                                                'start_date' => $item['start_date'],
+                                                'end_date' => $item['end_date'] ?? null,
+                                                'is_current' => $item['is_current'] ?? false,
+                                                'department' => $item['department'] ?? null,
+                                                'responsibilities' => $item['responsibilities'] ?? null,
+                                            ];
+                                            if (isset($item['id'])) {
+                                                $record->jobExperiences()->where('id', $item['id'])->update($data);
+                                            } else {
+                                                $record->jobExperiences()->create($data);
+                                            }
+                                        }
+                                    }),
                             ]),
 
                         Tab::make('Training Experience')
@@ -540,7 +595,33 @@ class TeacherForm
                                     ])
                                     ->columns(2)
                                     ->defaultItems(0)
-                                    ->collapsed(),
+                                    ->collapsed()
+                                    ->reorderable(false)
+                                    ->deletable(true)
+                                    ->addable(true)
+                                    ->saveRelationshipsUsing(function (Repeater $component, $state, $record) {
+                                        $existingIds = collect($state)->pluck('id')->filter()->toArray();
+                                        $record->trainingExperiences()->whereNotIn('id', $existingIds)->delete();
+
+                                        foreach ($state ?? [] as $item) {
+                                            $data = [
+                                                'title' => $item['title'],
+                                                'organization' => $item['organization'],
+                                                'category' => $item['category'] ?? null,
+                                                'country_id' => $item['country_id'] ?? null,
+                                                'year' => $item['year'] ?? null,
+                                                'completion_date' => $item['completion_date'] ?? null,
+                                                'duration_days' => $item['duration_days'] ?? null,
+                                                'is_online' => $item['is_online'] ?? false,
+                                                'description' => $item['description'] ?? null,
+                                            ];
+                                            if (isset($item['id'])) {
+                                                $record->trainingExperiences()->where('id', $item['id'])->update($data);
+                                            } else {
+                                                $record->trainingExperiences()->create($data);
+                                            }
+                                        }
+                                    }),
                             ]),
 
                         Tab::make('Awards')
@@ -557,15 +638,37 @@ class TeacherForm
                                     ])
                                     ->columns(2)
                                     ->defaultItems(0)
-                                    ->collapsed(),
-                            ]),
+                                    ->collapsed()
+                                    ->reorderable(false)
+                                    ->deletable(true)
+                                    ->addable(true)
+                                    ->saveRelationshipsUsing(function (Repeater $component, $state, $record) {
+                                        $existingIds = collect($state)->pluck('id')->filter()->toArray();
+                                        $record->awards()->whereNotIn('id', $existingIds)->delete();
 
+                                        foreach ($state ?? [] as $item) {
+                                            $data = [
+                                                'title' => $item['title'],
+                                                'awarding_body' => $item['awarding_body'] ?? null,
+                                                'year' => $item['year'] ?? null,
+                                            ];
+                                            if (isset($item['id'])) {
+                                                $record->awards()->where('id', $item['id'])->update($data);
+                                            } else {
+                                                $record->awards()->create($data);
+                                            }
+                                        }
+                                    }),
+                            ]),
                         Tab::make('Skills')
                             ->icon('heroicon-o-sparkles')
                             ->badge(fn ($record) => $record?->skills()->count())
                             ->schema([
                                 Repeater::make('skills')
-                                    ->relationship()
+                                    ->relationship(
+                                        name: 'skills',
+                                        modifyQueryUsing: fn ($query) => $query->orderBy('id')
+                                    )
                                     ->itemLabel(fn (array $state): ?string => $state['name'] ?? null)
                                     ->schema([
                                         TextInput::make('name')->required(),
@@ -578,7 +681,37 @@ class TeacherForm
                                     ])
                                     ->columns(2)
                                     ->defaultItems(0)
-                                    ->collapsed(),
+                                    ->collapsed()
+                                    ->reorderable(false)
+                                    ->deletable(true)
+                                    ->addable(true)
+                                    ->saveRelationshipsUsing(function (Repeater $component, $state, $record) {
+                                        // Get existing IDs
+                                        $existingIds = collect($state)
+                                            ->pluck('id')
+                                            ->filter()
+                                            ->toArray();
+
+                                        // Delete removed items
+                                        $record->skills()->whereNotIn('id', $existingIds)->delete();
+
+                                        // Update or create items
+                                        foreach ($state ?? [] as $item) {
+                                            if (isset($item['id'])) {
+                                                // Update existing
+                                                $record->skills()->where('id', $item['id'])->update([
+                                                    'name' => $item['name'],
+                                                    'proficiency' => $item['proficiency'] ?? null,
+                                                ]);
+                                            } else {
+                                                // Create new
+                                                $record->skills()->create([
+                                                    'name' => $item['name'],
+                                                    'proficiency' => $item['proficiency'] ?? null,
+                                                ]);
+                                            }
+                                        }
+                                    }),
                             ]),
 
                         Tab::make('Teaching Areas')
@@ -592,7 +725,25 @@ class TeacherForm
                                         TextInput::make('area')->required(),
                                     ])
                                     ->defaultItems(0)
-                                    ->collapsed(),
+                                    ->collapsed()
+                                    ->reorderable(false)
+                                    ->deletable(true)
+                                    ->addable(true)
+                                    ->saveRelationshipsUsing(function (Repeater $component, $state, $record) {
+                                        $existingIds = collect($state)->pluck('id')->filter()->toArray();
+                                        $record->teachingAreas()->whereNotIn('id', $existingIds)->delete();
+
+                                        foreach ($state ?? [] as $item) {
+                                            $data = [
+                                                'area' => $item['area'],
+                                            ];
+                                            if (isset($item['id'])) {
+                                                $record->teachingAreas()->where('id', $item['id'])->update($data);
+                                            } else {
+                                                $record->teachingAreas()->create($data);
+                                            }
+                                        }
+                                    }),
                             ]),
 
                         Tab::make('Memberships')
@@ -609,9 +760,8 @@ class TeacherForm
                                                 'membershipOrganization',
                                                 'name',
                                                 modifyQueryUsing: fn ($query, $get) => $query->where(function ($q) use ($get) {
-                                                    // Show active organizations OR organizations created by this teacher
                                                     $q->where('is_active', true)
-                                                      ->orWhere('created_by', auth()->user()?->teacher?->id);
+                                                        ->orWhere('created_by', auth()->user()?->teacher?->id);
                                                 })->orderBy('name')
                                             )
                                             ->searchable()
@@ -626,7 +776,7 @@ class TeacherForm
                                             ])
                                             ->createOptionUsing(function (array $data) {
                                                 $teacherId = auth()->user()?->teacher?->id;
-                                                
+
                                                 $org = \App\Models\MembershipOrganization::create([
                                                     'name' => $data['name'],
                                                     'description' => $data['description'] ?? null,
@@ -634,7 +784,6 @@ class TeacherForm
                                                     'created_by' => $teacherId,
                                                 ]);
 
-                                                // Check for duplicates and activate if found
                                                 \App\Models\MembershipOrganization::checkAndActivateDuplicate($data['name'], $teacherId);
 
                                                 return $org->id;
@@ -665,7 +814,31 @@ class TeacherForm
                                     ])
                                     ->columns(3)
                                     ->defaultItems(0)
-                                    ->collapsed(),
+                                    ->collapsed()
+                                    ->reorderable(false)
+                                    ->deletable(true)
+                                    ->addable(true)
+                                    ->saveRelationshipsUsing(function (Repeater $component, $state, $record) {
+                                        $existingIds = collect($state)->pluck('id')->filter()->toArray();
+                                        $record->memberships()->whereNotIn('id', $existingIds)->delete();
+
+                                        foreach ($state ?? [] as $item) {
+                                            $data = [
+                                                'membership_organization_id' => $item['membership_organization_id'],
+                                                'membership_type_id' => $item['membership_type_id'] ?? null,
+                                                'membership_id' => $item['membership_id'] ?? null,
+                                                'start_date' => $item['start_date'] ?? null,
+                                                'end_date' => $item['end_date'] ?? null,
+                                                'status' => $item['status'] ?? 'active',
+                                                'description' => $item['description'] ?? null,
+                                            ];
+                                            if (isset($item['id'])) {
+                                                $record->memberships()->where('id', $item['id'])->update($data);
+                                            } else {
+                                                $record->memberships()->create($data);
+                                            }
+                                        }
+                                    }),
                             ]),
 
                         Tab::make('Social Links')
@@ -703,15 +876,13 @@ class TeacherForm
                                                         $rows = $get('../../socialLinks');
                                                         if (!is_array($rows)) return;
 
-                                                        // Count occurrences of this platform in the repeater
                                                         $count = collect($rows)->where('social_media_platform_id', $value)->count();
                                                         if ($count > 1) {
-                                                             $fail("The {$platform->name} platform allows only one link.");
+                                                            $fail("The {$platform->name} platform allows only one link.");
                                                         }
                                                     };
                                                 }
                                             ]),
-
                                         TextInput::make('username')
                                             ->required()
                                             ->reactive()
@@ -724,16 +895,34 @@ class TeacherForm
                                                     }
                                                 }
                                             }),
-
                                         TextInput::make('url')
                                             ->url()
                                             ->required()
-                                            //->disabled() // URL field disabled করে দিন যাতে manually edit করা না যায়
-                                            ->dehydrated(), // Database এ save হবে
+                                            ->dehydrated(),
                                     ])
                                     ->columns(3)
                                     ->defaultItems(0)
-                                    ->collapsed(),
+                                    ->collapsed()
+                                    ->deletable(true)
+                                    ->addable(true)
+                                    ->saveRelationshipsUsing(function (Repeater $component, $state, $record) {
+                                        $existingIds = collect($state)->pluck('id')->filter()->toArray();
+                                        $record->socialLinks()->whereNotIn('id', $existingIds)->delete();
+
+                                        foreach (array_values($state ?? []) as $index => $item) {
+                                            $data = [
+                                                'social_media_platform_id' => $item['social_media_platform_id'],
+                                                'username' => $item['username'],
+                                                'url' => $item['url'],
+                                                'sort_order' => $index + 1,
+                                            ];
+                                            if (isset($item['id'])) {
+                                                $record->socialLinks()->where('id', $item['id'])->update($data);
+                                            } else {
+                                                $record->socialLinks()->create($data);
+                                            }
+                                        }
+                                    }),
                             ]),
 
                         Tab::make('Documents')
