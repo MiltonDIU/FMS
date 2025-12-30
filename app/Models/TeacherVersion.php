@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\TeacherVersionService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -31,6 +32,51 @@ class TeacherVersion extends Model
         'submitted_at' => 'datetime',
         'reviewed_at' => 'datetime',
     ];
+
+    /**
+     * Flag to prevent recursive observer calls
+     */
+    public static bool $skipActivation = false;
+
+    /**
+     * Boot the model
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Handle is_active changes
+        static::updating(function (TeacherVersion $version) {
+            // Skip if activation logic is already being handled
+            if (self::$skipActivation) {
+                return;
+            }
+
+            // Check if is_active is being changed from false to true
+            if ($version->isDirty('is_active') && $version->is_active === true) {
+                // Only allow approved versions to be activated
+                if ($version->status !== 'approved') {
+                    throw new \Exception('Only approved versions can be activated.');
+                }
+
+                // Set flag to prevent recursive calls
+                self::$skipActivation = true;
+
+                try {
+                    // Deactivate all other versions for this teacher
+                    static::where('teacher_id', $version->teacher_id)
+                        ->where('id', '!=', $version->id)
+                        ->where('is_active', true)
+                        ->update(['is_active' => false]);
+
+                    // Apply version data to teacher profile
+                    app(TeacherVersionService::class)->applyVersionData($version);
+                } finally {
+                    self::$skipActivation = false;
+                }
+            }
+        });
+    }
 
     /**
      * Get the teacher that owns this version.
@@ -80,3 +126,4 @@ class TeacherVersion extends Model
         return $query->where('is_active', true);
     }
 }
+

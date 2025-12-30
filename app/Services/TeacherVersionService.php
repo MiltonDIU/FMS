@@ -528,4 +528,83 @@ class TeacherVersionService
             $version->teacher->user->notify(new \App\Notifications\TeacherProfileRejected($version, $remarks));
         }
     }
+
+    /**
+     * Activate any approved version (rollback feature)
+     * This allows restoring the teacher profile to any previous version's state
+     */
+    public function activateVersion(TeacherVersion $version): void
+    {
+        // Only allow activating approved versions
+        if ($version->status !== 'approved') {
+            throw new \Exception('Only approved versions can be activated. Please approve this version first.');
+        }
+
+        \Log::info('activateVersion called (rollback)', [
+            'version_id' => $version->id,
+            'version_number' => $version->version_number,
+        ]);
+
+        DB::transaction(function () use ($version) {
+            // Deactivate current active version
+            TeacherVersion::where('teacher_id', $version->teacher_id)
+                ->where('is_active', true)
+                ->update(['is_active' => false]);
+            
+            // Activate this version
+            $version->update([
+                'is_active' => true,
+            ]);
+            
+            // Apply Data to Teacher (same logic as approveVersion)
+            $this->applyVersionData($version);
+            
+            \Log::info('activateVersion complete (rollback)', [
+                'version_id' => $version->id,
+            ]);
+        });
+    }
+
+    /**
+     * Apply version data to teacher profile
+     * PUBLIC method - can be called from model observer or controller
+     * Shared logic used by approveVersion, activateVersion, and model events
+     */
+    public function applyVersionData(TeacherVersion $version): void
+    {
+        $teacher = $version->teacher;
+        $data = $version->data;
+        
+        if (empty($data)) {
+            \Log::warning('applyVersionData: No data to apply', [
+                'version_id' => $version->id,
+            ]);
+            return;
+        }
+
+        // Get all relation field names to exclude from scalar update
+        $relationFields = self::RELATION_NAMES;
+        $scalarData = Arr::except($data, array_merge($relationFields, self::MEDIA_FIELDS));
+        
+        Teacher::withoutEvents(function () use ($teacher, $scalarData) {
+            $teacher->update($scalarData);
+            
+            // Name sync
+            if (isset($scalarData['first_name']) || isset($scalarData['last_name'])) {
+                if ($teacher->user) {
+                    $fullName = trim("{$teacher->first_name} {$teacher->middle_name} {$teacher->last_name}");
+                    $teacher->user->update(['name' => $fullName]);
+                }
+            }
+        });
+
+        // Relationship Sync
+        foreach (self::RELATION_NAMES as $relationName) {
+            if (isset($data[$relationName]) && is_array($data[$relationName])) {
+                $items = array_values($data[$relationName]);
+                $this->syncRelation($teacher, $relationName, $items);
+            }
+        }
+    }
 }
+
