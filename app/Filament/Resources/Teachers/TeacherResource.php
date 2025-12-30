@@ -45,15 +45,15 @@ class TeacherResource extends Resource
     public static function getRelations(): array
     {
         return [
-//            RelationManagers\EducationsRelationManager::class,
-//            RelationManagers\PublicationsRelationManager::class,
-//            RelationManagers\JobExperiencesRelationManager::class,
-//            RelationManagers\AwardsRelationManager::class,
-//            RelationManagers\SkillsRelationManager::class,
-//            RelationManagers\TeachingAreasRelationManager::class,
-//            RelationManagers\TrainingExperiencesRelationManager::class,
+            RelationManagers\EducationsRelationManager::class,
+            RelationManagers\PublicationsRelationManager::class,
+            RelationManagers\JobExperiencesRelationManager::class,
+            RelationManagers\AwardsRelationManager::class,
+            RelationManagers\SkillsRelationManager::class,
+            RelationManagers\TeachingAreasRelationManager::class,
+            RelationManagers\TrainingExperiencesRelationManager::class,
             // RelationManagers\MembershipsRelationManager::class,  // Missing file
-            //RelationManagers\SocialLinksRelationManager::class,
+            RelationManagers\SocialLinksRelationManager::class,
             // RelationManagers\TeacherAdministrativeRolesRelationManager::class, // Missing file
         ];
     }

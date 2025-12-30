@@ -82,6 +82,10 @@ class TeacherObserver
      */
     public function updating(Teacher $teacher): void
     {
+        // Check if update is being handled by Service to prevent recursion
+        if (TeacherVersionService::$ignoreObserver) {
+            return;
+        }
         // 1. Check if third-party is updating (Admin etc.)
         if (auth()->check() && $teacher->user_id && auth()->id() !== $teacher->user_id) {
             // If someone else is updating, notify the teacher

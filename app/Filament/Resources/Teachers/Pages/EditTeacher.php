@@ -21,6 +21,22 @@ class EditTeacher extends EditRecord
         ];
     }
 
+    protected function getFormActions(): array
+    {
+        return [
+            $this->getSaveFormAction(),
+            $this->getCancelFormAction(),
+        ];
+    }
+
+    protected function getSaveFormAction(): \Filament\Actions\Action
+    {
+        return \Filament\Actions\Action::make('save')
+            ->label(__('filament-panels::resources/pages/edit-record.form.actions.save.label'))
+            ->submit('save')
+            ->keyBindings(['mod+s']);
+    }
+
     /**
      * Override the save method to handle approvals.
      */

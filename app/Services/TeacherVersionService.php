@@ -14,66 +14,111 @@ use Illuminate\Support\Arr;
 class TeacherVersionService
 {
     /**
-     * Map of teacher fields to their sections
+     * Map of section keys to their field/relation names
+     * IMPORTANT: Section keys MUST match ApprovalSettings table section_key values
+     * 
+     * Based on TeacherForm.php tabs
      */
     private const FIELD_SECTION_MAP = [
-        'personal_info' => ['first_name', 'last_name', 'middle_name', 'phone', 'personal_phone', 'secondary_email', 'present_address', 'permanent_address', 'date_of_birth', 'gender_id', 'blood_group_id', 'country_id', 'religion_id', 'photo'],
-        'academic_info' => ['designation_id', 'department_id', 'joining_date', 'work_location', 'office_room', 'extension_no', 'employee_id', 'webpage'],
-        'research_info' => ['research_interest', 'bio', 'google_scholar', 'research_gate', 'orcid'],
+        // Tab 1: Basic Info (removed 'photo' - it's a media field)
+        'basic_info' => ['department_id', 'designation_id', 'employee_id', 'webpage', 'joining_date', 'work_location', 'first_name', 'middle_name', 'last_name', 'bio'],
+        
+        // Tab 2: Contact Info
+        'contact_info' => ['phone', 'personal_phone', 'extension_no', 'office_room', 'secondary_email', 'present_address', 'permanent_address'],
+        
+        // Tab 3: Personal Details
+        'personal_details' => ['date_of_birth', 'gender_id', 'blood_group_id', 'country_id', 'religion_id'],
+        
+        // Tab 4: Academic Info
+        'academic_info' => ['research_interest'],
+        
+        // Tab 5: Educations (Relation)
         'educations' => ['educations'],
+        
+        // Tab 6: Publications (Relation)
         'publications' => ['publications'],
+        
+        // Tab 7: Job Experience (Relation)
         'job_experiences' => ['jobExperiences'],
+        
+        // Tab 8: Training Experience (Relation)
         'training_experiences' => ['trainingExperiences'],
+        
+        // Tab 9: Awards (Relation)
         'awards' => ['awards'],
+        
+        // Tab 10: Skills (Relation)
         'skills' => ['skills'],
+        
+        // Tab 11: Teaching Areas (Relation)
         'teaching_areas' => ['teachingAreas'],
+        
+        // Tab 12: Memberships (Relation)
         'memberships' => ['memberships'],
+        
+        // Tab 13: Social Links (Relation)
         'social_links' => ['socialLinks'],
-        // 'settings' => ['profile_status', 'employment_status', 'is_public', 'is_active', 'is_archived', 'sort_order'],
+        
+        // Tab 15: Settings
+        'settings' => ['profile_status', 'employment_status', 'is_public', 'is_active', 'is_archived', 'sort_order'],
     ];
+
+    /**
+     * Fields that are Spatie Media Library collections (NOT Laravel relationships)
+     */
+    private const MEDIA_FIELDS = ['photo', 'documents'];
+    
+    /**
+     * Known Laravel relationship names
+     */
+    private const RELATION_NAMES = [
+        'educations', 'publications', 'jobExperiences', 'trainingExperiences',
+        'awards', 'skills', 'teachingAreas', 'memberships', 'socialLinks'
+    ];
+
+    /**
+     * Static flag to prevent Observer recursion
+     */
+    public static bool $ignoreObserver = false;
 
     /**
      * Legacy entry point for Observer calls.
      * This handles scalar updates coming from direct model updates (not via Form/Relationship manager).
-     * 
-     * @param Teacher $teacher
-     * @param array $dirtyFields List of changed field names (scalars only typically)
      */
     public function processUpdate(Teacher $teacher, array $dirtyFields): void
     {
-        // Construct a partial data array from dirty fields to reuse the main logic
         $data = [];
         foreach ($dirtyFields as $field) {
             $data[$field] = $teacher->$field;
         }
-
-        // Call the main handler
-        // Note: Observer calls this *during* updating event.
-        // If we want to intercept, we should have the observer stop the update if approval is needed?
-        // But our new architecture relies on CONTROLLER blocking the save.
-        
-        // If we are here via Observer, it implies a save call was made NOT via our EditTeacher override 
-        // OR the override called save() eventually.
-        
-        // If specific logic is needed for Observer-triggered updates:
         $this->handleUpdateFromForm($teacher, $data);
     }
 
-
     /**
      * Process teacher update request.
-     * This is now the MAIN entry point from Controller/Resource.
-     * 
-     * @param Teacher $teacher
-     * @param array $allData Both scalar and relationship data from the form
+     * This is the MAIN entry point from Controller/Resource.
      */
     public function handleUpdateFromForm(Teacher $teacher, array $allData): void
     {
+        // DEBUG: Log incoming data keys to verify relations are included
+        \Log::info('TeacherVersionService: Incoming data keys', [
+            'keys' => array_keys($allData),
+            'has_educations' => isset($allData['educations']),
+            'has_skills' => isset($allData['skills']),
+            'educations_count' => isset($allData['educations']) ? count($allData['educations']) : 0,
+            'skills_count' => isset($allData['skills']) ? count($allData['skills']) : 0,
+        ]);
+        
         // 1. Identify changed sections
         $changedSections = $this->identifyChangedSections($teacher, $allData);
         
+        \Log::info('TeacherVersionService: Changed sections identified', [
+            'sections' => array_keys($changedSections),
+        ]);
+
         if (empty($changedSections)) {
-            return; // No changes detected
+            \Log::info('TeacherVersionService: No changes detected, returning');
+            return;
         }
 
         // 2. Check which sections require approval
@@ -88,6 +133,11 @@ class TeacherVersionService
             }
         }
 
+        \Log::info('TeacherVersionService: Approval check', [
+            'approval_sections' => array_keys($approvalSections),
+            'auto_update_sections' => array_keys($autoUpdateSections),
+        ]);
+
         // 3. If NO approval needed, just update everything directly
         if (empty($approvalSections)) {
             $this->applyUpdates($teacher, $allData);
@@ -95,8 +145,12 @@ class TeacherVersionService
         }
 
         // 4. If approval IS needed, create a version with EVERYTHING
-        // (We version the entire state to ensure consistency)
-        $this->createVersion($teacher, $allData, array_keys($approvalSections));
+        $version = $this->createVersion($teacher, $allData, array_keys($approvalSections));
+        
+        \Log::info('TeacherVersionService: Version created', [
+            'version_id' => $version->id,
+            'stored_data_keys' => array_keys($version->data ?? []),
+        ]);
     }
 
     /**
@@ -107,43 +161,32 @@ class TeacherVersionService
         $changedSections = [];
 
         foreach (self::FIELD_SECTION_MAP as $section => $fields) {
-            $sectionChanged = false;
             foreach ($fields as $field) {
-                // Check if it's a relationship (array) or partial scalar
                 if (array_key_exists($field, $newData)) {
                     $newValue = $newData[$field];
                     
-                    // Handle Relationships (Arrays)
-                    if (is_array($newValue)) {
-                        // For simplicity in comparison, if keys don't match or count differs, it changed.
-                        // A deeper comparison could be expensive but more accurate.
-                        // Ideally checking if the serialized version differs.
-                        // For now, we assume if it's in the payload, we check strict content.
-                        
-                        // We need to compare with existing relation data
-                        $relationName = $field; // e.g. 'skills'
-                        
-                        // Load existing relation if not loaded
-                        if (!$teacher->relationLoaded($relationName)) {
-                            $teacher->load($relationName);
+                    // Skip media fields - they are handled by Spatie, not as Laravel relationships
+                    if (in_array($field, self::MEDIA_FIELDS)) {
+                        continue;
+                    }
+                    
+                    // Check if this is a known relationship (array data)
+                    if (is_array($newValue) && in_array($field, self::RELATION_NAMES)) {
+                        // Load relation if not loaded
+                        if (!$teacher->relationLoaded($field)) {
+                            $teacher->load($field);
                         }
                         
-                        $existingData = $teacher->$relationName->toArray();
-                        
-                        // Normalize arrays for comparison (remove timestamps, etc if needed, but simple json encode comparison might suffice for now)
-                        // A better approach: Compare count and IDs + content.
-                        // NOTE: Filament Repeater sends all data.
+                        $existingData = $teacher->$field->toArray();
                         
                         if ($this->hasRelationshipChanged($existingData, $newValue)) {
                             $changedSections[$section][] = $field;
                         }
-
-                    } else {
+                    } elseif (!is_array($newValue)) {
                         // Scalar comparison
                         $originalValue = $teacher->$field;
-                        // Loose comparison or strict? Filament form state vs DB state.
                         if ($originalValue != $newValue) {
-                             $changedSections[$section][] = $field;
+                            $changedSections[$section][] = $field;
                         }
                     }
                 }
@@ -155,19 +198,11 @@ class TeacherVersionService
 
     private function hasRelationshipChanged(array $existing, array $incoming): bool
     {
-        // Simple count check
         if (count($existing) !== count($incoming)) {
             return true;
         }
-
-        // Deep check - this can be complex. 
-        // We act conservatively: if identifying strictly is hard, we can assume change if keys are present.
-        // But for preventing false positives, let's try a diff.
-        // Incoming usually has no IDs for new items, or IDs for existing.
-        
-        // Let's assume changed for now to ensure we catch updates.
-        // Optimizing this is a "Nice to have".
-        return true; 
+        // Conservative: if data is present, assume change
+        return true;
     }
 
     /**
@@ -178,8 +213,13 @@ class TeacherVersionService
         DB::transaction(function () use ($teacher, $data) {
             $scalarData = Arr::except($data, array_merge(...array_values($this->getRelationshipFields())));
             
-            // Update scalar
-            $teacher->update($scalarData);
+            self::$ignoreObserver = true;
+            
+            try {
+                $teacher->update($scalarData);
+            } finally {
+                self::$ignoreObserver = false;
+            }
 
             // Update relations
             foreach ($this->getRelationshipFields() as $section => $relations) {
@@ -190,18 +230,30 @@ class TeacherVersionService
                 }
             }
         });
+
+        // Notify if Third Party Update
+        if (auth()->check() && $teacher->user && auth()->id() !== $teacher->user_id) {
+            try {
+                $teacher->user->notify(new \App\Notifications\TeacherProfileUpdatedByAdmin($teacher, auth()->user()));
+            } catch (\Exception $e) {
+                \Log::error('Failed to send TeacherProfileUpdatedByAdmin notification: ' . $e->getMessage());
+            }
+        }
     }
 
     private function getRelationshipFields(): array
     {
-        $relations = [];
-        foreach (self::FIELD_SECTION_MAP as $section => $fields) {
-            // These are known relationship keys based on our map
-            if (in_array($section, ['educations', 'publications', 'job_experiences', 'training_experiences', 'awards', 'skills', 'teaching_areas', 'memberships', 'social_links'])) {
-                $relations[$section] = $fields;
-            }
-        }
-        return $relations;
+        return [
+            'educations' => ['educations'],
+            'publications' => ['publications'],
+            'job_experiences' => ['jobExperiences'],
+            'training_experiences' => ['trainingExperiences'],
+            'awards' => ['awards'],
+            'skills' => ['skills'],
+            'teaching_areas' => ['teachingAreas'],
+            'memberships' => ['memberships'],
+            'social_links' => ['socialLinks'],
+        ];
     }
 
     /**
@@ -222,6 +274,7 @@ class TeacherVersionService
             'submitted_at' => now(),
         ]);
         
+        // Send notifications to approvers
         $this->sendNotifications($version, $changedSectionNames);
         
         return $version;
@@ -232,11 +285,21 @@ class TeacherVersionService
      */
     private function sendNotifications(TeacherVersion $version, array $sections): void
     {
+        $allRecipients = collect();
+        
         foreach ($sections as $section) {
             $recipients = NotificationRouting::getRecipientsFor('teacher_profile_update', $section);
-            
-            foreach ($recipients as $recipient) {
+            $allRecipients = $allRecipients->merge($recipients);
+        }
+        
+        // Send to unique recipients only
+        $uniqueRecipients = $allRecipients->unique('id');
+        
+        foreach ($uniqueRecipients as $recipient) {
+            try {
                 $recipient->notify(new TeacherProfileUpdatePending($version, $sections));
+            } catch (\Exception $e) {
+                \Log::error('Failed to send TeacherProfileUpdatePending notification to ' . $recipient->email . ': ' . $e->getMessage());
             }
         }
     }
@@ -265,14 +328,13 @@ class TeacherVersionService
             $data = $version->data;
 
             // 1. Scalar Update
-            // Filter out relationship keys
             $relKeys = Arr::flatten($this->getRelationshipFields());
             $scalarData = Arr::except($data, $relKeys);
             
             Teacher::withoutEvents(function () use ($teacher, $scalarData) {
                 $teacher->update($scalarData);
                 
-                // Name sync (manual trigger since events off)
+                // Name sync
                 if (isset($scalarData['first_name']) || isset($scalarData['last_name'])) {
                     if ($teacher->user) {
                         $fullName = trim("{$teacher->first_name} {$teacher->middle_name} {$teacher->last_name}");
@@ -298,102 +360,87 @@ class TeacherVersionService
     }
 
     /**
-     * Logic to sync HasMany/MorphToMany relationships without simple duplication.
+     * Logic to sync HasMany/MorphToMany relationships
      */
     private function syncRelation(Teacher $teacher, string $relationName, array $items): void
     {
-        $relation = $teacher->$relationName();
-        $relatedKeyName = $relation->getRelated()->getKeyName();
+        \Log::info("syncRelation called for: {$relationName}", [
+            'items_count' => count($items),
+            'sample_keys' => !empty($items) ? array_keys($items[0] ?? []) : [],
+        ]);
 
-        // Separate items into "Existing (Updates)" and "New (Creates)"
-        // And identify IDs to keep (for deletion logic)
+        $relation = $teacher->$relationName();
+        $relatedModel = $relation->getRelated();
+        $relatedKeyName = $relatedModel->getKeyName(); // Usually 'id'
+        $fillable = $relatedModel->getFillable();
         
         $keepIds = [];
 
-        foreach ($items as $item) {
-            // Check if item has an ID (update)
+        foreach ($items as $index => $item) {
+            // Filter out virtual/computed fields (starting with _) and non-fillable fields
+            $cleanData = collect($item)
+                ->filter(function ($value, $key) use ($fillable, $relatedKeyName) {
+                    // Keep only fillable fields, exclude id and virtual fields
+                    return !str_starts_with($key, '_') 
+                        && $key !== $relatedKeyName 
+                        && (empty($fillable) || in_array($key, $fillable));
+                })
+                ->toArray();
+            
+            \Log::info("syncRelation item {$index}", [
+                'has_id' => isset($item[$relatedKeyName]),
+                'id_value' => $item[$relatedKeyName] ?? null,
+                'clean_data_keys' => array_keys($cleanData),
+            ]);
+
             if (isset($item[$relatedKeyName]) && !empty($item[$relatedKeyName])) {
+                // UPDATE existing record
                 $existingId = $item[$relatedKeyName];
                 $keepIds[] = $existingId;
                 
-                // Update existing record
-                // For HasMany:
                 if ($relation instanceof \Illuminate\Database\Eloquent\Relations\HasMany) {
-                     $relation->where($relatedKeyName, $existingId)->update($item);
-                } 
-                // For BelongsToMany / MorphToMany (Pivot updates? Or content updates?)
-                // In this system, it seems Publications etc are distinct records owned by teacher, 
-                // OR ManyToMany with pivot.
-                
-                // Let's check Relation Type specifically if needed.
-                // Based on models:
-                // Skills -> HasMany
-                // Educations -> HasMany
-                // Publications -> MorphToMany (pivot!)
-                
-                if ($relation instanceof \Illuminate\Database\Eloquent\Relations\MorphToMany || 
-                    $relation instanceof \Illuminate\Database\Eloquent\Relations\BelongsToMany) {
-                    
-                    // For ManyToMany, usually we sync IDs. 
-                    // BUT Filament repeater for ManyToMany usually implies editing the PIVOT or the related record?
-                    // "publications" is MorphToMany with pivot 'author_role', 'sort_order'.
-                    // The repeater items probably contain the pivot data AND potentially related data if inline?
-                    // Filament `relationship()` repeater for M:N typically handles attach/detach/sync.
-                    
-                    // IF the input $item contains the related record ID (e.g. publication_id), use syncWithoutDetaching or updateExistingPivot.
-                    // However, Filament's `relationship()` usually handles this magic.
-                    // Doing it manually here is tricky.
-                    
-                    // NOTE: If it's a MorphToMany, $item might be the PIVOT data + Related ID?
-                    // Let's look at `Publications` schema in TeacherResource.
-                    // It creates/edits the `Publication` model directly? No, it looks like it creates Publication AND attaches?
-                    
-                    // If it is complex, we might delegate to Filament's logic if possible? No, we are in Service.
-                    
-                    // Let's assume standard behavior for now:
-                    // If the RELATION is OWNED (HasMany), we update the Row.
-                    // If the RELATION is LINKED (ManyToMany), we usually Sync IDs.
-                    
-                    // Special checking for Publication/Pivot
-                    // Publications are MorphToMany. The array likely contains 'id' of Publication + pivot fields?
-                    // OR if users can Create publications inline, it has all fields.
-                    
-                    // Fallback for ManyToMany: We might need to use `sync` with pivot data.
-                    // But `items` from Form State might be full objects.
-                
-                    // If complex, let's treat it carefully:
-                    // Check if it's a ManyToMany
-                     if (isset($item['id'])) {
-                         $relation->updateExistingPivot($item['id'], Arr::only($item, ['author_role', 'sort_order', 'is_corresponding'])); 
-                         // Note: We might NOT want to update the actual Publication content here if it's shared? 
-                         // But if the form edits publication details, we must.
-                     }
+                    $relation->where($relatedKeyName, $existingId)->update($cleanData);
+                    \Log::info("Updated HasMany record", ['id' => $existingId]);
+                } elseif ($relation instanceof \Illuminate\Database\Eloquent\Relations\MorphToMany || 
+                          $relation instanceof \Illuminate\Database\Eloquent\Relations\BelongsToMany) {
+                    // For MorphToMany, update related record and pivot
+                    $relatedModel::where($relatedKeyName, $existingId)->update($cleanData);
+                    // Update pivot if needed
+                    $pivotData = Arr::only($item, ['author_role', 'sort_order', 'is_corresponding']);
+                    if (!empty($pivotData)) {
+                        $relation->updateExistingPivot($existingId, $pivotData);
+                    }
+                    \Log::info("Updated MorphToMany record", ['id' => $existingId]);
                 }
-                
             } else {
-                // Create New
-                 if ($relation instanceof \Illuminate\Database\Eloquent\Relations\HasMany) {
-                    $relation->create($item);
-                } elseif ($relation instanceof \Illuminate\Database\Eloquent\Relations\MorphToMany) {
-                    // Complexity: Creating a NEW Publication + Attaching?
-                    // Or attaching existing?
-                    // If inline form, it creates.
-                    
-                    // We'll create the related model, then attach.
-                    $newModel = $relation->getRelated()->create($item);
-                    $relation->attach($newModel->id, Arr::only($item, ['author_role', 'sort_order']));
+                // CREATE new record
+                if ($relation instanceof \Illuminate\Database\Eloquent\Relations\HasMany) {
+                    $newRecord = $relation->create($cleanData);
+                    $keepIds[] = $newRecord->$relatedKeyName;
+                    \Log::info("Created HasMany record", ['new_id' => $newRecord->$relatedKeyName]);
+                } elseif ($relation instanceof \Illuminate\Database\Eloquent\Relations\MorphToMany ||
+                          $relation instanceof \Illuminate\Database\Eloquent\Relations\BelongsToMany) {
+                    $newModel = $relatedModel::create($cleanData);
+                    $pivotData = Arr::only($item, ['author_role', 'sort_order', 'is_corresponding']);
+                    $relation->attach($newModel->$relatedKeyName, $pivotData);
+                    $keepIds[] = $newModel->$relatedKeyName;
+                    \Log::info("Created MorphToMany record", ['new_id' => $newModel->$relatedKeyName]);
                 }
             }
         }
         
-        // Handle Deletions (Pruning)
-        // For HasMany, delete those not in $keepIds
+        // Handle Deletions - remove records not in keepIds
         if ($relation instanceof \Illuminate\Database\Eloquent\Relations\HasMany) {
-            $relation->whereNotIn($relatedKeyName, $keepIds)->delete();
-        } elseif ($relation instanceof \Illuminate\Database\Eloquent\Relations\MorphToMany) {
-            // Sync/Detach
-            // Detach IDs not in keepIds
-            $relation->detach(array_diff($relation->pluck($relation->getRelated()->getTable().'.id')->toArray(), $keepIds));
+            $deleted = $relation->whereNotIn($relatedKeyName, $keepIds)->delete();
+            \Log::info("Deleted HasMany records", ['deleted_count' => $deleted, 'kept_ids' => $keepIds]);
+        } elseif ($relation instanceof \Illuminate\Database\Eloquent\Relations\MorphToMany ||
+                  $relation instanceof \Illuminate\Database\Eloquent\Relations\BelongsToMany) {
+            $existingIds = $relation->pluck($relatedModel->getTable() . '.' . $relatedKeyName)->toArray();
+            $idsToDetach = array_diff($existingIds, $keepIds);
+            if (!empty($idsToDetach)) {
+                $relation->detach($idsToDetach);
+                \Log::info("Detached MorphToMany records", ['detached' => $idsToDetach]);
+            }
         }
     }
 
@@ -413,12 +460,5 @@ class TeacherVersionService
         if ($version->teacher->user) {
             $version->teacher->user->notify(new \App\Notifications\TeacherProfileRejected($version, $remarks));
         }
-    }
-    
-    // Helper helper
-    public function categorizeDirtyFields(array $fields): array
-    {
-         // Legacy helper if needed, or remove.
-         return [];
     }
 }

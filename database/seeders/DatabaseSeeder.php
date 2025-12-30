@@ -38,6 +38,9 @@ class DatabaseSeeder extends Seeder
             MembershipOrganizationSeeder::class,
             TeacherSeeder::class,
             TeacherPermissionSeeder::class,
+            ApprovalSettingsSeeder::class,
+            ApprovalPermissionsSeeder::class,
+            NotificationRoutingSeeder::class,
         ]);
     }
 }
