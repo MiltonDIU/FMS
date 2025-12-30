@@ -309,6 +309,11 @@ class TeacherVersionService
      */
     public function approveVersion(TeacherVersion $version): void
     {
+        \Log::info('approveVersion called', [
+            'version_id' => $version->id,
+            'data_keys' => array_keys($version->data ?? []),
+        ]);
+
         DB::transaction(function () use ($version) {
             // Deactivate current active version
             TeacherVersion::where('teacher_id', $version->teacher_id)
@@ -326,10 +331,19 @@ class TeacherVersionService
             // Apply Data to Teacher
             $teacher = $version->teacher;
             $data = $version->data;
+            
+            \Log::info('approveVersion: Starting data apply', [
+                'teacher_id' => $teacher->id,
+                'data_keys' => array_keys($data ?? []),
+            ]);
 
-            // 1. Scalar Update
-            $relKeys = Arr::flatten($this->getRelationshipFields());
-            $scalarData = Arr::except($data, $relKeys);
+            // Get all relation field names to exclude from scalar update
+            $relationFields = self::RELATION_NAMES;
+            $scalarData = Arr::except($data, array_merge($relationFields, self::MEDIA_FIELDS));
+            
+            \Log::info('approveVersion: Scalar data to update', [
+                'scalar_keys' => array_keys($scalarData),
+            ]);
             
             Teacher::withoutEvents(function () use ($teacher, $scalarData) {
                 $teacher->update($scalarData);
@@ -343,12 +357,22 @@ class TeacherVersionService
                 }
             });
 
-            // 2. Relationship Sync
-            foreach ($this->getRelationshipFields() as $section => $relations) {
-                foreach ($relations as $relationName) {
-                    if (isset($data[$relationName])) {
-                        $this->syncRelation($teacher, $relationName, $data[$relationName]);
-                    }
+            // 2. Relationship Sync - iterate through known relation names
+            \Log::info('approveVersion: Starting relationship sync', [
+                'relation_names' => self::RELATION_NAMES,
+            ]);
+            
+            foreach (self::RELATION_NAMES as $relationName) {
+                if (isset($data[$relationName]) && is_array($data[$relationName])) {
+                    $items = array_values($data[$relationName]); // Normalize keys
+                    
+                    \Log::info("approveVersion: Syncing relation {$relationName}", [
+                        'items_count' => count($items),
+                    ]);
+                    
+                    $this->syncRelation($teacher, $relationName, $items);
+                } else {
+                    \Log::info("approveVersion: No data for relation {$relationName}");
                 }
             }
             
@@ -356,6 +380,8 @@ class TeacherVersionService
             if ($version->teacher->user) {
                 $version->teacher->user->notify(new \App\Notifications\TeacherProfileApproved($version));
             }
+            
+            \Log::info('approveVersion: Complete');
         });
     }
 
@@ -374,43 +400,72 @@ class TeacherVersionService
         $relatedKeyName = $relatedModel->getKeyName(); // Usually 'id'
         $fillable = $relatedModel->getFillable();
         
+        // Get current existing IDs for this teacher's relation
+        // Use qualified table.column name to avoid ambiguity in joined queries (MorphToMany)
+        $tableName = $relatedModel->getTable();
+        $existingIds = $relation->pluck("{$tableName}.{$relatedKeyName}")->toArray();
+        
         $keepIds = [];
+        $processedItems = 0;
 
         foreach ($items as $index => $item) {
-            // Filter out virtual/computed fields (starting with _) and non-fillable fields
+            // Skip empty items
+            if (empty($item) || !is_array($item)) {
+                continue;
+            }
+            
+            $processedItems++;
+            
+            // Filter out virtual/computed fields (starting with _) and keep only fillable fields
             $cleanData = collect($item)
                 ->filter(function ($value, $key) use ($fillable, $relatedKeyName) {
-                    // Keep only fillable fields, exclude id and virtual fields
+                    // Exclude id, virtual fields starting with _, and non-fillable fields
                     return !str_starts_with($key, '_') 
                         && $key !== $relatedKeyName 
+                        && $key !== 'id'  // Explicitly exclude 'id' 
                         && (empty($fillable) || in_array($key, $fillable));
                 })
                 ->toArray();
             
+            // Get the ID from item (could be 'id' or the model's primary key name)
+            $itemId = $item[$relatedKeyName] ?? $item['id'] ?? null;
+            
             \Log::info("syncRelation item {$index}", [
-                'has_id' => isset($item[$relatedKeyName]),
-                'id_value' => $item[$relatedKeyName] ?? null,
+                'item_id' => $itemId,
+                'has_id' => !empty($itemId),
                 'clean_data_keys' => array_keys($cleanData),
+                'clean_data' => $cleanData,
             ]);
 
-            if (isset($item[$relatedKeyName]) && !empty($item[$relatedKeyName])) {
+            if (!empty($itemId)) {
                 // UPDATE existing record
-                $existingId = $item[$relatedKeyName];
-                $keepIds[] = $existingId;
+                $keepIds[] = $itemId;
                 
                 if ($relation instanceof \Illuminate\Database\Eloquent\Relations\HasMany) {
-                    $relation->where($relatedKeyName, $existingId)->update($cleanData);
-                    \Log::info("Updated HasMany record", ['id' => $existingId]);
+                    // Use find() and update for more reliable updating
+                    $existingRecord = $relatedModel::find($itemId);
+                    if ($existingRecord) {
+                        $existingRecord->fill($cleanData);
+                        $existingRecord->save();
+                        \Log::info("Updated HasMany record", ['id' => $itemId, 'updated' => true]);
+                    } else {
+                        \Log::warning("HasMany record not found for update", ['id' => $itemId]);
+                    }
                 } elseif ($relation instanceof \Illuminate\Database\Eloquent\Relations\MorphToMany || 
                           $relation instanceof \Illuminate\Database\Eloquent\Relations\BelongsToMany) {
-                    // For MorphToMany, update related record and pivot
-                    $relatedModel::where($relatedKeyName, $existingId)->update($cleanData);
-                    // Update pivot if needed
-                    $pivotData = Arr::only($item, ['author_role', 'sort_order', 'is_corresponding']);
-                    if (!empty($pivotData)) {
-                        $relation->updateExistingPivot($existingId, $pivotData);
+                    // For MorphToMany, update related record directly
+                    $existingRecord = $relatedModel::find($itemId);
+                    if ($existingRecord) {
+                        $existingRecord->fill($cleanData);
+                        $existingRecord->save();
+                        
+                        // Update pivot if needed
+                        $pivotData = Arr::only($item, ['author_role', 'sort_order', 'is_corresponding']);
+                        if (!empty($pivotData)) {
+                            $relation->updateExistingPivot($itemId, $pivotData);
+                        }
+                        \Log::info("Updated MorphToMany record", ['id' => $itemId]);
                     }
-                    \Log::info("Updated MorphToMany record", ['id' => $existingId]);
                 }
             } else {
                 // CREATE new record
@@ -429,19 +484,31 @@ class TeacherVersionService
             }
         }
         
-        // Handle Deletions - remove records not in keepIds
-        if ($relation instanceof \Illuminate\Database\Eloquent\Relations\HasMany) {
-            $deleted = $relation->whereNotIn($relatedKeyName, $keepIds)->delete();
-            \Log::info("Deleted HasMany records", ['deleted_count' => $deleted, 'kept_ids' => $keepIds]);
-        } elseif ($relation instanceof \Illuminate\Database\Eloquent\Relations\MorphToMany ||
-                  $relation instanceof \Illuminate\Database\Eloquent\Relations\BelongsToMany) {
-            $existingIds = $relation->pluck($relatedModel->getTable() . '.' . $relatedKeyName)->toArray();
-            $idsToDetach = array_diff($existingIds, $keepIds);
-            if (!empty($idsToDetach)) {
-                $relation->detach($idsToDetach);
-                \Log::info("Detached MorphToMany records", ['detached' => $idsToDetach]);
+        // Handle Deletions - remove records that are NOT in keepIds
+        $idsToDelete = array_diff($existingIds, $keepIds);
+        
+        \Log::info("syncRelation deletion check for {$relationName}", [
+            'existing_ids' => $existingIds,
+            'keep_ids' => $keepIds,
+            'ids_to_delete' => $idsToDelete,
+        ]);
+        
+        if (!empty($idsToDelete)) {
+            if ($relation instanceof \Illuminate\Database\Eloquent\Relations\HasMany) {
+                $deletedCount = $relatedModel::whereIn($relatedKeyName, $idsToDelete)->delete();
+                \Log::info("Deleted HasMany records", ['deleted_count' => $deletedCount, 'deleted_ids' => $idsToDelete]);
+            } elseif ($relation instanceof \Illuminate\Database\Eloquent\Relations\MorphToMany ||
+                      $relation instanceof \Illuminate\Database\Eloquent\Relations\BelongsToMany) {
+                $relation->detach($idsToDelete);
+                \Log::info("Detached MorphToMany records", ['detached_ids' => $idsToDelete]);
             }
         }
+        
+        \Log::info("syncRelation complete for {$relationName}", [
+            'processed_items' => $processedItems,
+            'kept_ids' => count($keepIds),
+            'deleted_ids' => count($idsToDelete),
+        ]);
     }
 
     /**
