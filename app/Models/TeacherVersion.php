@@ -24,6 +24,12 @@ class TeacherVersion extends Model
         'reviewed_by',
         'reviewed_at',
         'review_remarks',
+        // Section-level approval fields
+        'approved_sections',
+        'pending_sections',
+        'rejected_sections',
+        'section_remarks',
+        'changed_sections',
     ];
 
     protected $casts = [
@@ -31,6 +37,12 @@ class TeacherVersion extends Model
         'is_active' => 'boolean',
         'submitted_at' => 'datetime',
         'reviewed_at' => 'datetime',
+        // Section-level approval casts
+        'approved_sections' => 'array',
+        'pending_sections' => 'array',
+        'rejected_sections' => 'array',
+        'section_remarks' => 'array',
+        'changed_sections' => 'array',
     ];
 
     /**
@@ -45,21 +57,19 @@ class TeacherVersion extends Model
     {
         parent::boot();
 
-        // Handle is_active changes
+        // Handle is_active changes (for rollback feature)
         static::updating(function (TeacherVersion $version) {
-            // Skip if activation logic is already being handled
             if (self::$skipActivation) {
                 return;
             }
 
             // Check if is_active is being changed from false to true
             if ($version->isDirty('is_active') && $version->is_active === true) {
-                // Only allow approved versions to be activated
-                if ($version->status !== 'approved') {
-                    throw new \Exception('Only approved versions can be activated.');
+                // For rollback, status must be 'approved' or 'partially_approved'
+                if (!in_array($version->status, ['approved', 'partially_approved', 'completed'])) {
+                    throw new \Exception('Only approved/completed versions can be activated.');
                 }
 
-                // Set flag to prevent recursive calls
                 self::$skipActivation = true;
 
                 try {
@@ -69,7 +79,7 @@ class TeacherVersion extends Model
                         ->where('is_active', true)
                         ->update(['is_active' => false]);
 
-                    // Apply version data to teacher profile
+                    // Apply ALL version data to teacher profile (rollback = complete restore)
                     app(TeacherVersionService::class)->applyVersionData($version);
                 } finally {
                     self::$skipActivation = false;
@@ -77,6 +87,62 @@ class TeacherVersion extends Model
             }
         });
     }
+
+    // ==========================================
+    // Section-Level Approval Helper Methods
+    // ==========================================
+
+    /**
+     * Check if a specific section is approved
+     */
+    public function isSectionApproved(string $section): bool
+    {
+        return in_array($section, $this->approved_sections ?? []);
+    }
+
+    /**
+     * Check if a specific section is pending
+     */
+    public function isSectionPending(string $section): bool
+    {
+        return in_array($section, $this->pending_sections ?? []);
+    }
+
+    /**
+     * Check if a specific section is rejected
+     */
+    public function isSectionRejected(string $section): bool
+    {
+        return in_array($section, $this->rejected_sections ?? []);
+    }
+
+    /**
+     * Check if all sections have been decided (approved or rejected)
+     */
+    public function isFullyDecided(): bool
+    {
+        return empty($this->pending_sections);
+    }
+
+    /**
+     * Check if all changed sections are approved
+     */
+    public function isFullyApproved(): bool
+    {
+        return $this->isFullyDecided() && empty($this->rejected_sections);
+    }
+
+    /**
+     * Get remark for a specific section
+     */
+    public function getSectionRemark(string $section): ?string
+    {
+        return ($this->section_remarks ?? [])[$section] ?? null;
+    }
+
+    // ==========================================
+    // Relationships
+    // ==========================================
 
     /**
      * Get the teacher that owns this version.
@@ -102,6 +168,10 @@ class TeacherVersion extends Model
         return $this->belongsTo(User::class, 'reviewed_by');
     }
 
+    // ==========================================
+    // Scopes
+    // ==========================================
+
     /**
      * Scope a query to only include pending versions.
      */
@@ -115,7 +185,7 @@ class TeacherVersion extends Model
      */
     public function scopeApproved($query)
     {
-        return $query->where('status', 'approved');
+        return $query->whereIn('status', ['approved', 'partially_approved', 'completed']);
     }
 
     /**
@@ -125,5 +195,14 @@ class TeacherVersion extends Model
     {
         return $query->where('is_active', true);
     }
+
+    /**
+     * Scope for versions with pending sections
+     */
+    public function scopeHasPendingSections($query)
+    {
+        return $query->whereJsonLength('pending_sections', '>', 0);
+    }
 }
+
 

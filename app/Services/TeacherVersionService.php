@@ -272,6 +272,12 @@ class TeacherVersionService
             'status' => 'pending',
             'submitted_by' => auth()->id(),
             'submitted_at' => now(),
+            // Section-level approval initialization
+            'changed_sections' => $changedSectionNames,
+            'pending_sections' => $changedSectionNames, // All sections start as pending
+            'approved_sections' => [],
+            'rejected_sections' => [],
+            'section_remarks' => [],
         ]);
         
         // Send notifications to approvers
@@ -305,83 +311,68 @@ class TeacherVersionService
     }
 
     /**
-     * Approve a version and update teacher profile
+     * Approve authorized sections of a version
+     * (Replaces 'Approve All' - approves everything the user has permission for)
      */
     public function approveVersion(TeacherVersion $version): void
     {
         \Log::info('approveVersion called', [
             'version_id' => $version->id,
-            'data_keys' => array_keys($version->data ?? []),
+            'user_id' => auth()->id(),
         ]);
 
-        DB::transaction(function () use ($version) {
-            // Deactivate current active version
-            TeacherVersion::where('teacher_id', $version->teacher_id)
-                ->where('is_active', true)
-                ->update(['is_active' => false]);
-            
-            // Activate this version
-            $version->update([
-                'status' => 'approved',
-                'is_active' => true,
-                'reviewed_by' => auth()->id(),
-                'reviewed_at' => now(),
-            ]);
-            
-            // Apply Data to Teacher
-            $teacher = $version->teacher;
-            $data = $version->data;
-            
-            \Log::info('approveVersion: Starting data apply', [
-                'teacher_id' => $teacher->id,
-                'data_keys' => array_keys($data ?? []),
-            ]);
+        $pendingSections = $version->pending_sections ?? [];
+        $authorizedSections = [];
 
-            // Get all relation field names to exclude from scalar update
-            $relationFields = self::RELATION_NAMES;
-            $scalarData = Arr::except($data, array_merge($relationFields, self::MEDIA_FIELDS));
-            
-            \Log::info('approveVersion: Scalar data to update', [
-                'scalar_keys' => array_keys($scalarData),
-            ]);
-            
-            Teacher::withoutEvents(function () use ($teacher, $scalarData) {
-                $teacher->update($scalarData);
-                
-                // Name sync
-                if (isset($scalarData['first_name']) || isset($scalarData['last_name'])) {
-                    if ($teacher->user) {
-                        $fullName = trim("{$teacher->first_name} {$teacher->middle_name} {$teacher->last_name}");
-                        $teacher->user->update(['name' => $fullName]);
-                    }
-                }
-            });
+        // Identify authorized sections
+        foreach ($pendingSections as $section) {
+            if ($this->canUserApproveSection(auth()->user(), $section)) {
+                $authorizedSections[] = $section;
+            }
+        }
 
-            // 2. Relationship Sync - iterate through known relation names
-            \Log::info('approveVersion: Starting relationship sync', [
-                'relation_names' => self::RELATION_NAMES,
-            ]);
+        if (empty($authorizedSections)) {
+            throw new \Exception("You do not have permission to approve any of the pending sections.");
+        }
+
+        DB::transaction(function () use ($version, $authorizedSections) {
+             // Deactivate current active version (only if this becomes the active one - but partial approval keeps it pending usually)
+             // Wait, if we partial approve, previous version stays active until this one is FULLY approved?
+             // Or can we have mixed state? 
+             // Current design: Data is applied IMMEDIATELY upon section approval.
+             // So we don't need to deactivate previous version globally unless status changes to full approved.
+             // Actually, the teacher profile is single source of truth.
+             // So we just apply data. 
+
+             // Move approved sections
+             $currentPending = $version->pending_sections ?? [];
+             $newPending = array_values(array_diff($currentPending, $authorizedSections));
+             $approvedSections = array_merge($version->approved_sections ?? [], $authorizedSections);
+             
+             // Update version
+             $version->update([
+                 'pending_sections' => $newPending,
+                 'approved_sections' => $approvedSections,
+                 'reviewed_by' => auth()->id(),
+                 'reviewed_at' => now(),
+             ]);
+             
+             // Apply Data for authorized sections
+             foreach ($authorizedSections as $section) {
+                 $this->applySectionData($version, $section);
+             }
+             
+             // Update status
+             $this->updateVersionStatus($version);
             
-            foreach (self::RELATION_NAMES as $relationName) {
-                if (isset($data[$relationName]) && is_array($data[$relationName])) {
-                    $items = array_values($data[$relationName]); // Normalize keys
-                    
-                    \Log::info("approveVersion: Syncing relation {$relationName}", [
-                        'items_count' => count($items),
-                    ]);
-                    
-                    $this->syncRelation($teacher, $relationName, $items);
-                } else {
-                    \Log::info("approveVersion: No data for relation {$relationName}");
-                }
-            }
-            
-            // Notify the teacher
-            if ($version->teacher->user) {
-                $version->teacher->user->notify(new \App\Notifications\TeacherProfileApproved($version));
-            }
-            
-            \Log::info('approveVersion: Complete');
+             \Log::info('approveVersion: Authorized sections applied', [
+                 'sections' => $authorizedSections,
+             ]);
+             
+             // Notify teacher if fully approved (handled by updateVersionStatus? No, explicitly here)
+             if ($version->refresh()->status === 'approved' && $version->teacher->user) {
+                 $version->teacher->user->notify(new \App\Notifications\TeacherProfileApproved($version));
+             }
         });
     }
 
@@ -512,20 +503,256 @@ class TeacherVersionService
     }
 
     /**
-     * Reject a version
+     * Reject authorized sections of a version
      */
     public function rejectVersion(TeacherVersion $version, string $remarks): void
     {
+        $pendingSections = $version->pending_sections ?? [];
+        $authorizedSections = [];
+
+        // Identify authorized sections
+        foreach ($pendingSections as $section) {
+            if ($this->canUserApproveSection(auth()->user(), $section)) {
+                $authorizedSections[] = $section;
+            }
+        }
+
+        if (empty($authorizedSections)) {
+            throw new \Exception("You do not have permission to reject any of the pending sections.");
+        }
+
+        // Move authorized pending sections to rejected
+        $currentPending = $version->pending_sections ?? [];
+        $newPending = array_values(array_diff($currentPending, $authorizedSections));
+        $rejectedSections = array_merge($version->rejected_sections ?? [], $authorizedSections);
+        
+        // Add remarks for each rejected section
+        $sectionRemarks = $version->section_remarks ?? [];
+        foreach ($authorizedSections as $section) {
+            $sectionRemarks[$section] = $remarks; // Apply same remark to all
+        }
+        
         $version->update([
-            'status' => 'rejected',
             'reviewed_by' => auth()->id(),
             'reviewed_at' => now(),
-            'review_remarks' => $remarks,
+            'review_remarks' => $remarks, // Legacy/Global remark
+            'pending_sections' => $newPending,
+            'rejected_sections' => $rejectedSections,
+            'section_remarks' => $sectionRemarks,
         ]);
         
-        // Notify the teacher
+        // Update version status
+        $this->updateVersionStatus($version);
+        
+        // Notify the teacher about rejected sections
         if ($version->teacher->user) {
-            $version->teacher->user->notify(new \App\Notifications\TeacherProfileRejected($version, $remarks));
+            $sectionList = implode(', ', array_map(fn($s) => ucwords(str_replace('_', ' ', $s)), $authorizedSections));
+            $version->teacher->user->notify(new \App\Notifications\TeacherProfileRejected($version, 
+                "Sections rejected: {$sectionList}. Reason: {$remarks}"
+            ));
+        }
+    }
+
+    // ==========================================
+    // Section-Level Approval Methods
+    // ==========================================
+
+    /**
+     * Approve a specific section within a version
+     * This immediately applies the section's data to the teacher profile
+     */
+    public function approveSection(TeacherVersion $version, string $section): void
+    {
+        // Permission Check
+        if (!$this->canUserApproveSection(auth()->user(), $section)) {
+            throw new \Exception("You are not authorized to approve the '{$section}' section.");
+        }
+
+        // Validate section is pending
+        if (!$version->isSectionPending($section)) {
+            throw new \Exception("Section '{$section}' is not pending approval.");
+        }
+
+        DB::transaction(function () use ($version, $section) {
+            // Move section from pending to approved
+            $pendingSections = array_values(array_diff($version->pending_sections ?? [], [$section]));
+            $approvedSections = array_merge($version->approved_sections ?? [], [$section]);
+            
+            // Update version
+            $version->update([
+                'pending_sections' => $pendingSections,
+                'approved_sections' => $approvedSections,
+            ]);
+            
+            // Apply ONLY this section's data to teacher profile
+            $this->applySectionData($version, $section);
+            
+            // Update version status based on remaining pending sections
+            $this->updateVersionStatus($version);
+            
+            \Log::info("Section approved and applied", [
+                'version_id' => $version->id,
+                'section' => $section,
+                'approver_id' => auth()->id(),
+            ]);
+        });
+    }
+
+    /**
+     * Reject a specific section within a version
+     */
+    public function rejectSection(TeacherVersion $version, string $section, string $remarks = ''): void
+    {
+        // Permission Check
+        if (!$this->canUserApproveSection(auth()->user(), $section)) {
+            throw new \Exception("You are not authorized to reject the '{$section}' section.");
+        }
+
+        // Validate section is pending
+        if (!$version->isSectionPending($section)) {
+            throw new \Exception("Section '{$section}' is not pending approval.");
+        }
+
+        DB::transaction(function () use ($version, $section, $remarks) {
+            // Move section from pending to rejected
+            $pendingSections = array_values(array_diff($version->pending_sections ?? [], [$section]));
+            $rejectedSections = array_merge($version->rejected_sections ?? [], [$section]);
+            
+            // Store section-specific remark
+            $sectionRemarks = $version->section_remarks ?? [];
+            if ($remarks) {
+                $sectionRemarks[$section] = $remarks;
+            }
+            
+            // Update version
+            $version->update([
+                'pending_sections' => $pendingSections,
+                'rejected_sections' => $rejectedSections,
+                'section_remarks' => $sectionRemarks,
+            ]);
+            
+            // Update version status
+            $this->updateVersionStatus($version);
+            
+            // Notify teacher about section rejection
+            if ($version->teacher->user) {
+                $version->teacher->user->notify(new \App\Notifications\TeacherProfileRejected($version, 
+                    "Section '{$section}' was rejected. " . ($remarks ?: 'No remarks provided.')
+                ));
+            }
+            
+            \Log::info("Section rejected", [
+                'version_id' => $version->id,
+                'section' => $section,
+                'rejector_id' => auth()->id(),
+            ]);
+        });
+    }
+
+    /**
+     * Check if a user is authorized to approve/reject a specific section
+     */
+    public function canUserApproveSection(\App\Models\User $user, string $section): bool
+    {
+        // Strictly follow NotificationRouting configuration
+        // Even Super Admins must be explicitly added to the routing table if they need approval rights
+        $allowedRecipients = \App\Models\NotificationRouting::getRecipientsFor('teacher_profile_update', $section);
+        
+        return $allowedRecipients->contains('id', $user->id);
+    }
+
+    /**
+     * Apply only a specific section's data to the teacher profile
+     */
+    private function applySectionData(TeacherVersion $version, string $section): void
+    {
+        $teacher = $version->teacher;
+        $data = $version->data;
+        
+        if (empty($data)) {
+            return;
+        }
+
+        // Get fields for this section from FIELD_SECTION_MAP
+        $sectionFields = self::FIELD_SECTION_MAP[$section] ?? [];
+        
+        // Check if this section contains relations
+        $isRelationSection = in_array($section, array_keys($this->getRelationshipFields()));
+        
+        if ($isRelationSection) {
+            // Handle relation data
+            $relationNames = $this->getRelationshipFields()[$section] ?? [];
+            foreach ($relationNames as $relationName) {
+                if (isset($data[$relationName]) && is_array($data[$relationName])) {
+                    $items = array_values($data[$relationName]);
+                    $this->syncRelation($teacher, $relationName, $items);
+                }
+            }
+        } else {
+            // Handle scalar data
+            $scalarData = [];
+            foreach ($sectionFields as $field) {
+                if (isset($data[$field]) && !in_array($field, self::MEDIA_FIELDS)) {
+                    $scalarData[$field] = $data[$field];
+                }
+            }
+            
+            if (!empty($scalarData)) {
+                Teacher::withoutEvents(function () use ($teacher, $scalarData) {
+                    $teacher->update($scalarData);
+                    
+                    // Name sync if applicable
+                    if (isset($scalarData['first_name']) || isset($scalarData['last_name'])) {
+                        if ($teacher->user) {
+                            $fullName = trim("{$teacher->first_name} {$teacher->middle_name} {$teacher->last_name}");
+                            $teacher->user->update(['name' => $fullName]);
+                        }
+                    }
+                });
+            }
+        }
+    }
+
+    /**
+     * Update version status based on section approvals
+     */
+    private function updateVersionStatus(TeacherVersion $version): void
+    {
+        $version->refresh();
+        
+        $hasPending = !empty($version->pending_sections);
+        $hasApproved = !empty($version->approved_sections);
+        $hasRejected = !empty($version->rejected_sections);
+        
+        if ($hasPending) {
+            // Still has pending sections
+            $status = $hasApproved ? 'partially_approved' : 'pending';
+        } else {
+            // All sections decided
+            if ($hasRejected && !$hasApproved) {
+                $status = 'rejected';
+            } elseif ($hasApproved && !$hasRejected) {
+                $status = 'approved';
+            } else {
+                // Mix of approved and rejected
+                $status = 'completed';
+            }
+        }
+        
+        $version->update(['status' => $status]);
+        
+        // Auto-activate if fully passed (approved or completed)
+        // This ensures the version is marked as the "current" active version
+        if (in_array($status, ['approved', 'completed']) && !$version->is_active) {
+            DB::transaction(function () use ($version) {
+                 TeacherVersion::where('teacher_id', $version->teacher_id)
+                    ->where('id', '!=', $version->id)
+                    ->update(['is_active' => false]);
+                 
+                 $version->update(['is_active' => true]);
+                 
+                 \Log::info('Version auto-activated', ['version_id' => $version->id]);
+            });
         }
     }
 
@@ -535,9 +762,9 @@ class TeacherVersionService
      */
     public function activateVersion(TeacherVersion $version): void
     {
-        // Only allow activating approved versions
-        if ($version->status !== 'approved') {
-            throw new \Exception('Only approved versions can be activated. Please approve this version first.');
+        // Allow activating approved, partially_approved, or completed versions
+        if (!in_array($version->status, ['approved', 'partially_approved', 'completed'])) {
+            throw new \Exception('Only approved/completed versions can be activated for rollback.');
         }
 
         \Log::info('activateVersion called (rollback)', [
