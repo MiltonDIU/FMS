@@ -21,7 +21,7 @@ class TeacherProfileApproved extends Notification
 
     public function toDatabase(object $notifiable): array
     {
-        $url = TeacherVersionResource::getUrl('edit', ['record' => $this->version->id]);
+        $url = \App\Filament\Pages\MyProfile::getUrl();
         
         return FilamentNotification::make()
             ->title('Profile Update Approved')
@@ -30,7 +30,7 @@ class TeacherProfileApproved extends Notification
             ->iconColor('success')
             ->actions([
                 Action::make('view')
-                    ->label('View Version')
+                    ->label('View Profile')
                     ->url($url)
                     ->markAsRead(),
             ])

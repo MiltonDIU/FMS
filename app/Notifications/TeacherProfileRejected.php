@@ -22,7 +22,7 @@ class TeacherProfileRejected extends Notification
 
     public function toDatabase(object $notifiable): array
     {
-        $url = TeacherVersionResource::getUrl('edit', ['record' => $this->version->id]);
+        $url = \App\Filament\Pages\MyProfile::getUrl();
         
         return FilamentNotification::make()
             ->title('Profile Update Rejected')
@@ -31,7 +31,7 @@ class TeacherProfileRejected extends Notification
             ->iconColor('danger')
             ->actions([
                 Action::make('view')
-                    ->label('View Details')
+                    ->label('Edit Profile')
                     ->url($url)
                     ->markAsRead(),
             ])

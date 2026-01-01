@@ -30,17 +30,21 @@ class TeacherProfileUpdatePending extends Notification
     {
         $url = TeacherVersionResource::getUrl('edit', ['record' => $this->version->id]);
         
+        $actions = [];
+
+        if (method_exists($notifiable, 'can') && $notifiable->can('update', $this->version)) {
+            $actions[] = Action::make('view')
+                ->label('Review Changes')
+                ->url($url)
+                ->markAsRead();
+        }
+
         return FilamentNotification::make()
             ->title('Teacher Profile Update Pending Approval')
             ->body("{$this->version->teacher->first_name} {$this->version->teacher->last_name} updated: " . implode(', ', $this->sections))
             ->icon('heroicon-o-user-circle')
             ->iconColor('warning')
-            ->actions([
-                Action::make('view')
-                    ->label('Review Changes')
-                    ->url($url)
-                    ->markAsRead(),
-            ])
+            ->actions($actions)
             ->getDatabaseMessage();
     }
 }
