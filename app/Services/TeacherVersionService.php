@@ -144,7 +144,21 @@ class TeacherVersionService
             return;
         }
 
-        // 4. If approval IS needed, create a version with EVERYTHING
+        // 4. If approval IS needed:
+        
+        // 4.1 Apply Auto-Update sections immediately (Mixed Scenario)
+        if (!empty($autoUpdateSections)) {
+            $autoUpdateKeys = [];
+            foreach ($autoUpdateSections as $fields) {
+                foreach ($fields as $field) {
+                    $autoUpdateKeys[] = $field;
+                }
+            }
+            $autoData = \Illuminate\Support\Arr::only($allData, $autoUpdateKeys);
+            $this->applyUpdates($teacher, $autoData);
+        }
+
+        // 4.2 Create version for Pending sections
         $version = $this->createVersion($teacher, $allData, array_keys($approvalSections));
         
         \Log::info('TeacherVersionService: Version created', [
@@ -339,7 +353,7 @@ class TeacherVersionService
             'teacher_id' => $teacher->id,
             'version_number' => $newVersionNumber,
             'data' => $allData, // Store EVERYTHING
-            'change_summary' => 'Updated sections: ' . implode(', ', $changedSectionNames),
+            'change_summary' => implode(', ', $changedSectionNames),
             'status' => 'pending',
             'submitted_by' => auth()->id(),
             'submitted_at' => now(),

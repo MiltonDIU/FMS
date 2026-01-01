@@ -48,22 +48,38 @@ class TeacherVersionsTable
                 // Section status columns
                 TextColumn::make('pending_sections')
                     ->label('Pending')
-                    ->formatStateUsing(fn ($state, $record) => count($record->pending_sections ?? []))
                     ->badge()
-                    ->color('warning'),
+                    ->separator(',')
+                    ->formatStateUsing(fn ($state) => \Illuminate\Support\Str::headline($state))
+                    ->color(fn () => collect(['success', 'warning', 'info', 'danger', 'primary'])->random())
+                    ->wrap(),
+
                 TextColumn::make('approved_sections')
                     ->label('Approved')
-                    ->formatStateUsing(fn ($state, $record) => count($record->approved_sections ?? []))
                     ->badge()
-                    ->color('success'),
+                    ->separator(',')
+                    ->formatStateUsing(fn ($state) => \Illuminate\Support\Str::headline($state))
+                    ->color(fn () => collect(['success', 'warning', 'info', 'danger', 'primary'])->random())
+                    ->wrap(),
+
                 TextColumn::make('rejected_sections')
                     ->label('Rejected')
-                    ->formatStateUsing(fn ($state, $record) => count($record->rejected_sections ?? []))
                     ->badge()
-                    ->color('danger'),
+                    ->separator(',')
+                    ->formatStateUsing(fn ($state) => \Illuminate\Support\Str::headline($state))
+                    ->color(fn () => collect(['success', 'warning', 'info', 'danger', 'primary'])->random())
+                    ->wrap(),
+
                 TextColumn::make('change_summary')
-                    ->limit(40)
+                    ->badge()
+                    ->separator(',')
+                    ->formatStateUsing(fn ($state) => \Illuminate\Support\Str::headline(
+                        trim(str_replace('Updated sections: ', '', $state ?? ''))
+                    ))
+                    ->color(fn () => collect(['success', 'warning', 'info', 'danger', 'primary'])->random())
+                    ->wrap()
                     ->toggleable(),
+
                 TextColumn::make('submittedBy.name')
                     ->label('Submitted By')
                     ->sortable()
@@ -83,9 +99,11 @@ class TeacherVersionsTable
                         'rejected' => 'Rejected',
                     ]),
             ])
+            ->recordUrl(null) // Row click disable করা হলো
+            ->recordAction(null) // Row click action disable করা হলো
             ->recordActions([
                 EditAction::make(),
-                
+
                 // Section-Level Approve Action
                 Action::make('approve_sections')
                     ->label('Approve Sections')
@@ -101,7 +119,7 @@ class TeacherVersionsTable
                                 $service = app(TeacherVersionService::class);
                                 $user = auth()->user();
                                 $pending = $record->pending_sections ?? [];
-                                
+
                                 $options = [];
                                 foreach ($pending as $section) {
                                     if ($service->canUserApproveSection($user, $section)) {
@@ -127,7 +145,7 @@ class TeacherVersionsTable
                             ->body(count($data['sections']) . ' section(s) approved and applied.')
                             ->send();
                     }),
-                
+
                 // Section-Level Reject Action
                 Action::make('reject_sections')
                     ->label('Reject Sections')
@@ -142,7 +160,7 @@ class TeacherVersionsTable
                                 $service = app(TeacherVersionService::class);
                                 $user = auth()->user();
                                 $pending = $record->pending_sections ?? [];
-                                
+
                                 $options = [];
                                 foreach ($pending as $section) {
                                     if ($service->canUserApproveSection($user, $section)) {

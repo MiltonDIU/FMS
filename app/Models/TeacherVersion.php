@@ -48,44 +48,12 @@ class TeacherVersion extends Model
     /**
      * Flag to prevent recursive observer calls
      */
-    public static bool $skipActivation = false;
-
     /**
      * Boot the model
      */
     protected static function boot()
     {
         parent::boot();
-
-        // Handle is_active changes (for rollback feature)
-        static::updating(function (TeacherVersion $version) {
-            if (self::$skipActivation) {
-                return;
-            }
-
-            // Check if is_active is being changed from false to true
-            if ($version->isDirty('is_active') && $version->is_active === true) {
-                // For rollback, status must be 'approved' or 'partially_approved'
-                if (!in_array($version->status, ['approved', 'partially_approved', 'completed'])) {
-                    throw new \Exception('Only approved/completed versions can be activated.');
-                }
-
-                self::$skipActivation = true;
-
-                try {
-                    // Deactivate all other versions for this teacher
-                    static::where('teacher_id', $version->teacher_id)
-                        ->where('id', '!=', $version->id)
-                        ->where('is_active', true)
-                        ->update(['is_active' => false]);
-
-                    // Apply ALL version data to teacher profile (rollback = complete restore)
-                    app(TeacherVersionService::class)->applyVersionData($version);
-                } finally {
-                    self::$skipActivation = false;
-                }
-            }
-        });
     }
 
     // ==========================================
