@@ -165,45 +165,116 @@ class TeacherVersionService
                 if (array_key_exists($field, $newData)) {
                     $newValue = $newData[$field];
                     
-                    // Skip media fields - they are handled by Spatie, not as Laravel relationships
                     if (in_array($field, self::MEDIA_FIELDS)) {
                         continue;
                     }
                     
-                    // Check if this is a known relationship (array data)
-                    if (is_array($newValue) && in_array($field, self::RELATION_NAMES)) {
-                        // Load relation if not loaded
+                    // STRICT SEPARATION: Check if field is a relation OR scalar
+                    if (in_array($field, self::RELATION_NAMES)) {
+                        // Handle Relation
+                        $incomingData = is_array($newValue) ? $newValue : []; 
+                        
                         if (!$teacher->relationLoaded($field)) {
                             $teacher->load($field);
                         }
                         
                         $existingData = $teacher->$field->toArray();
                         
-                        if ($this->hasRelationshipChanged($existingData, $newValue)) {
+                        // Pass field name for logging context
+                        if ($this->hasRelationshipChanged($existingData, $incomingData, $field)) {
                             $changedSections[$section][] = $field;
                         }
-                    } elseif (!is_array($newValue)) {
-                        // Scalar comparison
+                    } else {
+                        // Handle Scalar
                         $originalValue = $teacher->$field;
-                        if ($originalValue != $newValue) {
+                        
+                        // Normalize for comparison
+                        $normOriginal = $this->normalizeValue($originalValue);
+                        $normNew = $this->normalizeValue($newValue);
+
+                        // Date normalization: if input is YYYY-MM-DD and DB starts with it
+                        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $normNew) && str_starts_with($normOriginal, $normNew)) {
+                             continue;
+                        }
+
+                        if ($normOriginal !== $normNew) {
+                            \Log::info("Scalar Mismatch in {$section}.{$field}", [
+                                'original' => $normOriginal,
+                                'new' => $normNew,
+                            ]);
                             $changedSections[$section][] = $field;
                         }
                     }
                 }
             }
         }
-
+        
         return $changedSections;
     }
 
-    private function hasRelationshipChanged(array $existing, array $incoming): bool
+    private function hasRelationshipChanged(array $existing, array $incoming, string $relationName = ''): bool
     {
         if (count($existing) !== count($incoming)) {
+            \Log::info("Relation Count Mismatch in {$relationName}", [
+                'existing_count' => count($existing),
+                'incoming_count' => count($incoming)
+            ]);
             return true;
         }
-        // Conservative: if data is present, assume change
-        return true;
+
+        foreach ($incoming as $index => $incomingItem) {
+            if (!isset($existing[$index])) {
+                return true;
+            }
+            
+            $existingItem = $existing[$index];
+            
+            foreach ($incomingItem as $key => $val) {
+                if (!array_key_exists($key, $existingItem)) {
+                    continue; // Skip keys not in DB
+                }
+                
+                $dbVal = $existingItem[$key];
+                
+                $normDb = $this->normalizeValue($dbVal);
+                $normIn = $this->normalizeValue($val);
+                
+                // Date normalization: if input is YYYY-MM-DD and DB starts with it
+                if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $normIn) && str_starts_with($normDb, $normIn)) {
+                     continue;
+                }
+
+                if ($normDb !== $normIn) {
+                    \Log::info("Relation Value Mismatch in {$relationName} at index {$index}, key {$key}", [
+                        'db_value' => $normDb,
+                        'in_value' => $normIn,
+                    ]);
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
+
+    /**
+     * Normalize value for comparison handles booleans, nulls, and strings
+     */
+    private function normalizeValue($value): string
+    {
+            if (is_array($value)) {
+                // If value is array (e.g. JSON cast field), serialize for comparison
+                // Sorting keys might be needed for strict check, but json_encode is a good start
+                return json_encode($value);
+            }
+            if (is_bool($value)) {
+                return $value ? '1' : '0';
+            }
+            if (is_null($value)) {
+                return '';
+            }
+            return trim((string)$value);
+        }
 
     /**
      * Apply updates immediately (No approval required)
