@@ -13,11 +13,8 @@ class Skill extends Model
 
     protected $fillable = [
         'teacher_id',
-        'category',
         'name',
         'proficiency',
-        'learned_by',
-        'description',
         'sort_order',
     ];
 

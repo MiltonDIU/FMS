@@ -484,7 +484,6 @@ class TeacherSeeder extends Seeder
             $category = $this->faker->randomElement(array_keys($skills));
             Skill::create([
                 'teacher_id' => $teacher->id,
-                'category' => $category,
                 'name' => $this->faker->randomElement($skills[$category]),
                 'proficiency' => $this->faker->randomElement(['Beginner', 'Intermediate', 'Expert']),
                 'sort_order' => $i + 1,

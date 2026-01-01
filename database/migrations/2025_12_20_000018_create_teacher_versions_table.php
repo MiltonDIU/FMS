@@ -19,7 +19,7 @@ return new class extends Migration
             $table->json('data'); // Full profile data as JSON
             $table->text('change_summary')->nullable();
 
-            $table->enum('status', ['draft', 'pending', 'approved', 'rejected'])->default('draft');
+            $table->enum('status', ['draft', 'pending', 'approved', 'rejected','partially_approved'])->default('draft');
             $table->boolean('is_active')->default(false);
 
             // Submission info

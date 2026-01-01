@@ -19,7 +19,7 @@ class TeacherVersionService
      * 
      * Based on TeacherForm.php tabs
      */
-    private const FIELD_SECTION_MAP = [
+    public const FIELD_SECTION_MAP = [
         // Tab 1: Basic Info (removed 'photo' - it's a media field)
         'basic_info' => ['department_id', 'designation_id', 'employee_id', 'webpage', 'joining_date', 'work_location', 'first_name', 'middle_name', 'last_name', 'bio'],
         
@@ -66,12 +66,12 @@ class TeacherVersionService
     /**
      * Fields that are Spatie Media Library collections (NOT Laravel relationships)
      */
-    private const MEDIA_FIELDS = ['photo', 'documents'];
+    public const MEDIA_FIELDS = ['photo', 'documents'];
     
     /**
      * Known Laravel relationship names
      */
-    private const RELATION_NAMES = [
+    public const RELATION_NAMES = [
         'educations', 'publications', 'jobExperiences', 'trainingExperiences',
         'awards', 'skills', 'teachingAreas', 'memberships', 'socialLinks'
     ];
