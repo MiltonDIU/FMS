@@ -2,16 +2,19 @@
 
 namespace App\Filament\Resources\Teachers\Tables;
 
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
+use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Filters\TrashedFilter;
+use App\Models\Teacher;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -109,6 +112,12 @@ class TeachersTable
             ])
             ->recordActions([
                 EditAction::make(),
+                ViewAction::make(),
+                Action::make('dashboard')
+                    ->label('Dashboard')
+                    ->icon('heroicon-o-presentation-chart-line')
+                    ->url(fn (Teacher $record) => \App\Filament\Pages\TeacherDashboard::getUrl(['teacher' => $record->id]))
+                    ->openUrlInNewTab(false),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

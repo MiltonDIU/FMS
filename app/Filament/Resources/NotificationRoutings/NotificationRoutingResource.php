@@ -13,14 +13,26 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
-
+use UnitEnum;
 class NotificationRoutingResource extends Resource
 {
     protected static ?string $model = NotificationRouting::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
+
+    protected static UnitEnum|string|null $navigationGroup = 'Approvals';
+
+    protected static ?int $navigationSort = 3;
+
+    protected static ?string $navigationLabel = 'Notification Routings';
+
+    protected static ?string $pluralLabel = 'Notification Routings';
+
+    protected static ?string $modelLabel = 'Notification Routing';
+
     protected static ?string $recordTitleAttribute = 'trigger_section';
+
 
     public static function form(Schema $schema): Schema
     {
