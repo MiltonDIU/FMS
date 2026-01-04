@@ -8,6 +8,7 @@ use App\Models\Publication;
 use App\Models\Teacher;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Illuminate\Support\Facades\Auth;
 use Spatie\Permission\Models\Role;
 
 class SystemOverviewWidget extends BaseWidget
@@ -16,7 +17,8 @@ class SystemOverviewWidget extends BaseWidget
 
     public static function canView(): bool
     {
-        return auth()->user()?->hasRole('super_admin') ?? false;
+//        return auth()->user()?->hasRole('super_admin') ?? false;
+        return Auth::user()?->can('View:SystemOverviewWidget');
     }
 
     protected function getStats(): array

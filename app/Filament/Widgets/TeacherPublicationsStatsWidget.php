@@ -18,7 +18,7 @@ class TeacherPublicationsStatsWidget extends StatsOverviewWidget
     public static function canView(): bool
     {
         // Updated canView logic
-        return Auth::user()?->hasRole(['teacher', 'super_admin']) || Auth::user()?->can('view_teacher_dashboard');
+        return  Auth::user()?->can('View:TeacherPublicationsStatsWidget');
     }
 
     // Added getTeacher method

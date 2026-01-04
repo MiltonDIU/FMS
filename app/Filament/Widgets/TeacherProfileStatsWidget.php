@@ -23,7 +23,7 @@ class TeacherProfileStatsWidget extends BaseWidget
 
     public static function canView(): bool
     {
-        return Auth::user()?->hasRole(['teacher', 'super_admin']) || Auth::user()?->can('view_teacher_dashboard');
+        return Auth::user()?->can('View:TeacherProfileStatsWidget');
     }
 
     protected function getColumns(): int
@@ -34,7 +34,7 @@ class TeacherProfileStatsWidget extends BaseWidget
     protected function getStats(): array
     {
         $teacher = $this->getTeacher();
-        
+
         if (! $teacher) {
             return [];
         }
@@ -79,7 +79,7 @@ class TeacherProfileStatsWidget extends BaseWidget
                 ->description('Honors Received')
                 ->descriptionIcon('heroicon-m-trophy')
                 ->color('warning'),
-                
+
             Stat::make('Teaching Areas', $teacher->teachingAreas()->count())
                 ->description('Subjects')
                 ->descriptionIcon('heroicon-m-book-open')
@@ -89,7 +89,7 @@ class TeacherProfileStatsWidget extends BaseWidget
                 ->description('Organizations')
                 ->descriptionIcon('heroicon-m-identification')
                 ->color('success'),
-            
+
             Stat::make('Social Links', $teacher->socialLinks()->count())
                 ->description('Profiles Linked')
                 ->descriptionIcon('heroicon-m-link')

@@ -24,7 +24,8 @@ class TeacherResearchStatsWidget extends StatsOverviewWidget
      */
     public static function canView(): bool
     {
-        return Auth::user()?->hasRole(['teacher', 'super_admin']) || Auth::user()?->can('view_teacher_dashboard');
+//        return Auth::user()?->hasRole(['teacher', 'super_admin']) || Auth::user()?->can('view_teacher_dashboard');
+        return Auth::user()?->can('View:TeacherResearchStatsWidget');
     }
 
     protected function getStats(): array

@@ -27,13 +27,13 @@ class TeacherPublicationTrendWidget extends ChartWidget
 
     public static function canView(): bool
     {
-        return Auth::user()?->hasRole(['teacher', 'super_admin']) || Auth::user()?->can('view_teacher_dashboard');
+        return Auth::user()?->can('View:TeacherPublicationTrendWidget');
     }
 
     protected function getData(): array
     {
         $teacher = $this->getTeacher();
-        
+
         if (!$teacher) {
             return [];
         }

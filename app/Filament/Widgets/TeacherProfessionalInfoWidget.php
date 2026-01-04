@@ -23,7 +23,7 @@ class TeacherProfessionalInfoWidget extends BaseWidget
 
     public static function canView(): bool
     {
-        return Auth::user()?->hasRole(['teacher', 'super_admin']) || Auth::user()?->can('view_teacher_dashboard');
+        return Auth::user()?->can('View:TeacherProfessionalInfoWidget');
     }
 
     protected function getStats(): array
