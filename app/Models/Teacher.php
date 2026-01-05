@@ -153,10 +153,10 @@ class Teacher extends Model implements HasMedia
     /**
      * Get the research projects for the teacher.
      */
-    public function researchProjects(): HasMany
-    {
-        return $this->hasMany(ResearchProject::class)->orderBy('sort_order');
-    }
+//    public function researchProjects(): HasMany
+//    {
+//        return $this->hasMany(ResearchProject::class)->orderBy('sort_order');
+//    }
 
     /**
      * Get the training experiences for the teacher.
