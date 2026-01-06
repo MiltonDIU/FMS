@@ -162,12 +162,25 @@
         }
     </style>
 
-    <div class="pub-overview-container">
+    <div class="pub-overview-container" x-data="{ isCollapsed: false }">
         <!-- Header -->
-        <div class="header-section">
-            <h2 class="text-2xl font-bold mb-2">📚 Research & Publications Overview</h2>
-            <p class="text-sm opacity-90">Analytics for research outputs, citations, and impact.</p>
+        <div class="header-section" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h2 class="text-2xl font-bold mb-2">📚 Research & Publications Overview</h2>
+                <p class="text-sm opacity-90">Analytics for research outputs, citations, and impact.</p>
+            </div>
+            <button @click="isCollapsed = !isCollapsed" 
+                    style="background: rgba(255,255,255,0.2); border: none; padding: 0.5rem; border-radius: 8px; cursor: pointer; color: white; transition: background 0.2s;">
+                <svg x-show="!isCollapsed" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 1.5rem; height: 1.5rem;">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+                </svg>
+                <svg x-show="isCollapsed" style="display: none;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 1.5rem; height: 1.5rem;">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                </svg>
+            </button>
         </div>
+
+        <div x-show="!isCollapsed" x-collapse>
 
         <!-- Filters -->
         <div class="filters-section">
