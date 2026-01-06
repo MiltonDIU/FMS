@@ -53,6 +53,11 @@ class DepartmentsTable
                     ->counts('teachers')
                     ->badge()
                     ->color('success'),
+                TextColumn::make('publications_count')
+                    ->label('Publications')
+                    ->counts('publications')
+                    ->badge()
+                    ->color('success'),
                 IconColumn::make('is_active')
                     ->label('Active')
                     ->boolean()
