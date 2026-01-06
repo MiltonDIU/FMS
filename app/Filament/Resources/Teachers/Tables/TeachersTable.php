@@ -49,17 +49,16 @@ class TeachersTable
                 TextColumn::make('phone')
                     ->searchable()
                     ->toggleable(),
-                TextColumn::make('employment_status')
+                TextColumn::make('employmentStatus.name')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'active' => 'success',
-                        'study_leave' => 'info',
-                        'on_leave' => 'warning',
-                        'deputation' => 'primary',
-                        'retired' => 'gray',
-                        'resigned' => 'danger',
-                        default => 'gray',
-                    }),
+                    ->color('success')
+                    ->label('Status')
+                    ->sortable(),
+                TextColumn::make('jobType.name')
+                    ->badge()
+                    ->color('info')
+                    ->label('Job Type')
+                    ->sortable(),
                 TextColumn::make('profile_status')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
@@ -82,15 +81,14 @@ class TeachersTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                SelectFilter::make('employment_status')
-                    ->options([
-                        'active' => 'Active',
-                        'study_leave' => 'Study Leave',
-                        'on_leave' => 'On Leave',
-                        'deputation' => 'Deputation',
-                        'retired' => 'Retired',
-                        'resigned' => 'Resigned',
-                    ]),
+                SelectFilter::make('employment_status_id')
+                    ->relationship('employmentStatus', 'name')
+                    ->label('Employment Status')
+                    ->preload(),
+                SelectFilter::make('job_type_id')
+                    ->relationship('jobType', 'name')
+                    ->label('Job Type')
+                    ->preload(),
                 SelectFilter::make('profile_status')
                     ->options([
                         'draft' => 'Draft',

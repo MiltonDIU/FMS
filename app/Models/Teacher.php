@@ -51,7 +51,9 @@ class Teacher extends Model implements HasMedia
         'profile_status',
         'is_public',
         'is_active',
-        'employment_status',
+        'is_active',
+        'employment_status_id',
+        'job_type_id',
         'is_archived',
         'sort_order',
     ];
@@ -130,6 +132,16 @@ class Teacher extends Model implements HasMedia
     public function religion(): BelongsTo
     {
         return $this->belongsTo(Religion::class);
+    }
+
+    public function employmentStatus(): BelongsTo
+    {
+        return $this->belongsTo(EmploymentStatus::class);
+    }
+
+    public function jobType(): BelongsTo
+    {
+        return $this->belongsTo(JobType::class);
     }
 
     /**

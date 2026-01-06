@@ -139,6 +139,18 @@ class TeacherForm
                                     DatePicker::make('joining_date')
                                         ->disabled($isOwnProfile)
                                         ->dehydrated(! $isOwnProfile),
+                                    Select::make('employment_status_id')
+                                        ->relationship('employmentStatus', 'name')
+                                        ->label('Employment Status')
+                                        ->searchable()
+                                        ->preload()
+                                        ->required(),
+                                    Select::make('job_type_id')
+                                        ->relationship('jobType', 'name')
+                                        ->label('Job Type')
+                                        ->searchable()
+                                        ->preload()
+                                        ->required(),
                                     TextInput::make('work_location')->default('Main Campus')
                                         ->disabled($isOwnProfile)
                                         ->dehydrated(! $isOwnProfile),
