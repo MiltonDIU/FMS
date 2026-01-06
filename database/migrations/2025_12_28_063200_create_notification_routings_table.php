@@ -20,7 +20,7 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
-            
+            $table->softDeletes();
             $table->index(['trigger_type', 'trigger_section']);
             $table->index('is_active');
         });

@@ -28,12 +28,30 @@ class EmploymentStatusForm
                         ->required()
                         ->unique(ignoreRecord: true)
                         ->maxLength(255),
+
+                    Select::make('color')
+                        ->options([
+                            'gray' => 'Gray',
+                            'primary' => 'Primary',
+                            'success' => 'Success',
+                            'warning' => 'Warning',
+                            'danger' => 'Danger',
+                            'info' => 'Info',
+                        ])
+                        ->default('gray')
+                        ->required(),
+
                     TextInput::make('sort_order')
                         ->numeric()
                         ->default(0),
 
                     TextInput::make('description')
                         ->maxLength(255),
+
+                    Toggle::make('check_active')
+                        ->label('Keeps Account Active')
+                        ->helperText('If disabled, teachers with this status will be automatically deactivated')
+                        ->default(true),
 
                     Toggle::make('is_active')
                         ->label('Active Status')

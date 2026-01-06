@@ -14,6 +14,7 @@ use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 
 class TeacherForm
@@ -139,18 +140,6 @@ class TeacherForm
                                     DatePicker::make('joining_date')
                                         ->disabled($isOwnProfile)
                                         ->dehydrated(! $isOwnProfile),
-                                    Select::make('employment_status_id')
-                                        ->relationship('employmentStatus', 'name')
-                                        ->label('Employment Status')
-                                        ->searchable()
-                                        ->preload()
-                                        ->required(),
-                                    Select::make('job_type_id')
-                                        ->relationship('jobType', 'name')
-                                        ->label('Job Type')
-                                        ->searchable()
-                                        ->preload()
-                                        ->required(),
                                     TextInput::make('work_location')->default('Main Campus')
                                         ->disabled($isOwnProfile)
                                         ->dehydrated(! $isOwnProfile),
@@ -953,6 +942,44 @@ class TeacherForm
                             ->icon('heroicon-o-cog-6-tooth')
                             ->schema([
                                 Grid::make(3)->schema([
+                                    Select::make('employment_status_id')
+                                        ->relationship('employmentStatus', 'name')
+                                        ->label('Employment Status')
+                                        ->searchable()
+                                        ->preload()
+                                        ->required()
+                                        ->live()
+                                        ->afterStateUpdated(function ($state, callable $set) {
+                                            if ($state) {
+                                                $status = \App\Models\EmploymentStatus::find($state);
+                                                if ($status) {
+                                                    // Check specifically for 'retired' slug
+                                                    if ($status->slug === 'retired') {
+                                                        $set('is_archived', true);
+                                                        $set('is_active', false);
+                                                        $set('is_public', false);
+                                                    } else {
+                                                        // Strictly enforce is_active based on check_active for other statuses
+                                                        $set('is_active', $status->check_active);
+                                                        $set('is_public', $status->check_active);
+                                                        // Ensure archived is false if status is active
+                                                        if ($status->check_active) {
+                                                            $set('is_archived', false);
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        })
+                                        ->disabled($isOwnProfile)
+                                        ->dehydrated(! $isOwnProfile),
+                                    Select::make('job_type_id')
+                                        ->relationship('jobType', 'name')
+                                        ->label('Job Type')
+                                        ->searchable()
+                                        ->preload()
+                                        ->required()
+                                        ->disabled($isOwnProfile)
+                                        ->dehydrated(! $isOwnProfile),
                                     Select::make('profile_status')
                                         ->options([
                                             'draft' => 'Draft',
@@ -964,27 +991,68 @@ class TeacherForm
                                         ->required()
                                         ->disabled($isOwnProfile)
                                         ->dehydrated(! $isOwnProfile),
-                                    Select::make('employment_status')
-                                        ->options([
-                                            'active' => 'Active',
-                                            'study_leave' => 'Study Leave',
-                                            'on_leave' => 'On Leave',
-                                            'deputation' => 'Deputation',
-                                            'retired' => 'Retired',
-                                            'resigned' => 'Resigned',
-                                        ])
-                                        ->default('active')
-                                        ->required()
+                                    Toggle::make('is_public')
+                                        ->label('Publicly Visible')
+                                        ->helperText('Automatically disabled when account is inactive')
+                                        ->live() // Make reactive to user input
+                                        ->afterStateUpdated(function ($state, callable $set, Get $get) {
+                                            if ($state === true) {
+                                                if (! $get('is_active')) {
+                                                    $set('is_public', false);
+                                                    \Filament\Notifications\Notification::make()
+                                                        ->warning()
+                                                        ->title('Cannot Make Public')
+                                                        ->body('The teacher account must be active before it can be made publicly visible.')
+                                                        ->send();
+                                                }
+                                            }
+                                        })
                                         ->disabled($isOwnProfile)
                                         ->dehydrated(! $isOwnProfile),
-                                    Toggle::make('is_public')->label('Publicly Visible')
+                                    Toggle::make('is_active')
+                                        ->label('Active Account')
+                                        ->helperText('Controlled by Employment Status (retired/resigned/terminated/suspended = inactive)')
+                                        ->default(true)
+                                        ->live()
+                                        ->afterStateUpdated(function ($state, callable $set, Get $get) {
+                                            if ($state === true) {
+                                                // Check if current employment status allows activation
+                                                $statusId = $get('employment_status_id');
+                                                if ($statusId) {
+                                                    $status = \App\Models\EmploymentStatus::find($statusId);
+                                                    if ($status && !$status->check_active) {
+                                                        // Status forbids activation - revert and warn
+                                                        $set('is_active', false);
+                                                        \Filament\Notifications\Notification::make()
+                                                            ->warning()
+                                                            ->title('Cannot Activate Account')
+                                                            ->body("The current employment status '{$status->name}' requires the account to be inactive. Please change the status first.")
+                                                            ->send();
+                                                        return;
+                                                    }
+                                                }
+                                                $set('is_archived', false);
+                                            } else {
+                                                $set('is_public', false);
+                                            }
+                                        })
                                         ->disabled($isOwnProfile)
                                         ->dehydrated(! $isOwnProfile),
-                                    Toggle::make('is_active')->label('Active Account')->default(true)
-                                        ->disabled($isOwnProfile)
-                                        ->dehydrated(! $isOwnProfile),
-                                    Toggle::make('is_archived')->label('Archived')
-                                        ->helperText('Archived teachers are hidden from main list')
+                                    Toggle::make('is_archived')
+                                        ->label('Archived')
+                                        ->helperText('Cannot be archived if account is active')
+                                        ->live()
+                                        ->afterStateUpdated(function ($state, callable $set) {
+                                            if ($state === true) {
+                                                $set('is_active', false);
+                                                $set('is_public', false);
+                                                // Auto-set to Retired status
+                                                $retiredStatus = \App\Models\EmploymentStatus::where('slug', 'retired')->first();
+                                                if ($retiredStatus) {
+                                                    $set('employment_status_id', $retiredStatus->id);
+                                                }
+                                            }
+                                        })
                                         ->disabled($isOwnProfile)
                                         ->dehydrated(! $isOwnProfile),
                                     TextInput::make('sort_order')->numeric()

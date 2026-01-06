@@ -484,6 +484,26 @@
                     </select>
                 </div>
 
+                {{-- Employment Status --}}
+                <div class="filter-group">
+                    <label class="filter-label">🏢 Status</label>
+                    <select class="filter-select" wire:model.live="employmentStatusFilter">
+                        @foreach($employmentStatuses as $id => $name)
+                            <option value="{{ $id }}">{{ $name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Job Type --}}
+                <div class="filter-group">
+                    <label class="filter-label">💼 Job Type</label>
+                    <select class="filter-select" wire:model.live="jobTypeFilter">
+                        @foreach($jobTypes as $id => $name)
+                            <option value="{{ $id }}">{{ $name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
                 <div class="filter-group">
                     <label class="filter-label">📊 Sort By</label>
                     <select class="filter-select" wire:model.live="sortBy">

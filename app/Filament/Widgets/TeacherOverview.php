@@ -23,6 +23,8 @@ class TeacherOverview extends Widget
     public ?string $departmentFilter = 'all';
     public ?string $genderFilter = 'all';
     public ?string $designationFilter = 'all';
+    public ?string $employmentStatusFilter = 'all';
+    public ?string $jobTypeFilter = 'all';
     
     // Date Range (Joining Date)
     public ?string $fromDate = null;
@@ -52,7 +54,7 @@ class TeacherOverview extends Widget
     {
         // Base query for teachers
         $teachersQuery = Teacher::query()
-            ->with(['department', 'designation'])
+            ->with(['department', 'designation', 'employmentStatus'])
             ->active(); 
 
         // Apply filters
@@ -69,7 +71,7 @@ class TeacherOverview extends Widget
                 'teachers.joining_date',
                 'teachers.department_id',
                 'teachers.designation_id',
-                'teachers.employment_status',
+                'teachers.employment_status_id',
                 'teachers.is_public',
                 'teachers.photo'
             ])
@@ -123,6 +125,8 @@ class TeacherOverview extends Widget
             'departments' => $this->getDepartments(), 
             'genders' => $this->getGenders(),
             'designations' => $this->getDesignations(),
+            'employmentStatuses' => $this->getEmploymentStatuses(),
+            'jobTypes' => $this->getJobTypes(),
             'sortOptions' => $this->getSortOptions(),
         ];
     }
@@ -157,6 +161,16 @@ class TeacherOverview extends Widget
         // Designation Filter
         if ($this->designationFilter !== 'all') {
             $query->where('designation_id', $this->designationFilter);
+        }
+
+        // Employment Status Filter
+        if ($this->employmentStatusFilter !== 'all') {
+            $query->where('employment_status_id', $this->employmentStatusFilter);
+        }
+
+        // Job Type Filter
+        if ($this->jobTypeFilter !== 'all') {
+            $query->where('job_type_id', $this->jobTypeFilter);
         }
     }
 
@@ -264,14 +278,14 @@ class TeacherOverview extends Widget
 
     protected function getDetailedStatusStats(): array
     {
-        $query = Teacher::query()
-            ->select('employment_status', DB::raw('COUNT(*) as count'))
-            ->active();
-            
+        $query = Teacher::query()->active();
         $this->applyFilters($query);
-        
-        return $query->groupBy('employment_status')
-            ->pluck('count', 'employment_status')
+
+        return $query
+            ->join('employment_statuses', 'teachers.employment_status_id', '=', 'employment_statuses.id')
+            ->select('employment_statuses.name as status_name', DB::raw('COUNT(*) as count'))
+            ->groupBy('employment_statuses.name', 'employment_statuses.id')
+            ->pluck('count', 'status_name')
             ->toArray();
     }
 
@@ -351,5 +365,25 @@ class TeacherOverview extends Widget
             'certifications' => 'Certifications',
             'experience' => 'Experience (Joining Date)',
         ];
+    }
+
+    protected function getEmploymentStatuses(): array
+    {
+        return DB::table('employment_statuses')
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->pluck('name', 'id')
+            ->prepend('All Statuses', 'all')
+            ->toArray();
+    }
+
+    protected function getJobTypes(): array
+    {
+        return DB::table('job_types')
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->pluck('name', 'id')
+            ->prepend('All Job Types', 'all')
+            ->toArray();
     }
 }

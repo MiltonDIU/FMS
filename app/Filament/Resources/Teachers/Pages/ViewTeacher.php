@@ -16,6 +16,13 @@ class ViewTeacher extends ViewRecord
 {
     protected static string $resource = TeacherResource::class;
 
+    protected function getHeaderActions(): array
+    {
+        return [
+            \Filament\Actions\EditAction::make(),
+        ];
+    }
+
     protected function getHeaderWidgets(): array
     {
         return [

@@ -49,7 +49,7 @@ class TeacherSeeder extends Seeder
         // ============================================
         // CONFIGURE NUMBER OF TEACHERS TO CREATE HERE
         // ============================================
-        $numberOfTeachers = 3000; // Change this number as needed (e.g., 100, 500, 1000, 5000)
+        $numberOfTeachers = 5; // Change this number as needed (e.g., 100, 500, 1000, 5000)
         // ============================================
 
         $this->faker = Faker::create('en_US');
@@ -139,7 +139,8 @@ class TeacherSeeder extends Seeder
             'profile_status' => 'approved',
             'is_public' => true,
             'is_active' => true,
-            'employment_status' => 'active',
+            'employment_status_id' => \App\Models\EmploymentStatus::where('slug', 'active')->first()->id,
+            'job_type_id' => \App\Models\JobType::where('slug', 'full-time')->first()->id,
             'is_archived' => false,
             'sort_order' => 1,
         ]);
@@ -210,7 +211,8 @@ class TeacherSeeder extends Seeder
             'profile_status' => $this->faker->randomElement(['draft', 'pending', 'approved']),
             'is_public' => $this->faker->boolean(70),
             'is_active' => true,
-            'employment_status' => $this->faker->randomElement(['active', 'active', 'active', 'study_leave', 'on_leave', 'deputation']),
+            'employment_status_id' => \App\Models\EmploymentStatus::whereIn('slug', ['active', 'on-leave', 'study-leave', 'deputation'])->inRandomOrder()->first()->id,
+            'job_type_id' => \App\Models\JobType::inRandomOrder()->first()->id,
             'is_archived' => $this->faker->boolean(5), // 5% archived
             'sort_order' => $index,
         ]);

@@ -14,6 +14,8 @@ class EmploymentStatusSeeder extends Seeder
             [
                 'name' => 'Active',
                 'slug' => 'active',
+                'color' => 'success',
+                'check_active' => true,
                 'description' => 'Currently employed and working',
                 'is_active' => true,
                 'sort_order' => 1,
@@ -21,6 +23,8 @@ class EmploymentStatusSeeder extends Seeder
             [
                 'name' => 'On Leave',
                 'slug' => 'on-leave',
+                'color' => 'warning',
+                'check_active' => true,
                 'description' => 'On temporary leave',
                 'is_active' => true,
                 'sort_order' => 2,
@@ -28,6 +32,8 @@ class EmploymentStatusSeeder extends Seeder
             [
                 'name' => 'Study Leave',
                 'slug' => 'study-leave',
+                'color' => 'info',
+                'check_active' => true,
                 'description' => 'On study leave for higher education',
                 'is_active' => true,
                 'sort_order' => 3,
@@ -35,6 +41,8 @@ class EmploymentStatusSeeder extends Seeder
             [
                 'name' => 'Deputation',
                 'slug' => 'deputation',
+                'color' => 'primary',
+                'check_active' => true,
                 'description' => 'On deputation to another institution',
                 'is_active' => true,
                 'sort_order' => 4,
@@ -42,6 +50,8 @@ class EmploymentStatusSeeder extends Seeder
             [
                 'name' => 'Retired',
                 'slug' => 'retired',
+                'color' => 'gray',
+                'check_active' => false,
                 'description' => 'Retired from service',
                 'is_active' => true,
                 'sort_order' => 5,
@@ -49,6 +59,8 @@ class EmploymentStatusSeeder extends Seeder
             [
                 'name' => 'Resigned',
                 'slug' => 'resigned',
+                'color' => 'danger',
+                'check_active' => false,
                 'description' => 'Resigned from the position',
                 'is_active' => true,
                 'sort_order' => 6,
@@ -56,6 +68,8 @@ class EmploymentStatusSeeder extends Seeder
             [
                 'name' => 'Terminated',
                 'slug' => 'terminated',
+                'color' => 'danger',
+                'check_active' => false,
                 'description' => 'Employment terminated',
                 'is_active' => true,
                 'sort_order' => 7,
@@ -63,6 +77,8 @@ class EmploymentStatusSeeder extends Seeder
             [
                 'name' => 'Suspended',
                 'slug' => 'suspended',
+                'color' => 'danger',
+                'check_active' => false,
                 'description' => 'Currently suspended',
                 'is_active' => true,
                 'sort_order' => 8,

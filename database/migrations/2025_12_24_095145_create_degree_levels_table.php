@@ -20,6 +20,7 @@ return new class extends Migration
             $table->boolean('is_report')->default(false);
             $table->integer('sort_order')->default(0);
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

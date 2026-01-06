@@ -51,7 +51,7 @@ class TeachersTable
                     ->toggleable(),
                 TextColumn::make('employmentStatus.name')
                     ->badge()
-                    ->color('success')
+                    ->color(fn ($record) => $record->employmentStatus?->color ?? 'gray')
                     ->label('Status')
                     ->sortable(),
                 TextColumn::make('jobType.name')

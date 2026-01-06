@@ -25,6 +25,13 @@ class EmploymentStatusesTable
                 TextColumn::make('slug')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('color')
+                    ->badge()
+                    ->color(fn (string $state): string => $state),
+                IconColumn::make('check_active')
+                    ->label('Keeps Active')
+                    ->boolean()
+                    ->sortable(),
                 IconColumn::make('is_active')
                     ->label('Status')
                     ->boolean()

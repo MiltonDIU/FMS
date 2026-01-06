@@ -107,6 +107,51 @@ class TeacherObserver
             return; 
         }
 
+        // ** CASCADING STATUS LOGIC **
+        // 1. Employment Status affects is_active (based on check_active field)
+        if ($teacher->isDirty('employment_status_id') && $teacher->employment_status_id) {
+            $status = $teacher->employmentStatus;
+            
+            if ($status) {
+                // Check specifically for 'retired' slug
+                if ($status->slug === 'retired') {
+                    $teacher->is_archived = true;
+                    $teacher->is_active = false;
+                    $teacher->is_public = false;
+                } else {
+                    // Strictly enforce is_active based on check_active
+                    $teacher->is_active = $status->check_active;
+                    
+                    // If status makes teacher active, ensure they are not archived
+                    if ($status->check_active) {
+                        $teacher->is_archived = false;
+                    }
+                }
+            }
+        }
+
+        // 2. If is_active becomes true, ensure is_archived is false
+        if ($teacher->isDirty('is_active') && $teacher->is_active === true) {
+            $teacher->is_archived = false;
+        }
+
+        // 3. If is_archived becomes true, ensure is_active is false AND employment status is Retired
+        if ($teacher->isDirty('is_archived') && $teacher->is_archived === true) {
+            $teacher->is_active = false;
+            $teacher->is_public = false;
+            
+            // Auto-set to Retired status if available
+            $retiredStatus = \App\Models\EmploymentStatus::where('slug', 'retired')->first();
+            if ($retiredStatus) {
+                $teacher->employment_status_id = $retiredStatus->id;
+            }
+        }
+
+        // 4. If is_active becomes false, ensure is_public is false
+        if ($teacher->isDirty('is_active') && $teacher->is_active === false) {
+            $teacher->is_public = false;
+        }
+
         // Skip versioning for console/seeder operations
         if (app()->runningInConsole()) {
             return;

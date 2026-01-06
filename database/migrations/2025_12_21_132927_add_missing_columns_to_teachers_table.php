@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::table('teachers', function (Blueprint $table) {
             $table->string('webpage')->nullable()->unique()->after('employee_id');
-            $table->string('employment_status')->default('active')->after('is_active');
-            $table->boolean('is_archived')->default(false)->after('employment_status');
+//            $table->string('employment_status')->default('active')->after('is_active');
+            $table->boolean('is_archived')->default(false)->after('employee_id');
         });
     }
 
@@ -24,7 +24,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('teachers', function (Blueprint $table) {
-            $table->dropColumn(['webpage', 'employment_status', 'is_archived']);
+            $table->dropColumn(['webpage', 'is_archived']);
         });
     }
 };
