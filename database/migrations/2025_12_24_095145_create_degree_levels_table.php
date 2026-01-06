@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('slug')->unique(); // level_order -> slug
             $table->text('description')->nullable();
             $table->boolean('is_active')->default(true);
+            $table->boolean('is_report')->default(false);
             $table->integer('sort_order')->default(0);
             $table->timestamps();
         });

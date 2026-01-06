@@ -16,24 +16,43 @@ class MembershipTypesTable
     {
         return $table
             ->recordTitleAttribute('name')
+            ->defaultSort('sort_order', 'asc')
             ->columns([
                 TextColumn::make('name')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('teachers_count')
+                    ->label('Teachers')
+                    ->state(function (\App\Models\MembershipType $record): int {
+                        return \App\Models\Membership::query()
+                            ->join('teachers', 'memberships.teacher_id', '=', 'teachers.id')
+                            ->where('memberships.membership_type_id', $record->id)
+                            ->whereNull('memberships.deleted_at')
+                            ->where('teachers.is_archived', false)
+                            ->distinct('memberships.teacher_id')
+                            ->count('memberships.teacher_id');
+                    })
+                    ->badge()
+                    ->color('info')
+                    ->sortable(query: function ($query, string $direction) {
+                        return $query->withCount(['memberships as teachers_count' => function ($q) {
+                            $q->join('teachers', 'memberships.teacher_id', '=', 'teachers.id')
+                              ->whereNull('memberships.deleted_at')
+                              ->where('teachers.is_archived', false)
+                              ->select(\Illuminate\Support\Facades\DB::raw('count(distinct memberships.teacher_id)'));
+                        }])->orderBy('teachers_count', $direction);
+                    }),
+                IconColumn::make('is_active')
+                    ->label('Active')
+                    ->boolean()
+                    ->sortable(),
                 TextColumn::make('description')
                     ->limit(50)
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('sort_order')
                     ->numeric()
                     ->sortable(),
-                IconColumn::make('is_active')
-                    ->boolean()
-                    ->label('Active'),
                 TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('updated_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),

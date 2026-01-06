@@ -3,17 +3,17 @@
 namespace App\Filament\Resources\ResultTypes\Pages;
 
 use App\Filament\Resources\ResultTypes\ResultTypeResource;
-use Filament\Actions\CreateAction;
-use Filament\Resources\Pages\ManageRecords;
+use Filament\Actions;
+use Filament\Resources\Pages\EditRecord;
 
-class ManageResultTypes extends ManageRecords
+class EditResultType extends EditRecord
 {
     protected static string $resource = ResultTypeResource::class;
 
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make(),
+            Actions\DeleteAction::make(),
         ];
     }
 }

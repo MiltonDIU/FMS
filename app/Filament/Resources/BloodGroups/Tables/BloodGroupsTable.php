@@ -37,6 +37,18 @@ class BloodGroupsTable
                 TextColumn::make('slug')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('teachers_count')
+                    ->label('Teachers')
+                    ->state(function (\App\Models\BloodGroup $record): int {
+                        return $record->teachers()->where('is_archived', false)->count();
+                    })
+                    ->badge()
+                    ->color('info')
+                    ->sortable(query: function ($query, string $direction) {
+                        return $query->withCount(['teachers as teachers_count' => function ($q) {
+                            $q->where('is_archived', false);
+                        }])->orderBy('teachers_count', $direction);
+                    }),
                 IconColumn::make('is_active')
                     ->boolean()
                     ->sortable(),

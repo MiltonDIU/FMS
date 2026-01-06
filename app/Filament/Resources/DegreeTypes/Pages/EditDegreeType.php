@@ -3,17 +3,17 @@
 namespace App\Filament\Resources\DegreeTypes\Pages;
 
 use App\Filament\Resources\DegreeTypes\DegreeTypeResource;
-use Filament\Actions\CreateAction;
-use Filament\Resources\Pages\ManageRecords;
+use Filament\Actions;
+use Filament\Resources\Pages\EditRecord;
 
-class ManageDegreeTypes extends ManageRecords
+class EditDegreeType extends EditRecord
 {
     protected static string $resource = DegreeTypeResource::class;
 
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make(),
+            Actions\DeleteAction::make(),
         ];
     }
 }

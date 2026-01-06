@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\MembershipTypes;
 
-use App\Filament\Resources\MembershipTypes\Pages\ManageMembershipTypes;
 use App\Filament\Resources\MembershipTypes\Tables\MembershipTypesTable;
 use App\Models\MembershipType;
 use Filament\Forms\Components\TextInput;
@@ -34,35 +33,20 @@ class MembershipTypeResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $schema
-            ->components([
-                TextInput::make('name')
-                    ->required()
-                    ->unique(ignoreRecord: true)
-                    ->maxLength(255),
-                Textarea::make('description')
-                    ->columnSpanFull()
-                    ->rows(2),
-                TextInput::make('sort_order')
-                    ->numeric()
-                    ->default(0)
-                    ->helperText('Used for ordering in dropdowns'),
-                Toggle::make('is_active')
-                    ->label('Active')
-                    ->default(true)
-                    ->helperText('Only active types appear in dropdowns'),
-            ]);
+        return \App\Filament\Resources\MembershipTypes\Schemas\MembershipTypeForm::configure($schema);
     }
 
     public static function table(Table $table): Table
     {
-        return MembershipTypesTable::configure($table);
+        return \App\Filament\Resources\MembershipTypes\Tables\MembershipTypesTable::configure($table);
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => ManageMembershipTypes::route('/'),
+            'index' => \App\Filament\Resources\MembershipTypes\Pages\ListMembershipTypes::route('/'),
+            'create' => \App\Filament\Resources\MembershipTypes\Pages\CreateMembershipType::route('/create'),
+            'edit' => \App\Filament\Resources\MembershipTypes\Pages\EditMembershipType::route('/{record}/edit'),
         ];
     }
 }
