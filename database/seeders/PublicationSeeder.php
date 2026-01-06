@@ -10,42 +10,73 @@ use App\Models\PublicationLinkage;
 use App\Models\PublicationQuartile;
 use App\Models\GrantType;
 use App\Models\ResearchCollaboration;
+use App\Models\Department;
 
 class PublicationSeeder extends Seeder
 {
     public function run(): void
     {
-        $teacher = Teacher::first();
-        if (!$teacher) return;
-
-        $type = PublicationType::where('slug', 'journal-article')->first();
-        $linkage = PublicationLinkage::where('slug', 'scopus')->first();
-        $quartile = PublicationQuartile::where('slug', 'q1')->first();
-        $grant = GrantType::where('slug', 'self-funded')->first();
-        $collab = ResearchCollaboration::where('slug', 'diu-researcher')->first();
-
-        $pub = Publication::create([
-            'publication_type_id' => $type?->id,
-            'publication_linkage_id' => $linkage?->id,
-            'publication_quartile_id' => $quartile?->id,
-            'grant_type_id' => $grant?->id,
-            'research_collaboration_id' => $collab?->id,
-            'title' => 'Sample Research Paper on advanced AI Agents',
-            'journal_name' => 'Journal of AI Research',
-            'publication_date' => now()->subMonth(),
-            'publication_year' => 2024,
-            'status' => 'approved',
-            'is_featured' => true,
-        ]);
-
-        // Attach Authors
-        // First Author: The teacher
-        $pub->teachers()->attach($teacher->id, ['author_role' => 'first', 'sort_order' => 0]);
+        // Ensure we have required data
+        if (Teacher::count() == 0) return;
         
-        // Find another teacher for co-author if exists
-        $otherTeacher = Teacher::where('id', '!=', $teacher->id)->first();
-        if ($otherTeacher) {
-             $pub->teachers()->attach($otherTeacher->id, ['author_role' => 'co_author', 'sort_order' => 1]);
+        $types = PublicationType::where('is_active', true)->pluck('id');
+        $linkages = PublicationLinkage::where('is_active', true)->pluck('id');
+        $quartiles = PublicationQuartile::where('is_active', true)->pluck('id');
+        $grants = GrantType::where('is_active', true)->pluck('id');
+        $collabs = ResearchCollaboration::where('is_active', true)->pluck('id');
+        $departments = Department::where('is_active', true)->get();
+
+        if ($departments->isEmpty()) return;
+
+        // Create 50 sample publications
+        for ($i = 0; $i < 50; $i++) {
+            $currDept = $departments->random();
+            // Pick a teacher from this department preferably, or random if none
+            $author = $currDept->teachers()->inRandomOrder()->first() ?? Teacher::inRandomOrder()->first();
+            
+            if (!$author) continue;
+
+            $year = rand(2020, 2024);
+            
+            $pub = Publication::create([
+                'faculty_id' => $currDept->faculty_id,
+                'department_id' => $currDept->id,
+                'publication_type_id' => $types->random(),
+                'publication_linkage_id' => $linkages->isNotEmpty() ? $linkages->random() : null,
+                'publication_quartile_id' => $quartiles->isNotEmpty() ? $quartiles->random() : null,
+                'grant_type_id' => $grants->isNotEmpty() ? $grants->random() : null,
+                'research_collaboration_id' => $collabs->isNotEmpty() ? $collabs->random() : null,
+                
+                'title' => fake()->sentence(rand(6, 12)),
+                'journal_name' => fake()->randomElement(['Journal of AI Research', 'IEEE Transactions', 'Nature Scientific Reports', 'Springer CS', 'Elsevier Data Science']),
+                'journal_link' => fake()->url(),
+                'publication_date' => fake()->dateTimeBetween("-{$year} years", 'now'),
+                'publication_year' => $year,
+                
+                'research_area' => fake()->randomElement(['Artificial Intelligence', 'Machine Learning', 'Data Science', 'IoT', 'Cyber Security']),
+                'abstract' => fake()->paragraph(),
+                'keywords' => implode(', ', fake()->words(5)),
+                
+                'h_index' => rand(0, 20),
+                'citescore' => rand(0, 100) / 10, // 0.0 to 10.0
+                'impact_factor' => rand(0, 500) / 100, // 0.00 to 5.00
+                'student_involvement' => fake()->boolean(30),
+                'is_featured' => fake()->boolean(20),
+                'status' => 'approved',
+                'sort_order' => 0,
+            ]);
+
+            // Attach Authors
+            // First Author
+            $pub->teachers()->attach($author->id, ['author_role' => 'first', 'sort_order' => 0]);
+            
+            // Maybe add co-authors
+            if (fake()->boolean(60)) {
+                $coAuthors = Teacher::where('id', '!=', $author->id)->inRandomOrder()->take(rand(1, 3))->get();
+                foreach ($coAuthors as $index => $coAuthor) {
+                    $pub->teachers()->attach($coAuthor->id, ['author_role' => 'co_author', 'sort_order' => $index + 1]);
+                }
+            }
         }
     }
 }

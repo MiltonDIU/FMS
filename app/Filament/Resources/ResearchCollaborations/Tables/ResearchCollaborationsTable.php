@@ -24,6 +24,12 @@ class ResearchCollaborationsTable
                 TextColumn::make('sort_order')
                     ->numeric()
                     ->sortable(),
+                TextColumn::make('publications_count')
+                    ->counts('publications')
+                    ->label('Publications')
+                    ->badge()
+                    ->color('info')
+                    ->sortable(),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

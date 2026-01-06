@@ -49,7 +49,7 @@ class TeacherSeeder extends Seeder
         // ============================================
         // CONFIGURE NUMBER OF TEACHERS TO CREATE HERE
         // ============================================
-        $numberOfTeachers = 100; // Change this number as needed (e.g., 100, 500, 1000, 5000)
+        $numberOfTeachers = 5; // Change this number as needed (e.g., 100, 500, 1000, 5000)
         // ============================================
 
         $this->faker = Faker::create('en_US');
@@ -336,6 +336,8 @@ class TeacherSeeder extends Seeder
 
         for ($i = 0; $i < $count; $i++) {
             $pub = Publication::create([
+                'faculty_id' => $teacher->department->faculty_id,
+                'department_id' => $teacher->department_id,
                 'publication_type_id' => $this->faker->randomElement($types),
                 'publication_linkage_id' => !empty($linkages) ? $this->faker->randomElement($linkages) : null,
                 'publication_quartile_id' => !empty($quartiles) ? $this->faker->randomElement($quartiles) : null,
