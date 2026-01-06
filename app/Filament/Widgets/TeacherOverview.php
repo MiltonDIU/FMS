@@ -6,6 +6,7 @@ use App\Models\Teacher;
 use Carbon\Carbon;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class TeacherOverview extends Widget
 {
@@ -159,33 +160,45 @@ class TeacherOverview extends Widget
         }
     }
 
+
     protected function calculateSummaryStats(): array
     {
         $query = Teacher::query()->active();
-        $this->applyFilters($query);
+        $this->applyFilters($query); // This modifies $query in place
 
         $totalTeachers = $query->count();
         $activeTeachers = (clone $query)->where('is_active', true)->count();
-        // $publicProfiles = (clone $query)->where('is_public', true)->count();
 
-        // Use aggregates directly on the filtered teachers
-        $getSum = function($relation) use ($query) {
-             return (clone $query)->withCount($relation)->get()->sum($relation . '_count');
+        // Helper to count related records efficiently using subquery
+        $getRelatedCount = function($relatedTable, $foreignKey = 'teacher_id') use ($query) {
+             return DB::table($relatedTable)
+                ->whereIn($foreignKey, $query->select('teachers.id'))
+                ->when(Schema::hasColumn($relatedTable, 'deleted_at'), function ($q) {
+                    $q->whereNull('deleted_at');
+                })
+                ->count();
         };
 
-        $publicationsCount = $getSum('publications');
-        $awardsCount = $getSum('awards');
-        $certificationsCount = $getSum('certifications');
-        $trainingCount = $getSum('trainingExperiences');
+        // Special handling for Publications (Many-to-Many Polymorphic)
+        // We count entries in the pivot table 'publication_authors'
+        // where authorable_type is Teacher and authorable_id is in our filtered teachers
+        $publicationsCount = DB::table('publication_authors')
+            ->where('authorable_type', Teacher::class)
+            ->whereIn('authorable_id', $query->select('teachers.id'))
+            ->count();
         
-        $adminRolesCount = (clone $query)->whereHas('activeAdministrativeRoles')->count(); 
+        // Standard HasMany relationships
+        $awardsCount = $getRelatedCount('awards');
+        $certificationsCount = $getRelatedCount('certifications');
+        $trainingCount = $getRelatedCount('training_experiences'); 
+        
+        $adminRolesCount = (clone $query)->whereHas('activeAdministrativeRoles')->count();
 
         $avgPublications = $totalTeachers > 0 ? round($publicationsCount / $totalTeachers, 1) : 0;
         
         return [
             'total_teachers' => $totalTeachers,
             'active_teachers' => $activeTeachers,
-            // 'reported_degrees' => ... // Removed, handled dynamically now
             'total_publications' => $publicationsCount,
             'total_awards' => $awardsCount,
             'total_certifications' => $certificationsCount,

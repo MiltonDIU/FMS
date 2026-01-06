@@ -49,7 +49,7 @@ class TeacherSeeder extends Seeder
         // ============================================
         // CONFIGURE NUMBER OF TEACHERS TO CREATE HERE
         // ============================================
-        $numberOfTeachers = 800; // Change this number as needed (e.g., 100, 500, 1000, 5000)
+        $numberOfTeachers = 100; // Change this number as needed (e.g., 100, 500, 1000, 5000)
         // ============================================
 
         $this->faker = Faker::create('en_US');
@@ -694,7 +694,7 @@ class TeacherSeeder extends Seeder
             'teacher' => $teacher->toArray(),
             'educations' => $teacher->educations->toArray(),
             'publications' => $teacher->publications->toArray(),
-            'research_projects' => $teacher->researchProjects->toArray(),
+            //'research_projects' => $teacher->researchProjects->toArray(),
             'training_experiences' => $teacher->trainingExperiences->toArray(),
             'certifications' => $teacher->certifications->toArray(),
             'skills' => $teacher->skills->toArray(),
