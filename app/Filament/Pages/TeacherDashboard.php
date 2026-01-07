@@ -2,6 +2,8 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Widgets\MyProfileOverview;
+use App\Filament\Widgets\TeacherDashboardOverview;
 use App\Filament\Widgets\TeacherProfessionalInfoWidget;
 use App\Filament\Widgets\TeacherProfileCompletionWidget;
 use App\Filament\Widgets\TeacherProfileStatsWidget;
@@ -50,18 +52,18 @@ class TeacherDashboard extends Page
     public function getTitle(): string
     {
         $teacher = $this->getSelectedTeacher();
-        
+
         if ($teacher) {
             return 'Dashboard - ' . $teacher->full_name;
         }
-        
+
         return 'Teacher Dashboard';
     }
 
     public static function canAccess(): bool
     {
         $user = Auth::user();
-        
+
         if (!$user) {
             return false;
         }
@@ -94,14 +96,14 @@ class TeacherDashboard extends Page
             // Build URL manually: /admin/teacher-dashboard/5
             return url('/admin/teacher-dashboard/' . $teacherId);
         }
-        
+
         return parent::getUrl($parameters, $isAbsolute, $panel, $tenant);
     }
 
     public function mount(?int $teacher = null): void
     {
         $user = Auth::user();
-        
+
         // Teachers ALWAYS see their own dashboard, ignore URL parameter
         if ($user?->isTeacher()) {
             $this->teacherId = $user->teacher?->id;
@@ -123,38 +125,40 @@ class TeacherDashboard extends Page
         if ($this->teacherId) {
             return Teacher::find($this->teacherId);
         }
-        
+
         return null;
     }
 
     protected function getHeaderWidgets(): array
     {
         $teacher = $this->getSelectedTeacher();
-        
+
         if (!$teacher) {
             return [];
         }
-        
+
         return [
-            TeacherProfileStatsWidget::make(['record' => $teacher]),
+           // \App\Filament\Widgets\TeacherDashboardOverview::make(['record' => $teacher]),
+           // TeacherProfileStatsWidget::make(['record' => $teacher]),
         ];
     }
 
     protected function getFooterWidgets(): array
     {
         $teacher = $this->getSelectedTeacher();
-        
+
         if (!$teacher) {
             return [];
         }
-        
+
         return [
-            TeacherProfileCompletionWidget::make(['record' => $teacher]),
-            TeacherProfessionalInfoWidget::make(['record' => $teacher]),
-            TeacherPublicationsStatsWidget::make(['record' => $teacher]),
-            TeacherResearchStatsWidget::make(['record' => $teacher]),
-            TeacherPublicationTrendWidget::make(['record' => $teacher]),
-            TeacherQuickActionsWidget::make(['record' => $teacher]),
+//            TeacherProfileCompletionWidget::make(['record' => $teacher]),
+//            TeacherProfessionalInfoWidget::make(['record' => $teacher]),
+//            TeacherPublicationsStatsWidget::make(['record' => $teacher]),
+//            TeacherResearchStatsWidget::make(['record' => $teacher]),
+//            TeacherPublicationTrendWidget::make(['record' => $teacher]),
+//            TeacherQuickActionsWidget::make(['record' => $teacher]),
+            TeacherDashboardOverview::make(['record' => $teacher])
         ];
     }
 }

@@ -119,6 +119,11 @@ class Teacher extends Model implements HasMedia
         return $this->belongsTo(Gender::class);
     }
 
+    public function maritalStatus(): BelongsTo
+    {
+        return $this->belongsTo(MaritalStatus::class);
+    }
+
     public function bloodGroup(): BelongsTo
     {
         return $this->belongsTo(BloodGroup::class);

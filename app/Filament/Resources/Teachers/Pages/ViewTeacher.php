@@ -23,22 +23,6 @@ class ViewTeacher extends ViewRecord
         ];
     }
 
-    protected function getHeaderWidgets(): array
-    {
-        return [
-           TeacherProfileStatsWidget::class,
-        ];
-    }
+    // Widgets removed as per request to have a cleaner view page
 
-    protected function getFooterWidgets(): array
-    {
-        return [
-            TeacherProfileCompletionWidget::class,
-            TeacherProfessionalInfoWidget::class,
-            TeacherPublicationsStatsWidget::class,
-            TeacherResearchStatsWidget::class,
-            TeacherPublicationTrendWidget::class,
-            TeacherQuickActionsWidget::class,
-        ];
-    }
 }

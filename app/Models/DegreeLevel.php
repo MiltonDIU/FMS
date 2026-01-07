@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class DegreeLevel extends Model
 {
-    protected $fillable = ['name', 'slug', 'sort_order','is_active', 'is_report ','description'];
+    protected $fillable = ['name', 'slug', 'sort_order','is_active', 'is_report','description'];
 
     public function degreeTypes(): HasMany
     {
