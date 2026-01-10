@@ -475,22 +475,22 @@
                     <div class="stat-value">{{ $summary['total_publications'] }}</div>
                     <div class="stat-label">Total Publications</div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-value">{{ $summary['avg_impact_factor'] }}</div>
-                    <div class="stat-label">Avg. Impact Factor</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">{{ $summary['avg_citescore'] }}</div>
-                    <div class="stat-label">Avg. CiteScore</div>
-                </div>
+{{--                <div class="stat-card">--}}
+{{--                    <div class="stat-value">{{ $summary['avg_impact_factor'] }}</div>--}}
+{{--                    <div class="stat-label">Avg. Impact Factor</div>--}}
+{{--                </div>--}}
+{{--                <div class="stat-card">--}}
+{{--                    <div class="stat-value">{{ $summary['avg_citescore'] }}</div>--}}
+{{--                    <div class="stat-label">Avg. CiteScore</div>--}}
+{{--                </div>--}}
                 <div class="stat-card">
                     <div class="stat-value">{{ $summary['total_featured'] }}</div>
                     <div class="stat-label">Featured</div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-value">{{ $summary['student_involvement'] }}</div>
-                    <div class="stat-label">Student Involved</div>
-                </div>
+{{--                <div class="stat-card">--}}
+{{--                    <div class="stat-value">{{ $summary['student_involvement'] }}</div>--}}
+{{--                    <div class="stat-label">Student Involved</div>--}}
+{{--                </div>--}}
 
                 <!-- Dynamic Type Stats -->
                 @foreach($typeStats as $stat)

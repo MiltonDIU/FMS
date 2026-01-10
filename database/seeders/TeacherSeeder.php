@@ -49,7 +49,7 @@ class TeacherSeeder extends Seeder
         // ============================================
         // CONFIGURE NUMBER OF TEACHERS TO CREATE HERE
         // ============================================
-        $numberOfTeachers = 5; // Change this number as needed (e.g., 100, 500, 1000, 5000)
+        $numberOfTeachers = 500; // Change this number as needed (e.g., 100, 500, 1000, 5000)
         // ============================================
 
         $this->faker = Faker::create('en_US');
@@ -326,7 +326,7 @@ class TeacherSeeder extends Seeder
 
     private function createPublications(Teacher $teacher): void
     {
-        $count = $this->faker->numberBetween(1, 5); // Ensure some publications
+        $count = $this->faker->numberBetween(1, 10); // Ensure some publications
 
         $types = \App\Models\PublicationType::pluck('id')->toArray();
         $linkages = \App\Models\PublicationLinkage::pluck('id')->toArray();
