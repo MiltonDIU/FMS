@@ -100,7 +100,7 @@ class PublicationIncentiveForm
                     ->schema([
                 Section::make('Author Incentives')
             
-                    ->description('প্রতিটা author এর জন্য incentive amount দিন। মোট amount সব authors এর যোগফলের সমান হতে হবে।')
+                    ->description('Enter incentive amount for each author. Total amount must equal the sum of all author incentives.')
                     ->schema([
                         Repeater::make('author_incentives')
                             ->label('')

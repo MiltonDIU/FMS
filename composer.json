@@ -12,7 +12,8 @@
         "filament/spatie-laravel-media-library-plugin": "^4.0",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
-        "leandrocfe/filament-apex-charts": "^4.0"
+        "leandrocfe/filament-apex-charts": "^4.0",
+        "phpoffice/phpspreadsheet": "^5.3"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

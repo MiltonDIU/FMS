@@ -2,14 +2,17 @@
 
 namespace App\Filament\Resources\Publications\Tables;
 
+use App\Models\Publication;
 use App\Models\PublicationIncentive;
 use App\Models\Teacher;
 use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Schemas\Components\Section;
@@ -22,8 +25,12 @@ use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PublicationsTable
 {
@@ -114,6 +121,10 @@ class PublicationsTable
                 TextColumn::make('journal_name')
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('publication_date')
+                    ->label('Pub. Date')
+                    ->date()
+                    ->sortable(),
                 TextColumn::make('publication_year')
                     ->sortable(),
                 TextColumn::make('status')
@@ -128,6 +139,76 @@ class PublicationsTable
                     ->boolean(),
             ])
             ->filters([
+                Filter::make('publication_date_range')
+                    ->form([
+                        DatePicker::make('from')
+                            ->label('From Date'),
+                        DatePicker::make('until')
+                            ->label('Until Date'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['from'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('publication_date', '>=', $date),
+                            )
+                            ->when(
+                                $data['until'],
+                                fn (Builder $query, $date): Builder => $query->whereDate('publication_date', '<=', $date),
+                            );
+                    })
+                    ->indicateUsing(function (array $data): array {
+                        $indicators = [];
+                        if ($data['from'] ?? null) {
+                            $indicators['from'] = 'From: ' . \Carbon\Carbon::parse($data['from'])->format('M d, Y');
+                        }
+                        if ($data['until'] ?? null) {
+                            $indicators['until'] = 'Until: ' . \Carbon\Carbon::parse($data['until'])->format('M d, Y');
+                        }
+                        return $indicators;
+                    }),
+
+                // Publication Status Filter
+                \Filament\Tables\Filters\SelectFilter::make('status')
+                    ->label('Publication Status')
+                    ->options([
+                        'approved' => 'Approved',
+                        'pending' => 'Pending',
+                        'draft' => 'Draft',
+                        'rejected' => 'Rejected',
+                    ])
+                    ->multiple(),
+
+                // Incentive Status Filter
+                \Filament\Tables\Filters\SelectFilter::make('incentive_status')
+                    ->label('Incentive Status')
+                    ->options([
+                        'paid' => 'Paid',
+                        'approved' => 'Approved',
+                        'pending' => 'Pending',
+                        'none' => 'No Incentive',
+                    ])
+                    ->multiple()
+                    ->query(function (Builder $query, array $data): Builder {
+                        $values = $data['values'] ?? [];
+                        if (empty($values)) {
+                            return $query;
+                        }
+
+                        return $query->where(function (Builder $query) use ($values) {
+                            if (in_array('none', $values)) {
+                                $query->orWhereDoesntHave('incentive');
+                            }
+
+                            $statusValues = array_filter($values, fn($v) => $v !== 'none');
+                            if (!empty($statusValues)) {
+                                $query->orWhereHas('incentive', function (Builder $q) use ($statusValues) {
+                                    $q->whereIn('status', $statusValues);
+                                });
+                            }
+                        });
+                    }),
+
                 TrashedFilter::make(),
             ])
             ->recordActions([
@@ -145,7 +226,7 @@ class PublicationsTable
                                 'teacher_name' => $t->full_name,
                                 'author_role' => $t->pivot->author_role,
                                 'incentive_amount' => 0,
-                        ])->toArray();
+                            ])->toArray();
 
                         $form->fill([
                             'author_incentives' => $authors,
@@ -155,7 +236,7 @@ class PublicationsTable
                     })
                     ->form([
                         Section::make('Author Incentives')
-                            ->description('প্রতিটা author এর জন্য incentive amount দিন।')
+                            ->description('Enter incentive amount for each author.')
                             ->schema([
                                 Repeater::make('author_incentives')
                                     ->label('')
@@ -266,6 +347,91 @@ class PublicationsTable
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    BulkAction::make('export_csv')
+                        ->label('Export CSV')
+                        ->icon(Heroicon::OutlinedArrowDownTray)
+                        ->action(function (Collection $records): StreamedResponse {
+                            return response()->streamDownload(function () use ($records) {
+                                $handle = fopen('php://output', 'w');
+
+                                // CSV Headers
+                                fputcsv($handle, [
+                                    'Publication ID',
+                                    'Title',
+                                    'Type',
+                                    'Faculty',
+                                    'Department',
+                                    'Journal Name',
+                                    'Publication Date',
+                                    'Publication Year',
+                                    'Status',
+                                    'Incentive Total',
+                                    'Incentive Status',
+                                    'Author Type',
+                                    'Author Name',
+                                    'Author Employee ID',
+                                    'Author Email',
+                                    'Author Role',
+                                    'Author Amount',
+                                ]);
+
+                                foreach ($records as $publication) {
+                                    $publication->load(['teachers', 'incentive', 'type', 'faculty', 'department']);
+
+                                    $authors = $publication->teachers->sortBy('pivot.sort_order');
+
+                                    if ($authors->isEmpty()) {
+                                        // Publication without authors
+                                        fputcsv($handle, [
+                                            $publication->id,
+                                            $publication->title,
+                                            $publication->type?->name,
+                                            $publication->faculty?->name,
+                                            $publication->department?->name,
+                                            $publication->journal_name,
+                                            $publication->publication_date?->format('Y-m-d'),
+                                            $publication->publication_year,
+                                            $publication->status,
+                                            $publication->incentive?->total_amount,
+                                            $publication->incentive?->status,
+                                            '', '', '', '', '', '',
+                                        ]);
+                                    } else {
+                                        foreach ($authors as $author) {
+                                            $roleLabel = match ($author->pivot->author_role) {
+                                                'first' => '1st Author',
+                                                'corresponding' => 'Corresponding Author',
+                                                'co_author' => 'Co-Author',
+                                                default => $author->pivot->author_role,
+                                            };
+
+                                            fputcsv($handle, [
+                                                $publication->id,
+                                                $publication->title,
+                                                $publication->type?->name,
+                                                $publication->faculty?->name,
+                                                $publication->department?->name,
+                                                $publication->journal_name,
+                                                $publication->publication_date?->format('Y-m-d'),
+                                                $publication->publication_year,
+                                                $publication->status,
+                                                $publication->incentive?->total_amount,
+                                                $publication->incentive?->status,
+                                                'Teacher',
+                                                $author->full_name,
+                                                $author->employee_id,
+                                                $author->user?->email ?? '',
+                                                $roleLabel,
+                                                $author->pivot->incentive_amount,
+                                            ]);
+                                        }
+                                    }
+                                }
+
+                                fclose($handle);
+                            }, 'publications_export_' . now()->format('Y-m-d_His') . '.csv');
+                        })
+                        ->deselectRecordsAfterCompletion(),
                     DeleteBulkAction::make(),
                     ForceDeleteBulkAction::make(),
                     RestoreBulkAction::make(),
@@ -273,3 +439,4 @@ class PublicationsTable
             ]);
     }
 }
+
