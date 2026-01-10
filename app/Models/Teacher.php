@@ -163,8 +163,18 @@ class Teacher extends Model implements HasMedia
     public function publications(): \Illuminate\Database\Eloquent\Relations\MorphToMany
     {
         return $this->morphToMany(Publication::class, 'authorable', 'publication_authors')
-            ->withPivot(['author_role', 'sort_order'])
+            ->withPivot(['author_role', 'sort_order', 'incentive_amount'])
             ->withTimestamps();
+    }
+
+    /**
+     * Get total publication incentives for this teacher.
+     */
+    public function getTotalPublicationIncentivesAttribute(): float
+    {
+        return $this->publications()
+            ->get()
+            ->sum(fn($pub) => (float) ($pub->pivot->incentive_amount ?? 0));
     }
 
     /**

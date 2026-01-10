@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Publication extends Model
@@ -57,8 +58,24 @@ class Publication extends Model
     public function teachers()
     {
         return $this->morphedByMany(Teacher::class, 'authorable', 'publication_authors')
-            ->withPivot(['author_role', 'sort_order'])
+            ->withPivot(['author_role', 'sort_order', 'incentive_amount'])
             ->withTimestamps();
+    }
+
+    /**
+     * Get the publication incentive.
+     */
+    public function incentive(): HasOne
+    {
+        return $this->hasOne(PublicationIncentive::class);
+    }
+
+    /**
+     * Check if incentive is assigned.
+     */
+    public function hasIncentive(): bool
+    {
+        return $this->incentive()->exists();
     }
 
     public function type(): BelongsTo
