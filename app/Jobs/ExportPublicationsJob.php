@@ -112,12 +112,14 @@ class ExportPublicationsJob implements ShouldQueue
         ]);
         $this->applyFilters($query);
 
-            $row = 2;
-            $globalIndex = 1;
+        $row = 2;
+        $globalIndex = 1;
+        $grandTotal = 0;
 
-            $query->chunkById(500, function ($publications) use ($sheet, &$row, &$globalIndex) {
-                foreach ($publications as $publication) {
-                    $authors = $publication->teachers->sortBy('pivot.sort_order')->values();
+        $query->chunkById(500, function ($publications) use ($sheet, &$row, &$globalIndex, &$grandTotal) {
+            foreach ($publications as $publication) {
+                $grandTotal += (float) ($publication->incentive?->total_amount ?? 0);
+                $authors = $publication->teachers->sortBy('pivot.sort_order')->values();
                     $authorCount = max($authors->count(), 1);
                     $startRow = $row;
 
@@ -183,7 +185,18 @@ class ExportPublicationsJob implements ShouldQueue
             }
         });
 
+        // Add Grand Total Row
+        $sheet->setCellValue('W' . $row, 'Grand Total:');
+        $sheet->setCellValue('X' . $row, $grandTotal);
+        $sheet->getStyle('W' . $row . ':X' . $row)->applyFromArray([
+            'font' => ['bold' => true, 'size' => 12],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_RIGHT],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FFFF00']],
+        ]);
+        $sheet->getStyle('X' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
+
         // Fixed Widths
+
         $this->setFixedWidths($sheet);
 
         $this->finalizeExport($spreadsheet, $absPath, $filePath, $row - 1);
@@ -274,8 +287,10 @@ class ExportPublicationsJob implements ShouldQueue
         });
 
         $row = 2;
+        $grandTotal = 0;
         foreach ($authorMap as $authorId => $data) {
             $teacher = $data['details'];
+            $grandTotal += $data['total_incentive'];
             $publications = $data['publications'];
             $pubCount = count($publications);
             $startRow = $row;
@@ -321,6 +336,16 @@ class ExportPublicationsJob implements ShouldQueue
                  }
             }
         }
+
+        // Add Grand Total Row
+        $sheet->setCellValue('C' . $row, 'Grand Total:');
+        $sheet->setCellValue('D' . $row, $grandTotal);
+        $sheet->getStyle('C' . $row . ':D' . $row)->applyFromArray([
+            'font' => ['bold' => true, 'size' => 12],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_RIGHT],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'FFFF00']],
+        ]);
+        $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('#,##0.00');
 
         // Auto-Size Columns
         foreach (range('A', 'J') as $col) {
