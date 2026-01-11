@@ -103,13 +103,15 @@ class PublicationsTable
                 TextColumn::make('incentive.status')
                     ->label('Incentive Status')
                     ->badge()
+
                     ->color(fn(?string $state): string => match ($state) {
                         'pending' => 'warning',
                         'approved' => 'info',
                         'paid' => 'success',
                         default => 'gray',
                     })
-                    ->placeholder('—'),
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('faculty.name')
                     ->label('Faculty')
                     ->sortable()
@@ -136,7 +138,8 @@ class PublicationsTable
                         'rejected' => 'danger',
                     }),
                 IconColumn::make('is_featured')
-                    ->boolean(),
+                    ->boolean()
+            ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 Filter::make('publication_date_range')
@@ -436,6 +439,25 @@ class PublicationsTable
                     ForceDeleteBulkAction::make(),
                     RestoreBulkAction::make(),
                 ]),
+            ])
+            ->headerActions([
+                Action::make('export_all_background')
+                    ->label('Export All (Background)')
+                    ->icon(Heroicon::OutlinedArrowDownTray)
+                    ->color('primary')
+                    ->action(function ($livewire) {
+                        $user = auth()->user();
+                        $filters = $livewire->tableFilters;
+                        $search = $livewire->tableSearch;
+
+                        \App\Jobs\ExportPublicationsJob::dispatch($user, $filters, $search);
+
+                        Notification::make()
+                            ->title('Export Started')
+                            ->body('We will notify you when the file is ready.')
+                            ->success()
+                            ->send();
+                    }),
             ]);
     }
 }
