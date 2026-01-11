@@ -49,7 +49,7 @@ class TeacherSeeder extends Seeder
         // ============================================
         // CONFIGURE NUMBER OF TEACHERS TO CREATE HERE
         // ============================================
-        $numberOfTeachers = 500; // Change this number as needed (e.g., 100, 500, 1000, 5000)
+        $numberOfTeachers = 1200; // Change this number as needed (e.g., 100, 500, 1000, 5000)
         // ============================================
 
         $this->faker = Faker::create('en_US');
@@ -326,7 +326,7 @@ class TeacherSeeder extends Seeder
 
     private function createPublications(Teacher $teacher): void
     {
-        $count = $this->faker->numberBetween(1, 10); // Ensure some publications
+        $count = $this->faker->numberBetween(3, 30);
 
         $types = \App\Models\PublicationType::pluck('id')->toArray();
         $linkages = \App\Models\PublicationLinkage::pluck('id')->toArray();
@@ -336,7 +336,30 @@ class TeacherSeeder extends Seeder
 
         if (empty($types)) return;
 
+        // Research areas for realistic data
+        $researchAreas = [
+            'Artificial Intelligence', 'Machine Learning', 'Deep Learning',
+            'Data Science', 'Big Data Analytics', 'IoT', 'Cyber Security',
+            'Cloud Computing', 'Blockchain', 'Natural Language Processing',
+            'Computer Vision', 'Robotics', 'Software Engineering',
+        ];
+
+        $keywordPool = [
+            'machine learning', 'deep learning', 'neural networks', 'data mining',
+            'classification', 'prediction', 'optimization', 'algorithm',
+            'model', 'framework', 'system', 'analysis', 'performance',
+        ];
+
+        // Get admin user for incentive approval
+        $adminUser = \App\Models\User::where('email', 'like', '%admin%')->first() ?? \App\Models\User::first();
+
         for ($i = 0; $i < $count; $i++) {
+            // Generate realistic abstract
+            $abstractTopics = ['This study investigates', 'This paper presents', 'We propose', 'This research explores'];
+            $abstract = $this->faker->randomElement($abstractTopics) . ' ' . $this->faker->paragraph(4);
+
+            $year = $this->faker->numberBetween(2020, 2024);
+
             $pub = Publication::create([
                 'faculty_id' => $teacher->department->faculty_id,
                 'department_id' => $teacher->department_id,
@@ -346,68 +369,110 @@ class TeacherSeeder extends Seeder
                 'grant_type_id' => !empty($grants) ? $this->faker->randomElement($grants) : null,
                 'research_collaboration_id' => !empty($collabs) ? $this->faker->randomElement($collabs) : null,
 
-                'title' => $this->faker->sentence(8),
-                'journal_name' => $this->faker->company . ' Journal',
+                'title' => $this->faker->sentence(rand(8, 12)),
+                'journal_name' => $this->faker->randomElement([
+                    'IEEE Transactions on Neural Networks', 'Nature Scientific Reports',
+                    'Springer Journal of CS', 'Elsevier Data Science', 'ACM Computing Surveys',
+                ]),
                 'journal_link' => $this->faker->url,
-                'publication_date' => $this->faker->date(),
-                'publication_year' => $this->faker->year(),
-                'status' => $this->faker->randomElement(['draft', 'approved']),
+                'publication_date' => $this->faker->dateTimeBetween("-{$year} years", 'now'),
+                'publication_year' => $year,
+
+                // Filled fields
+                'research_area' => $this->faker->randomElement($researchAreas),
+                'abstract' => $abstract,
+                'keywords' => implode(', ', $this->faker->randomElements($keywordPool, rand(4, 7))),
+                'h_index' => rand(5, 50),
+                'citescore' => rand(10, 100) / 10,
+                'impact_factor' => rand(5, 80) / 10,
+                'student_involvement' => $this->faker->boolean(40),
                 'is_featured' => $this->faker->boolean(20),
+                'status' => 'approved',
                 'sort_order' => $i + 1,
             ]);
 
-            // 1. Determine Main Teacher's Role
-            // 50% First, 30% Co-Author, 20% Corresponding
+            // Build authors collection with weights
+            $authors = collect();
+
+            // Main teacher's role (50% First, 30% Co, 20% Corresponding)
             $mainRole = $this->faker->randomElement(array_merge(
                 array_fill(0, 5, 'first'),
                 array_fill(0, 3, 'co_author'),
                 array_fill(0, 2, 'corresponding')
             ));
 
-            $pub->teachers()->attach($teacher->id, [
-                'author_role' => $mainRole,
-                'sort_order' => $mainRole === 'first' ? 1 : ($mainRole === 'corresponding' ? 2 : 3)
+            $authors->push([
+                'teacher' => $teacher,
+                'role' => $mainRole,
+                'sort_order' => $mainRole === 'first' ? 0 : 1,
+                'share_weight' => $mainRole === 'first' ? 40 : ($mainRole === 'corresponding' ? 30 : 15),
             ]);
 
-            // 2. Fetch Potential Collaborators (Other Teachers)
+            // Add collaborators
             $collaborators = Teacher::where('id', '!=', $teacher->id)
                 ->inRandomOrder()
                 ->take($this->faker->numberBetween(1, 3))
                 ->get();
 
-            $currentSortOrder = 2;
-
+            $sortOrder = 2;
             foreach ($collaborators as $collaborator) {
-                // Determine collaborator role based on what's already taken by Main Teacher
                 $collabRole = 'co_author';
 
-                // If main teacher isn't First, we need a First author (and we haven't assigned one yet)
-                $hasFirst = ($mainRole === 'first') || $pub->teachers()->wherePivot('author_role', 'first')->exists();
-                if (!$hasFirst) {
+                // Ensure we have a first author
+                if ($mainRole !== 'first' && !$authors->where('role', 'first')->count()) {
                     $collabRole = 'first';
-                }
-                // Else if main teacher isn't Corresponding, maybe make this one Corresponding
-                else {
-                    $hasCorresponding = ($mainRole === 'corresponding') || $pub->teachers()->wherePivot('author_role', 'corresponding')->exists();
-                    if (!$hasCorresponding && $this->faker->boolean(50)) {
-                        $collabRole = 'corresponding';
-                    }
+                } elseif ($mainRole !== 'corresponding' && !$authors->where('role', 'corresponding')->count() && $this->faker->boolean(50)) {
+                    $collabRole = 'corresponding';
                 }
 
-                // Attach collaborator
-                // Use syncWithoutDetaching to avoid errors if ID matches (though query excludes)
-                if (!$pub->teachers()->where('teachers.id', $collaborator->id)->exists()) {
-                     $pub->teachers()->attach($collaborator->id, [
-                        'author_role' => $collabRole,
-                        'sort_order' => $collabRole === 'first' ? 0 : $currentSortOrder++
-                    ]);
-                }
+                $authors->push([
+                    'teacher' => $collaborator,
+                    'role' => $collabRole,
+                    'sort_order' => $collabRole === 'first' ? 0 : $sortOrder++,
+                    'share_weight' => $collabRole === 'first' ? 40 : ($collabRole === 'corresponding' ? 30 : 15),
+                ]);
             }
 
-            // Safety: Ensure at least one First Author if main teacher wasn't it and no collaborators filled it
-            // (Only happens if no collaborators found, e.g., first run)
-            if ($mainRole !== 'first' && $collaborators->isEmpty()) {
-                 $pub->teachers()->updateExistingPivot($teacher->id, ['author_role' => 'first', 'sort_order' => 1]);
+            // Normalize weights to 100%
+            $totalWeight = $authors->sum('share_weight');
+            $authors = $authors->map(function ($a) use ($totalWeight) {
+                $a['share_percent'] = $a['share_weight'] / $totalWeight * 100;
+                return $a;
+            });
+
+            // Create incentive (70% chance)
+            $hasIncentive = $this->faker->boolean(70);
+            $totalIncentive = $hasIncentive ? rand(10, 100) * 1000 : 0;
+
+            // Attach authors with incentive amounts
+            foreach ($authors as $authorData) {
+                $incentiveAmount = $hasIncentive
+                    ? round($totalIncentive * $authorData['share_percent'] / 100, 2)
+                    : 0;
+
+                $pub->teachers()->attach($authorData['teacher']->id, [
+                    'author_role' => $authorData['role'],
+                    'sort_order' => $authorData['sort_order'],
+                    'incentive_amount' => $incentiveAmount,
+                ]);
+            }
+
+            // Create PublicationIncentive record
+            if ($hasIncentive) {
+                $status = $this->faker->randomElement(['pending', 'approved', 'paid']);
+
+                \App\Models\PublicationIncentive::withoutEvents(function () use ($pub, $totalIncentive, $status, $adminUser) {
+                    \App\Models\PublicationIncentive::create([
+                        'publication_id' => $pub->id,
+                        'total_amount' => $totalIncentive,
+                        'status' => $status,
+                        'approved_by' => $status !== 'pending' ? $adminUser?->id : null,
+                        'approved_at' => $status !== 'pending' ? now()->subDays(rand(1, 30)) : null,
+                        'paid_by' => $status === 'paid' ? $adminUser?->id : null,
+                        'paid_at' => $status === 'paid' ? now()->subDays(rand(1, 15)) : null,
+                        'remarks' => $status === 'paid' ? 'Payment processed.' : null,
+                    ]);
+                });
             }
         }
     }

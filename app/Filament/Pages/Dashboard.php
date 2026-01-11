@@ -15,4 +15,11 @@ class Dashboard extends BaseDashboard
 {
     // use HasFiltersForm;
     // Filters removed as per user request to reset.
+
+    public function getWidgets(): array
+    {
+        return [
+            \App\Filament\Widgets\QueueStatusWidget::class,
+        ];
+    }
 }
