@@ -112,17 +112,19 @@ class ExportPublicationsJob implements ShouldQueue
         ]);
         $this->applyFilters($query);
 
-        $row = 2;
+            $row = 2;
+            $globalIndex = 1;
 
-        $query->chunkById(500, function ($publications) use ($sheet, &$row) {
-            foreach ($publications as $key => $publication) {
-                $authors = $publication->teachers->sortBy('pivot.sort_order')->values();
-                $authorCount = max($authors->count(), 1);
-                $startRow = $row;
+            $query->chunkById(500, function ($publications) use ($sheet, &$row, &$globalIndex) {
+                foreach ($publications as $publication) {
+                    $authors = $publication->teachers->sortBy('pivot.sort_order')->values();
+                    $authorCount = max($authors->count(), 1);
+                    $startRow = $row;
 
-                $pubData = [
-                    'A' => $key + 1,
-                    'B' => $publication->title,
+                    $pubData = [
+                        'A' => $globalIndex++,
+                        'B' => $publication->title,
+
                     'C' => $publication->type?->name,
                     'D' => $publication->faculty?->name,
                     'E' => $publication->department?->name,
