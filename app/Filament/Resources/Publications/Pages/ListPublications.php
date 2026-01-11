@@ -22,19 +22,33 @@ class ListPublications extends ListRecords
     {
         return [
             Action::make('export_all_background')
-                ->label('Export All (Background)')
+                ->label('Export Publications')
                 ->icon(Heroicon::OutlinedArrowDownTray)
                 ->color('primary')
                 ->action(function () {
                     $user = auth()->user();
-                    
-                    // Retrieve filters from the table component
-                    // Since we are in the Page class, $this refers to ListPublications page which manages the table
-                    // Filament pages using ListRecords have tableFilters and tableSearch available
                     $filters = $this->tableFilters;
                     $search = $this->tableSearch;
 
-                    \App\Jobs\ExportPublicationsJob::dispatch($user, $filters, $search);
+                    \App\Jobs\ExportPublicationsJob::dispatch($user, $filters, $search, 'publication');
+
+                    \Filament\Notifications\Notification::make()
+                        ->title('Export Started')
+                        ->body('We will notify you when the file is ready.')
+                        ->success()
+                        ->send();
+                }),
+
+            Action::make('export_authors_background')
+                ->label('Export by Author')
+                ->icon(Heroicon::OutlinedUsers)
+                ->color('warning')
+                ->action(function () {
+                    $user = auth()->user();
+                    $filters = $this->tableFilters;
+                    $search = $this->tableSearch;
+
+                    \App\Jobs\ExportPublicationsJob::dispatch($user, $filters, $search, 'author');
 
                     \Filament\Notifications\Notification::make()
                         ->title('Export Started')

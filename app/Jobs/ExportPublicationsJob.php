@@ -29,15 +29,18 @@ class ExportPublicationsJob implements ShouldQueue
     protected User $user;
     protected array $filterData;
     protected ?string $searchQuery;
+    protected string $exportMode;
 
     /**
      * Create a new job instance.
+     * @param string $exportMode 'publication' or 'author'
      */
-    public function __construct(User $user, array $filterData = [], ?string $searchQuery = null)
+    public function __construct(User $user, array $filterData = [], ?string $searchQuery = null, string $exportMode = 'publication')
     {
         $this->user = $user;
         $this->filterData = $filterData;
         $this->searchQuery = $searchQuery;
+        $this->exportMode = $exportMode;
     }
 
     /**
@@ -46,228 +49,13 @@ class ExportPublicationsJob implements ShouldQueue
     public function handle(): void
     {
         try {
-            // Increase memory limit for large excel generation
             ini_set('memory_limit', '1024M');
 
-            $fileName = 'publications_export_' . now()->format('Y-m-d_His') . '.xlsx';
-            $filePath = 'exports/' . $fileName;
-
-            // Ensure directory exists
-            Storage::disk('public')->makeDirectory('exports');
-            $absPath = Storage::disk('public')->path($filePath);
-
-            $spreadsheet = new Spreadsheet();
-            $sheet = $spreadsheet->getActiveSheet();
-            $sheet->setTitle('Publications');
-
-            // Headers
-            $headers = [
-                'A' => 'ID',
-                'B' => 'Title',
-                'C' => 'Type',
-                'D' => 'Faculty',
-                'E' => 'Department',
-                'F' => 'Linkage',
-                'G' => 'Quartile',
-                'H' => 'Grant Type',
-                'I' => 'Collaboration',
-                'J' => 'Journal Name',
-                'K' => 'Journal Link',
-                'L' => 'Pub Date',
-                'M' => 'Pub Year',
-                'N' => 'Research Area',
-                'O' => 'H-Index',
-                'P' => 'Citescore',
-                'Q' => 'Impact Factor',
-                'R' => 'Student Involvement',
-                'S' => 'Keywords',
-                'T' => 'Abstract',
-                'U' => 'Status',
-                'V' => 'Featured',
-                'W' => 'Sort Order',
-                'X' => 'Incentive Total',
-                'Y' => 'Incentive Status',
-                'Z' => 'Author Name',
-                'AA' => 'Author Email',
-                'AB' => 'Employee ID',
-                'AC' => 'Role',
-                'AD' => 'Amount',
-            ];
-
-            foreach ($headers as $col => $header) {
-                $sheet->setCellValue($col . '1', $header);
+            if ($this->exportMode === 'author') {
+                $this->exportByAuthor();
+            } else {
+                $this->exportByPublication();
             }
-
-            // Style headers
-            $headerStyle = [
-                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
-                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '4472C4']],
-                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
-                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
-            ];
-            $sheet->getStyle('A1:AD1')->applyFromArray($headerStyle);
-
-            // Reconstruct Query
-            $query = Publication::query()
-                ->with([
-                    'teachers.user',
-                    'incentive',
-                    'type',
-                    'faculty',
-                    'department',
-                    'linkage',
-                    'quartile',
-                    'grant',
-                    'collaboration',
-                ]);
-
-            $this->applyFilters($query);
-
-            $row = 2;
-
-            // Process in Chunks
-            $query->chunkById(500, function ($publications) use ($sheet, &$row) {
-                foreach ($publications as $key=>$publication) {
-                    $authors = $publication->teachers->sortBy('pivot.sort_order')->values();
-                    $authorCount = max($authors->count(), 1);
-                    $startRow = $row;
-
-                    // Prepare common publication data (Mapped to Columns A-Y)
-                    $pubData = [
-                        'A' => $key+1,//$publication->id,
-                        'B' => $publication->title,
-                        'C' => $publication->type?->name,
-                        'D' => $publication->faculty?->name,
-                        'E' => $publication->department?->name,
-                        'F' => $publication->linkage?->name,
-                        'G' => $publication->quartile?->name,
-                        'H' => $publication->grant?->name,
-                        'I' => $publication->collaboration?->name,
-                        'J' => $publication->journal_name,
-                        'K' => $publication->journal_link,
-                        'L' => $publication->publication_date?->format('Y-m-d'),
-                        'M' => $publication->publication_year,
-                        'N' => $publication->research_area,
-                        'O' => $publication->h_index,
-                        'P' => $publication->citescore,
-                        'Q' => $publication->impact_factor,
-                        'R' => $publication->student_involvement ? 'Yes' : 'No',
-                        'S' => $publication->keywords,
-                        'T' => $publication->abstract,
-                        'U' => $publication->status,
-                        'V' => $publication->is_featured ? 'Yes' : 'No',
-                        'W' => $publication->sort_order,
-                        'X' => $publication->incentive?->total_amount,
-                        'Y' => $publication->incentive?->status,
-                    ];
-
-                    // Write Publication Data
-                    foreach ($pubData as $col => $value) {
-                        $sheet->setCellValue($col . $startRow, $value);
-                    }
-
-                    // Write Authors (Columns Z-AD)
-                    if ($authors->isEmpty()) {
-                        $row++;
-                    } else {
-                        foreach ($authors as $author) {
-                            $roleLabel = match ($author->pivot->author_role) {
-                                'first' => '1st Author',
-                                'corresponding' => 'Corresponding',
-                                'co_author' => 'Co-Author',
-                                default => $author->pivot->author_role,
-                            };
-
-                            $sheet->setCellValue('Z' . $row, $author->full_name);
-                            $sheet->setCellValue('AA' . $row, $author->user?->email ?? '');
-                            $sheet->setCellValue('AB' . $row, $author->employee_id);
-                            $sheet->setCellValue('AC' . $row, $roleLabel);
-                            $sheet->setCellValue('AD' . $row, $author->pivot->incentive_amount ?? 0);
-                            $row++;
-                        }
-                    }
-
-                    // Merge Publication Cells if multiple authors
-                    if ($authorCount > 1) {
-                        $endRow = $startRow + $authorCount - 1;
-                        foreach (array_keys($pubData) as $col) {
-                            $sheet->mergeCells("{$col}{$startRow}:{$col}{$endRow}");
-                        }
-                    }
-                }
-            });
-
-            // OPTIMIZATION: Removed AutoSize (extremely slow). Using fixed widths.
-            $columnWidths = [
-                'A' => 10,  // ID
-                'B' => 50,  // Title
-                'C' => 15,  // Type
-                'D' => 20,  // Faculty
-                'E' => 20,  // Department
-                'F' => 15,  // Linkage
-                'G' => 10,  // Quartile
-                'H' => 15,  // Grant
-                'I' => 15,  // Collaboration
-                'J' => 30,  // Journal
-                'K' => 20,  // Journal Link
-                'L' => 12,  // Date
-                'M' => 10,  // Year
-                'N' => 20,  // Area
-                'O' => 10,  // H-Index
-                'P' => 10,  // Citescore
-                'Q' => 10,  // Impact
-                'R' => 10,  // Student
-                'S' => 20,  // Keywords
-                'T' => 50,  // Abstract
-                'U' => 15,  // Status
-                'V' => 10,  // Featured
-                'W' => 10,  // Sort
-                'X' => 15,  // Incentive
-                'Y' => 15,  // Inc. Status
-                'Z' => 25,  // Author
-                'AA' => 30, // Email
-                'AB' => 15, // ID
-                'AC' => 15, // Role
-                'AD' => 15, // Amount
-            ];
-
-            foreach ($columnWidths as $col => $width) {
-                $sheet->getColumnDimension($col)->setWidth($width);
-            }
-
-            // Bulk Style Application (Centering)
-            // Apply Vertical Center to ALL publication columns (A-Y) for the entire data range
-            $lastRow = $row - 1;
-            if ($lastRow >= 2) {
-                $styleArray = [
-                    'alignment' => [
-                        'vertical' => Alignment::VERTICAL_CENTER,
-                        'horizontal' => Alignment::HORIZONTAL_CENTER, // Center text key logic
-                    ],
-                ];
-                 // Apply to Columns A-Y (Publication Data)
-                $sheet->getStyle("A2:Y{$lastRow}")->applyFromArray($styleArray);
-            }
-
-            // Save File
-            $writer = new Xlsx($spreadsheet);
-            $writer->setPreCalculateFormulas(false); // Optimization
-
-            $writer->save($absPath);
-
-            // Notify User
-            Notification::make()
-                ->title('Export Completed')
-                ->body('Your publication Excel export is ready.')
-                ->success()
-                ->actions([
-                    Action::make('download')
-                        ->label('Download')
-                        ->url(Storage::disk('public')->url($filePath))
-                        ->button()
-                        ->openUrlInNewTab(),
-                ])
-                ->sendToDatabase($this->user);
 
         } catch (\Exception $e) {
             Log::error('Export failed: ' . $e->getMessage());
@@ -279,6 +67,322 @@ class ExportPublicationsJob implements ShouldQueue
                 ->danger()
                 ->sendToDatabase($this->user);
         }
+    }
+
+    protected function exportByPublication(): void
+    {
+        $fileName = 'publications_export_' . now()->format('Y-m-d_His') . '.xlsx';
+        $filePath = 'exports/' . $fileName;
+
+        Storage::disk('public')->makeDirectory('exports');
+        $absPath = Storage::disk('public')->path($filePath);
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Publications');
+
+        // Headers
+        $headers = [
+            'A' => 'ID', 'B' => 'Title', 'C' => 'Type', 'D' => 'Faculty', 'E' => 'Department',
+            'F' => 'Linkage', 'G' => 'Quartile', 'H' => 'Grant Type', 'I' => 'Collaboration',
+            'J' => 'Journal Name', 'K' => 'Journal Link', 'L' => 'Pub Date', 'M' => 'Pub Year',
+            'N' => 'Research Area', 'O' => 'H-Index', 'P' => 'Citescore', 'Q' => 'Impact Factor',
+            'R' => 'Student Involvement', 'S' => 'Keywords', 'T' => 'Abstract', 'U' => 'Status',
+            'V' => 'Featured', 'W' => 'Sort Order', 'X' => 'Incentive Total', 'Y' => 'Incentive Status',
+            'Z' => 'Author Name', 'AA' => 'Author Email', 'AB' => 'Employee ID', 'AC' => 'Role', 'AD' => 'Amount',
+        ];
+
+        foreach ($headers as $col => $header) {
+            $sheet->setCellValue($col . '1', $header);
+        }
+
+        // Style headers
+        $headerStyle = [
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '4472C4']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+            'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
+        ];
+        $sheet->getStyle('A1:AD1')->applyFromArray($headerStyle);
+
+        // Query
+        $query = Publication::query()->with([
+            'teachers.user', 'incentive', 'type', 'faculty', 'department',
+            'linkage', 'quartile', 'grant', 'collaboration',
+        ]);
+        $this->applyFilters($query);
+
+        $row = 2;
+
+        $query->chunkById(500, function ($publications) use ($sheet, &$row) {
+            foreach ($publications as $key => $publication) {
+                $authors = $publication->teachers->sortBy('pivot.sort_order')->values();
+                $authorCount = max($authors->count(), 1);
+                $startRow = $row;
+
+                $pubData = [
+                    'A' => $key + 1,
+                    'B' => $publication->title,
+                    'C' => $publication->type?->name,
+                    'D' => $publication->faculty?->name,
+                    'E' => $publication->department?->name,
+                    'F' => $publication->linkage?->name,
+                    'G' => $publication->quartile?->name,
+                    'H' => $publication->grant?->name,
+                    'I' => $publication->collaboration?->name,
+                    'J' => $publication->journal_name,
+                    'K' => $publication->journal_link,
+                    'L' => $publication->publication_date?->format('Y-m-d'),
+                    'M' => $publication->publication_year,
+                    'N' => $publication->research_area,
+                    'O' => $publication->h_index,
+                    'P' => $publication->citescore,
+                    'Q' => $publication->impact_factor,
+                    'R' => $publication->student_involvement ? 'Yes' : 'No',
+                    'S' => $publication->keywords,
+                    'T' => $publication->abstract,
+                    'U' => $publication->status,
+                    'V' => $publication->is_featured ? 'Yes' : 'No',
+                    'W' => $publication->sort_order,
+                    'X' => $publication->incentive?->total_amount,
+                    'Y' => $publication->incentive?->status,
+                ];
+
+                foreach ($pubData as $col => $value) {
+                    $sheet->setCellValue($col . $startRow, $value);
+                }
+
+                if ($authors->isEmpty()) {
+                    $row++;
+                } else {
+                    foreach ($authors as $author) {
+                        $roleLabel = match ($author->pivot->author_role) {
+                            'first' => '1st Author',
+                            'corresponding' => 'Corresponding',
+                            'co_author' => 'Co-Author',
+                            default => $author->pivot->author_role,
+                        };
+
+                        $sheet->setCellValue('Z' . $row, $author->full_name);
+                        $sheet->setCellValue('AA' . $row, $author->user?->email ?? '');
+                        $sheet->setCellValue('AB' . $row, $author->employee_id);
+                        $sheet->setCellValue('AC' . $row, $roleLabel);
+                        $sheet->setCellValue('AD' . $row, $author->pivot->incentive_amount ?? 0);
+                        $row++;
+                    }
+                }
+
+                if ($authorCount > 1) {
+                    $endRow = $startRow + $authorCount - 1;
+                    foreach (array_keys($pubData) as $col) {
+                        $sheet->mergeCells("{$col}{$startRow}:{$col}{$endRow}");
+                    }
+                }
+            }
+        });
+
+        // Fixed Widths
+        $this->setFixedWidths($sheet);
+
+        $this->finalizeExport($spreadsheet, $absPath, $filePath, $row - 1);
+    }
+
+    protected function exportByAuthor(): void
+    {
+        $fileName = 'authors_export_' . now()->format('Y-m-d_His') . '.xlsx';
+        $filePath = 'exports/' . $fileName;
+
+        Storage::disk('public')->makeDirectory('exports');
+        $absPath = Storage::disk('public')->path($filePath);
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Authors');
+
+        // Headers for Author Mode
+        $headers = [
+            'A' => 'Author Name',
+            'B' => 'Employee ID',
+            'C' => 'Department',
+            'D' => 'Total Incentive Received',
+            'E' => 'Publication Title',
+            'F' => 'Publication Date',
+            'G' => 'Role',
+            'H' => 'Incentive Amount',
+            'I' => 'Publication Total',
+            'J' => 'Share Percentage (%)',
+        ];
+
+        foreach ($headers as $col => $header) {
+            $sheet->setCellValue($col . '1', $header);
+        }
+
+        // Style headers
+        $headerStyle = [
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'ED7D31']], // Orange for Author Mode
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+            'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
+        ];
+        $sheet->getStyle('A1:J1')->applyFromArray($headerStyle);
+
+        // Query: Get filtered publications first
+        $pubQuery = Publication::query()->with(['teachers', 'teachers.department']);
+        $this->applyFilters($pubQuery);
+        
+        // We need to group by authors.
+        // 1. Get all filtered publications
+        // 2. Extract unique teachers from them
+        // 3. Group publications by teacher
+        
+        // Note: For very large datasets, this in-memory collection might be heavy.
+        // A more optimized SQL approach would be better, but Eloquent relations are complex here.
+        // We'll trust chunking on publications and manual grouping for now.
+        
+        // Optimization: Process publications and build an Author -> Publications map
+        $authorMap = [];
+        
+        $pubQuery->chunk(500, function ($publications) use (&$authorMap) {
+            foreach ($publications as $pub) {
+                foreach ($pub->teachers as $teacher) {
+                    if (!isset($authorMap[$teacher->id])) {
+                        $authorMap[$teacher->id] = [
+                            'details' => $teacher,
+                            'total_incentive' => 0,
+                            'publications' => [],
+                        ];
+                    }
+                    
+                    $incentive = (float) ($teacher->pivot->incentive_amount ?? 0);
+                    $authorMap[$teacher->id]['total_incentive'] += $incentive;
+                    
+                    $pubTotal = (float) ($pub->incentive?->total_amount ?? 0);
+                    $sharePercent = $pubTotal > 0 ? ($incentive / $pubTotal) * 100 : 0;
+
+                    $authorMap[$teacher->id]['publications'][] = [
+                        'title' => $pub->title,
+                        'date' => $pub->publication_date?->format('Y-m-d'),
+                        'role' => $teacher->pivot->author_role,
+                        'amount' => $incentive,
+                        'pub_total' => $pubTotal,
+                        'share_percent' => $sharePercent,
+                    ];
+                }
+            }
+        });
+
+        $row = 2;
+        foreach ($authorMap as $authorId => $data) {
+            $teacher = $data['details'];
+            $publications = $data['publications'];
+            $pubCount = count($publications);
+            $startRow = $row;
+            
+            // Common Author Data (A-D)
+            $sheet->setCellValue('A' . $startRow, $teacher->full_name);
+            $sheet->setCellValue('B' . $startRow, $teacher->employee_id);
+            $sheet->setCellValue('C' . $startRow, $teacher->department?->name);
+            $sheet->setCellValue('D' . $startRow, $data['total_incentive']); // Total Sum
+
+            foreach ($publications as $pub) {
+                $sheet->setCellValue('E' . $row, $pub['title']);
+                $sheet->setCellValue('F' . $row, $pub['date']);
+                
+                $roleLabel = match ($pub['role']) {
+                    'first' => '1st Author',
+                    'corresponding' => 'Corresponding',
+                    'co_author' => 'Co-Author',
+                    default => $pub['role'],
+                };
+                $sheet->setCellValue('G' . $row, $roleLabel);
+                
+                $sheet->setCellValue('H' . $row, $pub['amount']);
+                $sheet->setCellValue('I' . $row, $pub['pub_total']);
+                $sheet->setCellValue('J' . $row, number_format($pub['share_percent'], 2) . '%');
+                
+                $row++;
+            }
+
+            // Merge Author Cells
+            if ($pubCount > 1) {
+                $endRow = $startRow + $pubCount - 1;
+                foreach (range('A', 'D') as $col) {
+                    $sheet->mergeCells("{$col}{$startRow}:{$col}{$endRow}");
+                    $sheet->getStyle("{$col}{$startRow}")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+                    $sheet->getStyle("{$col}{$startRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                }
+            } else {
+                 // Even for single row, center alignment looks better
+                 foreach (range('A', 'D') as $col) {
+                    $sheet->getStyle("{$col}{$startRow}")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+                    $sheet->getStyle("{$col}{$startRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                 }
+            }
+        }
+
+        // Auto-Size Columns
+        foreach (range('A', 'J') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+        $sheet->getColumnDimension('E')->setAutoSize(false); // Title
+        $sheet->getColumnDimension('E')->setWidth(50);
+
+        $this->finalizeExport($spreadsheet, $absPath, $filePath, $row - 1);
+    }
+
+    protected function setFixedWidths($sheet): void
+    {
+        $columnWidths = [
+            'A' => 10, 'B' => 50, 'C' => 15, 'D' => 20, 'E' => 20, 'F' => 15,
+            'G' => 10, 'H' => 15, 'I' => 15, 'J' => 30, 'K' => 20, 'L' => 12,
+            'M' => 10, 'N' => 20, 'O' => 10, 'P' => 10, 'Q' => 10, 'R' => 10,
+            'S' => 20, 'T' => 50, 'U' => 15, 'V' => 10, 'W' => 10, 'X' => 15,
+            'Y' => 15, 'Z' => 25, 'AA' => 30, 'AB' => 15, 'AC' => 15, 'AD' => 15,
+        ];
+
+        foreach ($columnWidths as $col => $width) {
+            $sheet->getColumnDimension($col)->setWidth($width);
+        }
+    }
+
+    protected function finalizeExport($spreadsheet, $absPath, $filePath, $lastRow): void
+    {
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // Global styling for data rows
+        if ($lastRow >= 2) {
+             // For Publication mode it's A-AD, for Author it's A-J. 
+             // Simplest is to check export mode or just style used range.
+             $maxCol = $this->exportMode === 'author' ? 'J' : 'AD';
+             
+             // Borders
+             $sheet->getStyle("A2:{$maxCol}{$lastRow}")->applyFromArray([
+                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
+             ]);
+             
+             if ($this->exportMode !== 'author') {
+                 // Centering for publication mode (already handled in exportByPublication but good to ensure)
+                  $sheet->getStyle("A2:Y{$lastRow}")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+                  $sheet->getStyle("A2:Y{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+             }
+        }
+
+        $writer = new Xlsx($spreadsheet);
+        $writer->setPreCalculateFormulas(false);
+        $writer->save($absPath);
+
+        Notification::make()
+            ->title('Export Completed')
+            ->body("Your {$this->exportMode} export is ready.")
+            ->success()
+            ->actions([
+                Action::make('download')
+                    ->label('Download')
+                    ->url(Storage::disk('public')->url($filePath))
+                    ->button()
+                    ->openUrlInNewTab(),
+            ])
+            ->sendToDatabase($this->user);
     }
 
     protected function applyFilters(Builder $query): void
@@ -351,3 +455,4 @@ class ExportPublicationsJob implements ShouldQueue
         }
     }
 }
+
