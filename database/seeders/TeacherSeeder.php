@@ -49,7 +49,7 @@ class TeacherSeeder extends Seeder
         // ============================================
         // CONFIGURE NUMBER OF TEACHERS TO CREATE HERE
         // ============================================
-        $numberOfTeachers = 1200; // Change this number as needed (e.g., 100, 500, 1000, 5000)
+        $numberOfTeachers = 50; // Change this number as needed (e.g., 100, 500, 1000, 5000)
         // ============================================
 
         $this->faker = Faker::create('en_US');
@@ -358,7 +358,7 @@ class TeacherSeeder extends Seeder
             $abstractTopics = ['This study investigates', 'This paper presents', 'We propose', 'This research explores'];
             $abstract = $this->faker->randomElement($abstractTopics) . ' ' . $this->faker->paragraph(4);
 
-            $year = $this->faker->numberBetween(2020, 2024);
+            $year = $this->faker->numberBetween(2020, 2026);
 
             $pub = Publication::create([
                 'faculty_id' => $teacher->department->faculty_id,
@@ -375,7 +375,7 @@ class TeacherSeeder extends Seeder
                     'Springer Journal of CS', 'Elsevier Data Science', 'ACM Computing Surveys',
                 ]),
                 'journal_link' => $this->faker->url,
-                'publication_date' => $this->faker->dateTimeBetween("-{$year} years", 'now'),
+                'publication_date' => $this->faker->dateTimeBetween("{$year}-01-01", "{$year}-12-31"),
                 'publication_year' => $year,
 
                 // Filled fields

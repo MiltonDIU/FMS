@@ -79,7 +79,7 @@ class PublicationSeeder extends Seeder
                     'International Journal of Machine Learning',
                 ]),
                 'journal_link' => fake()->url(),
-                'publication_date' => fake()->dateTimeBetween("-{$year} years", 'now'),
+                'publication_date' => fake()->dateTimeBetween("{$year}-01-01", "{$year}-12-31"),
                 'publication_year' => $year,
                 
                 // Filled fields
