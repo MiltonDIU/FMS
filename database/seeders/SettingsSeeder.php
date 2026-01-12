@@ -36,6 +36,17 @@ class SettingsSeeder extends Seeder
                 'is_public' => false,
                 'sort_order' => 2,
             ],
+            // System Settings
+            [
+                'group' => 'system',
+                'key' => 'check_package_updates',
+                'value' => 'false',
+                'type' => 'boolean',
+                'label' => 'Check Package Updates',
+                'description' => 'Enable checking for latest package versions on dashboard',
+                'is_public' => false,
+                'sort_order' => 3,
+            ],
         ];
 
         foreach ($settings as $setting) {

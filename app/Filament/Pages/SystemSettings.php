@@ -27,7 +27,7 @@ class SystemSettings extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->user()->can('viewAny', Setting::class);
+        return auth()->user()->can('View:SystemSettings', Setting::class);
     }
 
     public ?array $data = [];
@@ -35,7 +35,7 @@ class SystemSettings extends Page
     public function mount(): void
     {
         $settings = Setting::all()->pluck('value', 'key')->toArray();
-        
+
         // Convert boolean strings
         foreach ($settings as $key => $value) {
             $setting = Setting::where('key', $key)->first();
@@ -43,7 +43,7 @@ class SystemSettings extends Page
                 $settings[$key] = filter_var($value, FILTER_VALIDATE_BOOLEAN);
             }
         }
-        
+
         $this->form->fill($settings);
     }
 
@@ -68,6 +68,16 @@ class SystemSettings extends Page
                                         Toggle::make('teacher_send_welcome_email')
                                             ->label('Send Welcome Email')
                                             ->helperText('Automatically send login credentials to new teachers'),
+                                    ]),
+                            ]),
+                        Tab::make('Dashboard Settings')
+                            ->icon('heroicon-o-squares-2x2')
+                            ->schema([
+                                Section::make('Performance')
+                                    ->schema([
+                                        Toggle::make('check_package_updates')
+                                            ->label('Check for Package Updates')
+                                            ->helperText('Enabling this may slow down the dashboard load time as it checks for latest versions.'),
                                     ]),
                             ]),
                     ])->columnSpanFull(),

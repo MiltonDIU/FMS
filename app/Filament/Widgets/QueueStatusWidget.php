@@ -4,11 +4,17 @@ namespace App\Filament\Widgets;
 
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 
 class QueueStatusWidget extends BaseWidget
 {
+    public static function canView(): bool
+    {
+//        return auth()->user()?->hasRole('super_admin') ?? false;
+        return Auth::user()?->can('View:QueueStatusWidget');
+    }
     protected int | string | array $columnSpan = 'full';
 
     protected function getStats(): array

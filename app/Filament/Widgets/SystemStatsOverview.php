@@ -4,6 +4,10 @@ namespace App\Filament\Widgets;
 
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use App\Models\Setting;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
+use Composer\InstalledVersions;
 
 class SystemStatsOverview extends BaseWidget
 {
@@ -57,6 +61,20 @@ class SystemStatsOverview extends BaseWidget
             ->description('Running on PHP')
             ->descriptionIcon('heroicon-m-code-bracket')
             ->color('gray');
+
+        // Laravel Version
+        $laravelStatus = $this->getPackageStatus('laravel/framework', 'Laravel');
+        $stats[] = Stat::make('Laravel', $laravelStatus['current'])
+            ->description($laravelStatus['message'])
+            ->descriptionIcon('heroicon-m-command-line')
+            ->color($laravelStatus['color']);
+
+        // Filament Version
+        $filamentStatus = $this->getPackageStatus('filament/filament', 'Filament');
+        $stats[] = Stat::make('Filament', $filamentStatus['current'])
+            ->description($filamentStatus['message'])
+            ->descriptionIcon('heroicon-m-sparkles')
+            ->color($filamentStatus['color']);
 
         return $stats;
     }
@@ -252,6 +270,72 @@ class SystemStatsOverview extends BaseWidget
             $data[] = max(0, min(100, $currentValue + rand(-10, 10)));
         }
         return $data;
+    }
+
+    protected function getPackageStatus(string $package, string $label): array
+    {
+        try {
+            $current = InstalledVersions::getVersion($package);
+            
+            // Remove 'v' prefix if exists
+            $current = ltrim($current, 'v');
+        } catch (\Exception $e) {
+            return [
+                'current' => 'Unknown',
+                'message' => 'Not installed',
+                'color' => 'gray',
+            ];
+        }
+
+        $latest = null;
+        $checkUpdates = Setting::get('check_package_updates', false);
+
+        if ($checkUpdates) {
+             $latest = $this->getLatestVersion($package);
+        }
+
+        if ($latest) {
+             $isOutdated = version_compare($current, $latest, '<');
+             return [
+                 'current' => 'v' . $current,
+                 'message' => $isOutdated ? "Update available: v{$latest}" : 'Latest version',
+                 'color' => $isOutdated ? 'warning' : 'success',
+             ];
+        }
+
+        return [
+            'current' => 'v' . $current,
+            'message' => 'Installed',
+            'color' => 'success',
+        ];
+    }
+
+    protected function getLatestVersion(string $package): ?string
+    {
+        return Cache::remember("package_latest_version_{$package}", now()->addHours(12), function () use ($package) {
+            try {
+                $response = Http::timeout(2)->get("https://repo.packagist.org/p2/{$package}.json");
+                
+                if ($response->successful()) {
+                    $data = $response->json();
+                    $versions = $data['packages'][$package] ?? [];
+                    
+                    // Simple logic: get the first version that is a stable release (no -dev, -RC)
+                    foreach ($versions as $versionData) {
+                        $v = $versionData['version'];
+                        // quick check for stable
+                        if (!str_contains($v, 'dev') && !str_contains($v, 'RC') && !str_contains($v, 'beta')) {
+                            return ltrim($v, 'v');
+                        }
+                    }
+                    // Fallback to first available if no stable found
+                    return isset($versions[0]['version']) ? ltrim($versions[0]['version'], 'v') : null;
+                }
+            } catch (\Exception $e) {
+                // Fail silently
+            }
+            return null;
+        });
     }
 
     public static function canView(): bool
