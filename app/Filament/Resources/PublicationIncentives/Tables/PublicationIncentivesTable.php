@@ -16,6 +16,7 @@ class PublicationIncentivesTable
     {
         return $table
             ->defaultSort('created_at', 'desc')
+
             ->columns([
                 TextColumn::make('publication.title')
                     ->label('Publication')
@@ -56,7 +57,17 @@ class PublicationIncentivesTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->recordActions([
-                ViewAction::make(),
+                ViewAction::make()
+                    ->mutateRecordDataUsing(function (array $data, \App\Models\PublicationIncentive $record): array {
+                        $data['author_incentives'] = $record->publication->teachers
+                            ->sortBy('pivot.sort_order')
+                            ->map(fn($t) => [
+                                'teacher_id' => $t->id,
+                                'author_role' => $t->pivot->author_role,
+                                'incentive_amount' => $t->pivot->incentive_amount ?? 0,
+                            ])->toArray();
+                        return $data;
+                    }),
                 EditAction::make(),
                 DeleteAction::make(),
             ])

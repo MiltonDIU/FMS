@@ -97,8 +97,10 @@ class TeacherVersionService
     /**
      * Process teacher update request.
      * This is the MAIN entry point from Controller/Resource.
+     * 
+     * @return bool True if changes were detected and processed, false if no changes
      */
-    public function handleUpdateFromForm(Teacher $teacher, array $allData): void
+    public function handleUpdateFromForm(Teacher $teacher, array $allData): bool
     {
         // DEBUG: Log incoming data keys to verify relations are included
         \Log::info('TeacherVersionService: Incoming data keys', [
@@ -117,8 +119,8 @@ class TeacherVersionService
         ]);
 
         if (empty($changedSections)) {
-            \Log::info('TeacherVersionService: No changes detected, returning');
-            return;
+            \Log::info('TeacherVersionService: No changes detected, returning false');
+            return false;
         }
 
         // 2. Check which sections require approval
@@ -141,7 +143,7 @@ class TeacherVersionService
         // 3. If NO approval needed, just update everything directly
         if (empty($approvalSections)) {
             $this->applyUpdates($teacher, $allData);
-            return;
+            return true;
         }
 
         // 4. If approval IS needed:
@@ -165,6 +167,8 @@ class TeacherVersionService
             'version_id' => $version->id,
             'stored_data_keys' => array_keys($version->data ?? []),
         ]);
+
+        return true;
     }
 
     /**
@@ -228,6 +232,7 @@ class TeacherVersionService
 
     private function hasRelationshipChanged(array $existing, array $incoming, string $relationName = ''): bool
     {
+        // First check count - if different, definitely changed
         if (count($existing) !== count($incoming)) {
             \Log::info("Relation Count Mismatch in {$relationName}", [
                 'existing_count' => count($existing),
@@ -236,30 +241,64 @@ class TeacherVersionService
             return true;
         }
 
-        foreach ($incoming as $index => $incomingItem) {
-            if (!isset($existing[$index])) {
+        // Build a map of existing items by ID for efficient lookup
+        $existingById = [];
+        foreach ($existing as $existingItem) {
+            $id = $existingItem['id'] ?? null;
+            if ($id !== null) {
+                $existingById[$id] = $existingItem;
+            }
+        }
+
+        // Fields to skip during comparison (metadata, timestamps, virtual, pivot)
+        $skipFields = [
+            'id', 'teacher_id', 'created_at', 'updated_at', 'deleted_at',
+            'pivot', 'laravel_through_key', 'teachers', 
+            'first_author_id', 'corresponding_author_id', 'co_author_ids',
+            '_degree_level_id', // Virtual field in educations
+        ];
+
+        foreach ($incoming as $incomingItem) {
+            $incomingId = $incomingItem['id'] ?? null;
+            
+            if ($incomingId === null) {
+                // New item (no ID) - this is a change
+                \Log::info("Relation New Item in {$relationName} (no ID)");
                 return true;
             }
-            
-            $existingItem = $existing[$index];
-            
+
+            if (!isset($existingById[$incomingId])) {
+                // Item ID not found in existing - this is a change (shouldn't happen normally)
+                \Log::info("Relation Item ID not found in {$relationName}", ['id' => $incomingId]);
+                return true;
+            }
+
+            $existingItem = $existingById[$incomingId];
+
+            // Compare each field in incoming item against existing
             foreach ($incomingItem as $key => $val) {
-                if (!array_key_exists($key, $existingItem)) {
-                    continue; // Skip keys not in DB
+                // Skip metadata and virtual fields
+                if (in_array($key, $skipFields) || str_starts_with($key, '_')) {
+                    continue;
                 }
-                
+
+                // Skip if key doesn't exist in DB record
+                if (!array_key_exists($key, $existingItem)) {
+                    continue;
+                }
+
                 $dbVal = $existingItem[$key];
-                
+
                 $normDb = $this->normalizeValue($dbVal);
                 $normIn = $this->normalizeValue($val);
-                
+
                 // Date normalization: if input is YYYY-MM-DD and DB starts with it
                 if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $normIn) && str_starts_with($normDb, $normIn)) {
-                     continue;
+                    continue;
                 }
 
                 if ($normDb !== $normIn) {
-                    \Log::info("Relation Value Mismatch in {$relationName} at index {$index}, key {$key}", [
+                    \Log::info("Relation Value Mismatch in {$relationName}, id {$incomingId}, key {$key}", [
                         'db_value' => $normDb,
                         'in_value' => $normIn,
                     ]);
@@ -493,12 +532,15 @@ class TeacherVersionService
             $processedItems++;
             
             // Filter out virtual/computed fields (starting with _) and keep only fillable fields
+            // Also exclude author virtual fields for publications
+            $excludeVirtualFields = ['first_author_id', 'corresponding_author_id', 'co_author_ids', 'teachers'];
             $cleanData = collect($item)
-                ->filter(function ($value, $key) use ($fillable, $relatedKeyName) {
-                    // Exclude id, virtual fields starting with _, and non-fillable fields
+                ->filter(function ($value, $key) use ($fillable, $relatedKeyName, $excludeVirtualFields) {
+                    // Exclude id, virtual fields starting with _, author virtual fields, and non-fillable fields
                     return !str_starts_with($key, '_') 
                         && $key !== $relatedKeyName 
                         && $key !== 'id'  // Explicitly exclude 'id' 
+                        && !in_array($key, $excludeVirtualFields)
                         && (empty($fillable) || in_array($key, $fillable));
                 })
                 ->toArray();
@@ -513,6 +555,8 @@ class TeacherVersionService
                 'clean_data' => $cleanData,
             ]);
 
+            $record = null;
+
             if (!empty($itemId)) {
                 // UPDATE existing record
                 $keepIds[] = $itemId;
@@ -523,6 +567,7 @@ class TeacherVersionService
                     if ($existingRecord) {
                         $existingRecord->fill($cleanData);
                         $existingRecord->save();
+                        $record = $existingRecord;
                         \Log::info("Updated HasMany record", ['id' => $itemId, 'updated' => true]);
                     } else {
                         \Log::warning("HasMany record not found for update", ['id' => $itemId]);
@@ -534,6 +579,7 @@ class TeacherVersionService
                     if ($existingRecord) {
                         $existingRecord->fill($cleanData);
                         $existingRecord->save();
+                        $record = $existingRecord;
                         
                         // Update pivot if needed
                         $pivotData = Arr::only($item, ['author_role', 'sort_order', 'is_corresponding']);
@@ -548,6 +594,7 @@ class TeacherVersionService
                 if ($relation instanceof \Illuminate\Database\Eloquent\Relations\HasMany) {
                     $newRecord = $relation->create($cleanData);
                     $keepIds[] = $newRecord->$relatedKeyName;
+                    $record = $newRecord;
                     \Log::info("Created HasMany record", ['new_id' => $newRecord->$relatedKeyName]);
                 } elseif ($relation instanceof \Illuminate\Database\Eloquent\Relations\MorphToMany ||
                           $relation instanceof \Illuminate\Database\Eloquent\Relations\BelongsToMany) {
@@ -555,8 +602,14 @@ class TeacherVersionService
                     $pivotData = Arr::only($item, ['author_role', 'sort_order', 'is_corresponding']);
                     $relation->attach($newModel->$relatedKeyName, $pivotData);
                     $keepIds[] = $newModel->$relatedKeyName;
+                    $record = $newModel;
                     \Log::info("Created MorphToMany record", ['new_id' => $newModel->$relatedKeyName]);
                 }
+            }
+
+            // Special handling for publications - sync authors
+            if ($relationName === 'publications' && $record) {
+                $this->syncPublicationAuthors($record, $item);
             }
         }
         
@@ -585,6 +638,51 @@ class TeacherVersionService
             'kept_ids' => count($keepIds),
             'deleted_ids' => count($idsToDelete),
         ]);
+    }
+
+    /**
+     * Sync publication authors (first_author_id, corresponding_author_id, co_author_ids)
+     */
+    private function syncPublicationAuthors(\App\Models\Publication $publication, array $item): void
+    {
+        $syncData = [];
+
+        // First Author
+        if (!empty($item['first_author_id'])) {
+            $syncData[$item['first_author_id']] = ['author_role' => 'first', 'sort_order' => 1];
+        }
+
+        // Corresponding Author
+        if (!empty($item['corresponding_author_id'])) {
+            // If already added (e.g. same as first), update role; last one wins
+            $existing = $syncData[$item['corresponding_author_id']] ?? [];
+            $syncData[$item['corresponding_author_id']] = array_merge($existing, ['author_role' => 'corresponding', 'sort_order' => 2]);
+        }
+
+        // Co-Authors
+        if (!empty($item['co_author_ids']) && is_array($item['co_author_ids'])) {
+            foreach ($item['co_author_ids'] as $index => $coAuthorId) {
+                // Don't overwrite higher priority roles
+                if (!isset($syncData[$coAuthorId])) {
+                    $syncData[$coAuthorId] = ['author_role' => 'co_author', 'sort_order' => 3 + $index];
+                }
+            }
+        }
+
+        // Sync teachers
+        if (!empty($syncData)) {
+            $publication->teachers()->sync($syncData);
+            \Log::info("syncPublicationAuthors: Synced authors for publication", [
+                'publication_id' => $publication->id,
+                'sync_data' => $syncData,
+            ]);
+        } else {
+            // Clear all authors if no author data provided
+            $publication->teachers()->sync([]);
+            \Log::info("syncPublicationAuthors: Cleared authors for publication", [
+                'publication_id' => $publication->id,
+            ]);
+        }
     }
 
     /**

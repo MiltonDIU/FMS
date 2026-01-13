@@ -447,6 +447,8 @@ class TeacherForm
                                             ->columnSpan(1),
                                         \Filament\Schemas\Components\Group::make()
                                             ->schema([
+
+
                                                 \Filament\Schemas\Components\Section::make('Journal / Conference')
                                                     ->schema([
                                                         TextInput::make('journal_name'),
@@ -454,6 +456,35 @@ class TeacherForm
                                                         DatePicker::make('publication_date'),
                                                         TextInput::make('publication_year')->numeric(),
                                                     ])->columns(2)->collapsible(),
+
+
+                                                \Filament\Schemas\Components\Section::make('Authorship')
+                                                    ->schema([
+                                                        Select::make('first_author_id')
+                                                            ->label('First Author')
+                                                            ->options(\App\Models\Teacher::pluck('last_name', 'id')) // Simplified for now, should be searchable
+                                                            ->searchable()
+                                                            ->preload()
+                                                            ->afterStateHydrated(fn ($component, $record) => $record && $component->state($record->teachers()->wherePivot('author_role', 'first')->first()?->id)),
+
+                                                        Select::make('corresponding_author_id')
+                                                            ->label('Corresponding Author')
+                                                            ->options(\App\Models\Teacher::pluck('last_name', 'id'))
+                                                            ->searchable()
+                                                            ->preload()
+                                                            ->afterStateHydrated(fn ($component, $record) => $record && $component->state($record->teachers()->wherePivot('author_role', 'corresponding')->first()?->id)),
+
+                                                        Select::make('co_author_ids')
+                                                            ->label('Co-Authors')
+                                                            ->options(\App\Models\Teacher::pluck('last_name', 'id'))
+                                                            ->searchable()
+                                                            ->preload()
+                                                            ->multiple()
+                                                            ->afterStateHydrated(fn ($component, $record) => $record && $component->state($record->teachers()->wherePivot('author_role', 'co_author')->orderByPivot('sort_order')->pluck('teachers.id')->toArray())),
+                                                    ])->columns(3),
+
+
+
                                                 \Filament\Schemas\Components\Section::make('Metrics')
                                                     ->schema([
                                                         TextInput::make('h_index'),
@@ -464,12 +495,9 @@ class TeacherForm
                                                     ->schema([
                                                         Toggle::make('student_involvement'),
                                                         Toggle::make('is_featured'),
-                                                        Select::make('status')
-                                                            ->options(['draft' => 'Draft', 'pending' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected'])
-                                                            ->default('draft')
-                                                            ->required(),
+                                                        // Status is set automatically based on approval settings
                                                         TextInput::make('sort_order')->numeric()->default(0),
-                                                    ])->columns(4)->collapsible(),
+                                                    ])->columns(3)->collapsible(),
                                             ])
                                             ->columnSpan(1),
                                     ])
@@ -485,6 +513,10 @@ class TeacherForm
                                         $record->publications()->whereNotIn('publications.id', $existingIds)->delete();
 
                                         foreach ($state ?? [] as $item) {
+                                            // Determine status based on approval settings
+                                            $requiresApproval = \App\Models\ApprovalSetting::requiresApproval('publication');
+                                            $status = $requiresApproval ? 'pending' : 'approved';
+
                                             $data = [
                                                 'faculty_id' => $item['faculty_id'] ?? null,
                                                 'department_id' => $item['department_id'] ?? null,
@@ -506,14 +538,66 @@ class TeacherForm
                                                 'impact_factor' => $item['impact_factor'] ?? null,
                                                 'student_involvement' => $item['student_involvement'] ?? false,
                                                 'is_featured' => $item['is_featured'] ?? false,
-                                                'status' => $item['status'],
+                                                // 'status' => $item['status'], // Field removed, handled below
                                                 'sort_order' => $item['sort_order'] ?? 0,
                                             ];
+
+                                            $publication = null;
+
                                             if (isset($item['id'])) {
-                                                // Use Model directly to avoid ambiguous column issues in MorphToMany update
-                                                \App\Models\Publication::where('id', $item['id'])->update($data);
+                                                // Update
+                                                $publication = \App\Models\Publication::find($item['id']);
+                                                if ($publication) {
+                                                    $publication->update($data);
+                                                }
                                             } else {
-                                                $record->publications()->create($data);
+                                                // Create
+                                                $data['status'] = $requiresApproval ? 'pending' : 'approved';
+                                                // Create via relation to link it to the teacher initially?
+                                                // No, if we use `teachers()->sync` below, we can create it isolated first.
+                                                // BUT, `saveRelationshipsUsing` hook implies we manage the relation.
+                                                // If I create it via `$record->publications()->create()`, it auto-attaches `$record` (current teacher).
+                                                // Then I will overwrite the attachments with `sync`.
+                                                // This is fine.
+                                                $publication = $record->publications()->create($data);
+                                            }
+
+                                            // Handle Authorship Sync
+                                            if ($publication) {
+                                                $syncData = [];
+
+                                                // First Author
+                                                if (!empty($item['first_author_id'])) {
+                                                    $syncData[$item['first_author_id']] = ['author_role' => 'first', 'sort_order' => 1];
+                                                }
+
+                                                // Corresponding Author
+                                                if (!empty($item['corresponding_author_id'])) {
+                                                    // If already added (e.g. same as first), update role?
+                                                    // Usually one person can be both, but pivot key is teacher_id.
+                                                    // Pivot often handles multiple roles or unique teacher_id per publication.
+                                                    // With standard `sync`, duplicate keys overwrite.
+                                                    // We need to decide precedence or merging.
+                                                    // Simplification: Prioritize roles?
+                                                    // For now, if same person is First and Corresponding, the last one overwrites.
+                                                    $existing = $syncData[$item['corresponding_author_id']] ?? [];
+                                                    $syncData[$item['corresponding_author_id']] = array_merge($existing, ['author_role' => 'corresponding', 'sort_order' => 2]);
+                                                }
+
+                                                // Co-Authors
+                                                if (!empty($item['co_author_ids']) && is_array($item['co_author_ids'])) {
+                                                    foreach ($item['co_author_ids'] as $index => $coAuthorId) {
+                                                        // Don't overwrite higher priority roles?
+                                                        if (!isset($syncData[$coAuthorId])) {
+                                                            $syncData[$coAuthorId] = ['author_role' => 'co_author', 'sort_order' => 3 + $index];
+                                                        }
+                                                    }
+                                                }
+
+                                                // Sync teachers
+                                                if (!empty($syncData)) {
+                                                    $publication->teachers()->sync($syncData);
+                                                }
                                             }
                                         }
                                     }),

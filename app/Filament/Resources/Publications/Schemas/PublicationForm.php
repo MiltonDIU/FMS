@@ -89,7 +89,6 @@ class PublicationForm
                             ->options(\App\Models\Teacher::pluck('last_name', 'id')) // Simplified for now, should be searchable
                             ->searchable()
                             ->preload()
-                            ->required()
                             ->afterStateHydrated(fn ($component, $record) => $record ? $component->state($record->teachers()->wherePivot('author_role', 'first')->first()?->id) : null),
 
                         Select::make('corresponding_author_id')

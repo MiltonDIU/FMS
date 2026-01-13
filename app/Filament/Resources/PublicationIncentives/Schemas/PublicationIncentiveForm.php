@@ -99,7 +99,7 @@ class PublicationIncentiveForm
   \Filament\Schemas\Components\Group::make()
                     ->schema([
                 Section::make('Author Incentives')
-            
+                    ->compact()
                     ->description('Enter incentive amount for each author. Total amount must equal the sum of all author incentives.')
                     ->schema([
                         Repeater::make('author_incentives')
@@ -109,6 +109,7 @@ class PublicationIncentiveForm
                                     ->label('Author')
                                     ->options(Teacher::all()->mapWithKeys(fn($t) => [$t->id => $t->full_name]))
                                     ->disabled()
+                                    ->columnSpan(4)
                                     ->dehydrated(true),
                                 Select::make('author_role')
                                     ->label('Role')
@@ -118,7 +119,11 @@ class PublicationIncentiveForm
                                         'co_author' => 'Co-Author',
                                     ])
                                     ->disabled()
-                                    ->dehydrated(true),
+                                    ->columnSpan(4)
+                                    ->dehydrated(true)
+                                    ->extraAttributes([
+                                        'style' => 'padding: 0 !important;',
+                                    ]),
                                 TextInput::make('incentive_amount')
                                     ->label('Amount (TK)')
                                     ->numeric()
@@ -129,9 +134,10 @@ class PublicationIncentiveForm
                                         $authors = $get('../../author_incentives') ?? [];
                                         $total = collect($authors)->sum('incentive_amount');
                                         $set('../../total_amount', $total);
-                                    }),
+                                    })
+                                    ->columnSpan(4),
                             ])
-                            ->columns(3)
+                            ->columns(12)
                             ->reorderable(false)
                             ->addable(false)
                             ->deletable(false)
@@ -139,7 +145,7 @@ class PublicationIncentiveForm
                     ]),
                      ]),
             ]);
-            
+
     }
 }
 

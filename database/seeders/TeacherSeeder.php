@@ -172,7 +172,7 @@ class TeacherSeeder extends Seeder
         $user = User::create([
             'name' => "Dr. {$firstName} {$lastName}",
             'email' => $email,
-            'password' => Hash::make('password123'),
+            'password' => Hash::make('123456789'),
             'is_active' => true,
         ]);
 
@@ -326,7 +326,7 @@ class TeacherSeeder extends Seeder
 
     private function createPublications(Teacher $teacher): void
     {
-        $count = $this->faker->numberBetween(3, 30);
+        $count = $this->faker->numberBetween(1, 5);
 
         $types = \App\Models\PublicationType::pluck('id')->toArray();
         $linkages = \App\Models\PublicationLinkage::pluck('id')->toArray();
@@ -411,7 +411,7 @@ class TeacherSeeder extends Seeder
             // Add collaborators
             $collaborators = Teacher::where('id', '!=', $teacher->id)
                 ->inRandomOrder()
-                ->take($this->faker->numberBetween(1, 3))
+                ->take($this->faker->numberBetween(1, 5))
                 ->get();
 
             $sortOrder = 2;
