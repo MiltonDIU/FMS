@@ -287,7 +287,7 @@ class TeacherVersionsTable
                     ->action(function ($record, array $arguments) {
                         $section = $arguments['section'];
                         app(TeacherVersionService::class)->approveSection($record, $section);
-                        
+
                         Notification::make()->success()->title('Section Approved')->send();
                     }),
 
@@ -303,7 +303,7 @@ class TeacherVersionsTable
                     ->action(function ($record, array $data, array $arguments) {
                         $section = $arguments['section'];
                         app(TeacherVersionService::class)->rejectSection($record, $section, $data['remarks']);
-                        
+
                         Notification::make()->success()->title('Section Rejected')->send();
                     }),
             ])
@@ -326,42 +326,42 @@ class TeacherVersionsTable
 
         foreach ($comparisons as $section => $data) {
             $isRelation = ($data['type'] ?? 'scalar') === 'relation';
-            
+
             // Check permission for this section
             // User requested to completely HIDE the section if they don't have approval permission
             if (!$service->canUserApproveSection($user, $section)) {
                 continue;
             }
-            
+
             // Calculate Change Summary for the Header
             $changeSummary = '';
-            
+
             if ($isRelation) {
                 $items = $data['items'] ?? [];
                 $newCount = collect($items)->where('status', 'new')->count();
                 $modCount = collect($items)->where('status', 'modified')->count();
                 $delCount = collect($items)->where('status', 'deleted')->count();
-                
+
                 $parts = [];
                 if ($newCount) $parts[] = "$newCount New";
                 if ($modCount) $parts[] = "$modCount Modified";
                 if ($delCount) $parts[] = "$delCount Deleted";
-                
+
                 $changeSummary = 'Changes: ' . (empty($parts) ? 'No Changes' : implode(', ', $parts));
             } else {
                 $oldStats = $data['old'] ?? [];
-                
+
                 // Heuristic for "New Section" vs "Modified Section"
                 // If old data is largely empty, it's New.
                 $oldEmpty = empty(array_filter($oldStats, fn($v) => !is_null($v) && $v !== ''));
-                
+
                 if ($oldEmpty) {
                     $changeSummary = 'Status: NEW SECTION';
                 } else {
                     $changeSummary = 'Status: UPDATED';
                 }
             }
-            
+
             $sectionComponent = Section::make(\Illuminate\Support\Str::headline($section))
                 ->description($changeSummary)
                 ->schema(function() use ($data, $isRelation, $section) {
@@ -395,7 +395,7 @@ class TeacherVersionsTable
                 // User requirement implies just handling the "showing" of the button.
                 // If unauthorized, buttons are hidden.
             }
-            
+
             $schema[] = $sectionComponent;
         }
         return $schema;
@@ -406,7 +406,7 @@ class TeacherVersionsTable
         $keys = array_unique(array_merge(array_keys($old), array_keys($new)));
         // Filter out system keys
         $keys = array_filter($keys, fn($k) => !in_array($k, ['id', 'created_at', 'updated_at', 'teacher_id']));
-        
+
         $fields = [];
         $fields[] = Grid::make(2)->schema([
             Placeholder::make('lbl_old_' . $uniqueId)->label('Current Data')->content(''),
@@ -416,11 +416,11 @@ class TeacherVersionsTable
         foreach ($keys as $key) {
             $oldVal = $old[$key] ?? null;
             $newVal = $new[$key] ?? null;
-            
+
             // Determine style for Old Data
             // If data is changed (and not just null->null), highlight old data
             $hasChanged = $oldVal !== $newVal;
-             
+
             $oldStyle = 'background-color: #f9fafb; color: #4b5563;';
             if ($hasChanged && !is_null($oldVal)) {
                 $oldStyle = 'background-color: #fef2f2; color: #ef4444; text-decoration: line-through;';
@@ -432,7 +432,7 @@ class TeacherVersionsTable
                     ->default(is_array($oldVal) ? json_encode($oldVal) : $oldVal)
                     ->disabled()
                     ->extraInputAttributes(['style' => $oldStyle]),
-                
+
                 TextInput::make('new_' . $key . '_' . $uniqueId)
                     ->label(\Illuminate\Support\Str::headline($key))
                     ->default(is_array($newVal) ? json_encode($newVal) : $newVal)
@@ -554,6 +554,7 @@ class TeacherVersionsTable
         $relations = TeacherVersionService::RELATION_NAMES;
 
         $fields = $map;
+
         $relationFields = array_intersect($fields, $relations);
 
         if (!empty($relationFields)) {

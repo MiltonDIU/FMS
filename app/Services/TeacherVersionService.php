@@ -254,6 +254,7 @@ class TeacherVersionService
         $skipFields = [
             'id', 'teacher_id', 'created_at', 'updated_at', 'deleted_at',
             'pivot', 'laravel_through_key', 'teachers', 
+            'authorable_type', 'authorable_id', 'publication_id', 'incentive_amount', // Pivot/Polymorphic fields
             'first_author_id', 'corresponding_author_id', 'co_author_ids',
             '_degree_level_id', // Virtual field in educations
         ];
@@ -292,11 +293,6 @@ class TeacherVersionService
                 $normDb = $this->normalizeValue($dbVal);
                 $normIn = $this->normalizeValue($val);
 
-                // Date normalization: if input is YYYY-MM-DD and DB starts with it
-                if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $normIn) && str_starts_with($normDb, $normIn)) {
-                    continue;
-                }
-
                 if ($normDb !== $normIn) {
                     \Log::info("Relation Value Mismatch in {$relationName}, id {$incomingId}, key {$key}", [
                         'db_value' => $normDb,
@@ -315,19 +311,64 @@ class TeacherVersionService
      */
     private function normalizeValue($value): string
     {
-            if (is_array($value)) {
-                // If value is array (e.g. JSON cast field), serialize for comparison
-                // Sorting keys might be needed for strict check, but json_encode is a good start
-                return json_encode($value);
-            }
-            if (is_bool($value)) {
-                return $value ? '1' : '0';
-            }
-            if (is_null($value)) {
-                return '';
-            }
-            return trim((string)$value);
+        if (is_array($value)) {
+            // If value is array (e.g. JSON cast field), serialize for comparison
+            // Sorting keys might be needed for strict check, but json_encode is a good start
+            return json_encode($value);
         }
+        if (is_bool($value)) {
+            return $value ? '1' : '0';
+        }
+        if (is_null($value)) {
+            return '';
+        }
+        
+        $stringValue = trim((string)$value);
+
+        // Handle empty string
+        if ($stringValue === '') {
+            return '';
+        }
+
+        // Handle Numerics (ignore insignificant zeros/decimal points)
+        // 5 == 5.00
+        if (is_numeric($stringValue)) {
+            return (string)(float)$stringValue;
+        }
+
+        // Handle Time Format (H:i:s vs H:i)
+        // matches 7:30, 07:30, 7:30:00, 07:30:00
+        if (preg_match('/^\d{1,2}:\d{2}(:\d{2})?$/', $stringValue)) {
+            // Normalize to H:i
+            $parts = explode(':', $stringValue);
+            $h = str_pad($parts[0], 2, '0', STR_PAD_LEFT);
+            $m = str_pad($parts[1], 2, '0', STR_PAD_LEFT);
+            return "{$h}:{$m}";
+        }
+
+        // Handle ISO Dates (truncate time part if just a date comparison is intended?)
+        // Often DB returns "2024-11-28 00:00:00" or "2024-11-28T00:00:00.000000Z"
+        // And form returns "2024-11-28"
+        // Try to verify if it's a date-like string
+        if (preg_match('/^(\d{4}-\d{2}-\d{2})/', $stringValue, $matches)) {
+            // If the string is purely a date, return it
+            if ($stringValue === $matches[1]) {
+                return $stringValue;
+            }
+            // If it has time 00:00:00, consider it just a date for safer comparison?
+            // Risk: If time IS important, this mimics loose date comparison.
+            // But usually DatePicker returns Y-m-d.
+            // Let's return just Y-m-d if the time is 00:00:00 OR we want loose comparison
+            // To be safe, we can return the Y-m-d part as a normalized 'Date' representation
+            // ONLY IF the other side matches this logic.
+            // Since we process both DB and Input through this,
+            // "2024-11-28" -> "2024-11-28"
+            // "2024-11-28 00:00:00" -> "2024-11-28"
+            return $matches[1];
+        }
+
+        return $stringValue;
+    }
 
     /**
      * Apply updates immediately (No approval required)
