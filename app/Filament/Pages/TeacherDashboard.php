@@ -79,7 +79,7 @@ class TeacherDashboard extends Page
         }
 
         // Allow users with specific permission
-        if ($user->can('view_teacher_dashboard')) {
+        if ($user->can('View:TeacherDashboard')) {
             return true;
         }
 
