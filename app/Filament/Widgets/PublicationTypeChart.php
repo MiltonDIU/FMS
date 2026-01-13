@@ -150,6 +150,11 @@ class PublicationTypeChart extends ApexChartWidget
         $facultyId = $this->filters['faculty_id'] ?? null;
         $departmentId = $this->filters['department_id'] ?? null;
 
+        // Ensure department is reset if faculty is cleared
+        if (! $facultyId) {
+            $departmentId = null;
+        }
+
         $query = Publication::query()
             ->with('type')
             ->selectRaw('publication_type_id, COUNT(*) as count')
