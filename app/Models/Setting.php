@@ -48,12 +48,6 @@ class Setting extends Model
      */
     public static function set(string $key, mixed $value): bool
     {
-        $setting = static::where('key', $key)->first();
-
-        if (!$setting) {
-            return false;
-        }
-
         // Convert value to string for storage
         if (is_bool($value)) {
             $value = $value ? 'true' : 'false';
@@ -61,7 +55,12 @@ class Setting extends Model
             $value = json_encode($value);
         }
 
-        $setting->update(['value' => $value]);
+        $setting = static::updateOrCreate(
+             ['key' => $key],
+             ['value' => $value, 'group' => 'system'] // Default group if creating
+        );
+
+        return true;
 
         // Clear cache
         Cache::forget("setting.{$key}");

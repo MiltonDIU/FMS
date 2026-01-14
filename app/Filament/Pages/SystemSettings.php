@@ -80,6 +80,51 @@ class SystemSettings extends Page
                                             ->helperText('Enabling this may slow down the dashboard load time as it checks for latest versions.'),
                                     ]),
                             ]),
+                        Tab::make('Mail Configuration')
+                            ->icon('heroicon-o-envelope')
+                            ->schema([
+                                Section::make('SMTP Settings')
+                                    ->description('Configure your email server settings')
+                                    ->schema([
+                                        \Filament\Forms\Components\Select::make('mail_mailer')
+                                            ->label('Mailer')
+                                            ->options([
+                                                'smtp' => 'SMTP',
+                                                'log' => 'Log (Local Debugging)',
+                                            ])
+                                            ->default('smtp')
+                                            ->required(),
+                                        TextInput::make('mail_host')
+                                            ->label('Host')
+                                            ->default('smtp.gmail.com')
+                                            ->required(),
+                                        TextInput::make('mail_port')
+                                            ->label('Port')
+                                            ->numeric()
+                                            ->default(587)
+                                            ->required(),
+                                        TextInput::make('mail_username')
+                                            ->label('Username')
+                                            ->required(),
+                                        TextInput::make('mail_password')
+                                            ->label('Password')
+                                            ->password()
+                                            ->revealable(),
+                                        TextInput::make('mail_encryption')
+                                            ->label('Encryption')
+                                            ->default('tls'),
+                                    ])->columns(2),
+                                Section::make('Sender Identity')
+                                    ->schema([
+                                        TextInput::make('mail_from_address')
+                                            ->label('From Address')
+                                            ->email()
+                                            ->required(),
+                                        TextInput::make('mail_from_name')
+                                            ->label('From Name')
+                                            ->default(config('app.name')),
+                                    ])->columns(2),
+                            ]),
                     ])->columnSpanFull(),
             ]);
     }

@@ -31,5 +31,8 @@ class AppServiceProvider extends ServiceProvider
                     )->name('filament.admin.pages.teacher-dashboard.view');
                 });
         }
-    }
+
+        // Dynamic Mail Configuration
+        \App\Services\MailConfigService::configure();
+}
 }

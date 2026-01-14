@@ -7,6 +7,8 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -70,6 +72,52 @@ class PublicationIncentivesTable
                     }),
                 EditAction::make(),
                 DeleteAction::make(),
+            ])
+            ->filters([
+                \Filament\Tables\Filters\Filter::make('faculty_department')
+                    ->form([
+                        \Filament\Forms\Components\Select::make('faculty_id')
+                            ->label('Faculty')
+                            ->options(\App\Models\Faculty::pluck('name', 'id'))
+                            ->live()
+                            ->afterStateUpdated(fn (Set $set) => $set('department_id', null)),
+                        \Filament\Forms\Components\Select::make('department_id')
+                            ->label('Department')
+                            ->options(fn (Get $get) =>
+                                $get('faculty_id')
+                                    ? \App\Models\Department::where('faculty_id', $get('faculty_id'))->pluck('name', 'id')
+                                    : \App\Models\Department::pluck('name', 'id')
+                            )
+                            ->searchable()
+                            ->preload(),
+                    ])
+                    ->query(function ($query, array $data) {
+                        return $query
+                            ->when(
+                                $data['faculty_id'],
+                                fn ($query, $id) => $query->whereHas('publication.department', fn ($q) => $q->where('faculty_id', $id))
+                            )
+                            ->when(
+                                $data['department_id'],
+                                fn ($query, $id) => $query->whereHas('publication', fn ($q) => $q->where('department_id', $id))
+                            );
+                    }),
+                \Filament\Tables\Filters\Filter::make('publication_date')
+                    ->form([
+                        \Filament\Forms\Components\DatePicker::make('date_from'),
+                        \Filament\Forms\Components\DatePicker::make('date_until'),
+                    ])
+                    ->query(function ($query, array $data) {
+                        return $query
+                            ->when(
+                                $data['date_from'],
+                                fn ($query, $date) => $query->whereHas('publication', fn($q) => $q->whereDate('publication_date', '>=', $date)),
+                            )
+                            ->when(
+                                $data['date_until'],
+                                fn ($query, $date) => $query->whereHas('publication', fn($q) => $q->whereDate('publication_date', '<=', $date)),
+                            );
+                    })
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

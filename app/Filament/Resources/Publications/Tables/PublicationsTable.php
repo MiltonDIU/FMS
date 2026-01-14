@@ -142,6 +142,34 @@ class PublicationsTable
             ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                \Filament\Tables\Filters\Filter::make('faculty_department')
+                    ->form([
+                        \Filament\Forms\Components\Select::make('faculty_id')
+                            ->label('Faculty')
+                            ->options(\App\Models\Faculty::pluck('name', 'id'))
+                            ->live()
+                            ->afterStateUpdated(fn (Set $set) => $set('department_id', null)),
+                        \Filament\Forms\Components\Select::make('department_id')
+                            ->label('Department')
+                            ->options(fn (Get $get) =>
+                                $get('faculty_id')
+                                    ? \App\Models\Department::where('faculty_id', $get('faculty_id'))->pluck('name', 'id')
+                                    : \App\Models\Department::pluck('name', 'id')
+                            )
+                            ->searchable()
+                            ->preload(),
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        return $query
+                            ->when(
+                                $data['faculty_id'],
+                                fn (Builder $query, $id) => $query->whereHas('department', fn ($q) => $q->where('faculty_id', $id))
+                            )
+                            ->when(
+                                $data['department_id'],
+                                fn (Builder $query, $id) => $query->where('department_id', $id)
+                            );
+                    }),
                 Filter::make('publication_date_range')
                     ->form([
                         DatePicker::make('from')

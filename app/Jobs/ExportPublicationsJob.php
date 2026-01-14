@@ -480,6 +480,18 @@ class ExportPublicationsJob implements ShouldQueue
                  $query->onlyTrashed();
             }
         }
+
+        // 6. Faculty (Dependent Filter Structure)
+        if (!empty($this->filterData['faculty_department']['faculty_id'])) {
+            $facultyId = $this->filterData['faculty_department']['faculty_id'];
+            $query->whereHas('department', fn ($q) => $q->where('faculty_id', $facultyId));
+        }
+
+        // 7. Department (Dependent Filter Structure)
+        if (!empty($this->filterData['faculty_department']['department_id'])) {
+            $departmentId = $this->filterData['faculty_department']['department_id'];
+            $query->where('department_id', $departmentId);
+        }
     }
 }
 
