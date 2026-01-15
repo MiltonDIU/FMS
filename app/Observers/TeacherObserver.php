@@ -77,6 +77,22 @@ class TeacherObserver
     }
 
     /**
+     * Handle the Teacher "created" event.
+     * Auto-populate department_teacher pivot table.
+     */
+    public function created(Teacher $teacher): void
+    {
+        // Auto-create department_teacher record if department_id is set
+        if ($teacher->department_id) {
+            $teacher->departments()->attach($teacher->department_id, [
+                'job_type_id' => $teacher->job_type_id ?? null,
+                'sort_order' => 0,
+                'assigned_by' => auth()->id(),
+            ]);
+        }
+    }
+
+    /**
      * Handle the Teacher "updating" event.
      * Process approval settings and create versions if needed.
      */

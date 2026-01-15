@@ -35,12 +35,12 @@ class AdministrativeRole extends Model
     }
 
     /**
-     * Get the teachers assigned to this administrative role.
+     * Get the users assigned to this administrative role.
      */
-    public function teachers(): BelongsToMany
+    public function users(): BelongsToMany
     {
-        return $this->belongsToMany(Teacher::class, 'teacher_administrative_roles')
-            ->withPivot(['department_id', 'faculty_id', 'start_date', 'end_date', 'is_acting', 'is_active'])
+        return $this->belongsToMany(User::class, 'administrative_role_user')
+            ->withPivot(['department_id', 'faculty_id', 'start_date', 'end_date', 'is_acting', 'is_active', 'remarks', 'assigned_by'])
             ->withTimestamps();
     }
 }

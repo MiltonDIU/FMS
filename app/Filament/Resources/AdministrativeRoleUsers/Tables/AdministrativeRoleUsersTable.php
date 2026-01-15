@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources\AdministrativeRoles\Tables;
+namespace App\Filament\Resources\AdministrativeRoleUsers\Tables;
 
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -10,91 +10,97 @@ use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
-use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 
-class AdministrativeRolesTable
+class AdministrativeRoleUsersTable
 {
     public static function configure(Table $table): Table
     {
         return $table
-            ->defaultSort('rank', 'asc')
-            ->reorderable('sort_order')
+            ->defaultSort('created_at', 'desc')
             ->columns([
-                TextColumn::make('rank')
-                    ->label('Rank')
+                TextColumn::make('user.name')
+                    ->label('User')
+                    ->searchable()
+                    ->sortable(),
+
+                TextColumn::make('administrativeRole.name')
+                    ->label('Role')
+                    ->searchable()
                     ->sortable()
                     ->badge()
                     ->color('primary'),
-                TextColumn::make('name')
-                    ->label('Role Name')
+
+                TextColumn::make('department.name')
+                    ->label('Department')
                     ->searchable()
+                    ->sortable()
+                    ->toggleable(),
+
+                TextColumn::make('faculty.name')
+                    ->label('Faculty')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(),
+
+                TextColumn::make('start_date')
+                    ->label('Start Date')
+                    ->date()
                     ->sortable(),
-                TextColumn::make('short_name')
-                    ->label('Short')
-                    ->searchable()
-                    ->badge()
-                    ->color('gray'),
-                TextColumn::make('scope')
-                    ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'university' => 'danger',
-                        'faculty' => 'warning',
-                        'department' => 'success',
-                        'program' => 'info',
-                        default => 'gray',
-                    }),
-                TextColumn::make('users_count')
-                    ->label('Assigned')
-                    ->counts('users')
-                    ->badge()
-                    ->color('success'),
+
+                TextColumn::make('end_date')
+                    ->label('End Date')
+                    ->date()
+                    ->sortable()
+                    ->placeholder('Ongoing'),
+
+                IconColumn::make('is_acting')
+                    ->label('Acting')
+                    ->boolean()
+                    ->sortable(),
+
                 IconColumn::make('is_active')
                     ->label('Active')
                     ->boolean()
                     ->sortable(),
-                TextColumn::make('sort_order')
-                    ->label('#')
-                    ->numeric()
-                    ->sortable()
+
+                TextColumn::make('assignedBy.name')
+                    ->label('Assigned By')
                     ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('deleted_at')
-                    ->label('Deleted')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                SelectFilter::make('scope')
-                    ->label('Scope')
-                    ->options([
-                        'university' => 'University',
-                        'faculty' => 'Faculty',
-                        'department' => 'Department',
-                        'program' => 'Program',
-                    ]),
+                SelectFilter::make('administrative_role_id')
+                    ->label('Role')
+                    ->relationship('administrativeRole', 'name'),
+
+                SelectFilter::make('department_id')
+                    ->label('Department')
+                    ->relationship('department', 'name'),
+
                 SelectFilter::make('is_active')
                     ->label('Status')
                     ->options([
                         true => 'Active',
                         false => 'Inactive',
                     ]),
+
                 TrashedFilter::make(),
             ])
             ->recordActions([
-                ViewAction::make(),
                 EditAction::make(),
                 DeleteAction::make(),
                 RestoreAction::make(),

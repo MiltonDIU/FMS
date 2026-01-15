@@ -49,4 +49,8 @@ class Faculty extends Model
     {
         return $this->hasMany(TeacherAdministrativeRole::class);
     }
+    public function publications(): HasMany
+    {
+        return $this->hasMany(Publication::class);
+    }
 }

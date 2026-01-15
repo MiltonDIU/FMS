@@ -83,8 +83,7 @@ class TeacherOverview extends Widget
                 'trainingExperiences',
                 'teachingAreas',
                 'skills',
-                'memberships',
-                'activeAdministrativeRoles'
+                'memberships'
             ])
             ->when($this->sortBy === 'publications', function ($query) {
                 return $query->orderBy('publications_count', $this->sortDirection);
@@ -206,7 +205,14 @@ class TeacherOverview extends Widget
         $certificationsCount = $getRelatedCount('certifications');
         $trainingCount = $getRelatedCount('training_experiences'); 
         
-        $adminRolesCount = (clone $query)->whereHas('activeAdministrativeRoles')->count();
+        // Admin roles are now on User model, not Teacher
+        // Count teachers whose users have active administrative roles
+        $adminRolesCount = (clone $query)
+            ->whereHas('user.administrativeRoles', function($q) {
+                $q->where('administrative_role_user.is_active', true)
+                  ->whereNull('administrative_role_user.end_date');
+            })
+            ->count();
 
         $avgPublications = $totalTeachers > 0 ? round($publicationsCount / $totalTeachers, 1) : 0;
         

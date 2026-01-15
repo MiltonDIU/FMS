@@ -198,8 +198,6 @@ class PublicationsTable
                         }
                         return $indicators;
                     }),
-
-                // Publication Status Filter
                 \Filament\Tables\Filters\SelectFilter::make('status')
                     ->label('Publication Status')
                     ->options([

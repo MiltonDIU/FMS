@@ -258,22 +258,18 @@ class Teacher extends Model implements HasMedia
     }
 
     /**
-     * Get the administrative roles assigned to this teacher.
+     * Get the departments this teacher is assigned to (via pivot).
      */
-    public function administrativeRoles(): BelongsToMany
+    public function departments(): BelongsToMany
     {
-        return $this->belongsToMany(AdministrativeRole::class, 'teacher_administrative_roles')
-            ->withPivot(['department_id', 'faculty_id', 'start_date', 'end_date', 'is_acting', 'is_active'])
+        return $this->belongsToMany(Department::class, 'department_teacher')
+            ->withPivot(['job_type_id', 'sort_order', 'assigned_by'])
             ->withTimestamps();
     }
 
-    /**
-     * Get the current active administrative roles.
-     */
-    public function activeAdministrativeRoles(): BelongsToMany
-    {
-        return $this->administrativeRoles()->wherePivot('is_active', true)->wherePivotNull('end_date');
-    }
+
+
+
 
     /**
      * Get the versions for the teacher.

@@ -61,6 +61,17 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the administrative roles assigned to this user.
+     */
+    public function administrativeRoles(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(AdministrativeRole::class, 'administrative_role_user')
+            ->withPivot(['department_id', 'faculty_id', 'start_date', 'end_date', 'is_acting', 'is_active', 'remarks', 'assigned_by'])
+            ->orderBy('administrative_roles.name')
+            ->withTimestamps();
+    }
+
+    /**
      * Check if user has a teacher profile.
      */
     public function isTeacher(): bool

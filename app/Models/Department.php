@@ -55,4 +55,14 @@ class Department extends Model
         return $this->hasMany(Publication::class);
     }
 
+    /**
+     * Get teachers assigned to this department via pivot table.
+     */
+    public function teachersViaAssignment(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Teacher::class, 'department_teacher')
+            ->withPivot(['job_type_id', 'sort_order', 'assigned_by'])
+            ->withTimestamps();
+    }
+
 }

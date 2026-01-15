@@ -102,6 +102,8 @@ class PublicationIncentivesTable
                                 fn ($query, $id) => $query->whereHas('publication', fn ($q) => $q->where('department_id', $id))
                             );
                     }),
+
+
                 \Filament\Tables\Filters\Filter::make('publication_date')
                     ->form([
                         \Filament\Forms\Components\DatePicker::make('date_from'),

@@ -49,7 +49,7 @@ class TeacherSeeder extends Seeder
         // ============================================
         // CONFIGURE NUMBER OF TEACHERS TO CREATE HERE
         // ============================================
-        $numberOfTeachers = 50; // Change this number as needed (e.g., 100, 500, 1000, 5000)
+        $numberOfTeachers = 100; // Change this number as needed (e.g., 100, 500, 1000, 5000)
         // ============================================
 
         $this->faker = Faker::create('en_US');
@@ -145,6 +145,13 @@ class TeacherSeeder extends Seeder
             'sort_order' => 1,
         ]);
 
+        // Manually populate department_teacher pivot table
+        $teacher->departments()->attach($teacher->department_id, [
+            'job_type_id' => $teacher->job_type_id,
+            'sort_order' => 0,
+            'assigned_by' => 1, // Default to user ID 1
+        ]);
+
         $this->createEducations($teacher);
         $this->createPublications($teacher);
         $this->createResearchProjects($teacher);
@@ -214,7 +221,29 @@ class TeacherSeeder extends Seeder
             'employment_status_id' => \App\Models\EmploymentStatus::whereIn('slug', ['active', 'on-leave', 'study-leave', 'deputation'])->inRandomOrder()->first()->id,
             'job_type_id' => \App\Models\JobType::inRandomOrder()->first()->id,
             'is_archived' => $this->faker->boolean(5), // 5% archived
-            'sort_order' => $index,
+            'sort_order' => 0, // Will be updated after all teachers are created
+        ]);
+
+        // Calculate sort_order based on department and designation
+        // Get count of teachers in same department with same or higher designation rank
+        $sortOrder = Teacher::where('department_id', $teacher->department_id)
+            ->join('designations', 'teachers.designation_id', '=', 'designations.id')
+            ->where(function($query) use ($designation, $teacher) {
+                $query->where('designations.rank', '<', $designation->rank)
+                    ->orWhere(function($q) use ($designation, $teacher) {
+                        $q->where('designations.rank', '=', $designation->rank)
+                            ->where('teachers.id', '<', $teacher->id);
+                    });
+            })
+            ->count() + 1;
+
+        $teacher->update(['sort_order' => $sortOrder]);
+
+        // Manually populate department_teacher pivot table with calculated sort_order
+        $teacher->departments()->attach($teacher->department_id, [
+            'job_type_id' => $teacher->job_type_id,
+            'sort_order' => $sortOrder,
+            'assigned_by' => 1, // Default to user ID 1
         ]);
 
         // 4. Create Educations (2-4)

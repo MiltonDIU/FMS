@@ -7,12 +7,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class TeacherAdministrativeRole extends Model
+class UserAdministrativeRole extends Model
 {
     use HasFactory, SoftDeletes;
 
+    protected $table = 'administrative_role_user';
+
     protected $fillable = [
-        'teacher_id',
+        'user_id',
         'administrative_role_id',
         'department_id',
         'faculty_id',
@@ -32,11 +34,11 @@ class TeacherAdministrativeRole extends Model
     ];
 
     /**
-     * Get the teacher that owns this role assignment.
+     * Get the user that owns this role assignment.
      */
-    public function teacher(): BelongsTo
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(Teacher::class);
+        return $this->belongsTo(User::class);
     }
 
     /**

@@ -11,13 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('teacher_administrative_roles', function (Blueprint $table) {
+        Schema::create('administrative_role_user', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('teacher_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('administrative_role_id')->constrained()->cascadeOnDelete();
             $table->foreignId('department_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('faculty_id')->nullable()->constrained()->nullOnDelete();
-
             $table->date('start_date');
             $table->date('end_date')->nullable();
             $table->boolean('is_acting')->default(false);
@@ -29,7 +28,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->index(['teacher_id', 'administrative_role_id', 'is_active'], 'tar_teacher_role_active_index');
+            $table->index(['user_id', 'administrative_role_id', 'is_active'], 'aru_user_role_active_index');
         });
     }
 
@@ -38,6 +37,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('teacher_administrative_roles');
+        Schema::dropIfExists('administrative_role_user');
     }
 };
