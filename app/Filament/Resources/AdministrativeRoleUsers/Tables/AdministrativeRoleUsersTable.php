@@ -20,6 +20,16 @@ class AdministrativeRoleUsersTable
 {
     public static function configure(Table $table): Table
     {
+        $user = auth()->user();
+        $adminRoleUser = null;
+        
+        if (!$user->hasRole('super_admin')) {
+            $adminRoleUser = $user->administrativeRoles()
+                ->wherePivot('is_active', true)
+                ->whereNull('administrative_role_user.end_date')
+                ->first();
+        }
+
         return $table
             ->defaultSort('created_at', 'desc')
             ->columns([
@@ -87,9 +97,46 @@ class AdministrativeRoleUsersTable
                     ->label('Role')
                     ->relationship('administrativeRole', 'name'),
 
+                SelectFilter::make('faculty_id')
+                    ->label('Faculty')
+                    ->relationship('faculty', 'name', function ($query) use ($adminRoleUser) {
+                        if (!$adminRoleUser) return;
+                        
+                         if ($adminRoleUser->pivot->faculty_id) {
+                             $query->where('id', $adminRoleUser->pivot->faculty_id);
+                         } elseif ($adminRoleUser->pivot->department_id) {
+                             $department = \App\Models\Department::find($adminRoleUser->pivot->department_id);
+                             if ($department) {
+                                  $query->where('id', $department->faculty_id);
+                             }
+                         }
+                    })
+                    ->default(function() use ($adminRoleUser) {
+                         if (!$adminRoleUser || !$adminRoleUser->pivot) return null;
+                         
+                         // Only set default if user is explicitly strictly Faculty-scoped
+                         if ($adminRoleUser->pivot->faculty_id) {
+                             return $adminRoleUser->pivot->faculty_id;
+                         } 
+                         
+                         // For department users, do NOT set a faculty default. 
+                         // Their records typically have faculty_id = null (linked to dept only).
+                         // Setting this filter hides their own department records.
+                         return null;
+                    }),
+
                 SelectFilter::make('department_id')
                     ->label('Department')
-                    ->relationship('department', 'name'),
+                    ->relationship('department', 'name', function ($query) use ($adminRoleUser) {
+                        if (!$adminRoleUser) return;
+
+                        if ($adminRoleUser->pivot->department_id) {
+                            $query->where('id', $adminRoleUser->pivot->department_id);
+                        } elseif ($adminRoleUser->pivot->faculty_id) {
+                            $query->where('faculty_id', $adminRoleUser->pivot->faculty_id);
+                        }
+                    })
+                    ->default($adminRoleUser && $adminRoleUser->pivot ? $adminRoleUser->pivot->department_id : null),
 
                 SelectFilter::make('is_active')
                     ->label('Status')

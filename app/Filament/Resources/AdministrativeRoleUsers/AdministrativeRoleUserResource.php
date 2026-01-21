@@ -43,6 +43,46 @@ class AdministrativeRoleUserResource extends Resource
         return AdministrativeRoleUsersTable::configure($table);
     }
 
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user = auth()->user();
+
+        if ($user->hasRole('super_admin')) {
+            return $query;
+        }
+
+        // Check user's administrative role bindings
+        $adminRole = $user->administrativeRoles()
+            ->wherePivot('is_active', true)
+            ->whereNull('administrative_role_user.end_date')
+            ->first();
+
+        if ($adminRole && $adminRole->pivot) {
+            // Department-scoped user
+            if ($adminRole->pivot->department_id) {
+                // Can see:
+                // 1. Roles assigned to their specific department
+                // 2. Roles assigned to NO department/faculty (Global roles? Maybe not. Let's stick to their dept)
+                $query->where('department_id', $adminRole->pivot->department_id);
+            }
+            // Faculty-scoped user
+            elseif ($adminRole->pivot->faculty_id) {
+                // Can see:
+                // 1. Roles assigned to their faculty
+                // 2. Roles assigned to departments WITHIN their faculty
+                $query->where(function ($q) use ($adminRole) {
+                    $q->where('faculty_id', $adminRole->pivot->faculty_id)
+                      ->orWhereHas('department', function ($dq) use ($adminRole) {
+                          $dq->where('faculty_id', $adminRole->pivot->faculty_id);
+                      });
+                });
+            }
+        }
+
+        return $query;
+    }
+
     public static function getRelations(): array
     {
         return [

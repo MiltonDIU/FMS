@@ -25,7 +25,7 @@ class TeacherOverview extends Widget
     public ?string $designationFilter = 'all';
     public ?string $employmentStatusFilter = 'all';
     public ?string $jobTypeFilter = 'all';
-    
+
     // Date Range (Joining Date)
     public ?string $fromDate = null;
     public ?string $toDate = null;
@@ -36,12 +36,44 @@ class TeacherOverview extends Widget
 
     public function mount(): void
     {
-        // Default to all time (null dates)
+        // Apply default filters based on user role
+        $user = auth()->user();
+
+        if (!$user->hasRole('super_admin')) {
+            $adminRole = $user->administrativeRoles()
+                ->wherePivot('is_active', true)
+                ->whereNull('administrative_role_user.end_date')
+                ->first();
+
+            if ($adminRole && $adminRole->pivot) {
+                if ($adminRole->pivot->faculty_id) {
+                    $this->facultyFilter = $adminRole->pivot->faculty_id;
+                } elseif ($adminRole->pivot->department_id) {
+                    $department = \App\Models\Department::find($adminRole->pivot->department_id);
+                    $this->departmentFilter = $adminRole->pivot->department_id;
+                    $this->facultyFilter = $department ? $department->faculty_id : 'all';
+                }
+            }
+        }
     }
 
     public function updatedFacultyFilter(): void
     {
-        // When faculty changes, reset department filter to all
+        // When faculty changes, reset department filter to all, UNLESS user is restricted
+        $user = auth()->user();
+        if (!$user->hasRole('super_admin')) {
+             $adminRole = $user->administrativeRoles()
+                ->wherePivot('is_active', true)
+                ->whereNull('administrative_role_user.end_date')
+                ->first();
+
+             if ($adminRole && $adminRole->pivot && $adminRole->pivot->department_id) {
+                 // Department user cannot change department, so force it back
+                 $this->departmentFilter = $adminRole->pivot->department_id;
+                 return;
+             }
+        }
+
         $this->departmentFilter = 'all';
     }
 
@@ -55,7 +87,10 @@ class TeacherOverview extends Widget
         // Base query for teachers
         $teachersQuery = Teacher::query()
             ->with(['department', 'designation', 'employmentStatus'])
-            ->active(); 
+            ->active();
+
+        // Apply scoping first
+        $this->applyScoping($teachersQuery);
 
         // Apply filters
         $this->applyFilters($teachersQuery);
@@ -121,13 +156,40 @@ class TeacherOverview extends Widget
             'topPublishers' => $topPublishers,
             'topAwardWinners' => $topAwardWinners,
             'faculties' => $this->getFaculties(),
-            'departments' => $this->getDepartments(), 
+            'departments' => $this->getDepartments(),
             'genders' => $this->getGenders(),
             'designations' => $this->getDesignations(),
             'employmentStatuses' => $this->getEmploymentStatuses(),
             'jobTypes' => $this->getJobTypes(),
             'sortOptions' => $this->getSortOptions(),
         ];
+    }
+
+    protected function applyScoping($query): void
+    {
+        $user = auth()->user();
+        if ($user->hasRole('super_admin')) {
+            return;
+        }
+
+        $adminRole = $user->administrativeRoles()
+            ->wherePivot('is_active', true)
+            ->whereNull('administrative_role_user.end_date')
+            ->first();
+
+        if ($adminRole && $adminRole->pivot) {
+            if ($adminRole->pivot->department_id) {
+                $query->where('department_id', $adminRole->pivot->department_id);
+                // Also force the filter property to match
+                $this->departmentFilter = $adminRole->pivot->department_id;
+            } elseif ($adminRole->pivot->faculty_id) {
+                $query->whereHas('department', function($q) use ($adminRole) {
+                    $q->where('faculty_id', $adminRole->pivot->faculty_id);
+                });
+                // Also force the filter property to match
+                $this->facultyFilter = $adminRole->pivot->faculty_id;
+            }
+        }
     }
 
     protected function applyFilters($query): void
@@ -173,10 +235,10 @@ class TeacherOverview extends Widget
         }
     }
 
-
     protected function calculateSummaryStats(): array
     {
         $query = Teacher::query()->active();
+        $this->applyScoping($query); // Apply scoping
         $this->applyFilters($query); // This modifies $query in place
 
         $totalTeachers = $query->count();
@@ -199,23 +261,38 @@ class TeacherOverview extends Widget
             ->where('authorable_type', Teacher::class)
             ->whereIn('authorable_id', $query->select('teachers.id'))
             ->count();
-        
+
         // Standard HasMany relationships
         $awardsCount = $getRelatedCount('awards');
         $certificationsCount = $getRelatedCount('certifications');
-        $trainingCount = $getRelatedCount('training_experiences'); 
-        
+        $trainingCount = $getRelatedCount('training_experiences');
+
         // Admin roles are now on User model, not Teacher
         // Count teachers whose users have active administrative roles
-        $adminRolesCount = (clone $query)
-            ->whereHas('user.administrativeRoles', function($q) {
-                $q->where('administrative_role_user.is_active', true)
-                  ->whereNull('administrative_role_user.end_date');
-            })
-            ->count();
+        $adminRolesQuery = DB::table('administrative_role_user')
+//            ->whereIn('user_id', (clone $query)->select('teachers.user_id'))
+            ->where('is_active', true)
+            ->whereNull('end_date')
+            ->whereNull('deleted_at');
+        if ($this->departmentFilter !== 'all') {
+            $adminRolesQuery->where('department_id', $this->departmentFilter);
+        } elseif ($this->facultyFilter !== 'all') {
+            $adminRolesQuery->where(function ($q) {
+                $q->where('faculty_id', $this->facultyFilter)
+                    ->orWhereIn('department_id', function ($sub) {
+                        $sub->select('id')
+                            ->from('departments')
+                            ->where('faculty_id', $this->facultyFilter);
+                    });
+            });
+        }
+
+        $adminRolesCount = $adminRolesQuery->count();
+
+
 
         $avgPublications = $totalTeachers > 0 ? round($publicationsCount / $totalTeachers, 1) : 0;
-        
+
         return [
             'total_teachers' => $totalTeachers,
             'active_teachers' => $activeTeachers,
@@ -228,7 +305,7 @@ class TeacherOverview extends Widget
             'profile_completion_rate' => 0,
         ];
     }
-    
+
     protected function getReportedDegreeStats(): array
     {
         // 1. Get ALL degree levels that should be reported
@@ -253,6 +330,14 @@ class TeacherOverview extends Widget
         if ($this->toDate) {
             $baseQuery->whereDate('teachers.joining_date', '<=', $this->toDate);
         }
+
+        // Manually apply faculty/dept filters to raw query if needed,
+        // but easier to recreate logic or join
+        // For reported degree stats, let's just reuse applyFilters logic conceptually via query builder
+
+        // Simpler approach: Filter by teacher IDs from a main scoped query
+        // But for performance, let's just add the joins if filters exist
+
         if ($this->facultyFilter !== 'all') {
             $baseQuery->join('departments', 'teachers.department_id', '=', 'departments.id')
                   ->where('departments.faculty_id', $this->facultyFilter);
@@ -285,6 +370,7 @@ class TeacherOverview extends Widget
     protected function getDetailedStatusStats(): array
     {
         $query = Teacher::query()->active();
+        $this->applyScoping($query);
         $this->applyFilters($query);
 
         return $query
@@ -298,10 +384,11 @@ class TeacherOverview extends Widget
     protected function getTopPerformers(string $metric, int $limit): array
     {
         $query = Teacher::query()->active();
+        $this->applyScoping($query);
         $this->applyFilters($query);
-        
+
         $countColumn = $metric . '_count';
-        
+
         return $query->withCount($metric)
             ->having($countColumn, '>', 0)
             ->orderBy($countColumn, 'desc')
@@ -320,9 +407,32 @@ class TeacherOverview extends Widget
 
     protected function getFaculties(): array
     {
-        return DB::table('faculties')
+        $query = DB::table('faculties')
             ->where('is_active', true)
-            ->orderBy('name')
+            ->orderBy('name');
+
+        // Scope faculties dropdown
+        $user = auth()->user();
+        if (!$user->hasRole('super_admin')) {
+             $adminRole = $user->administrativeRoles()
+                ->wherePivot('is_active', true)
+                ->whereNull('administrative_role_user.end_date')
+                ->first();
+
+             if ($adminRole && $adminRole->pivot) {
+                 if ($adminRole->pivot->faculty_id) {
+                     $query->where('id', $adminRole->pivot->faculty_id);
+                 } elseif ($adminRole->pivot->department_id) {
+                     // Department users see only their department's faculty
+                      $department = \App\Models\Department::find($adminRole->pivot->department_id);
+                      if ($department) {
+                          $query->where('id', $department->faculty_id);
+                      }
+                 }
+             }
+        }
+
+        return $query
             ->pluck('name', 'id')
             ->prepend('All Faculties', 'all')
             ->toArray();
@@ -332,7 +442,24 @@ class TeacherOverview extends Widget
     {
         $query = DB::table('departments')
             ->where('is_active', true);
-            
+
+        // Scope departments dropdown
+        $user = auth()->user();
+        if (!$user->hasRole('super_admin')) {
+             $adminRole = $user->administrativeRoles()
+                ->wherePivot('is_active', true)
+                ->whereNull('administrative_role_user.end_date')
+                ->first();
+
+             if ($adminRole && $adminRole->pivot) {
+                 if ($adminRole->pivot->department_id) {
+                     $query->where('id', $adminRole->pivot->department_id);
+                 } elseif ($adminRole->pivot->faculty_id) {
+                     $query->where('faculty_id', $adminRole->pivot->faculty_id);
+                 }
+             }
+        }
+
         if ($this->facultyFilter !== 'all') {
             $query->where('faculty_id', $this->facultyFilter);
         }
