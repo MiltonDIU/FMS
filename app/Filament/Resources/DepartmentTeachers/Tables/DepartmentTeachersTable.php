@@ -14,6 +14,13 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
+use Filament\Forms\Components\Select;
+use Filament\Tables\Filters\Filter;
+use Illuminate\Database\Eloquent\Builder;
+use App\Models\Faculty;
+use App\Models\Department;
 
 class DepartmentTeachersTable
 {
@@ -77,51 +84,72 @@ class DepartmentTeachersTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                SelectFilter::make('faculty_id')
-                    ->label('Faculty')
-                    ->relationship('department.faculty', 'name', function ($query) use ($adminRole) {
-                        if ($adminRole && $adminRole->pivot) {
-                            if ($adminRole->pivot->faculty_id) {
-                                // Faculty-scoped user
-                                $query->where('id', $adminRole->pivot->faculty_id);
-                            } elseif ($adminRole->pivot->department_id) {
-                                // Department-scoped user: Find the faculty this department belongs to
-                                $department = \App\Models\Department::find($adminRole->pivot->department_id);
-                                if ($department) {
-                                    $query->where('id', $department->faculty_id);
+                Filter::make('faculty_department')
+                    ->form([
+                        Select::make('faculty_id')
+                            ->label('Faculty')
+                            ->options(function () use ($adminRole) {
+                                $query = Faculty::query();
+                                if ($adminRole && $adminRole->pivot) {
+                                     if ($adminRole->pivot->faculty_id) {
+                                         $query->where('id', $adminRole->pivot->faculty_id);
+                                     } elseif ($adminRole->pivot->department_id) {
+                                         $department = Department::find($adminRole->pivot->department_id);
+                                         if ($department) {
+                                              $query->where('id', $department->faculty_id);
+                                         }
+                                     }
                                 }
-                            }
-                        }
-                    })
-                    ->preload()
-                    ->default(function() use ($adminRole) {
-                         if (!$adminRole || !$adminRole->pivot) return null;
+                                return $query->pluck('name', 'id');
+                            })
+                            ->live()
+                            ->afterStateUpdated(fn ($set) => $set('department_id', null))
+                            ->default(function() use ($adminRole) {
+                                 if (!$adminRole || !$adminRole->pivot) return null;
+                                 if ($adminRole->pivot->faculty_id) {
+                                     return $adminRole->pivot->faculty_id;
+                                 } 
+                                 return null;
+                            }),
 
-                         if ($adminRole->pivot->faculty_id) {
-                             return $adminRole->pivot->faculty_id;
-                         }
+                        Select::make('department_id')
+                            ->label('Department')
+                            ->options(function ($get) use ($adminRole) {
+                                $query = Department::query();
 
-                         if ($adminRole->pivot->department_id) {
-                              $department = \App\Models\Department::find($adminRole->pivot->department_id);
-                              return $department ? $department->faculty_id : null;
-                         }
+                                // User Scoping
+                                if ($adminRole && $adminRole->pivot) {
+                                    if ($adminRole->pivot->department_id) {
+                                        $query->where('id', $adminRole->pivot->department_id);
+                                        return $query->pluck('name', 'id');
+                                    } elseif ($adminRole->pivot->faculty_id) {
+                                        $query->where('faculty_id', $adminRole->pivot->faculty_id);
+                                    }
+                                }
 
-                         return null;
+                                // Dependency Logic
+                                $selectedFacultyId = $get('faculty_id');
+                                if ($selectedFacultyId) {
+                                    $query->where('faculty_id', $selectedFacultyId);
+                                }
+
+                                return $query->pluck('name', 'id');
+                            })
+                            ->searchable()
+                            ->preload()
+                            ->default($adminRole && $adminRole->pivot ? $adminRole->pivot->department_id : null),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['faculty_id'] ?? null,
+                                fn (Builder $query, $id) => $query->whereHas('department', fn ($q) => $q->where('faculty_id', $id))
+                            )
+                            ->when(
+                                $data['department_id'] ?? null,
+                                fn (Builder $query, $id) => $query->where('department_id', $id)
+                            );
                     }),
-
-                SelectFilter::make('department_id')
-                    ->label('Department')
-                    ->relationship('department', 'name', function ($query) use ($adminRole) {
-                        if ($adminRole && $adminRole->pivot) {
-                            if ($adminRole->pivot->department_id) {
-                                $query->where('id', $adminRole->pivot->department_id);
-                            } elseif ($adminRole->pivot->faculty_id) {
-                                $query->where('faculty_id', $adminRole->pivot->faculty_id);
-                            }
-                        }
-                    })
-                    ->preload()
-                    ->default($adminRole && $adminRole->pivot ? $adminRole->pivot->department_id : null),
 
                 SelectFilter::make('job_type_id')
                     ->label('Job Type')
