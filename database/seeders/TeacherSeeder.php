@@ -49,7 +49,7 @@ class TeacherSeeder extends Seeder
         // ============================================
         // CONFIGURE NUMBER OF TEACHERS TO CREATE HERE
         // ============================================
-        $numberOfTeachers = 100; // Change this number as needed (e.g., 100, 500, 1000, 5000)
+        $numberOfTeachers = 300; // Change this number as needed (e.g., 100, 500, 1000, 5000)
         // ============================================
 
         $this->faker = Faker::create('en_US');
@@ -295,7 +295,12 @@ class TeacherSeeder extends Seeder
         }
 
         // Define hierarchy preference
-        $hierarchy = ['Doctoral', 'Master', 'Bachelor', 'High School'];
+        // Only 20% (1 in 5) teachers should have Doctoral degree
+        $hasDoctoral = $this->faker->boolean(20); // 20% chance
+
+        $hierarchy = $hasDoctoral
+            ? ['Doctoral', 'Master', 'Bachelor', 'High School']
+            : ['Master', 'Bachelor', 'High School']; // Skip Doctoral for 80%
 
         $count = $this->faker->numberBetween(2, 4);
         $created = 0;
