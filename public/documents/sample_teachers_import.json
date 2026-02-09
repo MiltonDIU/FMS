@@ -1,0 +1,121 @@
+[
+    {
+        "employee_id": "1001",
+        "first_name": "Dr. John",
+        "middle_name": "A.",
+        "last_name": "Doe",
+        "designation_id": 1,
+        "department_id": 1,
+        "webpage": "john-doe",
+        "phone": "+8801700000001",
+        "extension_no": "101",
+        "personal_phone": "+8801800000001",
+        "secondary_email": "john.personal@gmail.com",
+        "date_of_birth": "1980-05-15",
+        "gender_id": 1,
+        "blood_group_id": 1,
+        "country_id": 18,
+        "religion_id": 1,
+        "present_address": "House 10, Road 5, Dhaka",
+        "permanent_address": "Village X, District Y",
+        "joining_date": "2015-01-01",
+        "work_location": "Main Campus, Building A",
+        "office_room": "Room 305",
+        "bio": "Professor John Doe is an expert in Artificial Intelligence with over 15 years of experience...",
+        "research_interest": "Machine Learning, Deep Learning, NLP",
+        "is_active": true,
+        "is_public": true,
+        "user": {
+            "name": "Dr. John Doe",
+            "email": "john.doe@university.edu.bd"
+        },
+        "educations": [
+            {
+                "degree_type_id": 1,
+                "institution": "Stanford University",
+                "major": "Computer Science",
+                "passing_year": 2015,
+                "country_id": 231
+            },
+            {
+                "degree_type_id": 2,
+                "institution": "University of Dhaka",
+                "major": "Computer Science",
+                "passing_year": 2010,
+                "result_type_id": 1,
+                "cgpa": 3.8,
+                "scale": 4.0
+            }
+        ],
+        "job_experiences": [
+            {
+                "position": "Associate Professor",
+                "organization": "University of Dhaka",
+                "start_date": "2015-01-01",
+                "end_date": "2019-12-31",
+                "country_id": 18
+            }
+        ],
+        "awards": [
+            {
+                "title": "Best Researcher Award",
+                "awarding_body": "UGC",
+                "year": 2022,
+                "date": "2022-12-15"
+            }
+        ],
+        "certifications": [
+            {
+                "title": "Certified AWS Solutions Architect",
+                "issuing_authority": "Amazon Web Services",
+                "issue_date": "2021-05-20",
+                "credential_id": "AWS-123456"
+            }
+        ],
+        "training_experiences": [
+            {
+                "title": "Advanced Teaching Methodologies",
+                "organization": "British Council",
+                "year": 2021,
+                "duration_days": 5
+            }
+        ],
+        "skills": [
+            {
+                "name": "Python",
+                "proficiency": "Expert"
+            },
+            {
+                "name": "Laravel",
+                "proficiency": "Intermediate"
+            }
+        ],
+        "teaching_areas": [
+            {
+                "area": "Artificial Intelligence",
+                "description": "Introduction to AI courses"
+            }
+        ],
+        "memberships": [
+            {
+                "membership_organization_id": 1,
+                "membership_type_id": 1,
+                "membership_id": "IEEE-12345",
+                "start_date": "2018-01-01",
+                "status": "Active"
+            }
+        ],
+        "social_links": [
+            {
+                "social_media_platform_id": 1,
+                "username": "johndoe",
+                "url": "https://linkedin.com/in/johndoe"
+            },
+            {
+                "social_media_platform_id": 2,
+                "username": "johndoe_research",
+                "url": "https://scholar.google.com/citations?user=12345"
+            }
+        ]
+    }
+]

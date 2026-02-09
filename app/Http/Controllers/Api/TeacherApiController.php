@@ -6,11 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Teacher;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 
 class TeacherApiController extends Controller
 {
     /**
-     * Search for a teacher by employee_id.
+     * Search for a teacher by employee_id in legacy database.
      *
      * @param Request $request
      * @return JsonResponse
@@ -18,54 +19,150 @@ class TeacherApiController extends Controller
     public function search(Request $request): JsonResponse
     {
         $request->validate([
-            'employee_id' => 'required|string',
+            'q' => 'required|string',
         ]);
 
-        $employeeId = $request->input('employee_id');
+        $query = trim($request->input('q'));
 
-        $teacher = Teacher::query()
-            ->with([
-                'department',
-                'designation',
-                'employmentStatus',
-                'jobType',
-                'gender',
-                'bloodGroup',
-                'country',
-                'religion',
-                // 'maritalStatus', // Model does not exist
-                'user',
-                'educations' => function ($q) {
-                    $q->with(['degreeType', 'degreeLevel'])->orderBy('sort_order');
-                },
-                'publications' => function ($q) {
-                    $q->with(['type'])->withPivot(['author_role', 'sort_order', 'incentive_amount']);
-                },
-                'awards',
-                'certifications',
-                'trainingExperiences',
-                'researchProjects',
-                'skills',
-                'teachingAreas',
-                'memberships',
-                'jobExperiences',
-                'socialLinks'
-            ])
-            ->where('employee_id', $employeeId)
-            ->where('is_active', true)
-            ->where('is_archived', false)
-            ->first();
+        try {
+            // Search Legacy Database
+            $legacyTeacher = DB::connection('old_db')
+                ->table('dfd_add')
+                ->leftJoin('teacher', 'dfd_add.teacher_id', '=', 'teacher.id')
+                ->leftJoin('faculty', 'dfd_add.faculty_id', '=', 'faculty.faculty_id')
+                ->leftJoin('department', 'dfd_add.department_id', '=', 'department.department_id')
+                ->select(
+                    'teacher.id',
+                    'teacher.name',
+                    'teacher.employeeID',
+                    'teacher.email',
+                    'teacher.phone',
+                    'teacher.cell',
+                    'teacher.webpage',
+                    'dfd_add.faculty_id',
+                    'dfd_add.department_id',
+                    'dfd_add.Teacher_type',
+                    'dfd_add.is_part_time',
+                    'faculty.short_name as faculty_slug',
+                    'department.dslug as department_slug'
+                )
+                ->where(function ($q) use ($query) {
+                    $q->where('teacher.name', 'LIKE', "%{$query}%")
+                      ->orWhere('teacher.employeeID', 'LIKE', "{$query}%")
+                      ->orWhere('teacher.email', 'LIKE', "%{$query}%")
+                      ->orWhere('teacher.phone', 'LIKE', "%{$query}%")
+                      ->orWhere('teacher.cell', 'LIKE', "%{$query}%");
+                })
+                ->groupBy('teacher.employeeID')
+                ->paginate(20);
+//                ->get();
 
-        if (!$teacher) {
+            if ($legacyTeacher->isNotEmpty()) {
+                // Get all local employee IDs for duplication check
+                $localEmployeeIds = Teacher::pluck('employee_id')->toArray();
+
+                /** @var \App\Services\IntegrationService $integrationService */
+                $integrationService = app(\App\Services\IntegrationService::class);
+
+                $transformedData = $legacyTeacher->map(function ($item) use ($integrationService, $localEmployeeIds) {
+                    $itemArray = (array) $item;
+
+                    // Transform name into first_name, middle_name, last_name
+                    if (isset($itemArray['name'])) {
+                        $nameData = self::transformName($itemArray['name']);
+                        $itemArray = array_merge($itemArray, $nameData);
+                    }
+
+                    // Map Teacher Type Logic
+                    // 1 = Full Time (Teacher_type 1)
+                    // 2 = Part Time (is_part_time 1)
+                    // 3 = Contractual/Other (Teacher_type 0)
+                    $itemArray['teacher_type_mapped'] = null;
+
+                    if (isset($itemArray['is_part_time']) && $itemArray['is_part_time'] == 1) {
+                        $itemArray['teacher_type_mapped'] = 2;
+                    } elseif (isset($itemArray['Teacher_type'])) {
+                        if ($itemArray['Teacher_type'] == 1) {
+                            $itemArray['teacher_type_mapped'] = 1;
+                        } elseif ($itemArray['Teacher_type'] == 0) {
+                            $itemArray['teacher_type_mapped'] = 3;
+                        }
+                    }
+
+                    // DO NOT apply integration mapping here - frontend needs raw legacy field names
+                    // The CreateTeacher page will handle the transformation when auto-filling
+                    // $transformed = $integrationService->transform($itemArray, 'legacy_teacher_search');
+
+                    // Add duplication flag
+                    $itemArray['exists_locally'] = in_array($itemArray['employeeID'] ?? null, $localEmployeeIds);
+
+                    return $itemArray;
+                });
+
+                return response()->json([
+                    'success' => true,
+                    'source' => 'legacy',
+                    'message' => 'Teachers found in legacy database.',
+                    'data' => $transformedData,
+                ]);
+            }
+
             return response()->json([
                 'success' => false,
-                'message' => 'Teacher not found or inactive.',
+                'message' => 'No teacher found.',
             ], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while searching.',
+                'error' => $e->getMessage(),
+            ], 500);
         }
+    }
 
-        return response()->json([
-            'success' => true,
-            'data' => $teacher,
-        ]);
+    /**
+     * Transform legacy single name field into first_name, middle_name, last_name
+     *
+     * Rules:
+     * - 1 word: Add "Mx." + name as first_name, name as last_name
+     * - 2 words: first_name and last_name
+     * - 3+ words: first_name, middle_name(s), last_name
+     *
+     * @param string $fullName
+     * @return array
+     */
+    public static function transformName(string $fullName): array
+    {
+        $fullName = trim($fullName);
+        $parts = preg_split('/\s+/', $fullName);
+        $partCount = count($parts);
+
+        if ($partCount === 1) {
+            // Single word: Add Mx. + name as first_name, use name as last_name
+            return [
+                'first_name' => 'Mx. ' . $parts[0],
+                'middle_name' => null,
+                'last_name' => $parts[0],
+            ];
+        } elseif ($partCount === 2) {
+            // Two words: first_name and last_name
+            return [
+                'first_name' => $parts[0],
+                'middle_name' => null,
+                'last_name' => $parts[1],
+            ];
+        } else {
+            // Three or more words: first, middle(s), last
+            $firstName = $parts[0];
+            $lastName = array_pop($parts);
+            array_shift($parts); // Remove first name from parts
+            $middleName = implode(' ', $parts);
+
+            return [
+                'first_name' => $firstName,
+                'middle_name' => $middleName,
+                'last_name' => $lastName,
+            ];
+        }
     }
 }

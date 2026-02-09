@@ -20,6 +20,7 @@ class Teacher extends Model implements HasMedia
     use HasFactory, SoftDeletes, InteractsWithMedia;
 
     protected $fillable = [
+        'user_id',
         'department_id',
         'designation_id',
         'employee_id',
