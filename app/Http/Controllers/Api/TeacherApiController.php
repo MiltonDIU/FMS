@@ -19,14 +19,13 @@ class TeacherApiController extends Controller
     public function search(Request $request): JsonResponse
     {
         $request->validate([
-            'q' => 'required|string',
+            'q' => 'nullable|string',
         ]);
 
         $query = trim($request->input('q'));
 
         try {
-            // Search Legacy Database
-            $legacyTeacher = DB::connection('old_db')
+            $legacyQuery = DB::connection('old_db')
                 ->table('dfd_add')
                 ->leftJoin('teacher', 'dfd_add.teacher_id', '=', 'teacher.id')
                 ->leftJoin('faculty', 'dfd_add.faculty_id', '=', 'faculty.faculty_id')
@@ -44,39 +43,46 @@ class TeacherApiController extends Controller
                     'dfd_add.Teacher_type',
                     'dfd_add.is_part_time',
                     'faculty.short_name as faculty_slug',
-                    'department.dslug as department_slug'
-                )
-                ->where(function ($q) use ($query) {
-                    $q->where('teacher.name', 'LIKE', "%{$query}%")
-                      ->orWhere('teacher.employeeID', 'LIKE', "{$query}%")
-                      ->orWhere('teacher.email', 'LIKE', "%{$query}%")
-                      ->orWhere('teacher.phone', 'LIKE', "%{$query}%")
-                      ->orWhere('teacher.cell', 'LIKE', "%{$query}%");
-                })
+                    'department.dslug as department_slug',
+                    'teacher.academicQualification',
+                    'teacher.trainingExperience',
+                    'teacher.professional_experience',
+                    'teacher.teachingArea',
+                    'teacher.awardScholarship',
+                    'teacher.membership',
+                    'teacher.previousEmployment',
+                )->whereNotNull('teacher.employeeID')
+                ->where('teacher.employeeID', '!=', '');
+
+            // 🔎 Search only if q has value
+            if (!empty($query)) {
+                $legacyQuery->where(function ($q2) use ($query) {
+                    $q2->where('teacher.name', 'LIKE', "%{$query}%")
+                        ->orWhere('teacher.employeeID', 'LIKE', "{$query}%")
+                        ->orWhere('teacher.email', 'LIKE', "%{$query}%")
+                        ->orWhere('teacher.phone', 'LIKE', "%{$query}%")
+                        ->orWhere('teacher.cell', 'LIKE', "%{$query}%");
+                });
+            }
+
+            $legacyTeacher = $legacyQuery
                 ->groupBy('teacher.employeeID')
-                ->paginate(20);
-//                ->get();
+                ->limit(20)
+                ->get();
 
             if ($legacyTeacher->isNotEmpty()) {
-                // Get all local employee IDs for duplication check
                 $localEmployeeIds = Teacher::pluck('employee_id')->toArray();
 
-                /** @var \App\Services\IntegrationService $integrationService */
                 $integrationService = app(\App\Services\IntegrationService::class);
 
                 $transformedData = $legacyTeacher->map(function ($item) use ($integrationService, $localEmployeeIds) {
                     $itemArray = (array) $item;
 
-                    // Transform name into first_name, middle_name, last_name
                     if (isset($itemArray['name'])) {
                         $nameData = self::transformName($itemArray['name']);
                         $itemArray = array_merge($itemArray, $nameData);
                     }
 
-                    // Map Teacher Type Logic
-                    // 1 = Full Time (Teacher_type 1)
-                    // 2 = Part Time (is_part_time 1)
-                    // 3 = Contractual/Other (Teacher_type 0)
                     $itemArray['teacher_type_mapped'] = null;
 
                     if (isset($itemArray['is_part_time']) && $itemArray['is_part_time'] == 1) {
@@ -89,11 +95,6 @@ class TeacherApiController extends Controller
                         }
                     }
 
-                    // DO NOT apply integration mapping here - frontend needs raw legacy field names
-                    // The CreateTeacher page will handle the transformation when auto-filling
-                    // $transformed = $integrationService->transform($itemArray, 'legacy_teacher_search');
-
-                    // Add duplication flag
                     $itemArray['exists_locally'] = in_array($itemArray['employeeID'] ?? null, $localEmployeeIds);
 
                     return $itemArray;
@@ -102,7 +103,7 @@ class TeacherApiController extends Controller
                 return response()->json([
                     'success' => true,
                     'source' => 'legacy',
-                    'message' => 'Teachers found in legacy database.',
+                    'message' => 'Teachers found.',
                     'data' => $transformedData,
                 ]);
             }
@@ -111,6 +112,7 @@ class TeacherApiController extends Controller
                 'success' => false,
                 'message' => 'No teacher found.',
             ], 404);
+
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -119,6 +121,7 @@ class TeacherApiController extends Controller
             ], 500);
         }
     }
+
 
     /**
      * Transform legacy single name field into first_name, middle_name, last_name

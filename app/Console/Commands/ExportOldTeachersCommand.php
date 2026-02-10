@@ -483,18 +483,58 @@ class ExportOldTeachersCommand extends Command
             $training = [
                 'title' => $line,
                 'organization' => null,
-                'year' => null,
+                'category' => 'Training', // Default category
                 'duration_days' => null,
+                'completion_date' => null,
+                'year' => null,
+                'country_id' => 18, // Default Bangladesh
+                'certificate_url' => null,
+                'is_online' => false,
+                'description' => null,
+                'sort_order' => null,
             ];
+            
+            // Check for online keywords
+            if (preg_match('/(online|virtual|webinar|remote)/i', $line)) {
+                $training['is_online'] = true;
+            }
             
             // Try to extract year
             if (preg_match('/\b(19\d{2}|20\d{2})\b/', $line, $yearMatch)) {
                 $training['year'] = (int)$yearMatch[1];
             }
             
+            // Try to extract exact completion date
+            if (preg_match('/\b(\d{1,2}(?:st|nd|rd|th)?\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+(?:19|20)\d{2})\b/i', $line, $dateMatch)) {
+                try {
+                    $training['completion_date'] = date('Y-m-d', strtotime($dateMatch[1]));
+                } catch (\Exception $e) {
+                    // Ignore date parsing error
+                }
+            }
+            
             // Try to extract organization (text after "at" or "by")
             if (preg_match('/(?:at|by|from)\s+(.+?)(?:,|\.|$)/i', $line, $orgMatch)) {
-                $training['organization'] = trim($orgMatch[1]);
+                $org = trim($orgMatch[1]);
+                // Clean up org
+                $org = preg_replace('/\s+on\s+.*$/i', '', $org);
+                // Use if reasonable length and not a date
+                if (strlen($org) > 3 && !preg_match('/\d/', $org)) {
+                    $training['organization'] = $org;
+                }
+            }
+            
+            // Try to extract country name and lookup ID
+            $countryNames = ['USA', 'United States', 'UK', 'United Kingdom', 'Canada', 'Australia', 'India', 'Pakistan', 'China', 'Japan', 'Germany', 'France', 'Saudi Arabia', 'UAE', 'Kuwait', 'Qatar', 'Malaysia', 'Thailand', 'Singapore', 'Turkey', 'Russia', 'Vietnam'];
+            foreach ($countryNames as $countryName) {
+                if (stripos($line, $countryName) !== false) {
+                    // Try to find country ID from new database
+                    $countryId = DB::table('countries')->where('name', 'like', '%' . $countryName . '%')->value('id');
+                    if ($countryId) {
+                        $training['country_id'] = $countryId;
+                    }
+                    break;
+                }
             }
             
             // Try to extract duration

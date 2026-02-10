@@ -32,52 +32,57 @@
         "educations": [
             {
                 "degree_type_id": 1,
-                "institution": "Stanford University",
-                "major": "Computer Science",
-                "passing_year": 2015,
-                "country_id": 231
-            },
-            {
-                "degree_type_id": 2,
-                "institution": "University of Dhaka",
-                "major": "Computer Science",
-                "passing_year": 2010,
+                "country_id": 1,
                 "result_type_id": 1,
-                "cgpa": 3.8,
-                "scale": 4.0
+                "major": "Computer Science",
+                "institution": "University Name",
+                "passing_year": 2020,
+                "duration": "4 years",
+                "cgpa": 4.00,
+                "scale": 4.0,
+                "marks": null,
+                "grade": null,
+                "sort_order": 1
             }
         ],
         "job_experiences": [
             {
-                "position": "Associate Professor",
-                "organization": "University of Dhaka",
-                "start_date": "2015-01-01",
-                "end_date": "2019-12-31",
-                "country_id": 18
+                "position": "Lecturer",
+                "organization": "University Name",
+                "department": "CSE",
+                "location": "Dhaka",
+                "country_id": 18,
+                "start_date": "YYYY-MM-DD",
+                "end_date": "YYYY-MM-DD",
+                "is_current": false,
+                "responsibilities": "Teaching...",
+                "sort_order": 1
             }
         ],
         "awards": [
             {
-                "title": "Best Researcher Award",
-                "awarding_body": "UGC",
-                "year": 2022,
-                "date": "2022-12-15"
-            }
-        ],
-        "certifications": [
-            {
-                "title": "Certified AWS Solutions Architect",
-                "issuing_authority": "Amazon Web Services",
-                "issue_date": "2021-05-20",
-                "credential_id": "AWS-123456"
+                "title": "Best Employee",
+                "awarding_body": "Daffodil International University",
+                "type": "Academic",
+                "date": "YYYY-MM-DD",
+                "year": 2023,
+                "remarks": "For outstanding performance",
+                "sort_order": 1
             }
         ],
         "training_experiences": [
             {
-                "title": "Advanced Teaching Methodologies",
-                "organization": "British Council",
-                "year": 2021,
-                "duration_days": 5
+                "title": "Advanced PHP Training",
+                "organization": "Udemy",
+                "category": "Training",
+                "duration_days": 30,
+                "completion_date": "YYYY-MM-DD",
+                "year": 2023,
+                "country_id": 18,
+                "certificate_url": "http://...",
+                "is_online": true,
+                "description": "Comprehensive training on...",
+                "sort_order": 1
             }
         ],
         "skills": [
@@ -92,29 +97,30 @@
         ],
         "teaching_areas": [
             {
-                "area": "Artificial Intelligence",
-                "description": "Introduction to AI courses"
+                "area": "Software Engineering",
+                "description": "Core course...",
+                "sort_order": 1
             }
         ],
         "memberships": [
             {
-                "membership_organization_id": 1,
-                "membership_type_id": 1,
-                "membership_id": "IEEE-12345",
-                "start_date": "2018-01-01",
-                "status": "Active"
+                "membership_organization_id": null,
+                "membership_type_id": null,
+                "membership_id": "MEM-001",
+                "start_date": "YYYY-MM-DD",
+                "end_date": "YYYY-MM-DD",
+                "status": "Active",
+                "description": "Member since...",
+                "sort_order": 1,
+                "is_active": true
             }
         ],
         "social_links": [
             {
                 "social_media_platform_id": 1,
-                "username": "johndoe",
-                "url": "https://linkedin.com/in/johndoe"
-            },
-            {
-                "social_media_platform_id": 2,
-                "username": "johndoe_research",
-                "url": "https://scholar.google.com/citations?user=12345"
+                "username": "username",
+                "url": "http://linkedin.com/in/...",
+                "sort_order": 1
             }
         ]
     }
