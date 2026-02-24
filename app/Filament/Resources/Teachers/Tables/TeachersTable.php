@@ -42,6 +42,18 @@ class TeachersTable
                     ->label('Department')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('departments_count')
+                    ->counts('departments')
+                    ->label('Assign Dept.')
+                    ->badge()
+                    ->color('success'),
+                TextColumn::make('departments.short_name')
+                    ->label('Department List')
+                    ->badge()
+                    ->separator(', ')
+                    ->limitList(6)
+                    ->expandableLimitedList()
+                    ->wrap(),
                 TextColumn::make('designation.name')
                     ->label('Designation')
                     ->searchable()
@@ -117,6 +129,7 @@ class TeachersTable
                     ->url(fn (Teacher $record) => \App\Filament\Pages\TeacherDashboard::getUrl(['teacher' => $record->id]))
                     ->openUrlInNewTab(false),
             ])
+            ->recordUrl(null)
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),

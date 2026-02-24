@@ -45,12 +45,11 @@ class DepartmentTeachersTable
                     ->searchable()
                     ->sortable(),
 
-                TextColumn::make('teacher.first_name')
+                TextColumn::make('teacher.full_name')
                     ->label('Teacher Name')
-                    ->formatStateUsing(fn ($record) => $record->teacher->first_name . ' ' . $record->teacher->last_name)
-                    ->searchable(['first_name', 'last_name'])
+                    ->formatStateUsing(fn ($record) => $record->teacher->first_name . ' '  .$record->teacher->middle_name . ' ' . $record->teacher->last_name)
+                    ->searchable(['first_name', 'middle_name', 'last_name'])
                     ->sortable(),
-
                 TextColumn::make('department.name')
                     ->label('Department')
                     ->searchable()
@@ -108,7 +107,7 @@ class DepartmentTeachersTable
                                  if (!$adminRole || !$adminRole->pivot) return null;
                                  if ($adminRole->pivot->faculty_id) {
                                      return $adminRole->pivot->faculty_id;
-                                 } 
+                                 }
                                  return null;
                             }),
 

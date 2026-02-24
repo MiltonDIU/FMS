@@ -42,6 +42,7 @@ class DepartmentSeeder extends Seeder
                 ['name' => 'Department of Electrical and Electronic Engineering', 'short_name' => 'EEE', 'code' => 'EEE', 'description' => 'Covers electrical systems, electronics, power generation, control systems, and embedded systems for electrical engineering professionals.'],
                 ['name' => 'Department of Architecture', 'short_name' => 'ARCH', 'code' => 'ARCH', 'description' => 'Focuses on architectural design, urban planning, sustainable building practices, and interior design for future architects.'],
                 ['name' => 'Department of Civil Engineering', 'short_name' => 'CE', 'code' => 'CE', 'description' => 'Covers structural engineering, construction management, transportation systems, and environmental engineering for infrastructure development.'],
+                ['name' => 'Department of Robotics and Mechatronics Engineering', 'short_name' => 'rme', 'code' => 'rme', 'description' => 'The Department of Robotics and Mechatronics Engineering integrates mechanical, electronic, and computer systems to develop intelligent robots, automation technologies, and smart industrial solutions.'],
             ],
 
             // Faculty of Health and Life Sciences

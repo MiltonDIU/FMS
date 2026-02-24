@@ -5,9 +5,12 @@ namespace App\Filament\Resources\Departments;
 use App\Filament\Resources\Departments\Pages\CreateDepartment;
 use App\Filament\Resources\Departments\Pages\EditDepartment;
 use App\Filament\Resources\Departments\Pages\ListDepartments;
+use App\Filament\Resources\Departments\RelationManagers\TeacherDepartmentRelationManager;
+use App\Filament\Resources\Departments\RelationManagers\TeachersRelationManager;
 use App\Filament\Resources\Departments\Schemas\DepartmentForm;
 use App\Filament\Resources\Departments\Tables\DepartmentsTable;
 use App\Models\Department;
+use App\Models\Teacher;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -47,7 +50,8 @@ class DepartmentResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            TeachersRelationManager::class,
+            TeacherDepartmentRelationManager::class,
         ];
     }
 

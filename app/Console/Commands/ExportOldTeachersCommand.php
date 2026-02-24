@@ -4,638 +4,486 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 
 class ExportOldTeachersCommand extends Command
 {
-    protected $signature = 'export:old-teachers {--output=teachers_export.json} {--limit=1}';
-    protected $description = 'Export teachers from old database to JSON format for import';
+    protected $signature = 'export:old-teachers {--output=teachers_export.json} {--limit=0}';
+    protected $description = 'Export teachers from old database — Phase 1: core profile only (BelongsTo fields)';
 
-    public function handle()
+    protected array $newDeptMap  = [];
+    protected array $newDesigMap = [];
+    protected array $jobTypeMap  = [];
+
+    public function handle(): int
     {
-        $this->info('Starting export from old database...');
+        $this->info('Building lookup tables...');
+        $this->buildLookupTables();
 
-        try {
-            // Fetch all teachers with their department/faculty mapping
-            $teachers = DB::connection('old_db')
-                ->table('teacher as t')
-                ->leftJoin('dfd_add as dfd', 't.id', '=', 'dfd.teacher_id')
-                ->leftJoin('department as dept', 'dfd.department_id', '=', 'dept.department_id')
-                ->leftJoin('faculty as fac', 'dfd.faculty_id', '=', 'fac.faculty_id')
-                ->leftJoin('designation as des', 'dfd.designation_id', '=', 'des.designation_id')
-                ->select(
-                    't.*',
-                    'dfd.department_id',
-                    'dfd.faculty_id',
-                    'dfd.designation_id',
-                    'dept.departmentname',
-                    'fac.facultyname',
-                    'des.designation'
-                )
-                ->where('t.status', 1)
-                ->limit($this->option('limit'))
-                ->get();
+        $this->info('Fetching old teachers...');
+        $limit = (int) $this->option('limit');
 
-            $this->info("Found {$teachers->count()} teachers");
+        // INNER JOIN — শুধু dfd_add-এ record আছে এমন teachers
+        // dfd_add-এ একজন teacher একাধিক dept-এ থাকতে পারে,
+        // তাই recordListingID=1 (primary listing) কে prefer করা হয়,
+        // না থাকলে MIN() দিয়ে প্রথমটা নেওয়া হয়
+        $query = DB::connection('old_db')
+            ->table('teacher as t')
+            ->join('dfd_add as dfd', 'dfd.teacher_id', '=', 't.id')
+            ->leftJoin('department as dept', 'dfd.department_id', '=', 'dept.department_id')
+            ->leftJoin('faculty as fac', 'dfd.faculty_id', '=', 'fac.faculty_id')
+            ->leftJoin('designation as des', 'dfd.designation_id', '=', 'des.designation_id')
+            ->select(
+                't.id                 as old_teacher_id',
+                't.name',
+                't.employeeID',
+                't.email',
+                't.phone',
+                't.cell',
+                't.webpage',
+                't.currentResearch',
+                // Primary dept: prefer recordListingID=1, else MIN
+                DB::raw('COALESCE(
+                    MIN(CASE WHEN dfd.recordListingID = 1 THEN dfd.department_id END),
+                    MIN(dfd.department_id)
+                ) as old_dept_id'),
+                DB::raw('COALESCE(
+                    MIN(CASE WHEN dfd.recordListingID = 1 THEN dfd.designation_id END),
+                    MIN(dfd.designation_id)
+                ) as old_desig_id'),
+                DB::raw('MIN(dfd.is_part_time)   as is_part_time'),
+                DB::raw('MIN(dfd.teacher_type)   as teacher_type'),
+                DB::raw('COALESCE(
+                    MIN(CASE WHEN dfd.recordListingID = 1 THEN dept.departmentname END),
+                    MIN(dept.departmentname)
+                ) as old_dept_name'),
+                DB::raw('MIN(fac.facultyname)    as old_faculty_name'),
+                DB::raw('COALESCE(
+                    MIN(CASE WHEN dfd.recordListingID = 1 THEN des.designation END),
+                    MIN(des.designation)
+                ) as old_designation_name')
+            )
+            ->groupBy('t.id');  // Group by unique ID instead of employeeID
 
-            $exportData = [];
-
-            foreach ($teachers as $teacher) {
-                $exportData[] = $this->transformTeacher($teacher);
-            }
-
-            // Save to JSON file
-            $filename = $this->option('output');
-            $path = storage_path('app/public/exports/' . $filename);
-            
-            // Ensure directory exists
-            if (!file_exists(dirname($path))) {
-                mkdir(dirname($path), 0755, true);
-            }
-
-            file_put_contents($path, json_encode($exportData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-
-            $this->info("Export completed successfully!");
-            $this->info("File saved to: {$path}");
-            $this->info("Total teachers exported: " . count($exportData));
-
-        } catch (\Exception $e) {
-            $this->error("Export failed: " . $e->getMessage());
-            return 1;
+        if ($limit > 0) {
+            $query->limit($limit);
         }
 
+        $teachers = $query->get();
+        $this->info("Found {$teachers->count()} teachers.");
+
+        $exportData = [];
+        $bar = $this->output->createProgressBar($teachers->count());
+
+        // Pre-load ALL dfd_add rows grouped by employeeID for multi-dept assignment
+        // teacher_id -> [ {dept_id, desig_id, job_type...}, ... ]
+        $allDfdRows = DB::connection('old_db')
+            ->table('dfd_add as dfd')
+            ->join('teacher as t', 't.id', '=', 'dfd.teacher_id')
+            ->leftJoin('department as dept', 'dept.department_id', '=', 'dfd.department_id')
+            ->leftJoin('designation as des', 'des.designation_id', '=', 'dfd.designation_id')
+            ->select(
+                'dfd.teacher_id',
+                'dfd.department_id  as old_dept_id',
+                'dfd.designation_id as old_desig_id',
+                'dfd.is_part_time',
+                'dfd.teacher_type',
+                'dfd.recordListingID',
+                'dept.departmentname as dept_name',
+                'des.designation    as desig_name'
+            )
+            ->orderBy('t.id')
+            ->orderBy('dfd.recordListingID')
+            ->get()
+            ->groupBy('teacher_id');   // Group by teacher_id
+
+        foreach ($teachers as $teacher) {
+            $dfdRows = $allDfdRows->get($teacher->old_teacher_id, collect());
+            $exportData[] = $this->transformTeacher($teacher, $dfdRows);
+            $bar->advance();
+        }
+
+        $bar->finish();
+        $this->newLine();
+
+        $filename = $this->option('output');
+        $path = storage_path('app/public/exports/' . $filename);
+        if (!is_dir(dirname($path))) {
+            mkdir(dirname($path), 0755, true);
+        }
+        file_put_contents($path, json_encode($exportData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+
+        // Stats summary
+        $nullDept  = count(array_filter($exportData, fn($t) => $t['teacher_profile']['department_id'] === null));
+        $nullDesig = count(array_filter($exportData, fn($t) => $t['teacher_profile']['designation_id'] === null));
+        $nullEmail = count(array_filter($exportData, fn($t) => str_ends_with($t['user']['email'], '@diu.edu.bd') && !str_contains($t['user']['email'], '@daffodil')));
+
+        $this->newLine();
+        $this->info("✅ Export complete → {$path}");
+        $this->table(
+            ['Metric', 'Count'],
+            [
+                ['Total exported',          count($exportData)],
+                ['Null department_id',       $nullDept . ' (need manual fix or GED dept missing in new DB)'],
+                ['Null designation_id',      $nullDesig . ' (no dfd_add record or unrecognized rank)'],
+                ['Fallback email generated', $nullEmail],
+            ]
+        );
         return 0;
     }
 
-    private function transformTeacher($teacher)
+    // ── Lookup Tables ──
+
+    private function buildLookupTables(): void
     {
-        // Parse name into parts
-        $nameParts = $this->parseName($teacher->name);
+        // Department map
+        $oldDepts = DB::connection('old_db')->table('department')->get();
+        $newDepts = DB::connection('mysql')->table('departments')->get();
+
+        foreach ($oldDepts as $old) {
+            $oldName = $this->normalizeName($old->departmentname);
+            foreach ($newDepts as $new) {
+                $newName = $this->normalizeName($new->name);
+                if ($oldName === $newName || str_contains($newName, $oldName) || str_contains($oldName, $newName)) {
+                    $this->newDeptMap[$old->department_id] = $new->id;
+                    break;
+                }
+            }
+        }
+
+        // Manual overrides for name mismatches
+        // old_dept_id => new_dept_id  (null = dept does not exist in new system)
+        $manualDept = [
+            7  => 11,   // MCT
+            8  => null, // General Educational Development — not in new DB
+            16 => 28,   // Journalism (extra space in old name)
+            20 => 5,    // Innovation & Entrepreneurship
+            23 => 12,   // Computing and Information System
+            24 => 13,   // ITM
+            27 => 6,    // Accounting
+            28 => 7,    // Finance & Banking
+            30 => 8,    // Marketing
+            31 => 25,   // Genetic Engineering
+            // NOTE: old dept 8 (GED) removed from new DB — no longer in dfd_add
+            // Add Robotics if it exists in new DB (currently maps to null):
+            // 32 => XX,  // Robotics & Mechatronics — add new dept ID when created
+        ];
+        foreach ($manualDept as $oldId => $newId) {
+            $this->newDeptMap[$oldId] = $newId; // null entries are intentional
+        }
+
+        // Designation map
+        $newDesigs = DB::connection('mysql')->table('designations')->get();
+        $oldDesigs = DB::connection('old_db')->table('designation')->get();
+
+        $rankMap = [];
+        foreach ($newDesigs as $nd) {
+            $rankMap[strtolower(trim($nd->name))] = $nd->id;
+        }
+        foreach ($oldDesigs as $od) {
+            $this->newDesigMap[$od->designation_id] = $this->matchDesignation(
+                strtolower($od->designation), $rankMap
+            );
+        }
+
+        // Job type map
+        $jobTypes = DB::connection('mysql')->table('job_types')->get(['id', 'name']);
+        foreach ($jobTypes as $jt) {
+            $this->jobTypeMap[strtolower(trim($jt->name))] = $jt->id;
+        }
+
+        $this->info("Dept map: " . count($this->newDeptMap) .
+                    " | Desig map: " . count($this->newDesigMap) . " entries");
+    }
+
+    private function matchDesignation(string $oldName, array $rankMap): ?int
+    {
+        // Step 1: keyword priority (longer first to avoid partial match)
+        $priority = [
+            'associate professor',
+            'assistant professor',
+            'senior lecturer',
+            'adjunct faculty',   // exact match before generic 'adjunct'
+            'adjunct',
+            'professor',
+            'senior lecturer',
+            'lecturer',
+        ];
+        foreach ($priority as $keyword) {
+            if (isset($rankMap[$keyword]) && str_contains($oldName, $keyword)) {
+                return $rankMap[$keyword];
+            }
+        }
+
+        // Step 2: special role titles — map to closest academic rank
+        $specialMap = [
+            // Dean/Senior-level → Professor
+            'dean'                 => $rankMap['professor'] ?? null,
+            'chair professor'      => $rankMap['professor'] ?? null,
+            'distinguished'        => $rankMap['professor'] ?? null,
+            'emeritus'             => $rankMap['professor'] ?? null,
+            'chancellor'           => $rankMap['professor'] ?? null,
+            'founder'              => $rankMap['professor'] ?? null,
+            'director'             => $rankMap['professor'] ?? null,
+            'advisor'              => $rankMap['professor'] ?? null,  // Advisor, Int'l Advisor
+            // Visiting / Adjunct / Industry → Adjunct Faculty
+            'visiting'             => $rankMap['adjunct faculty'] ?? null,
+            'industrial expert'    => $rankMap['adjunct faculty'] ?? null,
+            'practice'             => $rankMap['adjunct faculty'] ?? null,
+            'academician'          => $rankMap['adjunct faculty'] ?? null,  // Practicing Industry-Academician
+            'researcher'           => $rankMap['adjunct faculty'] ?? null,
+            'scholar'              => $rankMap['adjunct faculty'] ?? null,
+            'attached'             => $rankMap['adjunct faculty'] ?? null,
+            'part-time'            => $rankMap['adjunct faculty'] ?? null,
+            // Coordinator-level → Senior Lecturer fallback
+            'coordinator'          => $rankMap['senior lecturer'] ?? null,
+        ];
+        foreach ($specialMap as $keyword => $id) {
+            if ($id && str_contains($oldName, $keyword)) {
+                return $id;
+            }
+        }
+
+        return null;
+    }
+
+    private function normalizeName(string $name): string
+    {
+        $name = strtolower(trim($name));
+        $name = preg_replace('/\s+/', ' ', $name);
+        $name = preg_replace('/\s*\([^)]+\)/', '', $name);
+        return trim($name, ' ,.');
+    }
+
+    // ── Transform (Phase 1) ──
+
+    private function transformTeacher(object $t, $dfdRows = null): array
+    {
+        $nameParts  = $this->parseName($t->name ?? '');
+        $email      = $this->getValidEmail($t->email ?? '', $t->employeeID ?? '');
+        $newDeptId  = $this->newDeptMap[$t->old_dept_id ?? 0]  ?? null;
+        $newDesigId = $this->newDesigMap[$t->old_desig_id ?? 0] ?? null;
+        $jobTypeId  = $this->resolveJobType($t);
+        $phoneParsed = $this->parsePhoneAndExtension($t->phone ?? '');
+
+        // Build all department assignments from dfd_add rows
+        $departmentAssignments = [];
+        if ($dfdRows && $dfdRows->isNotEmpty()) {
+            foreach ($dfdRows as $row) {
+                $deptId = $this->newDeptMap[$row->old_dept_id] ?? null;
+                if ($deptId === null) continue;  // skip unmapped (e.g. GED)
+
+                $desigId    = $this->newDesigMap[$row->old_desig_id ?? 0] ?? null;
+                $rowJobType = $this->resolveJobTypeFromRow($row);
+
+                // Avoid exact duplicate dept entries
+                $key = $deptId;
+                if (!isset($departmentAssignments[$key])) {
+                    $departmentAssignments[$key] = [
+                        'department_id'  => $deptId,
+                        'designation_id' => $desigId,
+                        'job_type_id'    => $rowJobType,
+                        'is_primary'     => ((int)($row->recordListingID ?? 0)) === 1,
+                        'sort_order'     => (int)($row->recordListingID ?? 99),
+                        '_old_dept_name' => $row->dept_name,
+                    ];
+                }
+            }
+        }
+
+        // Fallback: if no dfd_add rows mapped, use profile-level dept
+        if (empty($departmentAssignments) && $newDeptId) {
+            $departmentAssignments[$newDeptId] = [
+                'department_id'  => $newDeptId,
+                'designation_id' => $newDesigId,
+                'job_type_id'    => $jobTypeId,
+                'is_primary'     => true,
+                '_old_dept_name' => $t->old_dept_name,
+            ];
+        }
 
         return [
-            'employee_id' => $teacher->employeeID,
-            'first_name' => $nameParts['first_name'],
-            'middle_name' => $nameParts['middle_name'],
-            'last_name' => $nameParts['last_name'],
-            'designation_id' => $teacher->designation_id ?? null,
-            'department_id' => $teacher->department_id ?? null,
-            'webpage' => $teacher->webpage ?: null,
-            'phone' => $teacher->phone ?: null,
-            'personal_phone' => $teacher->cell ?: null,
-            'email' => $teacher->email ?: null,
-            'bio' => $this->cleanText($teacher->currentResearch),
-            'research_interest' => $this->cleanText($teacher->teachingArea),
-            'is_active' => $teacher->study_leave == 0 ? true : false,
-            'is_public' => true,
             'user' => [
-                'name' => $teacher->name,
-                'email' => $this->getValidEmail($teacher->email, $teacher->employeeID),
+                'name'      => trim($t->name ?? ''),
+                'email'     => $email,
+                'is_active' => true,
             ],
-            'educations' => [], // Removed for now
-            'job_experiences' => $this->parseJobExperiences($teacher->previousEmployment),
-            'awards' => $this->parseAwards($teacher->awardScholarship),
-            'certifications' => [],
-            'training_experiences' => $this->parseTrainings($teacher->trainingExperience),
-            'skills' => [],
-            'teaching_areas' => $this->parseTeachingAreas($teacher->teachingArea),
-            'memberships' => $this->parseMemberships($teacher->membership),
-            'social_links' => [],
+
+            'teacher_profile' => [
+                'employee_id'          => $t->employeeID   ?? null,
+                'first_name'           => $nameParts['first_name'],
+                'middle_name'          => $nameParts['middle_name'],
+                'last_name'            => $nameParts['last_name'],
+                // Primary department (recordListingID=1 preferred)
+                'department_id'        => $newDeptId,
+                'designation_id'       => $newDesigId,
+                'job_type_id'          => $jobTypeId,
+                'employment_status_id' => 1,
+                'country_id'           => 18,
+                'gender_id'            => 0,
+                'blood_group_id'       => 0,
+                'religion_id'          => 0,
+                'phone'                => $phoneParsed['phone'],
+                'extension_no'         => $phoneParsed['extension_no'],
+                'personal_phone'       => $t->cell    ?? null,
+                'webpage'              => $t->webpage ?? null,
+                // bio: null — old DB had no bio field
+                'bio'                  => null,
+                'research_interest'    => null,
+                'is_public'            => true,
+                'is_active'            => true,
+                'is_archived'          => false,
+                // Valid enum values: draft | pending | approved | rejected
+                'profile_status'       => 'approved',
+                // Reference — stripped before real import
+                '_old_teacher_id'  => $t->old_teacher_id,
+                '_old_designation' => $t->old_designation_name,
+                '_old_department'  => $t->old_dept_name,
+                '_old_faculty'     => $t->old_faculty_name,
+            ],
+
+            // All dept assignments from dfd_add — imported into department_teacher pivot
+            'departments' => array_values($departmentAssignments),
+
+            // HasMany — Phase 2 (will be handled separately via AI/regex pipeline)
+            'educations'           => [],
+            'job_experiences'      => [],
+            'awards'               => [],
+            'training_experiences' => [],
+            'teaching_areas'       => [],
+            'memberships'          => [],
+            'social_links'         => [],
         ];
     }
 
-    private function parseName($fullName)
+    private function resolveJobType(object $t): ?int
     {
-        $parts = explode(' ', trim($fullName));
-        
-        if (count($parts) == 1) {
-            return ['first_name' => $parts[0], 'middle_name' => '', 'last_name' => ''];
-        } elseif (count($parts) == 2) {
-            return ['first_name' => $parts[0], 'middle_name' => '', 'last_name' => $parts[1]];
-        } else {
-            return [
-                'first_name' => $parts[0],
-                'middle_name' => implode(' ', array_slice($parts, 1, -1)),
-                'last_name' => end($parts)
-            ];
+        if (!empty($t->is_part_time)) {
+            return $this->jobTypeMap['part time'] ?? null;
         }
+        return match ((int) ($t->teacher_type ?? 0)) {
+            1       => $this->jobTypeMap['adjunct faculty']  ?? null,
+            2       => $this->jobTypeMap['visiting faculty'] ?? null,
+            default => $this->jobTypeMap['full time']        ?? null,
+        };
     }
 
-    private function cleanText($text)
+    // Same logic but accepts a dfd_add row directly (for per-dept pivot)
+    private function resolveJobTypeFromRow(object $row): ?int
     {
-        if (empty($text)) return null;
-        
-        // Remove HTML tags
-        $text = strip_tags($text);
-        // Remove extra whitespace
-        $text = preg_replace('/\s+/', ' ', $text);
-        return trim($text) ?: null;
+        if (!empty($row->is_part_time)) {
+            return $this->jobTypeMap['part time'] ?? null;
+        }
+        return match ((int) ($row->teacher_type ?? 0)) {
+            1       => $this->jobTypeMap['adjunct faculty']  ?? null,
+            2       => $this->jobTypeMap['visiting faculty'] ?? null,
+            default => $this->jobTypeMap['full time']        ?? null,
+        };
     }
 
-    private function parseEducations($text)
+    // ── Helpers ──
+
+    private function cleanHtml(string $html): string
     {
-        if (empty($text)) return [];
-        
-        $educations = [];
-        
-        // Remove HTML tags but keep line breaks
-        $text = str_replace(['</p>', '</li>', '<br>', '<br/>', '<br />'], "\n", $text);
-        $text = strip_tags($text);
-        
-        // Clean up extra whitespace and decode HTML entities
-        $text = html_entity_decode($text);
-        $text = preg_replace('/\s+/', ' ', $text);
-        
-        // Split by common degree patterns
-        $lines = preg_split('/\n+/', $text);
-        
-        // Common degree patterns
-        $degreePatterns = [
-            'Ph\.?D',
-            'M\.?Phil',
-            'M\.?Sc',
-            'M\.?S',
-            'MBA',
-            'BBA',
-            'B\.?Sc',
-            'B\.?A',
-            'Honors',
-            'Diploma',
-            'Masters?',
-            'Bachelors?',
+        if (empty(trim($html))) return '';
+        $html = str_replace(['</p>', '</li>', '<br>', '<br/>', '<br />', '</div>'], "\n", $html);
+        $html = strip_tags($html);
+        $html = html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        return trim($html);
+    }
+
+    /**
+     * Split a phone string into phone + extension_no.
+     *
+     * Examples:
+     *   "IP: 43100"                   → phone: null,      ext: "43100"
+     *   "Ext-304"                     → phone: null,      ext: "304"
+     *   "Ex-65109"                    → phone: null,      ext: "65109"
+     *   "Ext- 50100"                  → phone: null,      ext: "50100"
+     *   "9116774, Ex-258"             → phone: "9116774", ext: "258"
+     *   "+88 02 9138234-5 Ex-65109"   → phone: "+88 02 9138234-5", ext: "65109"
+     *   "+8801713493055"              → phone: "+8801713493055", ext: null
+     */
+    private function parsePhoneAndExtension(string $raw): array
+    {
+        $raw = trim($raw);
+        if (empty($raw)) {
+            return ['phone' => null, 'extension_no' => null];
+        }
+
+        // Pattern: IP:XXXXX  or  Ext-XXXXX  or  Ex-XXXXX  (with optional spaces)
+        $extPattern = '/(?:IP\s*:\s*|Ext(?:ension)?\s*[-#:]?\s*|Ex\s*-\s*)(\d+)/i';
+
+        $extension = null;
+        $phone     = $raw;
+
+        if (preg_match($extPattern, $raw, $matches)) {
+            $extension = trim($matches[1]);
+            // Remove the extension part (and any separator before it) from phone
+            $phone = preg_replace('/[,;\s]*' . preg_quote($matches[0], '/') . '/i', '', $raw);
+            $phone = trim($phone, ' ,;-');
+        }
+
+        // If nothing left in phone after removing extension, set to null
+        $phone = ($phone === '' || $phone === null) ? null : $phone;
+
+        // If phone is ONLY an extension keyword with no real number, clear phone
+        if ($phone && preg_match('/^(IP|Ext|Ex)\s*[-:#]?\s*$/i', $phone)) {
+            $phone = null;
+        }
+
+        return [
+            'phone'        => $phone,
+            'extension_no' => $extension,
         ];
-        
-        $currentEducation = null;
-        
-        foreach ($lines as $line) {
-            $line = trim($line);
-            if (empty($line)) continue;
-            
-            // Check if line starts with a degree
-            $foundDegree = false;
-            foreach ($degreePatterns as $pattern) {
-                if (preg_match('/^(' . $pattern . ')/i', $line, $matches)) {
-                    // Save previous education if exists
-                    if ($currentEducation) {
-                        $educations[] = $currentEducation;
-                    }
-                    
-                    // Start new education
-                    $currentEducation = [
-                        'degree_type_id' => null,
-                        'institution' => null,
-                        'major' => null,
-                        'passing_year' => null,
-                        'result_type_id' => null,
-                        'cgpa' => null,
-                        'scale' => null,
-                    ];
-                    
-                    // Extract degree name
-                    $degree = $matches[1];
-                    
-                    // Try to extract major/concentration
-                    if (preg_match('/(?:major in|Area of Concentration:?)\s*([^,\n]+)/i', $line, $majorMatch)) {
-                        $currentEducation['major'] = trim(strip_tags($majorMatch[1]));
-                    }
-                    
-                    // Try to extract institution
-                    if (preg_match('/(?:from|Department of|Institute of|College of)\s+([^,\n\.]+(?:University|Institute|College)[^,\n\.]*)/i', $line, $instMatch)) {
-                        $currentEducation['institution'] = trim($instMatch[1]);
-                    }
-                    
-                    // Try to extract year
-                    if (preg_match('/\b(19\d{2}|20\d{2})\b/', $line, $yearMatch)) {
-                        $currentEducation['passing_year'] = (int)$yearMatch[1];
-                    }
-                    
-                    // Try to extract CGPA
-                    if (preg_match('/CGPA[:\s]*([0-9.]+)/i', $line, $cgpaMatch)) {
-                        $currentEducation['cgpa'] = (float)$cgpaMatch[1];
-                        $currentEducation['result_type_id'] = 1; // Assuming 1 is CGPA
-                        $currentEducation['scale'] = 4.0; // Default scale
-                    }
-                    
-                    $foundDegree = true;
-                    break;
-                }
-            }
-            
-            // If no degree found but we have current education, append to institution/major
-            if (!$foundDegree && $currentEducation) {
-                // Try to extract institution if not already set
-                if (!$currentEducation['institution'] && preg_match('/(?:University|Institute|College)/i', $line)) {
-                    $currentEducation['institution'] = trim($line);
-                }
-                
-                // Try to extract year if not already set
-                if (!$currentEducation['passing_year'] && preg_match('/\b(19\d{2}|20\d{2})\b/', $line, $yearMatch)) {
-                    $currentEducation['passing_year'] = (int)$yearMatch[1];
-                }
-                
-                // Try to extract CGPA if not already set
-                if (!$currentEducation['cgpa'] && preg_match('/CGPA[:\s]*([0-9.]+)/i', $line, $cgpaMatch)) {
-                    $currentEducation['cgpa'] = (float)$cgpaMatch[1];
-                    $currentEducation['result_type_id'] = 1;
-                    $currentEducation['scale'] = 4.0;
-                }
-            }
-        }
-        
-        // Add last education
-        if ($currentEducation) {
-            $educations[] = $currentEducation;
-        }
-        
-        // Filter out incomplete educations
-        $educations = array_filter($educations, function($edu) {
-            return !empty($edu['institution']) || !empty($edu['major']);
-        });
-        
-        return array_values($educations);
     }
 
-    private function parseJobExperiences($text)
+    private function parseName(string $fullName): array
     {
-        if (empty($text)) return [];
-        
-        $experiences = [];
-        
-        // First, split by <p> tags and <li> tags
-        $text = str_replace(['</p>', '</li>', '</li>'], "\n", $text);
-        $text = strip_tags($text);
-        $text = html_entity_decode($text);
-        
-        // Split by numbered list pattern (1., 2., 3., etc.) BEFORE splitting by newlines
-        // This ensures each numbered item becomes a separate entry
-        $items = preg_split('/(?=\d+\.\s)/', $text);
-        
-        foreach ($items as $item) {
-            $item = trim($item);
-            if (empty($item) || strlen($item) < 5) continue;
-            
-            // Remove leading number and dot (e.g., "1. ", "2. ")
-            $item = preg_replace('/^\d+\.\s*/', '', $item);
-            
-            // Further split by newlines within this item (in case there are multiple lines)
-            $lines = preg_split('/\n+/', $item);
-            
-            foreach ($lines as $line) {
-                $line = trim($line);
-                if (empty($line) || strlen($line) < 5) continue;
-                
-                $experience = [
-                    'position' => null,
-                    'organization' => null,
-                    'department' => null,
-                    'location' => null,
-                    'country_id' => 18, // Default Bangladesh
-                    'start_date' => null,
-                    'end_date' => null,
-                    'is_current' => false,
-                    'responsibilities' => null,
-                ];
-                
-                // Try to extract position and organization
-                // Pattern: "Position at Organization" or "Position, Organization" or "Position: Organization"
-                if (preg_match('/^([^:,@]+)(?::|,|@|at)\s*(.+)$/i', $line, $matches)) {
-                    $experience['position'] = trim($matches[1]);
-                    $experience['organization'] = trim($matches[2]);
-                } else {
-                    // If no clear pattern, use the whole line as position
-                    $experience['position'] = $line;
-                }
-                
-                // Try to extract country name and lookup ID
-                $countryNames = ['USA', 'United States', 'UK', 'United Kingdom', 'Canada', 'Australia', 'India', 'Pakistan', 'China', 'Japan', 'Germany', 'France', 'Saudi Arabia', 'UAE', 'Kuwait', 'Qatar'];
-                foreach ($countryNames as $countryName) {
-                    if (stripos($line, $countryName) !== false) {
-                        // Try to find country ID from new database
-                        $countryId = DB::table('countries')->where('name', 'like', '%' . $countryName . '%')->value('id');
-                        if ($countryId) {
-                            $experience['country_id'] = $countryId;
-                        }
-                        break;
-                    }
-                }
-                
-                // Try to extract years
-                if (preg_match('/(19\d{2}|20\d{2})\s*[-–to]+\s*(19\d{2}|20\d{2}|present|current)/i', $line, $yearMatch)) {
-                    $experience['start_date'] = $yearMatch[1] . '-01-01';
-                    if (preg_match('/present|current/i', $yearMatch[2])) {
-                        $experience['is_current'] = true;
-                    } else {
-                        $experience['end_date'] = $yearMatch[2] . '-12-31';
-                    }
-                }
-                
-                if (!empty($experience['position'])) {
-                    $experiences[] = $experience;
-                }
-            }
-        }
-        
-        return $experiences;
+        $fullName = preg_replace('/^(Dr\.?|Prof\.?|Mr\.?|Mrs\.?|Ms\.?|Md\.?)\s+/i', '', trim($fullName));
+        $parts    = preg_split('/\s+/', $fullName);
+        return [
+            'first_name'  => $parts[0] ?? $fullName,
+            'middle_name' => count($parts) > 2 ? implode(' ', array_slice($parts, 1, -1)) : null,
+            'last_name'   => count($parts) > 1 ? end($parts) : null,
+        ];
     }
 
-    private function parseAwards($text)
+    private function getValidEmail(string $rawEmail, string $employeeId): string
     {
-        if (empty($text)) return [];
-        
-        $awards = [];
-        
-        // Remove HTML tags but keep line breaks
-        $text = str_replace(['</p>', '</li>', '<br>', '<br/>', '<br />'], "\n", $text);
-        $text = strip_tags($text);
-        $text = html_entity_decode($text);
-        
-        // Split by numbered list pattern first (1., 2., 3., etc.)
-        // Lookahead for number + dot + space
-        $items = preg_split('/(?=\d+\.\s)/', $text);
-        
-        foreach ($items as $item) {
-            $item = trim($item);
-            if (empty($item)) continue;
-            
-            // Remove leading number and dot if present
-            $item = preg_replace('/^\d+\.\s*/', '', $item);
-            
-            // Further split by newlines, in case there are multiple lines per item or no numbers
-            // Use preg_split with PREG_SPLIT_NO_EMPTY
-            $lines = preg_split('/\n+/', $item, -1, PREG_SPLIT_NO_EMPTY);
-            
-            foreach ($lines as $line) {
-                $line = trim($line);
-                if (empty($line) || strlen($line) < 5) continue;
-                
-                $award = [
-                    'title' => $line,
-                    'awarding_body' => null,
-                    'year' => null,
-                ];
-                
-                // Try to extract year (4-digit number)
-                if (preg_match('/\b(19\d{2}|20\d{2})\b/', $line, $yearMatch)) {
-                    $award['year'] = (int)$yearMatch[1];
-                }
-                
-                // Try to extract awarding body using multiple patterns
-                $patterns = [
-                    // Pattern: "Award", Organization (quoted award followed by comma and organization)
-                    '/^"[^"]+"\s*,\s*([^,\.]+?)(?:,|\.|$)/i',
-                    // Pattern: "Organized by; Organization" (with semicolon)
-                    '/(?:Organized by|Organised by);?\s+([^,\.]+?)(?:,|\.$|\.)/i',
-                    // Pattern: "for Organization" (e.g., "Advisor for BTRI")
-                    '/\bfor\s+(?:the\s+)?([^,\.]+?(?:Institute|University|Board|Ministry|Center|Centre|Foundation|Organization|Conference|Committee)[^,\.]*?)(?:,|\.|from|$)/i',
-                    // Pattern: "Award by Organization"
-                    '/\bby\s+(?:the\s+)?([^,\.]+?)(?:,|\.|for|dated|$)/i',
-                    // Pattern: "Recognized by Organization"
-                    '/(?:Recognized|Awarded|Appointed|Selected)\s+by\s+(?:the\s+)?([^,\.]+?)(?:,|\.|for|$)/i',
-                    // Pattern: "at University/Institute" (e.g., "at Turkey to teach students of University")
-                    '/(?:at|of)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s+(?:University|Institute|College))/i',
-                    // Pattern: "nominated by Organization"
-                    '/(?:nominated by|appointed by)[;:\s]+([^,\.]+?)(?:,|\.|dated|$)/i',
-                    // Pattern: "prepared by Organization"
-                    '/(?:prepared by)[;:\s]+([^,\.]+?)(?:,|\.|nominated|$)/i',
-                    // Pattern: "Award from Organization"
-                    '/\bfrom\s+([^,\.]+?)(?:,|\.|in\s+\d{4}|$)/i',
-                    // Pattern: "published by / issued by Organization"
-                    '/(?:published by|issued by)[;:\s]+([^,\.]+?)(?:,|\.|and|$)/i',
-                    // Pattern: Extract organization from parentheses with common acronyms
-                    '/\(([A-Z]{2,})\)/i',
-                ];
-                
-                foreach ($patterns as $pattern) {
-                    if (preg_match($pattern, $line, $bodyMatch)) {
-                        $body = trim($bodyMatch[1]);
-                        
-                        // Clean up the extracted body
-                        $body = preg_replace('/\s+and\s+(followed|students|till|associated).*$/i', '', $body);
-                        $body = preg_replace('/\s+in\s+\d{4}.*$/i', '', $body);
-                        $body = preg_replace('/\s*,\s*Srilanka.*$/i', '', $body); // Remove country suffix
-                        
-                        // Don't use it as awarding body if:
-                        // - It contains date patterns (13 to 17 March, etc.)
-                        // - It's too short (< 2 chars for acronyms, < 3 for full names)
-                        // - It looks like a location only
-                        if (preg_match('/\d{1,2}\s+(?:to|-)/', $body)) {
-                            continue;
-                        }
-                        
-                        if (strlen($body) < 2) {
-                            continue;
-                        }
-                        
-                        // Skip if it's common non-organization phrases
-                        if (preg_match('/^(the|a|an|this|that|these|those|students|teach)\b/i', $body)) {
-                            continue;
-                        }
-                        
-                        // Skip pure location names unless they contain organization keywords
-                        if (preg_match('/^(Bangladesh|Turkey|Malaysia|Vietnam|India|China|USA|UK)$/i', $body)) {
-                            continue;
-                        }
-                        
-                        $award['awarding_body'] = $body;
-                        break;
-                    }
-                }
-                
-                // Special case: If award starts with organization name (e.g., "Russian Government Scholarship")
-                // Extract first 2-3 words as potential awarding body
-                if (!$award['awarding_body']) {
-                    // Check for common organization keywords at the start
-                    if (preg_match('/^([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,3})\s+(?:Scholarship|Award|Grant|Fellowship|Financial)/i', $line, $orgMatch)) {
-                        $award['awarding_body'] = trim($orgMatch[1]);
-                    }
-                }
-                
-                // Special case: Extract "in the Xth International Conference..."
-                if (!$award['awarding_body'] && preg_match('/in\s+the\s+(\d+(?:st|nd|rd|th)\s+International\s+Conference[^,\.]*)/i', $line, $confMatch)) {
-                    $award['awarding_body'] = trim($confMatch[1]);
-                }
-                
-                if (!empty($award['title'])) {
-                    $awards[] = $award;
-                }
-            }
-        }
-        
-        return $awards;
-    }
+        // Split by comma or semicolon — old records can have multiple emails
+        $parts = preg_split('/[,;]+/', strtolower(trim($rawEmail)));
 
-    private function parseTrainings($text)
-    {
-        if (empty($text)) return [];
-        
-        $trainings = [];
-        
-        // Remove HTML tags but keep line breaks
-        $text = str_replace(['</p>', '</li>', '<br>', '<br/>', '<br />'], "\n", $text);
-        $text = strip_tags($text);
-        $text = html_entity_decode($text);
-        
-        $lines = preg_split('/\n+/', $text);
-        
-        foreach ($lines as $line) {
-            $line = trim($line);
-            if (empty($line) || strlen($line) < 5) continue;
-            
-            $training = [
-                'title' => $line,
-                'organization' => null,
-                'category' => 'Training', // Default category
-                'duration_days' => null,
-                'completion_date' => null,
-                'year' => null,
-                'country_id' => 18, // Default Bangladesh
-                'certificate_url' => null,
-                'is_online' => false,
-                'description' => null,
-                'sort_order' => null,
-            ];
-            
-            // Check for online keywords
-            if (preg_match('/(online|virtual|webinar|remote)/i', $line)) {
-                $training['is_online'] = true;
-            }
-            
-            // Try to extract year
-            if (preg_match('/\b(19\d{2}|20\d{2})\b/', $line, $yearMatch)) {
-                $training['year'] = (int)$yearMatch[1];
-            }
-            
-            // Try to extract exact completion date
-            if (preg_match('/\b(\d{1,2}(?:st|nd|rd|th)?\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+(?:19|20)\d{2})\b/i', $line, $dateMatch)) {
-                try {
-                    $training['completion_date'] = date('Y-m-d', strtotime($dateMatch[1]));
-                } catch (\Exception $e) {
-                    // Ignore date parsing error
-                }
-            }
-            
-            // Try to extract organization (text after "at" or "by")
-            if (preg_match('/(?:at|by|from)\s+(.+?)(?:,|\.|$)/i', $line, $orgMatch)) {
-                $org = trim($orgMatch[1]);
-                // Clean up org
-                $org = preg_replace('/\s+on\s+.*$/i', '', $org);
-                // Use if reasonable length and not a date
-                if (strlen($org) > 3 && !preg_match('/\d/', $org)) {
-                    $training['organization'] = $org;
-                }
-            }
-            
-            // Try to extract country name and lookup ID
-            $countryNames = ['USA', 'United States', 'UK', 'United Kingdom', 'Canada', 'Australia', 'India', 'Pakistan', 'China', 'Japan', 'Germany', 'France', 'Saudi Arabia', 'UAE', 'Kuwait', 'Qatar', 'Malaysia', 'Thailand', 'Singapore', 'Turkey', 'Russia', 'Vietnam'];
-            foreach ($countryNames as $countryName) {
-                if (stripos($line, $countryName) !== false) {
-                    // Try to find country ID from new database
-                    $countryId = DB::table('countries')->where('name', 'like', '%' . $countryName . '%')->value('id');
-                    if ($countryId) {
-                        $training['country_id'] = $countryId;
-                    }
-                    break;
-                }
-            }
-            
-            // Try to extract duration
-            if (preg_match('/(\d+)\s*(?:days?|weeks?|months?)/i', $line, $durationMatch)) {
-                $days = (int)$durationMatch[1];
-                if (stripos($line, 'week') !== false) {
-                    $days *= 7;
-                } elseif (stripos($line, 'month') !== false) {
-                    $days *= 30;
-                }
-                $training['duration_days'] = $days;
-            }
-            
-            if (!empty($training['title'])) {
-                $trainings[] = $training;
+        $candidates = [];
+        foreach ($parts as $part) {
+            // Remove ALL internal whitespace (handles "elahi.jmc@ daffodilvarsity.edu.bd")
+            $cleaned = preg_replace('/\s+/', '', trim($part));
+            if ($cleaned && filter_var($cleaned, FILTER_VALIDATE_EMAIL)) {
+                $candidates[] = $cleaned;
             }
         }
-        
-        return $trainings;
-    }
 
-    private function parseTeachingAreas($text)
-    {
-        if (empty($text)) return [];
-        
-        $areas = [];
-        
-        // First, split by <p> tags to handle multiple paragraphs
-        $paragraphs = preg_split('/<\/p>|<p[^>]*>/i', $text);
-        
-        // Also split by <li> tags
-        $items = [];
-        foreach ($paragraphs as $para) {
-            $liItems = preg_split('/<\/li>|<li[^>]*>/i', $para);
-            $items = array_merge($items, $liItems);
+        if (empty($candidates)) {
+            // Fallback: generate from employeeID
+            $slug = preg_replace('/[^a-z0-9]/', '', strtolower($employeeId));
+            return $slug ? "{$slug}@diu.edu.bd" : 'unknown@diu.edu.bd';
         }
-        
-        // Now process each item
-        foreach ($items as $item) {
-            // Remove all remaining HTML tags
-            $item = strip_tags($item);
-            $item = html_entity_decode($item);
-            $item = trim($item);
-            
-            if (empty($item) || strlen($item) < 3) continue;
-            
-            // Split by comma if multiple areas in one line
-            $subItems = array_map('trim', explode(',', $item));
-            
-            foreach ($subItems as $subItem) {
-                $subItem = trim($subItem);
-                
-                // Skip empty, very short items, or items that are just numbers/punctuation
-                if (empty($subItem) || strlen($subItem) < 3 || preg_match('/^[\d\.\s]+$/', $subItem)) {
-                    continue;
-                }
-                
-                $areas[] = [
-                    'area' => $subItem,
-                    'description' => null,
-                ];
-            }
-        }
-        
-        return $areas;
-    }
 
-    private function parseMemberships($text)
-    {
-        if (empty($text)) return [];
-        
-        $memberships = [];
-        $lines = explode("\n", strip_tags($text));
-        
-        foreach ($lines as $line) {
-            $line = trim($line);
-            if (empty($line)) continue;
-            
-            $memberships[] = [
-                'membership_organization_id' => null,
-                'membership_type_id' => null,
-                'membership_id' => $line,
-                'status' => 'Active',
-            ];
+        // Priority 1: @diu.edu.bd
+        foreach ($candidates as $email) {
+            if (str_ends_with($email, '@diu.edu.bd')) return $email;
         }
-        
-        return $memberships;
-    }
 
-    private function getValidEmail($email, $employeeId)
-    {
-        // Clean and validate email
-        $email = trim($email);
-        
-        // Check if email is valid
-        if (!empty($email) && filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            return $email;
+        // Priority 2: @daffodilvarsity.edu.bd
+        foreach ($candidates as $email) {
+            if (str_ends_with($email, '@daffodilvarsity.edu.bd')) return $email;
         }
-        
-        // Generate email from employee ID
-        $cleanId = preg_replace('/[^a-zA-Z0-9]/', '', $employeeId);
-        return strtolower($cleanId) . '@diu.edu.bd';
+
+        // Priority 3: any other .edu.bd domain
+        foreach ($candidates as $email) {
+            if (str_ends_with($email, '.edu.bd')) return $email;
+        }
+
+        // Priority 4: first valid email (gmail etc.)
+        return $candidates[0];
     }
 }

@@ -50,8 +50,16 @@ class DepartmentsTable
                     ->sortable(),
                 TextColumn::make('teachers_count')
                     ->label('Teachers')
-                    ->counts('teachers')
+                    ->getStateUsing(function ($record) {
+                        $total = $record->teachers()->count();
+                        $guest = $record->teachersViaAssignment()->where(function ($q) use ($record) {
+                            $q->where('teachers.department_id', '!=', $record->id)
+                                ->orWhereNull('teachers.department_id');
+                        })->count();
+                        return "Total = {$total}<br>Guest = {$guest}";
+                    })
                     ->badge()
+                    ->html()
                     ->color('success'),
                 TextColumn::make('publications_count')
                     ->label('Publications')

@@ -18,7 +18,7 @@ return new class extends Migration
             $table->foreignId('designation_id')->constrained();
 
             // Personal Information (ERP Aligned)
-            $table->string('employee_id')->unique()->nullable();
+            $table->string('employee_id')->nullable();
             $table->string('first_name');
             $table->string('middle_name')->nullable();
             $table->string('last_name')->nullable();
