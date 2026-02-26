@@ -50,7 +50,7 @@ class TeacherResource extends Resource
 //            RelationManagers\JobExperiencesRelationManager::class,
 //            RelationManagers\AwardsRelationManager::class,
 //            RelationManagers\SkillsRelationManager::class,
-//            RelationManagers\TeachingAreasRelationManager::class,
+            RelationManagers\TeachingAreasRelationManager::class,
 //            RelationManagers\TrainingExperiencesRelationManager::class,
 //            // RelationManagers\MembershipsRelationManager::class,  // Missing file
 //            RelationManagers\SocialLinksRelationManager::class,

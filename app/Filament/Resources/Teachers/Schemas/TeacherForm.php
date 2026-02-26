@@ -159,7 +159,7 @@ class TeacherForm
                             ->schema([
                                 Grid::make(3)->schema([
                                     TextInput::make('phone')->tel()->required(),
-                                    TextInput::make('personal_phone')->tel(),
+                                    TextInput::make('personal_phone'),
                                     TextInput::make('extension_no')
                                         ->label('Extension No')
                                         ->maxLength(20),

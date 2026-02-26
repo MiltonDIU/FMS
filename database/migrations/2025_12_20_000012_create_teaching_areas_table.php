@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('teacher_id')->constrained()->cascadeOnDelete();
 
-            $table->string('area');
+            $table->text('area');
             $table->text('description')->nullable();
 
             $table->integer('sort_order')->default(0);

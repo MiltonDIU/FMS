@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('teacher_id')->constrained()->cascadeOnDelete();
 
             // ERP Aligned Fields
-            $table->string('title');
+            $table->text('title');
             $table->string('awarding_body')->nullable();
             $table->enum('type', ['award', 'scholarship', 'recognition', 'appreciation', 'other'])->default('award');
             $table->date('date')->nullable();
