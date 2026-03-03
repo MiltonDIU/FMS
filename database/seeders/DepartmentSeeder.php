@@ -60,7 +60,7 @@ class DepartmentSeeder extends Seeder
                 ['name' => 'Department of Information Technology & Management', 'short_name' => 'ITM', 'code' => 'ITM', 'description' => 'Combines IT skills with management knowledge covering IT project management, systems analysis, and technology leadership.'],
             ],
 
-            'SUD' => [
+            'SUF' => [
                 ['name' => 'System - Unassigned Department', 'short_name' => 'SUD', 'code' => 'SUD', 'description' => 'System - Unassigned Department'],
               ],
 

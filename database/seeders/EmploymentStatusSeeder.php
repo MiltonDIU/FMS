@@ -83,6 +83,15 @@ class EmploymentStatusSeeder extends Seeder
                 'is_active' => true,
                 'sort_order' => 8,
             ],
+            [
+                'name' => 'Archived',
+                'slug' => 'archived',
+                'color' => 'danger',
+                'check_active' => false,
+                'description' => 'Archived status for historical records',
+                'is_active' => true,
+                'sort_order' => 9,
+            ],
         ];
 
         foreach ($statuses as $status) {

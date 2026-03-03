@@ -24,13 +24,14 @@ class ExportOldTeachersCommand extends Command
         $this->info('Fetching old teachers...');
         $limit = (int) $this->option('limit');
 
-        // INNER JOIN — শুধু dfd_add-এ record আছে এমন teachers
+        // LEFT JOIN — dfd_add-এ আছে এবং নেই উভয় teachers এক সাথে fetch করা হচ্ছে।
+        // dfd_add-এ কোনো record নেই এমন teacher-রা archived হবে।
         // dfd_add-এ একজন teacher একাধিক dept-এ থাকতে পারে,
         // তাই recordListingID=1 (primary listing) কে prefer করা হয়,
         // না থাকলে MIN() দিয়ে প্রথমটা নেওয়া হয়
         $query = DB::connection('old_db')
             ->table('teacher as t')
-            ->join('dfd_add as dfd', 'dfd.teacher_id', '=', 't.id')
+            ->leftJoin('dfd_add as dfd', 'dfd.teacher_id', '=', 't.id')
             ->leftJoin('department as dept', 'dfd.department_id', '=', 'dept.department_id')
             ->leftJoin('faculty as fac', 'dfd.faculty_id', '=', 'fac.faculty_id')
             ->leftJoin('designation as des', 'dfd.designation_id', '=', 'des.designation_id')
@@ -62,7 +63,9 @@ class ExportOldTeachersCommand extends Command
                 DB::raw('COALESCE(
                     MIN(CASE WHEN dfd.recordListingID = 1 THEN des.designation END),
                     MIN(des.designation)
-                ) as old_designation_name')
+                ) as old_designation_name'),
+                // NULL হলে teacher dfd_add-এ নেই → archived
+                DB::raw('MIN(dfd.teacher_id) as dfd_teacher_id')
             )
             ->groupBy('t.id');  // Group by unique ID instead of employeeID
 
@@ -109,8 +112,10 @@ class ExportOldTeachersCommand extends Command
             ->groupBy('teacher_id');   // Group by teacher_id
 
         foreach ($teachers as $teacher) {
-            $dfdRows = $allDfdRows->get($teacher->old_teacher_id, collect());
-            $exportData[] = $this->transformTeacher($teacher, $dfdRows);
+            // dfd_teacher_id NULL মানে teacher dfd_add-এ নেই → archived
+            $isArchived = ($teacher->dfd_teacher_id === null);
+            $dfdRows    = $isArchived ? collect() : $allDfdRows->get($teacher->old_teacher_id, collect());
+            $exportData[] = $this->transformTeacher($teacher, $dfdRows, $isArchived);
             $bar->advance();
         }
 
@@ -125,19 +130,23 @@ class ExportOldTeachersCommand extends Command
         file_put_contents($path, json_encode($exportData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 
         // Stats summary
-        $nullDept  = count(array_filter($exportData, fn($t) => $t['teacher_profile']['department_id'] === null));
-        $nullDesig = count(array_filter($exportData, fn($t) => $t['teacher_profile']['designation_id'] === null));
-        $nullEmail = count(array_filter($exportData, fn($t) => str_ends_with($t['user']['email'], '@diu.edu.bd') && !str_contains($t['user']['email'], '@daffodil')));
+        $archivedCount = count(array_filter($exportData, fn($t) => $t['teacher_profile']['is_archived'] === true));
+        $activeCount   = count($exportData) - $archivedCount;
+        $nullDept      = count(array_filter($exportData, fn($t) => !$t['teacher_profile']['is_archived'] && $t['teacher_profile']['department_id'] === null));
+        $nullDesig     = count(array_filter($exportData, fn($t) => !$t['teacher_profile']['is_archived'] && $t['teacher_profile']['designation_id'] === null));
+        $nullEmail     = count(array_filter($exportData, fn($t) => str_ends_with($t['user']['email'], '@diu.edu.bd') && !str_contains($t['user']['email'], '@daffodil')));
 
         $this->newLine();
         $this->info("✅ Export complete → {$path}");
         $this->table(
             ['Metric', 'Count'],
             [
-                ['Total exported',          count($exportData)],
-                ['Null department_id',       $nullDept . ' (need manual fix or GED dept missing in new DB)'],
-                ['Null designation_id',      $nullDesig . ' (no dfd_add record or unrecognized rank)'],
-                ['Fallback email generated', $nullEmail],
+                ['Total exported',                   count($exportData)],
+                ['Active teachers (dfd_add present)', $activeCount],
+                ['Archived teachers (no dfd_add)',    $archivedCount . ' (faculty=6, dept=31, desig=7, employment_status=9)'],
+                ['Null department_id (active only)',  $nullDept . ' (need manual fix or GED dept missing in new DB)'],
+                ['Null designation_id (active only)', $nullDesig . ' (unrecognized rank)'],
+                ['Fallback email generated',          $nullEmail],
             ]
         );
         return 0;
@@ -295,7 +304,7 @@ class ExportOldTeachersCommand extends Command
 
     // ── Transform (Phase 1) ──
 
-    private function transformTeacher(object $t, $dfdRows = null): array
+    private function transformTeacher(object $t, $dfdRows = null, bool $isArchived = false): array
     {
         $nameParts  = $this->parseName($t->name ?? '');
         $email      = $this->getValidEmail($t->email ?? '', $t->employeeID ?? '');
@@ -369,6 +378,64 @@ class ExportOldTeachersCommand extends Command
             ];
         }
 
+        // ── Archived teacher overrides ──
+        // dfd_add-এ record নেই এমন teacher-রা archived;
+        // তাদের জন্য fixed dept/faculty/desig এবং status values সেট করা হচ্ছে।
+        if ($isArchived) {
+            return [
+                'user' => [
+                    'name'      => trim($t->name ?? ''),
+                    'email'     => $email,
+                    'is_active' => false,
+                ],
+
+                'teacher_profile' => [
+                    'employee_id'          => $t->employeeID   ?? null,
+                    'first_name'           => $nameParts['first_name'],
+                    'middle_name'          => $nameParts['middle_name'],
+                    'last_name'            => $nameParts['last_name'],
+                    // Archived defaults
+                    'department_id'        => 31,
+                    'designation_id'       => 7,
+                    'faculty_id'           => 6,
+                    'job_type_id'          => null,
+                    'employment_status_id' => 9,
+                    'country_id'           => 18,
+                    'gender_id'            => 0,
+                    'blood_group_id'       => 0,
+                    'religion_id'          => 0,
+                    'phone'                => $phone,
+                    'extension_no'         => $phoneParsed['extension_no'],
+                    'personal_phone'       => $personalPhone,
+                    'webpage'              => $t->webpage ?? null,
+                    'bio'                  => null,
+                    'research_interest'    => null,
+                    'is_public'            => false,
+                    'is_active'            => false,
+                    'is_archived'          => true,
+                    'profile_status'       => 'archived',
+                    // Reference — stripped before real import
+                    '_old_teacher_id'      => $t->old_teacher_id,
+                    '_old_designation'     => null,
+                    '_old_department'      => null,
+                    '_old_faculty'         => null,
+                ],
+
+                // Archived teachers have no dept assignments from dfd_add
+                'departments' => [],
+
+                // HasMany — empty for archived
+                'educations'           => [],
+                'job_experiences'      => [],
+                'awards'               => [],
+                'training_experiences' => [],
+                'teaching_areas'       => [],
+                'memberships'          => [],
+                'social_links'         => [],
+            ];
+        }
+
+        // ── Normal (active) teacher ──
         return [
             'user' => [
                 'name'      => trim($t->name ?? ''),

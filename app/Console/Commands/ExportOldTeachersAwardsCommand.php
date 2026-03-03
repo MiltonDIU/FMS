@@ -23,7 +23,7 @@ class ExportOldTeachersAwardsCommand extends Command
 
         $query = DB::connection('old_db')
             ->table('teacher as t')
-            ->join('dfd_add as dfd', 'dfd.teacher_id', '=', 't.id')
+//            ->join('dfd_add as dfd', 'dfd.teacher_id', '=', 't.id')
             ->select('t.id as old_teacher_id', 't.employeeID', 't.awardScholarship')
             ->whereNotNull('t.awardScholarship')
             ->where('t.awardScholarship', '!=', '')
@@ -55,7 +55,7 @@ class ExportOldTeachersAwardsCommand extends Command
         $this->newLine();
 
         $this->info("Prepared " . count($exportData) . " records for export.");
-        
+
         $json = json_encode($exportData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
         if ($json === false) {
             $this->error("JSON encoding failed: " . json_last_error_msg());
@@ -67,7 +67,7 @@ class ExportOldTeachersAwardsCommand extends Command
         if (!is_dir(dirname($path))) {
             mkdir(dirname($path), 0755, true);
         }
-        
+
         $bytes = file_put_contents($path, $json);
         if ($bytes === false) {
             $this->error("Failed to write to file: {$path}");
@@ -89,7 +89,7 @@ class ExportOldTeachersAwardsCommand extends Command
         $cleaned = str_replace(['</p>', '</li>', '<br>', '<br/>', '<br />', '</div>'], "\n", $raw);
         $cleaned = strip_tags($cleaned);
         $cleaned = html_entity_decode($cleaned, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        
+
         // Split by newline and filter empty ones
         $lines = explode("\n", $cleaned);
         $awards = [];
@@ -112,15 +112,15 @@ class ExportOldTeachersAwardsCommand extends Command
 
             // 2. Extract Awarding Body
             $awardingBody = null;
-            
+
             // Patterns to look for in order of priority
             $patterns = [
                 // Pattern: "Award Title (for/to [Organization])"
                 '/\((?:for|to|at|by|from)\s+((?:[A-Z][a-z&0-9\.]+\s*|of\s+|and\s+)+)\)/',
-                
+
                 // Pattern: "by/from/at/to [Organization]"
                 '/(?:by|from|at|to)\s+((?:[A-Z][a-z&0-9\.]+\s*|of\s+|and\s+)+)/',
-                
+
                 // Pattern: ", [Organization]" or "- [Organization]" at the end (after year or title)
                 '/[,:-]\s*([A-Z][A-Z\s0-9]+)[\.\s]*$/', // All caps like "DIU."
                 '/[,:-]\s*((?:[A-Z][a-z&0-9\.]+\s*|of\s+|and\s+)+)[\.\s]*$/', // Mixed case
@@ -131,7 +131,7 @@ class ExportOldTeachersAwardsCommand extends Command
             foreach ($patterns as $pattern) {
                 if (preg_match($pattern, $line, $matches)) {
                     $candidate = trim($matches[1]);
-                    
+
                     // Cleanup candidate from common trailing words or punctuation
                     $candidate = preg_replace('/[,;\.\(\)\s]+$/', '', $candidate);
                     $candidate = trim($candidate);
@@ -149,7 +149,7 @@ class ExportOldTeachersAwardsCommand extends Command
                             }
                         }
                     }
-                    
+
                     if ($isInstitution) {
                         // Avoid capturing the year as part of the awarding body if it leaked in
                         $candidate = preg_replace('/\b(19|20)\d{2}\b/', '', $candidate);

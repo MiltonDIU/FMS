@@ -23,7 +23,7 @@ class ExportOldTeachersTeachingAreasCommand extends Command
 
         $query = DB::connection('old_db')
             ->table('teacher as t')
-            ->join('dfd_add as dfd', 'dfd.teacher_id', '=', 't.id')
+//            ->join('dfd_add as dfd', 'dfd.teacher_id', '=', 't.id')
             ->select('t.id as old_teacher_id', 't.employeeID', 't.teachingArea')
             ->whereNotNull('t.teachingArea')
             ->where('t.teachingArea', '!=', '')
@@ -43,7 +43,7 @@ class ExportOldTeachersTeachingAreasCommand extends Command
 
         foreach ($records as $record) {
             $result = $this->parseTeachingAreas($record->teachingArea);
-            
+
             if (!empty($result['clean'])) {
                 $exportData[] = [
                     'old_teacher_id' => $record->old_teacher_id,
@@ -68,10 +68,10 @@ class ExportOldTeachersTeachingAreasCommand extends Command
 
         $this->info("Prepared " . count($exportData) . " records for export.");
         $this->warn("Identified " . count($reviewData) . " records needing manual review.");
-        
+
         // Export Clean Data
         $this->saveJson($this->option('output'), $exportData);
-        
+
         // Export Review Data
         $reviewFilename = str_replace('.json', '_review.json', $this->option('output'));
         $this->saveJson($reviewFilename, $reviewData);
@@ -91,7 +91,7 @@ class ExportOldTeachersTeachingAreasCommand extends Command
         if (!is_dir(dirname($path))) {
             mkdir(dirname($path), 0755, true);
         }
-        
+
         $bytes = file_put_contents($path, $json);
         if ($bytes === false) {
             $this->error("Failed to write to file: {$path}");
@@ -138,7 +138,7 @@ class ExportOldTeachersTeachingAreasCommand extends Command
                     // Keyword Check (Role/University) but ONLY if not a list
                     // If it has pipe separators (from <br>) or many commas, it's likely a list
                     $isList = strpos($item, '|') !== false || substr_count($item, ',') + substr_count($item, ';') > 1;
-                    
+
                     if (!$isList && $this->isProfileRoleOrInstitution($item)) {
                         $review[] = [
                             'type' => 'junk_profile_info',
@@ -165,7 +165,7 @@ class ExportOldTeachersTeachingAreasCommand extends Command
         $tempCleaned = str_replace(['</p>', '</li>', '<br>', '<br/>', '<br />', '</div>', '</ul>', '</ol>'], "\n", $raw);
         $tempCleaned = strip_tags($tempCleaned);
         $tempCleaned = html_entity_decode($tempCleaned, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        
+
         $lines = explode("\n", $tempCleaned);
         foreach ($lines as $line) {
             $line = $this->cleanSubjectText($line);
@@ -174,12 +174,12 @@ class ExportOldTeachersTeachingAreasCommand extends Command
             if ($this->hasYearOrDate($line)) continue;
 
             if (strlen($line) > 250 && strpos($line, ',') === false) continue;
-            
+
             if (preg_match_all('/[,;]/', $line) > 1 && str_word_count($line) < 50) {
                 $subParts = preg_split('/[,;]/', $line);
                 foreach ($subParts as $part) {
                     $part = $this->cleanSubjectText($part);
-                    
+
                     if (strlen($part) > 2 && strlen($part) < 250 && !$this->hasYearOrDate($part)) {
                         $clean[] = [
                             'area'        => mb_convert_encoding($part, 'UTF-8', 'UTF-8'),
@@ -213,36 +213,36 @@ class ExportOldTeachersTeachingAreasCommand extends Command
         // 1. Decode entities and normalize whitespace
         $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $text = str_replace("\xc2\xa0", ' ', $text);
-        
+
         // 2. Remove leading bullets/numbers: "1. ", "1) ", "1 ", "o ", "- ", "* ", "(a) ", etc.
-        // This strips: 
+        // This strips:
         // - (a) or a)
         // - 1. or 1)
         // - 1 (followed by space)
         // - Bullets: o, -, •, *, etc.
         $text = preg_replace('/^(\(?[0-9a-z][\.)]|\(?[0-9]+\)|[0-9]+\.|\b[0-9]+\b|o|[-•*·?#])\s*/i', '', trim($text));
-        
+
         // 3. Normalize internal whitespace
         $text = preg_replace('/\s+/', ' ', $text);
-        
+
         return trim($text);
     }
 
     private function hasYearOrDate(string $text): bool
     {
         // Detect Years (e.g. 1999, 2024, '07, '99)
-        if (preg_match('/\b(19|20)\d{2}\b/', $text)) return true; 
+        if (preg_match('/\b(19|20)\d{2}\b/', $text)) return true;
         if (preg_match('/\b\d{2}[-–]\d{2}\b/', $text)) return true;
         if (preg_match('/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* [0-9]{2,4}\b/i', $text)) return true;
         if (preg_match('/\b[0-9]{2,4} (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\b/i', $text)) return true;
-        
+
         return false;
     }
 
     private function isProfileRoleOrInstitution(string $text): bool
     {
         $junkKeywords = [
-            'Professor', 'Assistant Professor', 'Associate Professor', 'Dean', 'Director', 'Head', 
+            'Professor', 'Assistant Professor', 'Associate Professor', 'Dean', 'Director', 'Head',
             'Coordinator', 'Lecturer', 'Registrar',
             'University', 'Green University', 'CUET', 'BIT Rajshahi', 'Syndicate', 'Expert Member'
         ];
