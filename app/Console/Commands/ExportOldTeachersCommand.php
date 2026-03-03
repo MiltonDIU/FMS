@@ -11,8 +11,10 @@ class ExportOldTeachersCommand extends Command
     protected $description = 'Export teachers from old database — Phase 1: core profile only (BelongsTo fields)';
 
     protected array $newDeptMap  = [];
+    protected array $newFacultyMap = [];
     protected array $newDesigMap = [];
     protected array $jobTypeMap  = [];
+    protected array $adminRoleMap = [];
 
     public function handle(): int
     {
@@ -80,15 +82,25 @@ class ExportOldTeachersCommand extends Command
             ->table('dfd_add as dfd')
             ->join('teacher as t', 't.id', '=', 'dfd.teacher_id')
             ->leftJoin('department as dept', 'dept.department_id', '=', 'dfd.department_id')
+            ->leftJoin('faculty as fac', 'fac.faculty_id', '=', 'dfd.faculty_id')
             ->leftJoin('designation as des', 'des.designation_id', '=', 'dfd.designation_id')
             ->select(
                 'dfd.teacher_id',
+                'dfd.faculty_id     as old_faculty_id',
                 'dfd.department_id  as old_dept_id',
                 'dfd.designation_id as old_desig_id',
                 'dfd.is_part_time',
                 'dfd.teacher_type',
                 'dfd.recordListingID',
+                'dfd.dean',
+                'dfd.head',
+                'dfd.advisor',
+                'dfd.associate_dean',
+                'dfd.intadvisor',
+                'dfd.coordination',
                 'dept.departmentname as dept_name',
+                'dept.dslug         as dept_dslug',
+                'fac.short_name     as faculty_short_name',
                 'des.designation    as desig_name'
             )
             ->orderBy('t.id')
@@ -191,7 +203,34 @@ class ExportOldTeachersCommand extends Command
             $this->jobTypeMap[strtolower(trim($jt->name))] = $jt->id;
         }
 
+        // Faculty map
+        $oldFacs = DB::connection('old_db')->table('faculty')->get();
+        $newFacs = DB::connection('mysql')->table('faculties')->get();
+        foreach ($oldFacs as $old) {
+            $oldName = $this->normalizeName($old->facultyname);
+            foreach ($newFacs as $new) {
+                $newName = $this->normalizeName($new->name);
+                if ($oldName === $newName || str_contains($newName, $oldName) || str_contains($oldName, $newName)) {
+                    $this->newFacultyMap[$old->faculty_id] = $new->id;
+                    break;
+                }
+            }
+        }
+
+        $this->newFacultyMap[1] = 1; // FSIT
+        $this->newFacultyMap[2] = 2; // FE
+        $this->newFacultyMap[3] = 3; // FBE
+        $this->newFacultyMap[4] = 4; // FAHS
+        $this->newFacultyMap[5] = 5; // FHSS
+
+        // Administrative roles map
+        $roles = DB::connection('mysql')->table('administrative_roles')->get(['id', 'name']);
+        foreach ($roles as $r) {
+            $this->adminRoleMap[strtolower(trim($r->name))] = $r->id;
+        }
+
         $this->info("Dept map: " . count($this->newDeptMap) .
+                    " | Faculty map: " . count($this->newFacultyMap) .
                     " | Desig map: " . count($this->newDesigMap) . " entries");
     }
 
@@ -264,6 +303,18 @@ class ExportOldTeachersCommand extends Command
         $newDesigId = $this->newDesigMap[$t->old_desig_id ?? 0] ?? null;
         $jobTypeId  = $this->resolveJobType($t);
         $phoneParsed = $this->parsePhoneAndExtension($t->phone ?? '');
+        $phone = $phoneParsed['phone'];
+        $personalPhone = $t->cell ?? null;
+
+        // Requirement: phone is required. Fallback to personal_phone, then to default '016000000'
+        if (empty($phone)) {
+            if (!empty($personalPhone)) {
+                $phone = $personalPhone;
+            } else {
+                $phone = '016000000';
+//                $personalPhone = '016000000';
+            }
+        }
 
         // Build all department assignments from dfd_add rows
         $departmentAssignments = [];
@@ -275,6 +326,22 @@ class ExportOldTeachersCommand extends Command
                 $desigId    = $this->newDesigMap[$row->old_desig_id ?? 0] ?? null;
                 $rowJobType = $this->resolveJobTypeFromRow($row);
 
+                // Map administrative roles from flags
+                $adminRoles = [];
+                $facId = $this->newFacultyMap[$row->old_faculty_id] ?? null;
+
+                $deptDslug       = $row->dept_dslug ?? null;
+                $facultyShortName = $row->faculty_short_name ?? null;
+
+                if (!empty($row->dean))           $adminRoles[] = ['role_id' => $this->adminRoleMap['dean'] ?? null,               'dept_dslug' => null,      'faculty_short_name' => $facultyShortName, 'department_id' => null,   'faculty_id' => $facId];
+                if (!empty($row->head))           $adminRoles[] = ['role_id' => $this->adminRoleMap['head of department'] ?? null, 'dept_dslug' => $deptDslug, 'faculty_short_name' => $facultyShortName, 'department_id' => $deptId, 'faculty_id' => $facId];
+                if (!empty($row->advisor))        $adminRoles[] = ['role_id' => $this->adminRoleMap['advisor'] ?? null,            'dept_dslug' => $deptDslug, 'faculty_short_name' => $facultyShortName, 'department_id' => $deptId, 'faculty_id' => $facId];
+                if (!empty($row->associate_dean)) $adminRoles[] = ['role_id' => $this->adminRoleMap['associate dean'] ?? null,     'dept_dslug' => null,      'faculty_short_name' => $facultyShortName, 'department_id' => null,   'faculty_id' => $facId];
+                if (!empty($row->intadvisor))     $adminRoles[] = ['role_id' => $this->adminRoleMap['intadvisor'] ?? null,         'dept_dslug' => $deptDslug, 'faculty_short_name' => $facultyShortName, 'department_id' => $deptId, 'faculty_id' => $facId];
+                if (!empty($row->coordination))   $adminRoles[] = ['role_id' => $this->adminRoleMap['program coordinator'] ?? null, 'dept_dslug' => $deptDslug, 'faculty_short_name' => $facultyShortName, 'department_id' => $deptId, 'faculty_id' => $facId];
+
+                $adminRoles = array_filter($adminRoles, fn($r) => $r['role_id'] !== null);
+
                 // Avoid exact duplicate dept entries
                 $key = $deptId;
                 if (!isset($departmentAssignments[$key])) {
@@ -284,6 +351,7 @@ class ExportOldTeachersCommand extends Command
                         'job_type_id'    => $rowJobType,
                         'is_primary'     => ((int)($row->recordListingID ?? 0)) === 1,
                         'sort_order'     => (int)($row->recordListingID ?? 99),
+                        'administrative_roles' => array_values($adminRoles),
                         '_old_dept_name' => $row->dept_name,
                     ];
                 }
@@ -322,9 +390,9 @@ class ExportOldTeachersCommand extends Command
                 'gender_id'            => 0,
                 'blood_group_id'       => 0,
                 'religion_id'          => 0,
-                'phone'                => $phoneParsed['phone'],
+                'phone'                => $phone,
                 'extension_no'         => $phoneParsed['extension_no'],
-                'personal_phone'       => $t->cell    ?? null,
+                'personal_phone'       => $personalPhone,
                 'webpage'              => $t->webpage ?? null,
                 // bio: null — old DB had no bio field
                 'bio'                  => null,

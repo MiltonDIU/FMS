@@ -61,6 +61,14 @@ class DesignationSeeder extends Seeder
                 'is_active' => true,
                 'sort_order' => 6,
             ],
+            [
+                'name' => 'System - Unassigned Designation',
+                'short_name' => 'SUD.',
+                'rank' => 20,
+                'description' => 'System - Unassigned Designation',
+                'is_active' => false,
+                'sort_order' => 20,
+            ],
         ];
 
         foreach ($designations as $designation) {

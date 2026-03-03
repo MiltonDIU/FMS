@@ -25,16 +25,6 @@ class DepartmentSeeder extends Seeder
                 ['name' => 'Department of Finance & Banking', 'short_name' => 'FNB', 'code' => 'FNB', 'description' => 'Covers financial management, investment analysis, banking operations, risk management, and capital markets for finance professionals.'],
                 ['name' => 'Department of Marketing', 'short_name' => 'MKT', 'code' => 'MKT', 'description' => 'Focuses on marketing strategies, consumer behavior, digital marketing, brand management, and market research for marketing professionals.'],
             ],
-
-            // Faculty of Science and Information Technology
-            'FSIT' => [
-                ['name' => 'Department of Computer Science and Engineering', 'short_name' => 'CSE', 'code' => 'CSE', 'description' => 'Offers comprehensive computer science education including programming, algorithms, data structures, AI, machine learning, and software development.'],
-                ['name' => 'Department of Software Engineering', 'short_name' => 'SWE', 'code' => 'SWE', 'description' => 'Focuses on software development lifecycle, agile methodologies, quality assurance, DevOps, and modern software architecture practices.'],
-                ['name' => 'Department of Multimedia & Creative Technology', 'short_name' => 'MCT', 'code' => 'MCT', 'description' => 'Combines creativity with technology covering animation, game development, visual effects, UI/UX design, and digital content creation.'],
-                ['name' => 'Department of Computing and Information System', 'short_name' => 'CIS', 'code' => 'CIS', 'description' => 'Focuses on information systems design, database management, business analytics, and enterprise solutions for IT-business integration.'],
-                ['name' => 'Department of Information Technology & Management', 'short_name' => 'ITM', 'code' => 'ITM', 'description' => 'Combines IT skills with management knowledge covering IT project management, systems analysis, and technology leadership.'],
-            ],
-
             // Faculty of Engineering
             'FE' => [
                 ['name' => 'Department of Information and Communication Engineering', 'short_name' => 'ICE', 'code' => 'ICE', 'description' => 'Covers telecommunication systems, network engineering, signal processing, and wireless communication technologies.'],
@@ -44,7 +34,6 @@ class DepartmentSeeder extends Seeder
                 ['name' => 'Department of Civil Engineering', 'short_name' => 'CE', 'code' => 'CE', 'description' => 'Covers structural engineering, construction management, transportation systems, and environmental engineering for infrastructure development.'],
                 ['name' => 'Department of Robotics and Mechatronics Engineering', 'short_name' => 'rme', 'code' => 'rme', 'description' => 'The Department of Robotics and Mechatronics Engineering integrates mechanical, electronic, and computer systems to develop intelligent robots, automation technologies, and smart industrial solutions.'],
             ],
-
             // Faculty of Health and Life Sciences
             'FHLS' => [
                 ['name' => 'Department of Environmental Science and Disaster Management', 'short_name' => 'ESDM', 'code' => 'ESDM', 'description' => 'Focuses on environmental protection, climate change, disaster preparedness, and sustainable development practices.'],
@@ -55,7 +44,6 @@ class DepartmentSeeder extends Seeder
                 ['name' => 'Department of Agricultural Science', 'short_name' => 'AGS', 'code' => 'AGS', 'description' => 'Provides education in agricultural practices, crop science, agribusiness, and sustainable farming for agricultural development.'],
                 ['name' => 'Department of Genetic Engineering and Biotechnology', 'short_name' => 'GEB', 'code' => 'GEB', 'description' => 'Covers molecular biology, genetic engineering, bioinformatics, and biotechnology applications for life science research.'],
             ],
-
             // Faculty of Humanities & Social Sciences
             'FHSS' => [
                 ['name' => 'Department of English', 'short_name' => 'ENG', 'code' => 'ENG', 'description' => 'Focuses on English language, literature, linguistics, and communication skills for teaching and professional communication careers.'],
@@ -63,6 +51,19 @@ class DepartmentSeeder extends Seeder
                 ['name' => 'Department of Journalism, Media and Communication', 'short_name' => 'JMC', 'code' => 'JMC', 'description' => 'Covers journalism, mass communication, broadcast media, and digital media for media professionals and communicators.'],
                 ['name' => 'Department of Development Studies', 'short_name' => 'DS', 'code' => 'DS', 'description' => 'Focuses on development theories, social policy, poverty alleviation, and sustainable development for development professionals.'],
             ],
+            // Faculty of Science and Information Technology
+            'FSIT' => [
+                ['name' => 'Department of Computer Science and Engineering', 'short_name' => 'CSE', 'code' => 'CSE', 'description' => 'Offers comprehensive computer science education including programming, algorithms, data structures, AI, machine learning, and software development.'],
+                ['name' => 'Department of Software Engineering', 'short_name' => 'SWE', 'code' => 'SWE', 'description' => 'Focuses on software development lifecycle, agile methodologies, quality assurance, DevOps, and modern software architecture practices.'],
+                ['name' => 'Department of Multimedia & Creative Technology', 'short_name' => 'MCT', 'code' => 'MCT', 'description' => 'Combines creativity with technology covering animation, game development, visual effects, UI/UX design, and digital content creation.'],
+                ['name' => 'Department of Computing and Information System', 'short_name' => 'CIS', 'code' => 'CIS', 'description' => 'Focuses on information systems design, database management, business analytics, and enterprise solutions for IT-business integration.'],
+                ['name' => 'Department of Information Technology & Management', 'short_name' => 'ITM', 'code' => 'ITM', 'description' => 'Combines IT skills with management knowledge covering IT project management, systems analysis, and technology leadership.'],
+            ],
+
+            'SUD' => [
+                ['name' => 'System - Unassigned Department', 'short_name' => 'SUD', 'code' => 'SUD', 'description' => 'System - Unassigned Department'],
+              ],
+
         ];
 
         $sortOrder = 1;

@@ -45,7 +45,13 @@ class AdministrativeRoleUserResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        $query = parent::getEloquentQuery();
+        $query = parent::getEloquentQuery()
+            ->with([
+                'user.teacher.department.faculty',
+                'department',
+                'faculty',
+                'administrativeRole',
+            ]);
         $user = auth()->user();
 
         if ($user->hasRole('super_admin')) {

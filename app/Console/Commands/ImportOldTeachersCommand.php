@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Teacher;
 use App\Models\User;
+use App\Models\UserAdministrativeRole;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -25,8 +26,14 @@ class ImportOldTeachersCommand extends Command
     private int   $failed       = 0;
     private array $errors       = [];
 
-    // ✅ NEW: Store already existing employee IDs
+    // Store already existing employee IDs
     private array $existingEmployeeIds = [];
+
+    // Lookup maps: old slug/short_name → new DB id
+    // departments.code (matches old dept.dslug) → departments.id
+    private array $deptCodeMap = [];
+    // faculties.short_name (matches old faculty.short_name) → faculties.id
+    private array $facultyShortNameMap = [];
 
     public function handle(): int
     {
@@ -34,6 +41,9 @@ class ImportOldTeachersCommand extends Command
         $limit        = (int)  $this->option('limit');
         $skipExisting = (bool) $this->option('skip-existing');
         $file         = storage_path('app/public/exports/' . $this->option('file'));
+
+        // Build lookup maps from new DB
+        $this->buildLookupMaps();
 
         if (!file_exists($file)) {
             $this->error("File not found: {$file}");
@@ -212,6 +222,34 @@ class ImportOldTeachersCommand extends Command
                         'assigned_by' => null,
                     ],
                 ]);
+
+                // Import Administrative Roles
+                // Resolve department_id via departments.code (matched against old dslug)
+                // Resolve faculty_id via faculties.short_name (matched against old short_name)
+                $adminRoles = $dept['administrative_roles'] ?? [];
+                foreach ($adminRoles as $ar) {
+                    if (empty($ar['role_id'])) continue;
+
+                    $resolvedDeptId = null;
+                    if (!empty($ar['dept_dslug'])) {
+                        $resolvedDeptId = $this->deptCodeMap[strtolower(trim($ar['dept_dslug']))] ?? null;
+                    }
+
+                    $resolvedFacultyId = null;
+                    if (!empty($ar['faculty_short_name'])) {
+                        $resolvedFacultyId = $this->facultyShortNameMap[strtolower(trim($ar['faculty_short_name']))] ?? null;
+                    }
+
+                    UserAdministrativeRole::updateOrCreate([
+                        'user_id'                => $user->id,
+                        'administrative_role_id' => $ar['role_id'],
+                        'department_id'          => $resolvedDeptId,
+                        'faculty_id'             => $resolvedFacultyId,
+                    ], [
+                        'start_date'             => '2024-01-01',
+                        'is_active'              => true,
+                    ]);
+                }
             }
         } elseif (!empty($p['department_id'])) {
             $teacher->departments()->syncWithoutDetaching([
@@ -224,5 +262,33 @@ class ImportOldTeachersCommand extends Command
         }
 
         return $teacher;
+    }
+
+    /**
+     * Build lookup maps from new DB for resolving department and faculty IDs.
+     *
+     * departments: code (= old dslug) → id
+     * faculties:   short_name (= old short_name) → id
+     */
+    private function buildLookupMaps(): void
+    {
+        // departments.code → id
+        $depts = DB::table('departments')->whereNull('deleted_at')->get(['id', 'code']);
+        foreach ($depts as $d) {
+            if (!empty($d->code)) {
+                $this->deptCodeMap[strtolower(trim($d->code))] = $d->id;
+            }
+        }
+
+        // faculties.short_name → id
+        $faculties = DB::table('faculties')->whereNull('deleted_at')->get(['id', 'short_name']);
+        foreach ($faculties as $f) {
+            if (!empty($f->short_name)) {
+                $this->facultyShortNameMap[strtolower(trim($f->short_name))] = $f->id;
+            }
+        }
+
+        $this->line('Lookup maps built — Depts: ' . count($this->deptCodeMap) .
+                    ', Faculties: ' . count($this->facultyShortNameMap));
     }
 }
