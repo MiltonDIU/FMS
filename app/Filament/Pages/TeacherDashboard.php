@@ -88,7 +88,7 @@ class TeacherDashboard extends Page
 
     public ?int $teacherId = null;
 
-    public static function getUrl(array $parameters = [], bool $isAbsolute = true, ?string $panel = null, ?Model $tenant = null): string
+    public static function getUrl(array $parameters = [], bool $isAbsolute = true, ?string $panel = null, ?Model $tenant = null, bool $shouldGuessMissingParameters = false, ?string $configuration = null): string
     {
         // Override to support route parameters
         if (isset($parameters['teacher'])) {
@@ -97,7 +97,7 @@ class TeacherDashboard extends Page
             return url('/admin/teacher-dashboard/' . $teacherId);
         }
 
-        return parent::getUrl($parameters, $isAbsolute, $panel, $tenant);
+        return parent::getUrl($parameters, $isAbsolute, $panel, $tenant, $shouldGuessMissingParameters, $configuration);
     }
 
     public function mount(?int $teacher = null): void

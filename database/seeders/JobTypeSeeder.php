@@ -53,6 +53,13 @@ class JobTypeSeeder extends Seeder
                 'is_active' => true,
                 'sort_order' => 6,
             ],
+            [
+                'name' => 'System - Unassigned',
+                'slug' => 'unassigned',
+                'description' => 'System placeholder for unassigned job type. Do not assign to any teacher.',
+                'is_active' => false,
+                'sort_order' =>20,
+            ],
         ];
 
         foreach ($jobTypes as $type) {

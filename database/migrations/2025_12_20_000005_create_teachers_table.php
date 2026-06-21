@@ -38,7 +38,7 @@ return new class extends Migration
             $table->text('bio')->nullable();
             $table->text('research_interest')->nullable();
             // Profile Status
-            $table->enum('profile_status', ['draft', 'pending', 'approved', 'rejected'])->default('draft');
+            $table->enum('profile_status', ['draft', 'pending', 'approved', 'rejected','archived'])->default('draft');
             $table->boolean('is_public')->default(false);
             $table->boolean('is_active')->default(true);
             $table->integer('sort_order')->default(0);
