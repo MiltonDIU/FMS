@@ -3,15 +3,17 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
+use App\Models\Teacher;
+use App\Models\TrainingExperience;
 
-class ImportOldTeachersAwardsCommand extends Command
+class ImportTrainingExperiencesCommand extends Command
 {
-    protected $signature = 'import:old-teachers-awards
-                            {--file=teachers_awards_export.json : JSON file name inside storage/app/public/exports/}
+    protected $signature = 'import:training-experiences
+                            {--file=training_experiences_export.json : JSON file name inside storage/app/public/exports/}
                             {--limit=0 : Limit the number of records to process}
                             {--dry-run : Preview without writing to DB}';
 
-    protected $description = 'Import teacher awards/scholarships from exported JSON into the new database';
+    protected $description = 'Import teacher training experiences from exported JSON into the new database';
 
     public function handle(): int
     {
@@ -20,7 +22,7 @@ class ImportOldTeachersAwardsCommand extends Command
 
         if (!file_exists($file)) {
             $this->error("File not found: {$file}");
-            $this->info("Run: php artisan export:old-teachers-awards first.");
+            $this->info("Run: php artisan export:training-experiences first.");
             return Command::FAILURE;
         }
 
@@ -33,11 +35,10 @@ class ImportOldTeachersAwardsCommand extends Command
         $limit = (int) $this->option('limit');
         $processCount = ($limit > 0 && $limit < count($data)) ? $limit : count($data);
 
-        $this->info($dryRun ? "🔍 DRY RUN — no changes will be written" : "🚀 Importing awards...");
+        $this->info($dryRun ? "🔍 DRY RUN — no changes will be written" : "🚀 Importing training experiences...");
         $bar = $this->output->createProgressBar($processCount);
         $bar->start();
 
-        $limit = (int) $this->option('limit');
         $imported = 0;
         $skipped = 0;
         $failed = 0;
@@ -48,8 +49,7 @@ class ImportOldTeachersAwardsCommand extends Command
             $count++;
 
             $employeeId = $record['employee_id'] ?? $record['_employee_id'] ?? null;
-            $oldTeacherId = $record['old_teacher_id'] ?? $record['_old_teacher_id'] ?? null;
-            $awards = $record['awards'] ?? [];
+            $trainings = $record['training_experiences'] ?? [];
 
             if (!$employeeId) {
                 $skipped++;
@@ -57,7 +57,7 @@ class ImportOldTeachersAwardsCommand extends Command
                 continue;
             }
 
-            $teacher = \App\Models\Teacher::where('employee_id', $employeeId)->first();
+            $teacher = Teacher::where('employee_id', $employeeId)->first();
             
             if (!$teacher) {
                 $failed++;
@@ -65,29 +65,34 @@ class ImportOldTeachersAwardsCommand extends Command
                 continue;
             }
 
-            foreach ($awards as $awardData) {
+            foreach ($trainings as $trData) {
                 if ($dryRun) {
                     $imported++;
                     continue;
                 }
 
                 try {
-                    \App\Models\Award::updateOrCreate(
+                    // Match uniquely by teacher_id, title, and organization/year/completion_date to avoid duplicates
+                    TrainingExperience::updateOrCreate(
                         [
-                            'teacher_id'    => $teacher->id,
-                            'title'         => $awardData['title'],
-                            'year'          => $awardData['year'],
+                            'teacher_id'   => $teacher->id,
+                            'title'        => $trData['title'],
+                            'organization' => $trData['organization'] ?? '',
+                            'year'         => $trData['year'] ?? null,
                         ],
                         [
-                            'awarding_body' => $awardData['awarding_body'],
-                            'type'          => $awardData['type'],
-                            'remarks'       => $awardData['remarks'],
-                            'sort_order'    => 0,
+                            'category'        => $trData['category'] ?? null,
+                            'duration_days'   => $trData['duration_days'] ?? null,
+                            'completion_date' => $trData['completion_date'] ?? null,
+                            'country_id'      => $trData['country_id'] ?? null,
+                            'is_online'       => (bool) ($trData['is_online'] ?? false),
+                            'description'     => $trData['description'] ?? null,
+                            'sort_order'      => $trData['sort_order'] ?? 0,
                         ]
                     );
                     $imported++;
                 } catch (\Exception $e) {
-                    $this->error("\nFailed to import award for {$employeeId}: " . $e->getMessage());
+                    $this->error("\nFailed to import training experience for {$employeeId}: " . $e->getMessage());
                     $failed++;
                 }
             }
@@ -102,7 +107,7 @@ class ImportOldTeachersAwardsCommand extends Command
             ['Metric', 'Count'],
             [
                 ['Records Processed', $count],
-                ['Awards Processed (Update/Create)', $imported],
+                ['Training Records Processed (Update/Create)', $imported],
                 ['Records Skipped', $skipped],
                 ['Teachers Not Found', $failed],
             ]

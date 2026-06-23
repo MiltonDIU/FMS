@@ -33,24 +33,25 @@ class ExportTrainingExperiencesCommand extends Command
                             {--output=training_experiences_export.json : Output filename (inside storage/app/public/exports/)}
                             {--limit=0                                  : Limit number of teachers processed (0 = all)}
                             {--batch-size=10                            : Teachers per AI API call}
-                            {--provider=auto                            : AI provider: auto|anthropic|groq|gemini|internal|heuristic}
+                            {--provider=auto                            : AI provider: auto|openrouter|gemini|groq|anthropic|internal|heuristic}
                             {--dry-run                                  : Parse but do not write output file}
-                            {--resume                                   : Skip employeeIDs already in output file}';
+                            {--overwrite                                : Overwrite the output file and re-process all records}';
 
-    protected $description = 'Export & AI-parse training experiences from old DB/JSON — Phase 2 (supports Anthropic/Groq/Gemini)';
+    protected $description = 'Export & AI-parse training experiences from old DB/JSON — Phase 2 (supports OpenRouter/Gemini/Groq/Anthropic)';
 
     const DEFAULT_COUNTRY_ID = 18; // Bangladesh
 
     // AI provider model names
     const MODELS = [
-        'anthropic' => 'claude-sonnet-4-20250514',
-        'groq'      => 'llama-3.3-70b-versatile',   // best free Groq model for structured output
-        'gemini'    => 'gemini-2.0-flash',            // free tier, fast
+        'anthropic'  => 'claude-sonnet-4-20250514',
+        'groq'       => 'llama-3.3-70b-versatile',
+        'gemini'     => 'gemini-2.5-flash',
+        'openrouter' => 'google/gemini-3.5-flash',
     ];
 
     protected array $countryMap      = [];
     protected array $employeeToOldId = [];
-    protected string $aiProvider     = 'anthropic';  // resolved at runtime
+    protected string $aiProvider     = 'openrouter';  // resolved at runtime
 
     public function handle(): int
     {
@@ -72,17 +73,23 @@ class ExportTrainingExperiencesCommand extends Command
 
         $this->info('Total teachers to process: ' . count($rawRecords));
 
-        // ── Resume: skip already-done employeeIDs ──
+        // Auto-resume check: skip already done employeeIDs unless --overwrite is set
         $existingData = [];
-        if ($this->option('resume')) {
-            $existingData    = $this->loadExistingOutput();
-            $doneEmployeeIds = array_column($existingData, '_employee_id');
-            $before          = count($rawRecords);
-            $rawRecords      = array_values(array_filter(
-                $rawRecords,
-                fn($r) => !in_array((string)$r['employeeID'], array_map('strval', $doneEmployeeIds))
-            ));
-            $this->info("Resuming — skipped {$before} - " . count($rawRecords) . " = already done.");
+        if (!$this->option('overwrite')) {
+            $existingData = $this->loadExistingOutput();
+            if (!empty($existingData)) {
+                $doneEmployeeIds = array_column($existingData, '_employee_id');
+                $before = count($rawRecords);
+                $rawRecords = array_values(array_filter(
+                    $rawRecords,
+                    fn($r) => !in_array((string)$r['employeeID'], array_map('strval', $doneEmployeeIds))
+                ));
+                $skippedCount = $before - count($rawRecords);
+                if ($skippedCount > 0) {
+                    $this->info("🔄 Found existing progress — automatically skipped {$skippedCount} already processed teachers.");
+                    $this->info("💡 Use --overwrite if you want to re-process all from scratch.");
+                }
+            }
         }
 
         // ── Batch process ──
@@ -280,9 +287,10 @@ class ExportTrainingExperiencesCommand extends Command
 
             // Explicit provider requested — validate key exists
             $keyMap = [
-                'anthropic' => env('ANTHROPIC_API_KEY'),
-                'groq'      => env('GROQ_API_KEY'),
-                'gemini'    => env('GEMINI_API_KEY'),
+                'anthropic'  => env('ANTHROPIC_API_KEY'),
+                'groq'       => env('GROQ_API_KEY'),
+                'gemini'     => env('GEMINI_API_KEY'),
+                'openrouter' => env('OPENROUTER_API_KEY'),
             ];
             if (empty($keyMap[$option] ?? '')) {
                 $this->warn("⚠️  --provider={$option} set but key not found in .env — trying auto-detect.");
@@ -293,12 +301,13 @@ class ExportTrainingExperiencesCommand extends Command
             }
         }
 
-        // Auto-detect: prefer free providers first
-        $priority = ['groq', 'gemini', 'anthropic'];
+        // Auto-detect: prefer OpenRouter first if key exists, then others
+        $priority = ['openrouter', 'gemini', 'groq', 'anthropic'];
         foreach ($priority as $provider) {
             $key = match($provider) {
-                'groq'      => env('GROQ_API_KEY'),
+                'openrouter'=> env('OPENROUTER_API_KEY'),
                 'gemini'    => env('GEMINI_API_KEY'),
+                'groq'      => env('GROQ_API_KEY'),
                 'anthropic' => env('ANTHROPIC_API_KEY'),
             };
             if (!empty($key)) {
@@ -309,7 +318,7 @@ class ExportTrainingExperiencesCommand extends Command
         }
 
         throw new \RuntimeException(
-            'No AI API key found. Set at least one of: ANTHROPIC_API_KEY, GROQ_API_KEY, GEMINI_API_KEY in .env'
+            'No AI API key found. Set at least one of: OPENROUTER_API_KEY, GEMINI_API_KEY, GROQ_API_KEY, ANTHROPIC_API_KEY in .env'
         );
     }
 
@@ -317,17 +326,48 @@ class ExportTrainingExperiencesCommand extends Command
     // AI Parser — unified entry point
     // ────────────────────────────────────────────────
 
-    /**
-     * Returns: [ "employeeID" => [ training_row, ... ], ... ]
-     */
     private function parseWithClaude(array $batch): array
     {
         return match($this->aiProvider) {
-            'heuristic' => $this->parseWithHeuristics($batch),
-            'groq'    => $this->callGroq($batch),
-            'gemini'  => $this->callGemini($batch),
-            default   => $this->callAnthropic($batch),
+            'heuristic'  => $this->parseWithHeuristics($batch),
+            'openrouter' => $this->callOpenRouter($batch),
+            'groq'       => $this->callGroq($batch),
+            'gemini'     => $this->callGemini($batch),
+            default      => $this->callAnthropic($batch),
         };
+    }
+
+    private function callOpenRouter(array $batch): array
+    {
+        $prompt = $this->buildPrompt($batch);
+        $model  = self::MODELS['openrouter'];
+
+        $response = Http::timeout(90)
+            ->withHeaders([
+                'Authorization' => 'Bearer ' . env('OPENROUTER_API_KEY'),
+                'Content-Type'  => 'application/json',
+                'HTTP-Referer'  => env('APP_URL', 'http://localhost:8000'),
+                'X-Title'       => env('APP_NAME', 'Faculty | Daffodil International University'),
+            ])
+            ->post('https://openrouter.ai/api/v1/chat/completions', [
+                'model'       => $model,
+                'temperature' => 0,
+                'max_tokens'  => 1500,
+                'messages'    => [
+                    [
+                        'role'    => 'user',
+                        'content' => $prompt,
+                    ],
+                ],
+                'response_format' => ['type' => 'json_object'],
+            ]);
+
+        if (!$response->successful()) {
+            throw new \RuntimeException("OpenRouter API {$response->status()}: " . $response->body());
+        }
+
+        $content = $response->json('choices.0.message.content', '');
+        return $this->parseClaudeResponse($content, $batch);
     }
 
     // ── Anthropic ──
@@ -425,7 +465,8 @@ class ExportTrainingExperiencesCommand extends Command
         foreach ($batch as $record) {
             $empId        = htmlspecialchars((string)$record['employeeID'], ENT_XML1);
             $htmlRaw      = $record['trainingExperience'] ?? '';
-            $teacherBlocks .= "\n<teacher employeeID=\"{$empId}\">\n{$htmlRaw}\n</teacher>\n";
+            $cleanedText  = $this->cleanHtmlForPrompt($htmlRaw);
+            $teacherBlocks .= "\n<teacher employeeID=\"{$empId}\">\n{$cleanedText}\n</teacher>\n";
         }
 
         return <<<PROMPT
@@ -803,5 +844,26 @@ PROMPT;
         $value = preg_replace('/\s+/', ' ', $value);
         $value = trim($value);
         return $value === '' ? null : $value;
+    }
+
+    private function cleanHtmlForPrompt(string $html): string
+    {
+        if (empty(trim($html))) return '';
+        $html = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
+        // Explicitly remove HTML comments to save tokens
+        $html = preg_replace('/<!--.*?-->/s', '', $html);
+        $cleaned = str_replace(['</p>', '</li>', '<br>', '<br/>', '<br />', '</div>', '</ul>', '</ol>'], "\n", $html);
+        $cleaned = strip_tags($cleaned);
+        $cleaned = html_entity_decode($cleaned, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        
+        $lines = explode("\n", $cleaned);
+        $result = [];
+        foreach ($lines as $line) {
+            $line = trim($line, " \t\n\r\0\x0B\xc2\xa0-•*");
+            if (!empty($line)) {
+                $result[] = mb_convert_encoding($line, 'UTF-8', 'UTF-8');
+            }
+        }
+        return implode("\n", $result);
     }
 }
