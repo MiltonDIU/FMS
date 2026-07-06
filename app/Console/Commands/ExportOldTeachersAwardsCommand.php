@@ -17,7 +17,7 @@ class ExportOldTeachersAwardsCommand extends Command
                             {--output=teachers_awards_export.json      : Output filename (inside storage/app/public/exports/)}
                             {--limit=0                                  : Limit number of teachers processed (0 = all)}
                             {--batch-size=10                            : Teachers per AI API call}
-                            {--provider=auto                            : AI provider: auto|openrouter|gemini|groq|anthropic|heuristic}
+                            {--provider=auto                            : AI provider: auto|openrouter|gemini|groq|anthropic|deepseek|heuristic}
                             {--dry-run                                  : Parse but do not write output file}
                             {--overwrite                                : Overwrite the output file and re-process all records}';
 
@@ -28,6 +28,7 @@ class ExportOldTeachersAwardsCommand extends Command
         'groq'       => 'llama-3.3-70b-versatile',
         'gemini'     => 'gemini-2.5-flash',
         'openrouter' => 'google/gemini-3.5-flash',
+        'deepseek'   => 'deepseek-v4-flash',
     ];
 
     protected string $aiProvider = 'openrouter'; // resolved at runtime
@@ -240,6 +241,7 @@ class ExportOldTeachersAwardsCommand extends Command
                 'groq'       => env('GROQ_API_KEY'),
                 'gemini'     => env('GEMINI_API_KEY'),
                 'openrouter' => env('OPENROUTER_API_KEY'),
+                'deepseek'   => env('DEEPSEEK_API_KEY'),
             ];
             if (empty($keyMap[$option] ?? '')) {
                 $this->warn("⚠️  --provider={$option} set but key not found in .env — trying auto-detect.");
@@ -250,9 +252,10 @@ class ExportOldTeachersAwardsCommand extends Command
             }
         }
 
-        $priority = ['openrouter', 'gemini', 'groq', 'anthropic'];
+        $priority = [ 'gemini','deepseek', 'openrouter', 'groq', 'anthropic'];
         foreach ($priority as $provider) {
             $key = match($provider) {
+                'deepseek'  => env('DEEPSEEK_API_KEY'),
                 'openrouter'=> env('OPENROUTER_API_KEY'),
                 'gemini'    => env('GEMINI_API_KEY'),
                 'groq'      => env('GROQ_API_KEY'),
@@ -291,11 +294,42 @@ class ExportOldTeachersAwardsCommand extends Command
     {
         return match($this->aiProvider) {
             'heuristic'  => $this->parseWithHeuristics($batch),
+            'deepseek'   => $this->callDeepSeek($batch),
             'openrouter' => $this->callOpenRouter($batch),
             'groq'       => $this->callGroq($batch),
             'gemini'     => $this->callGemini($batch),
             default      => $this->callAnthropic($batch),
         };
+    }
+
+    private function callDeepSeek(array $batch): array
+    {
+        $prompt = $this->buildPrompt($batch);
+
+        $response = Http::timeout(90)
+            ->withHeaders([
+                'Authorization'     => 'Bearer ' . env('DEEPSEEK_API_KEY'),
+                'anthropic-version' => '2023-06-01',
+                'Content-Type'      => 'application/json',
+            ])
+            ->post('https://api.openmodel.ai/v1/messages', [
+                'model'      => self::MODELS['deepseek'],
+                'max_tokens' => 4096,
+                'thinking'   => ['type' => 'disabled'],
+                'messages'   => [['role' => 'user', 'content' => $prompt]],
+            ]);
+
+        if (!$response->successful()) {
+            throw new \RuntimeException("OpenModel API {$response->status()}: " . $response->body());
+        }
+
+        $content = '';
+        foreach ($response->json('content', []) as $block) {
+            if (($block['type'] ?? '') === 'text') {
+                $content .= $block['text'] ?? '';
+            }
+        }
+        return $this->parseClaudeResponse($content, $batch);
     }
 
     private function callOpenRouter(array $batch): array
