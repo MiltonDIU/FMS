@@ -16,23 +16,25 @@ class ExportOldTeachersAwardsCommand extends Command
                             {--json-file=old_teacher.json              : Source JSON filename (inside storage/app/public/)}
                             {--output=teachers_awards_export.json      : Output filename (inside storage/app/public/exports/)}
                             {--limit=0                                  : Limit number of teachers processed (0 = all)}
-                            {--batch-size=10                            : Teachers per AI API call}
-                            {--provider=auto                            : AI provider: auto|openrouter|gemini|groq|anthropic|deepseek|heuristic}
+                            {--batch-size=5                            : Teachers per AI API call}
+                            {--provider=auto                            : AI provider: auto|openrouter|vertex|gemini|groq|anthropic|deepseek|heuristic}
                             {--dry-run                                  : Parse but do not write output file}
                             {--overwrite                                : Overwrite the output file and re-process all records}';
 
-    protected $description = 'Export and AI-parse teacher awards/scholarships from old database/JSON';
+    protected $description = 'Export and AI-parse teacher awards/scholarships from old database/JSON (supports Vertex/Gemini/Groq/Anthropic/DeepSeek)';
 
     const MODELS = [
         'anthropic'  => 'claude-sonnet-4-20250514',
         'groq'       => 'llama-3.3-70b-versatile',
         'gemini'     => 'gemini-2.5-flash',
+        'vertex'     => 'gemini-2.5-flash',
         'openrouter' => 'google/gemini-3.5-flash',
         'deepseek'   => 'deepseek-v4-flash',
     ];
 
     protected string $aiProvider = 'openrouter'; // resolved at runtime
     protected array $employeeToOldId = [];
+    protected float $totalCost       = 0.0;
 
     public function handle(): int
     {
@@ -115,6 +117,16 @@ class ExportOldTeachersAwardsCommand extends Command
 
             $bar->advance(count($batch));
 
+            // Save progress incrementally to protect against crashes/network drops
+            if (!$this->option('dry-run')) {
+                $exportDir = storage_path('app/public/exports/');
+                if (!is_dir($exportDir)) {
+                    mkdir($exportDir, 0755, true);
+                }
+                $outputPath = $exportDir . $this->option('output');
+                file_put_contents($outputPath, json_encode($exportData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+            }
+
             if ($batchIndex < count($batches) - 1 && $this->aiProvider !== 'heuristic') {
                 usleep(300_000);
             }
@@ -145,24 +157,60 @@ class ExportOldTeachersAwardsCommand extends Command
         }
 
         $processed = count($rawRecords) - $totalFailed;
-        $this->table(
-            ['Metric', 'Count'],
-            [
-                ['Teachers processed',         count($rawRecords)],
-                ['Awards records extracted',   $totalParsed],
-                ['Failed batches (teachers)',  $totalFailed],
-                ['Avg awards / teacher',       $processed > 0 ? round($totalParsed / $processed, 1) : 0],
-            ]
-        );
+
+        if ($this->totalCost > 0) {
+            $logPath = storage_path('logs/vertex_ai_cost.log');
+            $logMessage = sprintf(
+                "[%s] === TOTAL EXECUTION COST (%s) === Total Cost: $%f\n\n",
+                date('Y-m-d H:i:s'),
+                class_basename($this),
+                $this->totalCost
+            );
+            file_put_contents($logPath, $logMessage, FILE_APPEND);
+        }
+
+        $metrics = [
+            ['Teachers processed',         count($rawRecords)],
+            ['Awards records extracted',   $totalParsed],
+            ['Failed batches (teachers)',  $totalFailed],
+            ['Avg awards / teacher',       $processed > 0 ? round($totalParsed / $processed, 1) : 0],
+        ];
+
+        if ($this->totalCost > 0) {
+            $metrics[] = ['Total Estimated Cost (Vertex AI)', '$' . number_format($this->totalCost, 6)];
+        }
+
+        $this->table(['Metric', 'Count'], $metrics);
 
         return $totalFailed > 0 ? 1 : 0;
     }
 
     private function loadSourceRecords(): array
     {
-        return $this->option('source') === 'db'
+        $data = $this->option('source') === 'db'
             ? $this->loadFromDb()
             : $this->loadFromJson();
+
+        if (env('AI_PROCESS_ONLY_ASSIGNED_DEPARTMENT', false)) {
+            $assignedEmployeeIds = \App\Models\Teacher::where(function($query) {
+                $query->whereNotNull('department_id')
+                      ->orWhereHas('departments');
+            })
+            ->whereHas('user', function($query) {
+                $query->where('is_active', 1);
+            })
+            ->pluck('employee_id')
+            ->filter()
+            ->toArray();
+
+            $data = array_values(array_filter($data, function($r) use ($assignedEmployeeIds) {
+                return in_array((string)($r['employeeID'] ?? ''), $assignedEmployeeIds, true);
+            }));
+
+            $this->info("Filter enabled: Only processing active teachers with an assigned department in new DB. Remaining: " . count($data) . " records.");
+        }
+
+        return $data;
     }
 
     private function loadFromDb(): array
@@ -240,6 +288,7 @@ class ExportOldTeachersAwardsCommand extends Command
                 'anthropic'  => env('ANTHROPIC_API_KEY'),
                 'groq'       => env('GROQ_API_KEY'),
                 'gemini'     => env('GEMINI_API_KEY'),
+                'vertex'     => env('VERTEX_AI_KEY_PATH'),
                 'openrouter' => env('OPENROUTER_API_KEY'),
                 'deepseek'   => env('DEEPSEEK_API_KEY'),
             ];
@@ -252,11 +301,12 @@ class ExportOldTeachersAwardsCommand extends Command
             }
         }
 
-        $priority = [ 'gemini','deepseek', 'openrouter', 'groq', 'anthropic'];
+        $priority = ['vertex','gemini','deepseek','openrouter','groq','anthropic'];
         foreach ($priority as $provider) {
             $key = match($provider) {
                 'deepseek'  => env('DEEPSEEK_API_KEY'),
                 'openrouter'=> env('OPENROUTER_API_KEY'),
+                'vertex'    => env('VERTEX_AI_KEY_PATH'),
                 'gemini'    => env('GEMINI_API_KEY'),
                 'groq'      => env('GROQ_API_KEY'),
                 'anthropic' => env('ANTHROPIC_API_KEY'),
@@ -298,6 +348,7 @@ class ExportOldTeachersAwardsCommand extends Command
             'openrouter' => $this->callOpenRouter($batch),
             'groq'       => $this->callGroq($batch),
             'gemini'     => $this->callGemini($batch),
+            'vertex'     => $this->callVertex($batch),
             default      => $this->callAnthropic($batch),
         };
     }
@@ -445,6 +496,26 @@ class ExportOldTeachersAwardsCommand extends Command
 
         $content = $response->json('candidates.0.content.parts.0.text', '');
         return $this->parseClaudeResponse($content, $batch);
+    }
+
+    private function callVertex(array $batch): array
+    {
+        $prompt   = $this->buildPrompt($batch);
+        $model    = self::MODELS['vertex'];
+
+        $vertexAIService = resolve(\App\Services\VertexAIService::class);
+        $result = $vertexAIService->generateContent($model, $prompt, 0.0, 'application/json');
+
+        $this->totalCost += $result['cost'];
+
+        $this->info(sprintf(
+            "   [Vertex AI] Tokens used - Input: %d, Output: %d | Est. Cost: $%f",
+            $result['input_tokens'],
+            $result['output_tokens'],
+            $result['cost']
+        ));
+
+        return $this->parseClaudeResponse($result['content'], $batch);
     }
 
     private function buildPrompt(array $batch): string

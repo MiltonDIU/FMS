@@ -32,12 +32,12 @@ class ExportTrainingExperiencesCommand extends Command
                             {--json-file=old_teacher.json              : Source JSON filename (inside storage/app/public/)}
                             {--output=training_experiences_export.json : Output filename (inside storage/app/public/exports/)}
                             {--limit=0                                  : Limit number of teachers processed (0 = all)}
-                            {--batch-size=10                            : Teachers per AI API call}
-                            {--provider=auto                            : AI provider: auto|openrouter|gemini|groq|anthropic|deepseek|internal|heuristic}
+                            {--batch-size=3                            : Teachers per AI API call}
+                            {--provider=auto                            : AI provider: auto|openrouter|vertex|gemini|groq|anthropic|deepseek|internal|heuristic}
                             {--dry-run                                  : Parse but do not write output file}
                             {--overwrite                                : Overwrite the output file and re-process all records}';
 
-    protected $description = 'Export & AI-parse training experiences from old DB/JSON — Phase 2 (supports OpenRouter/Gemini/Groq/Anthropic/DeepSeek)';
+    protected $description = 'Export & AI-parse training experiences from old DB/JSON — Phase 2 (supports OpenRouter/Vertex/Gemini/Groq/Anthropic/DeepSeek)';
 
     const DEFAULT_COUNTRY_ID = 18; // Bangladesh
 
@@ -46,6 +46,7 @@ class ExportTrainingExperiencesCommand extends Command
         'anthropic'  => 'claude-sonnet-4-20250514',
         'groq'       => 'llama-3.3-70b-versatile',
         'gemini'     => 'gemini-2.5-flash',
+        'vertex'     => 'gemini-2.5-flash',
         'openrouter' => 'google/gemini-3.5-flash',
         'deepseek'   => 'deepseek-v4-flash',
     ];
@@ -53,6 +54,7 @@ class ExportTrainingExperiencesCommand extends Command
     protected array $countryMap      = [];
     protected array $employeeToOldId = [];
     protected string $aiProvider     = 'openrouter';  // resolved at runtime
+    protected float $totalCost       = 0.0;
 
     public function handle(): int
     {
@@ -142,6 +144,16 @@ class ExportTrainingExperiencesCommand extends Command
 
             $bar->advance(count($batch));
 
+            // Save progress incrementally to protect against crashes/network drops
+            if (!$this->option('dry-run')) {
+                $exportDir = storage_path('app/public/exports/');
+                if (!is_dir($exportDir)) {
+                    mkdir($exportDir, 0755, true);
+                }
+                $outputPath = $exportDir . $this->option('output');
+                file_put_contents($outputPath, json_encode($exportData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+            }
+
             if ($batchIndex < count($batches) - 1) {
                 usleep(300_000);
             }
@@ -170,15 +182,30 @@ class ExportTrainingExperiencesCommand extends Command
         }
 
         $processed = count($rawRecords) - $totalFailed;
-        $this->table(
-            ['Metric', 'Count'],
-            [
-                ['Teachers processed',         count($rawRecords)],
-                ['Training records extracted', $totalParsed],
-                ['Failed batches (teachers)',  $totalFailed],
-                ['Avg trainings / teacher',    $processed > 0 ? round($totalParsed / $processed, 1) : 0],
-            ]
-        );
+
+        if ($this->totalCost > 0) {
+            $logPath = storage_path('logs/vertex_ai_cost.log');
+            $logMessage = sprintf(
+                "[%s] === TOTAL EXECUTION COST (%s) === Total Cost: $%f\n\n",
+                date('Y-m-d H:i:s'),
+                class_basename($this),
+                $this->totalCost
+            );
+            file_put_contents($logPath, $logMessage, FILE_APPEND);
+        }
+
+        $metrics = [
+            ['Teachers processed',         count($rawRecords)],
+            ['Training records extracted', $totalParsed],
+            ['Failed batches (teachers)',  $totalFailed],
+            ['Avg trainings / teacher',    $processed > 0 ? round($totalParsed / $processed, 1) : 0],
+        ];
+
+        if ($this->totalCost > 0) {
+            $metrics[] = ['Total Estimated Cost (Vertex AI)', '$' . number_format($this->totalCost, 6)];
+        }
+
+        $this->table(['Metric', 'Count'], $metrics);
 
         return $totalFailed > 0 ? 1 : 0;
     }
@@ -189,9 +216,30 @@ class ExportTrainingExperiencesCommand extends Command
 
     private function loadSourceRecords(): array
     {
-        return $this->option('source') === 'db'
+        $data = $this->option('source') === 'db'
             ? $this->loadFromDb()
             : $this->loadFromJson();
+
+        if (env('AI_PROCESS_ONLY_ASSIGNED_DEPARTMENT', false)) {
+            $assignedEmployeeIds = \App\Models\Teacher::where(function($query) {
+                $query->whereNotNull('department_id')
+                      ->orWhereHas('departments');
+            })
+            ->whereHas('user', function($query) {
+                $query->where('is_active', 1);
+            })
+            ->pluck('employee_id')
+            ->filter()
+            ->toArray();
+
+            $data = array_values(array_filter($data, function($r) use ($assignedEmployeeIds) {
+                return in_array((string)($r['employeeID'] ?? ''), $assignedEmployeeIds, true);
+            }));
+
+            $this->info("Filter enabled: Only processing active teachers with an assigned department in new DB. Remaining: " . count($data) . " records.");
+        }
+
+        return $data;
     }
 
     private function loadFromJson(): array
@@ -291,6 +339,7 @@ class ExportTrainingExperiencesCommand extends Command
                 'anthropic'  => env('ANTHROPIC_API_KEY'),
                 'groq'       => env('GROQ_API_KEY'),
                 'gemini'     => env('GEMINI_API_KEY'),
+                'vertex'     => env('VERTEX_AI_KEY_PATH'),
                 'openrouter' => env('OPENROUTER_API_KEY'),
                 'deepseek'   => env('DEEPSEEK_API_KEY'),
             ];
@@ -304,11 +353,12 @@ class ExportTrainingExperiencesCommand extends Command
         }
 
         // Auto-detect: prefer DeepSeek/OpenRouter first if key exists, then others
-        $priority = ['deepseek', 'openrouter', 'gemini', 'groq', 'anthropic'];
+        $priority = ['deepseek', 'openrouter', 'vertex', 'gemini', 'groq', 'anthropic'];
         foreach ($priority as $provider) {
             $key = match($provider) {
                 'deepseek'  => env('DEEPSEEK_API_KEY'),
                 'openrouter'=> env('OPENROUTER_API_KEY'),
+                'vertex'    => env('VERTEX_AI_KEY_PATH'),
                 'gemini'    => env('GEMINI_API_KEY'),
                 'groq'      => env('GROQ_API_KEY'),
                 'anthropic' => env('ANTHROPIC_API_KEY'),
@@ -321,7 +371,7 @@ class ExportTrainingExperiencesCommand extends Command
         }
 
         throw new \RuntimeException(
-            'No AI API key found. Set at least one of: DEEPSEEK_API_KEY, OPENROUTER_API_KEY, GEMINI_API_KEY, GROQ_API_KEY, ANTHROPIC_API_KEY in .env'
+            'No AI API key found. Set at least one of: DEEPSEEK_API_KEY, OPENROUTER_API_KEY, VERTEX_AI_KEY_PATH, GEMINI_API_KEY, GROQ_API_KEY, ANTHROPIC_API_KEY in .env'
         );
     }
 
@@ -337,6 +387,7 @@ class ExportTrainingExperiencesCommand extends Command
             'openrouter' => $this->callOpenRouter($batch),
             'groq'       => $this->callGroq($batch),
             'gemini'     => $this->callGemini($batch),
+            'vertex'     => $this->callVertex($batch),
             default      => $this->callAnthropic($batch),
         };
     }
@@ -481,7 +532,7 @@ class ExportTrainingExperiencesCommand extends Command
                 ],
                 'generationConfig' => [
                     'temperature'     => 0,
-                    'responseMimeType' => 'application/json',  // force JSON output
+                    'responseMimeType' => 'application/json',
                 ],
             ]);
 
@@ -491,6 +542,26 @@ class ExportTrainingExperiencesCommand extends Command
 
         $content = $response->json('candidates.0.content.parts.0.text', '');
         return $this->parseClaudeResponse($content, $batch);
+    }
+
+    private function callVertex(array $batch): array
+    {
+        $prompt   = $this->buildPrompt($batch);
+        $model    = self::MODELS['vertex'];
+
+        $vertexAIService = resolve(\App\Services\VertexAIService::class);
+        $result = $vertexAIService->generateContent($model, $prompt, 0.0, 'application/json');
+
+        $this->totalCost += $result['cost'];
+
+        $this->info(sprintf(
+            "   [Vertex AI] Tokens used - Input: %d, Output: %d | Est. Cost: $%f",
+            $result['input_tokens'],
+            $result['output_tokens'],
+            $result['cost']
+        ));
+
+        return $this->parseClaudeResponse($result['content'], $batch);
     }
 
     private function buildPrompt(array $batch): string
