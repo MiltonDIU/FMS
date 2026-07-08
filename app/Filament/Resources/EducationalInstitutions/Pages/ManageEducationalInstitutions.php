@@ -66,6 +66,6 @@ class ManageEducationalInstitutions extends ManageRecords
             ->send();
 
         // Close the modal
-        $this->closeActionModal();
+        $this->unmountAction();
     }
 }
