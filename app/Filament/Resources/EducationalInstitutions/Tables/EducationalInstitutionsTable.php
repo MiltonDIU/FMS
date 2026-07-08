@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\EducationalInstitutions\Tables;
 
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -26,10 +27,10 @@ class EducationalInstitutionsTable
                     ->color('primary')
                     ->weight('bold')
                     ->action(
-                        \Filament\Tables\Actions\Action::make('viewLinkedTeachers')
+                        Action::make('viewLinkedTeachers')
                             ->modalHeading(fn ($record) => "Teachers linked to institution: {$record->name}")
                             ->modalContent(function ($record) {
-                                $teachers = $record->teachers()->with(['faculty', 'department'])->get();
+                                $teachers = $record->teachers()->with(['department.faculty'])->get();
                                 return view('filament.lookup.teachers-modal', ['teachers' => $teachers]);
                             })
                             ->modalSubmitAction(false)

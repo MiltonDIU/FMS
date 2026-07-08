@@ -30,7 +30,7 @@
                                 {{ $teacher->email ?? $teacher->secondary_email ?? '—' }}
                             </td>
                             <td class="px-4 py-3 whitespace-nowrap text-gray-500 dark:text-gray-400">
-                                {{ $teacher->faculty?->name ?? '—' }}
+                                {{ $teacher->department?->faculty?->name ?? '—' }}
                             </td>
                             <td class="px-4 py-3 whitespace-nowrap text-gray-500 dark:text-gray-400">
                                 {{ $teacher->department?->name ?? '—' }}
