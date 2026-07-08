@@ -358,7 +358,8 @@ class TeacherForm
                                     ->columns(2)
                                     ->defaultItems(0)
                                     ->collapsed()
-                                    ->reorderable(false)
+                                    ->reorderable()
+                                    ->orderColumn('sort_order')
                                     ->deletable(true)
                                     ->addable(true)
                                     ->saveRelationshipsUsing(function (Repeater $component, $state, $record) {
@@ -366,6 +367,7 @@ class TeacherForm
                                         $existingIds = collect($state)->pluck('id')->filter()->toArray();
                                         $record->educations()->whereNotIn('id', $existingIds)->delete();
 
+                                        $sortOrder = 0;
                                         foreach ($state ?? [] as $item) {
                                             $data = [
                                                 'degree_type_id' => $item['degree_type_id'],
@@ -379,6 +381,7 @@ class TeacherForm
                                                 'scale' => $item['scale'] ?? null,
                                                 'marks' => $item['marks'] ?? null,
                                                 'grade' => $item['grade'] ?? null,
+                                                'sort_order' => $sortOrder++,
                                             ];
                                             if (isset($item['id'])) {
                                                 $record->educations()->where('id', $item['id'])->update($data);
