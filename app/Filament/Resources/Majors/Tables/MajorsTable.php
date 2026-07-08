@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Majors\Tables;
 
 use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -58,7 +59,7 @@ class MajorsTable
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
-                    \Filament\Tables\Actions\BulkAction::make('mergeSelected')
+                   BulkAction::make('mergeSelected')
                         ->label('Merge Selected')
                         ->icon('heroicon-o-arrows-pointing-in')
                         ->color('warning')
@@ -71,13 +72,13 @@ class MajorsTable
                         ->action(function (\Illuminate\Support\Collection $records, array $data) {
                             $targetId = $data['target_id'];
                             $targetRecord = $records->firstWhere('id', $targetId);
-                            
+
                             if (!$targetRecord) {
                                 return;
                             }
-                            
+
                             $sourceIds = $records->pluck('id')->reject($targetId)->toArray();
-                            
+
                             if (empty($sourceIds)) {
                                 \Filament\Notifications\Notification::make()
                                     ->title('Please select more than one record to merge.')
@@ -85,7 +86,7 @@ class MajorsTable
                                     ->send();
                                 return;
                             }
-                            
+
                             \Illuminate\Support\Facades\DB::transaction(function () use ($targetId, $targetRecord, $sourceIds) {
                                 // 1. Update related educations
                                 \Illuminate\Support\Facades\DB::table('educations')
@@ -94,11 +95,11 @@ class MajorsTable
                                         'major_id' => $targetId,
                                         'major' => $targetRecord->name,
                                     ]);
-                                
+
                                 // 2. Delete source records
                                 \App\Models\Major::whereIn('id', $sourceIds)->delete();
                             });
-                            
+
                             \Filament\Notifications\Notification::make()
                                 ->title('Merged successfully')
                                 ->success()
