@@ -27,7 +27,7 @@ class EducationalInstitutionsTable
                     ->color('primary')
                     ->weight('bold')
                     ->url(fn ($record) => \App\Filament\Resources\Teachers\TeacherResource::getUrl('index', [
-                        'tableFilters' => [
+                        'filters' => [
                             'educational_institution_id' => [
                                 'value' => $record->id,
                             ],

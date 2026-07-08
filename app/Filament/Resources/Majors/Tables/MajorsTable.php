@@ -27,7 +27,7 @@ class MajorsTable
                     ->color('primary')
                     ->weight('bold')
                     ->url(fn ($record) => \App\Filament\Resources\Teachers\TeacherResource::getUrl('index', [
-                        'tableFilters' => [
+                        'filters' => [
                             'major_id' => [
                                 'value' => $record->id,
                             ],
