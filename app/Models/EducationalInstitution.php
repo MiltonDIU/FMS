@@ -63,6 +63,9 @@ class EducationalInstitution extends Model
 
     public function teachers()
     {
-        return $this->belongsToMany(Teacher::class, 'educations', 'educational_institution_id', 'teacher_id')->distinct();
+        return $this->belongsToMany(Teacher::class, 'educations', 'educational_institution_id', 'teacher_id')
+            ->whereNull('teachers.deleted_at')
+            ->where('teachers.is_archived', false)
+            ->distinct();
     }
 }
