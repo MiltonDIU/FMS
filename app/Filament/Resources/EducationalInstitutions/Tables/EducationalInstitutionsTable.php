@@ -26,16 +26,13 @@ class EducationalInstitutionsTable
                     ->sortable()
                     ->color('primary')
                     ->weight('bold')
-                    ->action(
-                        Action::make('viewLinkedTeachers')
-                            ->modalHeading(fn ($record) => "Teachers linked to institution: {$record->name}")
-                            ->modalContent(function ($record) {
-                                $teachers = $record->teachers()->with(['department.faculty'])->get();
-                                return view('filament.lookup.teachers-modal', ['teachers' => $teachers]);
-                            })
-                            ->modalSubmitAction(false)
-                            ->modalWidth('4xl')
-                    ),
+                    ->url(fn ($record) => \App\Filament\Resources\Teachers\TeacherResource::getUrl('index', [
+                        'tableFilters' => [
+                            'educational_institution_id' => [
+                                'value' => $record->id,
+                            ],
+                        ],
+                    ])),
                 IconColumn::make('is_active')
                     ->boolean()
                     ->sortable(),

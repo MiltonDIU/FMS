@@ -93,6 +93,28 @@ class TeachersTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                SelectFilter::make('major_id')
+                    ->label('Major')
+                    ->searchable()
+                    ->options(fn () => \App\Models\Major::query()->where('is_active', true)->pluck('name', 'id')->toArray())
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['value'])) {
+                            $query->whereHas('educations', function ($q) use ($data) {
+                                $q->where('major_id', $data['value']);
+                            });
+                        }
+                    }),
+                SelectFilter::make('educational_institution_id')
+                    ->label('Institution')
+                    ->searchable()
+                    ->options(fn () => \App\Models\EducationalInstitution::query()->where('is_active', true)->pluck('name', 'id')->toArray())
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['value'])) {
+                            $query->whereHas('educations', function ($q) use ($data) {
+                                $q->where('educational_institution_id', $data['value']);
+                            });
+                        }
+                    }),
                 SelectFilter::make('employment_status_id')
                     ->relationship('employmentStatus', 'name')
                     ->label('Employment Status')
