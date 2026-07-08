@@ -27,23 +27,27 @@ class Major extends Model
         // 1. Search for case-insensitive match
         $existing = self::whereRaw('LOWER(name) = ?', [strtolower($name)])->first();
 
+        // Check if current user is admin/staff (doesn't have a teacher account or has admin permission)
+        $isAdmin = auth()->check() && !auth()->user()->hasRole('teacher');
+
         if ($existing) {
             // Auto-approval logic:
-            // If it is inactive AND the current teacher is not the creator, auto-approve it!
-            if (!$existing->is_active && $teacherId && $existing->created_by !== $teacherId) {
+            // If it is inactive, and the request is by a different teacher OR an admin, activate it!
+            if (!$existing->is_active && ($isAdmin || ($teacherId && $existing->created_by !== $teacherId))) {
                 $existing->update([
                     'is_active'   => true,
-                    'approved_by' => auth()->id(), // Approved by the current user
+                    'approved_by' => auth()->id(),
                 ]);
             }
             return $existing;
         }
 
-        // 2. Otherwise create a new inactive record
+        // 2. Otherwise create a new record
         return self::create([
-            'name'       => $name,
-            'is_active'  => false,
-            'created_by' => $teacherId,
+            'name'        => $name,
+            'is_active'   => $isAdmin, // Admins create active records directly!
+            'created_by'  => $teacherId,
+            'approved_by' => $isAdmin ? auth()->id() : null,
         ]);
     }
 

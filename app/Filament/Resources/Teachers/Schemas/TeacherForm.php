@@ -271,18 +271,8 @@ class TeacherForm
                                               ->relationship(
                                                   'majorRelation',
                                                   'name',
-                                                  modifyQueryUsing: function ($query, \Filament\Forms\Components\Select $component) {
-                                                      $livewire = $component->getLivewire();
-                                                      $teacherId = null;
-                                                      if (method_exists($livewire, 'getRecord')) {
-                                                          $teacherId = $livewire->getRecord()?->id;
-                                                      } elseif (isset($livewire->record) && $livewire->record instanceof \App\Models\Teacher) {
-                                                          $teacherId = $livewire->record->id;
-                                                      }
-                                                      if (!$teacherId) {
-                                                          $teacherId = auth()->user()?->teacher?->id;
-                                                      }
-
+                                                  modifyQueryUsing: function ($query) {
+                                                      $teacherId = auth()->user()?->teacher?->id;
                                                       return $query->where(function ($q) use ($teacherId) {
                                                           $q->where('is_active', true);
                                                           if ($teacherId) {
@@ -299,18 +289,8 @@ class TeacherForm
                                                       ->required()
                                                       ->maxLength(255),
                                               ])
-                                              ->createOptionUsing(function (array $data, \Filament\Forms\Components\Select $component) {
-                                                  $livewire = $component->getLivewire();
-                                                  $teacherId = null;
-                                                  if (method_exists($livewire, 'getRecord')) {
-                                                          $teacherId = $livewire->getRecord()?->id;
-                                                  } elseif (isset($livewire->record) && $livewire->record instanceof \App\Models\Teacher) {
-                                                          $teacherId = $livewire->record->id;
-                                                  }
-                                                  if (!$teacherId) {
-                                                          $teacherId = auth()->user()?->teacher?->id;
-                                                  }
-
+                                              ->createOptionUsing(function (array $data) {
+                                                  $teacherId = auth()->user()?->teacher?->id;
                                                   $record = \App\Models\Major::findOrCreateWithAutoApproval($data['name'], $teacherId);
                                                   return $record->id;
                                               })
@@ -320,18 +300,8 @@ class TeacherForm
                                               ->relationship(
                                                   'educationalInstitution',
                                                   'name',
-                                                  modifyQueryUsing: function ($query, \Filament\Forms\Components\Select $component) {
-                                                      $livewire = $component->getLivewire();
-                                                      $teacherId = null;
-                                                      if (method_exists($livewire, 'getRecord')) {
-                                                          $teacherId = $livewire->getRecord()?->id;
-                                                      } elseif (isset($livewire->record) && $livewire->record instanceof \App\Models\Teacher) {
-                                                          $teacherId = $livewire->record->id;
-                                                      }
-                                                      if (!$teacherId) {
-                                                          $teacherId = auth()->user()?->teacher?->id;
-                                                      }
-
+                                                  modifyQueryUsing: function ($query) {
+                                                      $teacherId = auth()->user()?->teacher?->id;
                                                       return $query->where(function ($q) use ($teacherId) {
                                                           $q->where('is_active', true);
                                                           if ($teacherId) {
@@ -348,18 +318,8 @@ class TeacherForm
                                                       ->required()
                                                       ->maxLength(255),
                                               ])
-                                              ->createOptionUsing(function (array $data, \Filament\Forms\Components\Select $component) {
-                                                  $livewire = $component->getLivewire();
-                                                  $teacherId = null;
-                                                  if (method_exists($livewire, 'getRecord')) {
-                                                          $teacherId = $livewire->getRecord()?->id;
-                                                  } elseif (isset($livewire->record) && $livewire->record instanceof \App\Models\Teacher) {
-                                                          $teacherId = $livewire->record->id;
-                                                  }
-                                                  if (!$teacherId) {
-                                                          $teacherId = auth()->user()?->teacher?->id;
-                                                  }
-
+                                              ->createOptionUsing(function (array $data) {
+                                                  $teacherId = auth()->user()?->teacher?->id;
                                                   $record = \App\Models\EducationalInstitution::findOrCreateWithAutoApproval($data['name'], $teacherId);
                                                   return $record->id;
                                               }),
