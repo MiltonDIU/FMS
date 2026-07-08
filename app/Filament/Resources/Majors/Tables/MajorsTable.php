@@ -58,6 +58,52 @@ class MajorsTable
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
+                    \Filament\Tables\Actions\BulkAction::make('mergeSelected')
+                        ->label('Merge Selected')
+                        ->icon('heroicon-o-arrows-pointing-in')
+                        ->color('warning')
+                        ->form(fn (\Illuminate\Support\Collection $records) => [
+                            \Filament\Forms\Components\Select::make('target_id')
+                                ->label('Select Primary / Target Major')
+                                ->options($records->pluck('name', 'id'))
+                                ->required(),
+                        ])
+                        ->action(function (\Illuminate\Support\Collection $records, array $data) {
+                            $targetId = $data['target_id'];
+                            $targetRecord = $records->firstWhere('id', $targetId);
+                            
+                            if (!$targetRecord) {
+                                return;
+                            }
+                            
+                            $sourceIds = $records->pluck('id')->reject($targetId)->toArray();
+                            
+                            if (empty($sourceIds)) {
+                                \Filament\Notifications\Notification::make()
+                                    ->title('Please select more than one record to merge.')
+                                    ->danger()
+                                    ->send();
+                                return;
+                            }
+                            
+                            \Illuminate\Support\Facades\DB::transaction(function () use ($targetId, $targetRecord, $sourceIds) {
+                                // 1. Update related educations
+                                \Illuminate\Support\Facades\DB::table('educations')
+                                    ->whereIn('major_id', $sourceIds)
+                                    ->update([
+                                        'major_id' => $targetId,
+                                        'major' => $targetRecord->name,
+                                    ]);
+                                
+                                // 2. Delete source records
+                                \App\Models\Major::whereIn('id', $sourceIds)->delete();
+                            });
+                            
+                            \Filament\Notifications\Notification::make()
+                                ->title('Merged successfully')
+                                ->success()
+                                ->send();
+                        }),
                 ]),
             ]);
     }
