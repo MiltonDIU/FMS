@@ -266,55 +266,103 @@ class TeacherForm
                                                     }),
                                             ])
                                             ->columnSpan(1),
-                                         Select::make('major_id')
-                                             ->label('Major / Field of Study')
-                                             ->relationship(
-                                                 'majorRelation',
-                                                 'name',
-                                                 modifyQueryUsing: fn ($query) => $query->where(function ($q) {
-                                                     $q->where('is_active', true)
-                                                       ->orWhere('created_by', auth()->user()?->teacher?->id);
-                                                 })->orderBy('name')
-                                             )
-                                             ->searchable()
-                                             ->preload()
-                                             ->required()
-                                             ->createOptionForm([
-                                                 TextInput::make('name')
-                                                     ->required()
-                                                     ->unique('majors', 'name')
-                                                     ->maxLength(255),
-                                             ])
-                                             ->createOptionUsing(function (array $data) {
-                                                 $teacherId = auth()->user()?->teacher?->id;
-                                                 $record = \App\Models\Major::findOrCreateWithAutoApproval($data['name'], $teacherId);
-                                                 return $record->id;
-                                             })
-                                             ->columnSpan(2),
-                                         Select::make('educational_institution_id')
-                                             ->label('Institution')
-                                             ->relationship(
-                                                 'educationalInstitution',
-                                                 'name',
-                                                 modifyQueryUsing: fn ($query) => $query->where(function ($q) {
-                                                     $q->where('is_active', true)
-                                                       ->orWhere('created_by', auth()->user()?->teacher?->id);
-                                                 })->orderBy('name')
-                                             )
-                                             ->searchable()
-                                             ->preload()
-                                             ->required()
-                                             ->createOptionForm([
-                                                 TextInput::make('name')
-                                                     ->required()
-                                                     ->unique('educational_institutions', 'name')
-                                                     ->maxLength(255),
-                                             ])
-                                             ->createOptionUsing(function (array $data) {
-                                                 $teacherId = auth()->user()?->teacher?->id;
-                                                 $record = \App\Models\EducationalInstitution::findOrCreateWithAutoApproval($data['name'], $teacherId);
-                                                 return $record->id;
-                                             }),
+                                          Select::make('major_id')
+                                              ->label('Major / Field of Study')
+                                              ->relationship(
+                                                  'majorRelation',
+                                                  'name',
+                                                  modifyQueryUsing: function ($query, \Filament\Forms\Components\Select $component) {
+                                                      $livewire = $component->getLivewire();
+                                                      $teacherId = null;
+                                                      if (method_exists($livewire, 'getRecord')) {
+                                                          $teacherId = $livewire->getRecord()?->id;
+                                                      } elseif (isset($livewire->record) && $livewire->record instanceof \App\Models\Teacher) {
+                                                          $teacherId = $livewire->record->id;
+                                                      }
+                                                      if (!$teacherId) {
+                                                          $teacherId = auth()->user()?->teacher?->id;
+                                                      }
+
+                                                      return $query->where(function ($q) use ($teacherId) {
+                                                          $q->where('is_active', true);
+                                                          if ($teacherId) {
+                                                              $q->orWhere('created_by', $teacherId);
+                                                          }
+                                                      })->orderBy('name');
+                                                  }
+                                              )
+                                              ->searchable()
+                                              ->preload()
+                                              ->required()
+                                              ->createOptionForm([
+                                                  TextInput::make('name')
+                                                      ->required()
+                                                      ->maxLength(255),
+                                              ])
+                                              ->createOptionUsing(function (array $data, \Filament\Forms\Components\Select $component) {
+                                                  $livewire = $component->getLivewire();
+                                                  $teacherId = null;
+                                                  if (method_exists($livewire, 'getRecord')) {
+                                                          $teacherId = $livewire->getRecord()?->id;
+                                                  } elseif (isset($livewire->record) && $livewire->record instanceof \App\Models\Teacher) {
+                                                          $teacherId = $livewire->record->id;
+                                                  }
+                                                  if (!$teacherId) {
+                                                          $teacherId = auth()->user()?->teacher?->id;
+                                                  }
+
+                                                  $record = \App\Models\Major::findOrCreateWithAutoApproval($data['name'], $teacherId);
+                                                  return $record->id;
+                                              })
+                                              ->columnSpan(2),
+                                          Select::make('educational_institution_id')
+                                              ->label('Institution')
+                                              ->relationship(
+                                                  'educationalInstitution',
+                                                  'name',
+                                                  modifyQueryUsing: function ($query, \Filament\Forms\Components\Select $component) {
+                                                      $livewire = $component->getLivewire();
+                                                      $teacherId = null;
+                                                      if (method_exists($livewire, 'getRecord')) {
+                                                          $teacherId = $livewire->getRecord()?->id;
+                                                      } elseif (isset($livewire->record) && $livewire->record instanceof \App\Models\Teacher) {
+                                                          $teacherId = $livewire->record->id;
+                                                      }
+                                                      if (!$teacherId) {
+                                                          $teacherId = auth()->user()?->teacher?->id;
+                                                      }
+
+                                                      return $query->where(function ($q) use ($teacherId) {
+                                                          $q->where('is_active', true);
+                                                          if ($teacherId) {
+                                                              $q->orWhere('created_by', $teacherId);
+                                                          }
+                                                      })->orderBy('name');
+                                                  }
+                                              )
+                                              ->searchable()
+                                              ->preload()
+                                              ->required()
+                                              ->createOptionForm([
+                                                  TextInput::make('name')
+                                                      ->required()
+                                                      ->maxLength(255),
+                                              ])
+                                              ->createOptionUsing(function (array $data, \Filament\Forms\Components\Select $component) {
+                                                  $livewire = $component->getLivewire();
+                                                  $teacherId = null;
+                                                  if (method_exists($livewire, 'getRecord')) {
+                                                          $teacherId = $livewire->getRecord()?->id;
+                                                  } elseif (isset($livewire->record) && $livewire->record instanceof \App\Models\Teacher) {
+                                                          $teacherId = $livewire->record->id;
+                                                  }
+                                                  if (!$teacherId) {
+                                                          $teacherId = auth()->user()?->teacher?->id;
+                                                  }
+
+                                                  $record = \App\Models\EducationalInstitution::findOrCreateWithAutoApproval($data['name'], $teacherId);
+                                                  return $record->id;
+                                              }),
                                         Select::make('country_id')
                                             ->label('Country')
                                             ->relationship('country', 'name')
