@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Majors\Schemas;
 
+use App\Models\Teacher;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\Select;
@@ -23,7 +24,16 @@ class MajorForm
                     ->default(true),
                 Select::make('created_by')
                     ->label('Created By Teacher')
-                    ->relationship('creator', 'full_name')
+                    ->relationship('creator', 'first_name',
+                        modifyQueryUsing: fn ($query, $search) =>
+                            $query->when($search, fn ($q) =>
+                                $q->where(fn ($q) =>
+                                    $q->where('first_name', 'like', "%{$search}%")
+                                      ->orWhere('last_name', 'like', "%{$search}%")
+                                )
+                            )
+                    )
+                    ->getOptionLabelFromRecordUsing(fn (Teacher $record) => $record->full_name)
                     ->searchable()
                     ->placeholder('System / Bulk Imported'),
                 Select::make('approved_by')
