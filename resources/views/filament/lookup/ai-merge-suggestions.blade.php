@@ -1,85 +1,83 @@
-<div class="space-y-6">
+<div style="font-family: inherit; color: #1f2937;">
     @if(empty($suggestions))
-        <div class="flex flex-col items-center justify-center p-8 text-center bg-gray-50 dark:bg-gray-800 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
-            <div class="p-3 bg-emerald-50 dark:bg-emerald-950 rounded-full text-emerald-600 dark:text-emerald-400 mb-3">
-                <svg class="w-8 h-8" width="32" height="32" style="width: 32px; height: 32px;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div style="text-align: center; padding: 40px; background-color: #f9fafb; border: 1px dashed #d1d5db; border-radius: 12px;">
+            <div style="display: inline-block; padding: 12px; background-color: #ecfdf5; border-radius: 9999px; margin-bottom: 12px; color: #059669;">
+                <svg width="32" height="32" style="width: 32px; height: 32px;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
             </div>
-            <h3 class="text-base font-semibold text-gray-900 dark:text-white">All Clear!</h3>
-            <p class="text-sm text-gray-500 dark:text-gray-400 max-w-sm mt-1">
+            <h3 style="font-size: 16px; font-weight: 600; color: #111827; margin: 0 0 8px 0;">All Clear!</h3>
+            <p style="font-size: 14px; color: #6b7280; margin: 0;">
                 AI did not find any potential duplicate groups. Your database lookup values look clean and well-structured!
             </p>
         </div>
     @else
-        <div class="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-lg p-4 flex items-start space-x-3">
-            <div class="text-amber-500 mt-0.5">
-                <svg class="w-5 h-5" width="20" height="20" style="width: 20px; height: 20px;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div style="background-color: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; padding: 16px; margin-bottom: 20px; display: flex; align-items: flex-start; gap: 12px;">
+            <div style="color: #d97706; display: flex; align-items: center; justify-content: center; padding-top: 2px;">
+                <svg width="20" height="20" style="width: 20px; height: 20px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
             </div>
             <div>
-                <h4 class="text-sm font-semibold text-amber-800 dark:text-amber-300">Review AI Merge Suggestions</h4>
-                <p class="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                <h4 style="font-size: 14px; font-weight: 600; color: #92400e; margin: 0 0 4px 0;">Review AI Merge Suggestions</h4>
+                <p style="font-size: 12px; color: #b45309; margin: 0; line-height: 1.5;">
                     Below are the duplicate groups identified. For each group, choose which name to keep as the primary target. Merging will update all associated teachers and delete the duplicates.
                 </p>
             </div>
         </div>
 
-        <div class="space-y-4">
-            @foreach($suggestions as $index => $group)
-                <div class="group-card bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 shadow-sm hover:shadow-md transition duration-200">
-                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div class="space-y-3 flex-1">
-                            <div class="flex items-center space-x-2">
-                                <span class="flex h-2 w-2 relative">
-                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                                    <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-                                </span>
-                                <h4 class="text-sm font-semibold text-gray-900 dark:text-white">
-                                    Potential Duplicate Group #{{ $index + 1 }}
-                                </h4>
-                            </div>
-                            
-                            <!-- Badges of items to be merged -->
-                            <div class="flex flex-wrap gap-2">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                                    {{ $group['primary']['name'] }} (AI Target)
-                                </span>
-                                @foreach($group['duplicates'] as $dup)
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
-                                        {{ $dup['name'] }}
+        <div style="overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; background-color: #ffffff;">
+                <thead>
+                    <tr style="background-color: #f9fafb; border-bottom: 2px solid #e5e7eb;">
+                        <th style="padding: 12px 16px; font-size: 12px; font-weight: 600; color: #4b5563; text-transform: uppercase; width: 100px;">Group</th>
+                        <th style="padding: 12px 16px; font-size: 12px; font-weight: 600; color: #4b5563; text-transform: uppercase;">Duplicate Candidates</th>
+                        <th style="padding: 12px 16px; font-size: 12px; font-weight: 600; color: #4b5563; text-transform: uppercase; width: 240px;">Keep Name</th>
+                        <th style="padding: 12px 16px; font-size: 12px; font-weight: 600; color: #4b5563; text-transform: uppercase; width: 140px; text-align: right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($suggestions as $index => $group)
+                        <tr class="group-card" style="border-bottom: 1px solid #e5e7eb;">
+                            <td style="padding: 16px; font-size: 13px; font-weight: 600; color: #111827; vertical-align: middle;">
+                                #{{ $index + 1 }}
+                            </td>
+                            <td style="padding: 16px; vertical-align: middle;">
+                                <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+                                    <span style="display: inline-block; padding: 4px 10px; background-color: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; font-size: 12px; font-weight: 500; border-radius: 9999px;">
+                                        {{ $group['primary']['name'] }} (AI Target)
                                     </span>
-                                @endforeach
-                            </div>
-                        </div>
-
-                        <!-- Merge Controls -->
-                        <div class="flex items-center space-x-3 min-w-[280px]">
-                            <div class="flex-1">
-                                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Keep Name:</label>
-                                <select class="merge-target-select block w-full text-xs rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white shadow-sm focus:border-amber-500 focus:ring-amber-500 transition duration-150">
+                                    @foreach($group['duplicates'] as $dup)
+                                        <span style="display: inline-block; padding: 4px 10px; background-color: #f3f4f6; border: 1px solid #e5e7eb; color: #4b5563; font-size: 12px; font-weight: 500; border-radius: 9999px;">
+                                            {{ $dup['name'] }}
+                                        </span>
+                                    @endforeach
+                                </div>
+                            </td>
+                            <td style="padding: 16px; vertical-align: middle;">
+                                <select class="merge-target-select" style="width: 100%; font-size: 13px; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; background-color: #ffffff; color: #1f2937; box-shadow: 0 1px 2px rgba(0,0,0,0.05); cursor: pointer; outline: none;">
                                     <option value="{{ $group['primary']['id'] }}">{{ $group['primary']['name'] }}</option>
                                     @foreach($group['duplicates'] as $dup)
                                         <option value="{{ $dup['id'] }}">{{ $dup['name'] }}</option>
                                     @endforeach
                                 </select>
-                            </div>
-                            
-                            <div class="pt-5">
+                            </td>
+                            <td style="padding: 16px; text-align: right; vertical-align: middle;">
                                 <button 
                                     type="button"
                                     wire:click="mergeGroup($event.target.closest('.group-card').querySelector('.merge-target-select').value, {{ json_encode(array_merge([$group['primary']['id']], array_column($group['duplicates'], 'id'))) }}, '{{ $type }}')"
                                     wire:loading.attr="disabled"
-                                    class="inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-semibold rounded-lg text-white bg-amber-600 hover:bg-amber-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 shadow-sm transition duration-150"
+                                    style="display: inline-flex; align-items: center; justify-content: center; padding: 8px 16px; border: 1px solid transparent; font-size: 12px; font-weight: 600; border-radius: 6px; color: #ffffff; background-color: #d97706; cursor: pointer; transition: background-color 0.15s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);"
+                                    onmouseover="this.style.backgroundColor='#b45309'"
+                                    onmouseout="this.style.backgroundColor='#d97706'"
                                 >
                                     Merge Group
                                 </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            @endforeach
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
         </div>
     @endif
 </div>
