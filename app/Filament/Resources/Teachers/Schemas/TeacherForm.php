@@ -210,7 +210,14 @@ class TeacherForm
                             ->schema([
                                 Repeater::make('educations')
                                     ->relationship()
-                                    ->itemLabel(fn (array $state): ?string => \App\Models\DegreeType::find($state['degree_type_id'] ?? null)?->name . ' - ' . ($state['institution'] ?? ''))
+                                    ->itemLabel(function (array $state): ?string {
+                                        $degree = \App\Models\DegreeType::find($state['degree_type_id'] ?? null)?->name ?? 'Degree';
+                                        $inst = $state['institution'] ?? null;
+                                        if (empty($inst) && !empty($state['educational_institution_id'])) {
+                                            $inst = \App\Models\EducationalInstitution::find($state['educational_institution_id'])?->name;
+                                        }
+                                        return $degree . ' - ' . ($inst ?? 'New Education');
+                                    })
                                     ->schema([
                                         Select::make('_degree_level_id')
                                             ->label('Degree Level')
@@ -259,29 +266,55 @@ class TeacherForm
                                                     }),
                                             ])
                                             ->columnSpan(1),
-                                        TextInput::make('major')
-                                            ->label('Major / Field of Study')
-                                            ->required()
-                                            ->maxLength(255)
-                                            ->placeholder('e.g., Computer Science, Mathematics')
-                                            ->datalist([
-                                                'Computer Science',
-                                                'Electrical Engineering',
-                                                'Mechanical Engineering',
-                                                'Civil Engineering',
-                                                'Mathematics',
-                                                'Physics',
-                                                'Chemistry',
-                                                'Business Administration',
-                                                'Economics',
-                                                'English Literature',
-                                                'Accounting',
-                                                'Medicine',
-                                            ])
-                                            ->columnSpan(2),
-                                        TextInput::make('institution')
-                                            ->required()
-                                            ->maxLength(255),
+                                         Select::make('major_id')
+                                             ->label('Major / Field of Study')
+                                             ->relationship(
+                                                 'majorRelation',
+                                                 'name',
+                                                 modifyQueryUsing: fn ($query) => $query->where(function ($q) {
+                                                     $q->where('is_active', true)
+                                                       ->orWhere('created_by', auth()->user()?->teacher?->id);
+                                                 })->orderBy('name')
+                                             )
+                                             ->searchable()
+                                             ->preload()
+                                             ->required()
+                                             ->createOptionForm([
+                                                 TextInput::make('name')
+                                                     ->required()
+                                                     ->unique('majors', 'name')
+                                                     ->maxLength(255),
+                                             ])
+                                             ->createOptionUsing(function (array $data) {
+                                                 $teacherId = auth()->user()?->teacher?->id;
+                                                 $record = \App\Models\Major::findOrCreateWithAutoApproval($data['name'], $teacherId);
+                                                 return $record->id;
+                                             })
+                                             ->columnSpan(2),
+                                         Select::make('educational_institution_id')
+                                             ->label('Institution')
+                                             ->relationship(
+                                                 'educationalInstitution',
+                                                 'name',
+                                                 modifyQueryUsing: fn ($query) => $query->where(function ($q) {
+                                                     $q->where('is_active', true)
+                                                       ->orWhere('created_by', auth()->user()?->teacher?->id);
+                                                 })->orderBy('name')
+                                             )
+                                             ->searchable()
+                                             ->preload()
+                                             ->required()
+                                             ->createOptionForm([
+                                                 TextInput::make('name')
+                                                     ->required()
+                                                     ->unique('educational_institutions', 'name')
+                                                     ->maxLength(255),
+                                             ])
+                                             ->createOptionUsing(function (array $data) {
+                                                 $teacherId = auth()->user()?->teacher?->id;
+                                                 $record = \App\Models\EducationalInstitution::findOrCreateWithAutoApproval($data['name'], $teacherId);
+                                                 return $record->id;
+                                             }),
                                         Select::make('country_id')
                                             ->label('Country')
                                             ->relationship('country', 'name')
@@ -369,10 +402,22 @@ class TeacherForm
 
                                         $sortOrder = 0;
                                         foreach ($state ?? [] as $item) {
+                                            $instName = null;
+                                            if (!empty($item['educational_institution_id'])) {
+                                                $instName = \App\Models\EducationalInstitution::find($item['educational_institution_id'])?->name;
+                                            }
+
+                                            $majorName = null;
+                                            if (!empty($item['major_id'])) {
+                                                $majorName = \App\Models\Major::find($item['major_id'])?->name;
+                                            }
+
                                             $data = [
                                                 'degree_type_id' => $item['degree_type_id'],
-                                                'major' => $item['major'],
-                                                'institution' => $item['institution'],
+                                                'educational_institution_id' => $item['educational_institution_id'] ?? null,
+                                                'major_id' => $item['major_id'] ?? null,
+                                                'major' => $majorName,
+                                                'institution' => $instName,
                                                 'country_id' => $item['country_id'] ?? null,
                                                 'passing_year' => $item['passing_year'] ?? null,
                                                 'duration' => $item['duration'] ?? null,

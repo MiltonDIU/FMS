@@ -18,6 +18,8 @@ class Education extends Model
         'degree_type_id', // Replaces degree and level_of_education
         'country_id',
         'result_type_id', // Replaces result_type
+        'educational_institution_id',
+        'major_id',
         'major',
         'institution',
         'passing_year',
@@ -62,5 +64,15 @@ class Education extends Model
     public function resultType(): BelongsTo
     {
         return $this->belongsTo(ResultType::class);
+    }
+
+    public function educationalInstitution(): BelongsTo
+    {
+        return $this->belongsTo(EducationalInstitution::class, 'educational_institution_id');
+    }
+
+    public function majorRelation(): BelongsTo
+    {
+        return $this->belongsTo(Major::class, 'major_id');
     }
 }
