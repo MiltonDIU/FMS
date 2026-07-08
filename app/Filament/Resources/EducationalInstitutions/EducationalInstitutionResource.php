@@ -9,6 +9,8 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 use UnitEnum;
 
 class EducationalInstitutionResource extends Resource
@@ -29,6 +31,18 @@ class EducationalInstitutionResource extends Resource
     public static function table(Table $table): Table
     {
         return \App\Filament\Resources\EducationalInstitutions\Tables\EducationalInstitutionsTable::configure($table);
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->addSelect([
+            'teachers_count' => DB::table('educations')
+                ->selectRaw('COUNT(DISTINCT educations.teacher_id)')
+                ->join('teachers', 'educations.teacher_id', '=', 'teachers.id')
+                ->whereColumn('educations.educational_institution_id', 'educational_institutions.id')
+                ->whereNull('teachers.deleted_at')
+                ->where('teachers.is_archived', false),
+        ]);
     }
 
     public static function getPages(): array

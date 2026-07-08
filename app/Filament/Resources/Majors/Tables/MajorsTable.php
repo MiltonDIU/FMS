@@ -22,7 +22,6 @@ class MajorsTable
                     ->sortable(),
                 TextColumn::make('teachers_count')
                     ->label('Total Teachers')
-                    ->counts('teachers')
                     ->sortable()
                     ->color('primary')
                     ->weight('bold')
