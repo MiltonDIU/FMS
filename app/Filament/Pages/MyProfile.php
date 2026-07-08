@@ -159,6 +159,8 @@ class MyProfile extends Page
 
         } catch (Halt $exception) {
             return;
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            throw $exception;
         } catch (\Exception $exception) {
             \Log::error('MyProfile save error: ' . $exception->getMessage(), [
                 'trace' => $exception->getTraceAsString()

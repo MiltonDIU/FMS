@@ -16,6 +16,10 @@ class Membership extends Model
         'membership_organization_id',
         'membership_type_id',
         'membership_id',
+        'record_type',   // 'membership' | 'affiliation'
+        'position',      // specific role within the org
+        'scope',         // 'local' | 'national' | 'international'
+        'url',           // verification / profile link
         'start_date',
         'end_date',
         'status',
@@ -25,8 +29,18 @@ class Membership extends Model
     ];
 
     protected $casts = [
-        'start_date' => 'date',
-        'end_date' => 'date',
+        'start_date'  => 'date',
+        'end_date'    => 'date',
+        'is_active'   => 'boolean',
+    ];
+
+    /**
+     * Default attribute values.
+     */
+    protected $attributes = [
+        'record_type' => 'membership',
+        'status'      => 'active',
+        'is_active'   => true,
     ];
 
     /**

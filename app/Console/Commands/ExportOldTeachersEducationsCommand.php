@@ -6,36 +6,36 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
-class ExportOldTeachersAwardsCommand extends Command
+class ExportOldTeachersEducationsCommand extends Command
 {
     /**
      * The name and signature of the console command.
      */
-    protected $signature = 'export:old-teachers-awards
-                            {--source=db                               : Data source: "db" (old_db connection) or "json"}
-                            {--json-file=old_teacher.json              : Source JSON filename (inside storage/app/public/)}
-                            {--output=teachers_awards_export.json      : Output filename (inside storage/app/public/exports/)}
-                            {--limit=0                                  : Limit number of teachers processed (0 = all)}
-                            {--batch-size=5                            : Teachers per AI API call}
-                            {--provider=auto                            : AI provider: auto|openrouter|vertex|gemini|groq|anthropic|deepseek|heuristic}
-                            {--dry-run                                  : Parse but do not write output file}
-                            {--overwrite                                : Overwrite the output file and re-process all records}
-                            {--employee=                                 : Process only a specific employee ID}';
+    protected $signature = 'export:old-teachers-educations
+                            {--source=db                                    : Data source: "db" (old_db connection) or "json"}
+                            {--json-file=old_teacher.json                   : Source JSON filename (inside storage/app/public/)}
+                            {--output=teachers_educations_export.json        : Output filename (inside storage/app/public/exports/)}
+                            {--limit=0                                       : Limit number of teachers processed (0 = all)}
+                            {--batch-size=5                                  : Teachers per AI API call}
+                            {--provider=auto                                 : AI provider: auto|openrouter|vertex|gemini|groq|anthropic|deepseek|heuristic}
+                            {--dry-run                                       : Parse but do not write output file}
+                            {--overwrite                                     : Overwrite the output file and re-process all records}
+                            {--employee=                                     : Process only a specific employee ID}';
 
-    protected $description = 'Export and AI-parse teacher awards/scholarships from old database/JSON (supports Vertex/Gemini/Groq/Anthropic/DeepSeek)';
+    protected $description = 'Export and AI-parse teacher academic qualifications and educational history from old database/JSON';
 
     const MODELS = [
         'anthropic'  => 'claude-sonnet-4-20250514',
         'groq'       => 'llama-3.3-70b-versatile',
         'gemini'     => 'gemini-2.5-flash',
         'vertex'     => 'gemini-2.5-flash',
-        'openrouter' => 'google/gemini-3.5-flash',
+        'openrouter' => 'google/gemini-2.5-flash',
         'deepseek'   => 'deepseek-v4-flash',
     ];
 
-    protected string $aiProvider = 'openrouter'; // resolved at runtime
+    protected string $aiProvider = 'openrouter';
     protected array $employeeToOldId = [];
-    protected float $totalCost       = 0.0;
+    protected float $totalCost = 0.0;
 
     public function handle(): int
     {
@@ -45,9 +45,10 @@ class ExportOldTeachersAwardsCommand extends Command
         $rawRecords = $this->loadSourceRecords();
         if (empty($rawRecords)) {
             $this->error('No source records found.');
-            return 1;
+            return Command::FAILURE;
         }
 
+        // Apply limit before skip (standard logic requested by user)
         $limit = (int) $this->option('limit');
         if ($limit > 0) {
             $rawRecords = array_slice($rawRecords, 0, $limit);
@@ -76,12 +77,11 @@ class ExportOldTeachersAwardsCommand extends Command
 
         if (empty($rawRecords)) {
             $this->info("✅ All selected teachers have already been processed. Nothing to do.");
-            return 0;
+            return Command::SUCCESS;
         }
 
         $this->info('Actual teachers to send to AI: ' . count($rawRecords));
 
-        // Batch process
         $batchSize = max(1, (int) $this->option('batch-size'));
         $batches = array_chunk($rawRecords, $batchSize);
         $exportData = $existingData;
@@ -92,6 +92,7 @@ class ExportOldTeachersAwardsCommand extends Command
         $bar = $this->output->createProgressBar(count($rawRecords));
         $bar->setFormat(' %current%/%max% [%bar%] %percent:3s%% — %message%');
         $bar->setMessage('Starting...');
+        $bar->start();
 
         foreach ($batches as $batchIndex => $batch) {
             $bar->setMessage('Batch ' . ($batchIndex + 1) . '/' . count($batches) . ' — calling parser...');
@@ -113,19 +114,19 @@ class ExportOldTeachersAwardsCommand extends Command
                 continue;
             }
 
-            foreach ($parsed as $employeeId => $awards) {
+            foreach ($parsed as $employeeId => $educations) {
                 $oldTeacherId = $this->employeeToOldId[(string)$employeeId] ?? null;
                 $exportData[] = [
-                    '_employee_id'    => (string) $employeeId,
-                    '_old_teacher_id' => $oldTeacherId,
-                    'awards'          => $awards,
+                    '_employee_id'     => (string) $employeeId,
+                    '_old_teacher_id'  => $oldTeacherId,
+                    'educations'       => $educations,
                 ];
-                $totalParsed += count($awards);
+                $totalParsed += count($educations);
             }
 
             $bar->advance(count($batch));
 
-            // Save progress incrementally to protect against crashes/network drops
+            // Save progress incrementally
             if (!$this->option('dry-run')) {
                 $exportDir = storage_path('app/public/exports/');
                 if (!is_dir($exportDir)) {
@@ -144,7 +145,6 @@ class ExportOldTeachersAwardsCommand extends Command
         $bar->finish();
         $this->newLine();
 
-        // Write output
         $exportDir = storage_path('app/public/exports/');
         if (!is_dir($exportDir)) {
             mkdir($exportDir, 0755, true);
@@ -156,7 +156,7 @@ class ExportOldTeachersAwardsCommand extends Command
             $this->info("✅ Export complete → {$path}");
 
             if (!empty($failLog)) {
-                $failPath = $exportDir . 'awards_export_errors.json';
+                $failPath = $exportDir . 'teachers_educations_export_errors.json';
                 file_put_contents($failPath, json_encode($failLog, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
                 $this->warn("⚠️  Error log → {$failPath}");
             }
@@ -178,10 +178,10 @@ class ExportOldTeachersAwardsCommand extends Command
         }
 
         $metrics = [
-            ['Teachers processed',         count($rawRecords)],
-            ['Awards records extracted',   $totalParsed],
-            ['Failed batches (teachers)',  $totalFailed],
-            ['Avg awards / teacher',       $processed > 0 ? round($totalParsed / $processed, 1) : 0],
+            ['Teachers processed',                 count($rawRecords)],
+            ['Educations extracted',               $totalParsed],
+            ['Failed batches (teachers)',          $totalFailed],
+            ['Avg educations / teacher',           $processed > 0 ? round($totalParsed / $processed, 1) : 0],
         ];
 
         if ($this->totalCost > 0) {
@@ -190,8 +190,10 @@ class ExportOldTeachersAwardsCommand extends Command
 
         $this->table(['Metric', 'Count'], $metrics);
 
-        return $totalFailed > 0 ? 1 : 0;
+        return $totalFailed > 0 ? Command::FAILURE : Command::SUCCESS;
     }
+
+    // ── Data Loading ──────────────────────────────────────────────────────────
 
     private function loadSourceRecords(): array
     {
@@ -200,22 +202,19 @@ class ExportOldTeachersAwardsCommand extends Command
             : $this->loadFromJson();
 
         if (env('AI_PROCESS_ONLY_ASSIGNED_DEPARTMENT', false) && !$this->option('employee')) {
-            $assignedEmployeeIds = \App\Models\Teacher::where(function($query) {
-                $query->whereNotNull('department_id')
-                      ->orWhereHas('departments');
+            $assignedEmployeeIds = \App\Models\Teacher::where(function ($query) {
+                $query->whereNotNull('department_id')->orWhereHas('departments');
             })
-            ->whereHas('user', function($query) {
-                $query->where('is_active', 1);
-            })
+            ->whereHas('user', fn($q) => $q->where('is_active', 1))
             ->pluck('employee_id')
             ->filter()
             ->toArray();
 
-            $data = array_values(array_filter($data, function($r) use ($assignedEmployeeIds) {
+            $data = array_values(array_filter($data, function ($r) use ($assignedEmployeeIds) {
                 return in_array((string)($r['employeeID'] ?? ''), $assignedEmployeeIds, true);
             }));
 
-            $this->info("Filter enabled: Only processing active teachers with an assigned department in new DB. Remaining: " . count($data) . " records.");
+            $this->info("Filter enabled: Only processing active teachers with an assigned department. Remaining: " . count($data) . " records.");
         }
 
         return $data;
@@ -225,14 +224,14 @@ class ExportOldTeachersAwardsCommand extends Command
     {
         $query = DB::connection('old_db')
             ->table('teacher')
-            ->whereNotNull('awardScholarship')
-            ->where('awardScholarship', '!=', '');
+            ->whereNotNull('academicQualification')
+            ->where('academicQualification', '!=', '');
 
         if ($employeeId = $this->option('employee')) {
             $query->where('employeeID', $employeeId);
         }
 
-        $rows = $query->select('employeeID', 'awardScholarship')->get();
+        $rows = $query->select('employeeID', 'academicQualification')->get();
 
         $this->info("Loaded " . $rows->count() . " records from old DB.");
         return $rows->map(fn($r) => (array) $r)->toArray();
@@ -270,7 +269,7 @@ class ExportOldTeachersAwardsCommand extends Command
 
         $data = array_values(array_filter(
             $data,
-            fn($r) => !empty(trim(strip_tags($r['awardScholarship'] ?? '')))
+            fn($r) => !empty(trim(strip_tags($r['academicQualification'] ?? '')))
         ));
 
         if ($employeeId = $this->option('employee')) {
@@ -288,6 +287,8 @@ class ExportOldTeachersAwardsCommand extends Command
         $data = json_decode(file_get_contents($path), true);
         return is_array($data) ? $data : [];
     }
+
+    // ── AI Provider Resolution ────────────────────────────────────────────────
 
     private function resolveAiProvider(): void
     {
@@ -317,15 +318,15 @@ class ExportOldTeachersAwardsCommand extends Command
             }
         }
 
-        $priority = ['vertex','gemini','deepseek','openrouter','groq','anthropic'];
+        $priority = ['vertex', 'gemini', 'deepseek', 'openrouter', 'groq', 'anthropic'];
         foreach ($priority as $provider) {
             $key = match($provider) {
-                'deepseek'  => env('DEEPSEEK_API_KEY'),
-                'openrouter'=> env('OPENROUTER_API_KEY'),
-                'vertex'    => env('VERTEX_AI_KEY_PATH'),
-                'gemini'    => env('GEMINI_API_KEY'),
-                'groq'      => env('GROQ_API_KEY'),
-                'anthropic' => env('ANTHROPIC_API_KEY'),
+                'deepseek'   => env('DEEPSEEK_API_KEY'),
+                'openrouter' => env('OPENROUTER_API_KEY'),
+                'vertex'     => env('VERTEX_AI_KEY_PATH'),
+                'gemini'     => env('GEMINI_API_KEY'),
+                'groq'       => env('GROQ_API_KEY'),
+                'anthropic'  => env('ANTHROPIC_API_KEY'),
             };
             if (!empty($key)) {
                 $this->aiProvider = $provider;
@@ -356,6 +357,8 @@ class ExportOldTeachersAwardsCommand extends Command
         }
     }
 
+    // ── AI Dispatch ───────────────────────────────────────────────────────────
+
     private function parseWithAi(array $batch): array
     {
         return match($this->aiProvider) {
@@ -368,6 +371,8 @@ class ExportOldTeachersAwardsCommand extends Command
             default      => $this->callAnthropic($batch),
         };
     }
+
+    // ── AI API Calls ──────────────────────────────────────────────────────────
 
     private function callDeepSeek(array $batch): array
     {
@@ -396,13 +401,12 @@ class ExportOldTeachersAwardsCommand extends Command
                 $content .= $block['text'] ?? '';
             }
         }
-        return $this->parseClaudeResponse($content, $batch);
+        return $this->parseAiResponse($content, $batch);
     }
 
     private function callOpenRouter(array $batch): array
     {
         $prompt = $this->buildPrompt($batch);
-        $model  = self::MODELS['openrouter'];
 
         $response = Http::timeout(90)
             ->withHeaders([
@@ -412,15 +416,10 @@ class ExportOldTeachersAwardsCommand extends Command
                 'X-Title'       => env('APP_NAME', 'Faculty | Daffodil International University'),
             ])
             ->post('https://openrouter.ai/api/v1/chat/completions', [
-                'model'       => $model,
-                'temperature' => 0,
-                'max_tokens'  => 1500,
-                'messages'    => [
-                    [
-                        'role'    => 'user',
-                        'content' => $prompt,
-                    ],
-                ],
+                'model'           => self::MODELS['openrouter'],
+                'temperature'     => 0,
+                'max_tokens'      => 2000,
+                'messages'        => [['role' => 'user', 'content' => $prompt]],
                 'response_format' => ['type' => 'json_object'],
             ]);
 
@@ -428,8 +427,7 @@ class ExportOldTeachersAwardsCommand extends Command
             throw new \RuntimeException("OpenRouter API {$response->status()}: " . $response->body());
         }
 
-        $content = $response->json('choices.0.message.content', '');
-        return $this->parseClaudeResponse($content, $batch);
+        return $this->parseAiResponse($response->json('choices.0.message.content', ''), $batch);
     }
 
     private function callAnthropic(array $batch): array
@@ -452,10 +450,7 @@ class ExportOldTeachersAwardsCommand extends Command
             throw new \RuntimeException("Anthropic API {$response->status()}: " . $response->body());
         }
 
-        return $this->parseClaudeResponse(
-            $response->json('content.0.text', ''),
-            $batch
-        );
+        return $this->parseAiResponse($response->json('content.0.text', ''), $batch);
     }
 
     private function callGroq(array $batch): array
@@ -468,13 +463,10 @@ class ExportOldTeachersAwardsCommand extends Command
                 'Content-Type'  => 'application/json',
             ])
             ->post('https://api.groq.com/openai/v1/chat/completions', [
-                'model'       => self::MODELS['groq'],
-                'temperature' => 0,
-                'messages'    => [
-                    [
-                        'role'    => 'system',
-                        'content' => 'You are a structured data extraction assistant. Always respond with valid JSON only — no explanation, no markdown.',
-                    ],
+                'model'           => self::MODELS['groq'],
+                'temperature'     => 0,
+                'messages'        => [
+                    ['role' => 'system', 'content' => 'You are a structured data extraction assistant. Always respond with valid JSON only — no explanation, no markdown.'],
                     ['role' => 'user', 'content' => $prompt],
                 ],
                 'response_format' => ['type' => 'json_object'],
@@ -484,8 +476,7 @@ class ExportOldTeachersAwardsCommand extends Command
             throw new \RuntimeException("Groq API {$response->status()}: " . $response->body());
         }
 
-        $content = $response->json('choices.0.message.content', '');
-        return $this->parseClaudeResponse($content, $batch);
+        return $this->parseAiResponse($response->json('choices.0.message.content', ''), $batch);
     }
 
     private function callGemini(array $batch): array
@@ -497,30 +488,23 @@ class ExportOldTeachersAwardsCommand extends Command
 
         $response = Http::timeout(90)
             ->post($endpoint, [
-                'contents' => [
-                    ['role' => 'user', 'parts' => [['text' => $prompt]]],
-                ],
-                'generationConfig' => [
-                    'temperature'     => 0,
-                    'responseMimeType' => 'application/json',
-                ],
+                'contents'         => [['role' => 'user', 'parts' => [['text' => $prompt]]]],
+                'generationConfig' => ['temperature' => 0, 'responseMimeType' => 'application/json'],
             ]);
 
         if (!$response->successful()) {
             throw new \RuntimeException("Gemini API {$response->status()}: " . $response->body());
         }
 
-        $content = $response->json('candidates.0.content.parts.0.text', '');
-        return $this->parseClaudeResponse($content, $batch);
+        return $this->parseAiResponse($response->json('candidates.0.content.parts.0.text', ''), $batch);
     }
 
     private function callVertex(array $batch): array
     {
-        $prompt   = $this->buildPrompt($batch);
-        $model    = self::MODELS['vertex'];
-
+        $prompt          = $this->buildPrompt($batch);
+        $model           = self::MODELS['vertex'];
         $vertexAIService = resolve(\App\Services\VertexAIService::class);
-        $result = $vertexAIService->generateContent($model, $prompt, 0.0, 'application/json');
+        $result          = $vertexAIService->generateContent($model, $prompt, 0.0, 'application/json');
 
         $this->totalCost += $result['cost'];
 
@@ -531,21 +515,23 @@ class ExportOldTeachersAwardsCommand extends Command
             $result['cost']
         ));
 
-        return $this->parseClaudeResponse($result['content'], $batch);
+        return $this->parseAiResponse($result['content'], $batch);
     }
+
+    // ── Prompt Building ───────────────────────────────────────────────────────
 
     private function buildPrompt(array $batch): string
     {
         $teacherBlocks = '';
         foreach ($batch as $record) {
-            $empId        = htmlspecialchars((string)$record['employeeID'], ENT_XML1);
-            $htmlRaw      = $record['awardScholarship'] ?? '';
-            $cleanedText  = $this->cleanHtmlForPrompt($htmlRaw);
+            $empId       = htmlspecialchars((string)$record['employeeID'], ENT_XML1);
+            $htmlRaw     = $record['academicQualification'] ?? '';
+            $cleanedText = $this->cleanHtmlForPrompt($htmlRaw);
             $teacherBlocks .= "\n<teacher employeeID=\"{$empId}\">\n{$cleanedText}\n</teacher>\n";
         }
 
         return <<<PROMPT
-You are a structured data extraction assistant. Parse each teacher's awards, scholarships, recognitions, and achievements list from the HTML below.
+You are a structured data extraction assistant. Parse each teacher's academic qualifications and educational history from the HTML/text below.
 
 Return ONLY a valid JSON object — no explanation, no markdown fences.
 
@@ -553,44 +539,60 @@ Return ONLY a valid JSON object — no explanation, no markdown fences.
 {
   "EMPLOYEE_ID": [
     {
-      "title": "...",
-      "awarding_body": "...",
-      "type": "...",
-      "year": 2024,
-      "remarks": "..."
+      "degree_name": "...",
+      "major": "...",
+      "institution": "...",
+      "passing_year": 1995,
+      "result_type": "...",
+      "cgpa": 3.87,
+      "scale": 4.0,
+      "marks": null,
+      "grade": "...",
+      "duration": "...",
+      "country": "..."
     }
   ]
 }
 
 ## Field rules:
-- **title** (required): The clean name of the award, scholarship, or achievement (e.g., "Excellence in Teaching 2023", "Evaluation Panel Member of the 9th International Conference on Hospitality and Tourism Management (ICOHT 2022)"). Strip HTML tags. Never null.
-- **awarding_body**: The organization, institution, university, ministry, or body that gave the award or hosted the event/role (e.g., "Tazkera and Golam Mustafa Center for Teaching and Learning of HRDI institute", "The International Institute Of Knowledge Management (TIIKM)", "Ministry of Civil Aviation and Tourism"). If not explicitly mentioned or cannot be inferred, return null.
-- **type**: Must be exactly one of: award | scholarship | recognition | appreciation | other
-  - "award" -> for winning a prize, best paper, outstanding teaching skills award, etc.
-  - "scholarship" -> for fellowships, research grants, international credit mobility projects, teaching mobility funding, etc.
-  - "recognition" -> for being nominated, serving as a panel member, speaker, advisor, external reviewer, committee member, scientific member, or scholarly publications.
-  - "appreciation" -> for letters of appreciation or gratitude.
-  - "other" -> for other activities not fitting the above.
-- **year**: 4-digit integer if any year is mentioned (e.g., 2023, 2020); null if truly unknown.
-- **remarks**: Any extra information, locations (e.g., "Turkey", "Malaysia", "Vietnam"), dates, or details not covered. If none, return null.
+- **degree_name** (required): The clean name of the degree (e.g. "Doctor of Philosophy", "Master of Science", "Bachelor of Science", "Master of Business Administration", "Secondary School Certificate", "Higher Secondary Certificate"). If it is a diploma, write "Diploma in [Major]" or "Diploma". Never null.
+- **major**: The field of study, major, or concentration (e.g. "Mathematics", "Pure Mathematics", "Management Information System", "Economics"). null if not mentioned.
+- **institution**: The clean name of the university, institute, board, or school (e.g. "University of Dhaka", "Jahangirnagar University", "Asian University of Bangladesh", "Lancaster University"). Never null.
+- **passing_year**: 4-digit integer for passing year (e.g. 1995, 2003); null if unknown.
+- **result_type**: Must be exactly one of: CGPA | GPA | Percentage | Grade | Division | Pass/Fail | Not Applicable
+  - "CGPA" → if CGPA is mentioned (e.g. "CGPA 3.875")
+  - "GPA" → if GPA is mentioned
+  - "Percentage" → if percentage is mentioned (e.g. "85%")
+  - "Grade" → if letter grade is mentioned (e.g. "A+", "A")
+  - "Division" → if division/class is mentioned (e.g. "1st Class", "2nd Division")
+  - "Pass/Fail" → if pass/fail is mentioned
+  - "Not Applicable" → if no result is mentioned or ongoing (e.g. Ph.D researcher, in-progress)
+- **cgpa**: Decimal value if result_type is CGPA or GPA (e.g. 3.87, 4.0). null if not applicable.
+- **scale**: Decimal value representing the maximum possible score if CGPA or GPA is used (e.g. 4.0, 5.0). null if not mentioned.
+- **marks**: Decimal value if percentage is mentioned (e.g. 85.0). null if not applicable.
+- **grade**: String value for grade or division (e.g. "A+", "1st Class", "1st in order of merit"). If result_type is Division, write the division name here. If result_type is Grade, write the letter grade here.
+- **duration**: Duration of study (e.g. "4 years", "1 year", "2 years") if mentioned. null if not.
+- **country**: The country where the institution is located (e.g. "Bangladesh", "England", "United Kingdom", "USA"). If not mentioned or cannot be inferred, default to "Bangladesh".
 
-## Important:
-- Parse each distinct item/bullet point separately. Do NOT merge them.
+## Important rules:
+- Parse EACH distinct degree separately.
 - Strip all HTML tags from extracted values.
-- Include ALL employeeIDs in the output even if their list is empty.
+- Ignore incomplete entries or non-academic info.
+- Include ALL employeeIDs in the output even if their list is empty ([]).
 
 {$teacherBlocks}
 PROMPT;
     }
 
-    private function parseClaudeResponse(string $content, array $batch): array
+    // ── Response Parsing ──────────────────────────────────────────────────────
+
+    private function parseAiResponse(string $content, array $batch): array
     {
         $content = preg_replace('/^```(?:json)?\s*/m', '', $content);
         $content = preg_replace('/\s*```$/m', '', $content);
         $content = trim($content);
 
         $decoded = json_decode($content, true);
-
         if (json_last_error() !== JSON_ERROR_NONE) {
             if (preg_match('/\{.*\}/s', $content, $matches)) {
                 $decoded = json_decode($matches[0], true);
@@ -605,25 +607,39 @@ PROMPT;
 
         $result = [];
 
-        foreach ($decoded as $employeeId => $rawAwards) {
-            if (!is_array($rawAwards)) continue;
+        foreach ($decoded as $employeeId => $rawEducations) {
+            if (!is_array($rawEducations)) continue;
 
             $result[(string)$employeeId] = [];
 
-            foreach ($rawAwards as $aw) {
-                $title = trim($aw['title'] ?? '');
-                if ($title === '') continue;
+            foreach ($rawEducations as $edu) {
+                $degree = trim($edu['degree_name'] ?? '');
+                $inst = trim($edu['institution'] ?? '');
+                if ($degree === '' || $inst === '') continue;
+
+                $resType = trim($edu['result_type'] ?? 'Not Applicable');
+                $validTypes = ['CGPA', 'GPA', 'Percentage', 'Grade', 'Division', 'Pass/Fail', 'Not Applicable'];
+                if (!in_array($resType, $validTypes, true)) {
+                    $resType = 'Not Applicable';
+                }
 
                 $result[(string)$employeeId][] = [
-                    'title'         => $title,
-                    'awarding_body' => $this->cleanText($aw['awarding_body'] ?? null),
-                    'type'          => $this->validateCategory($aw['type'] ?? null),
-                    'year'          => $this->validateYear($aw['year'] ?? null),
-                    'remarks'       => $this->cleanText($aw['remarks'] ?? null),
+                    'degree_name'  => $degree,
+                    'major'        => $this->cleanText($edu['major'] ?? null),
+                    'institution'  => $inst,
+                    'passing_year' => $this->validateYear($edu['passing_year'] ?? null),
+                    'result_type'  => $resType,
+                    'cgpa'         => isset($edu['cgpa']) ? (float)$edu['cgpa'] : null,
+                    'scale'        => isset($edu['scale']) ? (float)$edu['scale'] : null,
+                    'marks'        => isset($edu['marks']) ? (float)$edu['marks'] : null,
+                    'grade'        => $this->cleanText($edu['grade'] ?? null),
+                    'duration'     => $this->cleanText($edu['duration'] ?? null),
+                    'country'      => $this->cleanText($edu['country'] ?? 'Bangladesh'),
                 ];
             }
         }
 
+        // Ensure all batch items appear in output
         foreach ($batch as $record) {
             $empId = (string)$record['employeeID'];
             if (!isset($result[$empId])) {
@@ -634,142 +650,93 @@ PROMPT;
         return $result;
     }
 
+    // ── Heuristic Fallback ────────────────────────────────────────────────────
+
     private function parseWithHeuristics(array $batch): array
     {
         $result = [];
         foreach ($batch as $record) {
             $empId = (string) $record['employeeID'];
-            $raw = $record['awardScholarship'] ?? '';
-            $result[$empId] = $this->parseAwards($raw);
+            $result[$empId] = $this->parseEducationsHeuristic($record['academicQualification'] ?? '');
         }
         return $result;
     }
 
-    private function parseAwards(string $raw): array
+    private function parseEducationsHeuristic(string $raw): array
     {
         if (empty(trim($raw))) return [];
 
-        $raw = mb_convert_encoding($raw, 'UTF-8', 'UTF-8');
-
-        $cleaned = str_replace(['</p>', '</li>', '<br>', '<br/>', '<br />', '</div>'], "\n", $raw);
+        $raw     = mb_convert_encoding($raw, 'UTF-8', 'UTF-8');
+        $cleaned = str_replace(['</p>', '</li>', '<br>', '<br/>', '<br />', '</div>', '</ul>', '</ol>'], "\n", $raw);
         $cleaned = strip_tags($cleaned);
         $cleaned = html_entity_decode($cleaned, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
         $lines = explode("\n", $cleaned);
-        $awards = [];
+        $educations = [];
 
         foreach ($lines as $line) {
-            $line = preg_replace('/\s+/', ' ', $line);
-            $line = str_replace("\xc2\xa0", ' ', $line);
-            $line = trim($line, " \t\n\r\0\x0B-•*");
-            if (empty($line) || strlen($line) < 3) continue;
+            $line = trim($line);
+            if (empty($line) || strlen($line) < 4) continue;
 
-            $line = mb_convert_encoding($line, 'UTF-8', 'UTF-8');
+            $degree = 'Degree';
+            if (stripos($line, 'Ph.D') !== false || stripos($line, 'PhD') !== false) $degree = 'Doctor of Philosophy';
+            elseif (stripos($line, 'M.Sc') !== false || stripos($line, 'MSc') !== false || stripos($line, 'Master of Science') !== false) $degree = 'Master of Science';
+            elseif (stripos($line, 'MBA') !== false || stripos($line, 'Master of Business Administration') !== false) $degree = 'Master of Business Administration';
+            elseif (stripos($line, 'B.Sc') !== false || stripos($line, 'BSc') !== false || stripos($line, 'Bachelor of Science') !== false) $degree = 'Bachelor of Science';
+            elseif (stripos($line, 'BBA') !== false || stripos($line, 'Bachelor of Business Administration') !== false) $degree = 'Bachelor of Business Administration';
+            elseif (stripos($line, 'H.S.C') !== false || stripos($line, 'HSC') !== false) $degree = 'Higher Secondary Certificate';
+            elseif (stripos($line, 'S.S.C') !== false || stripos($line, 'SSC') !== false) $degree = 'Secondary School Certificate';
 
-            $year = null;
+            $passingYear = null;
             if (preg_match('/\b(19|20)\d{2}\b/', $line, $matches)) {
-                $year = $matches[0];
+                $passingYear = (int)$matches[0];
             }
 
-            $awardingBody = null;
-            $patterns = [
-                '/\((?:for|to|at|by|from)\s+((?:[A-Z][a-z&0-9\.]+\s*|of\s+|and\s+)+)\)/',
-                '/(?:by|from|at|to)\s+((?:[A-Z][a-z&0-9\.]+\s*|of\s+|and\s+)+)/',
-                '/[,:-]\s*([A-Z][A-Z\s0-9]+)[\.\s]*$/',
-                '/[,:-]\s*((?:[A-Z][a-z&0-9\.]+\s*|of\s+|and\s+)+)[\.\s]*$/',
-            ];
-
-            $instKeywords = ['University', 'College', 'School', 'Ministry', 'Division', 'Board', 'Institute', 'Department', 'Committee', 'Council', 'Center', 'Academy', 'Organization', 'Agency', 'Association', 'Foundation', 'Society', 'DIU', 'Cisco', 'UGC', 'ICT', 'Govt'];
-
-            foreach ($patterns as $pattern) {
-                if (preg_match($pattern, $line, $matches)) {
-                    $candidate = trim($matches[1]);
-                    $candidate = preg_replace('/[,;\.\(\)\s]+$/', '', $candidate);
-                    $candidate = trim($candidate);
-
-                    if (empty($candidate) || strlen($candidate) < 2) continue;
-                    if (is_numeric($candidate)) continue;
-
-                    $isInstitution = preg_match('/^[A-Z]{2,}$/', $candidate);
-                    if (!$isInstitution) {
-                        foreach ($instKeywords as $kw) {
-                            if (stripos($candidate, $kw) !== false) {
-                                $isInstitution = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    if ($isInstitution) {
-                        $candidate = preg_replace('/\b(19|20)\d{2}\b/', '', $candidate);
-                        $awardingBody = trim($candidate, " \t\n\r\0\x0B,-.");
-                        if (!empty($awardingBody)) break;
-                    }
-                }
-            }
-
-            if (!$awardingBody) {
-                $instPattern = '/(?:University|College|Ministry|Division|Board|Institute|Academy|Society|Center)\s+(?:of|at|in)?\s*[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*/i';
-                if (preg_match($instPattern, $line, $matches)) {
-                    $candidate = trim($matches[0]);
-                    if (strlen($candidate) > 10) {
-                        $awardingBody = $candidate;
-                    }
-                }
-            }
-
-            $awards[] = [
-                'title'         => $line,
-                'awarding_body' => $awardingBody,
-                'type'          => $this->guessType($line),
-                'year'          => $year ? (int)$year : null,
-                'remarks'       => null,
+            $educations[] = [
+                'degree_name'  => $degree,
+                'major'        => null,
+                'institution'  => 'Unknown Institution',
+                'passing_year' => $passingYear,
+                'result_type'  => 'Not Applicable',
+                'cgpa'         => null,
+                'scale'        => null,
+                'marks'        => null,
+                'grade'        => null,
+                'duration'     => null,
+                'country'      => 'Bangladesh',
             ];
         }
 
-        return $awards;
+        return $educations;
     }
 
-    private function guessType(string $text): string
-    {
-        $text = strtolower($text);
-        if (str_contains($text, 'scholarship')) return 'scholarship';
-        if (str_contains($text, 'recognition')) return 'recognition';
-        if (str_contains($text, 'appreciation')) return 'appreciation';
-        return 'award';
-    }
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private function cleanText(?string $value): ?string
     {
         if ($value === null) return null;
+        $value = strip_tags($value);
+        $value = html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $value = trim($value);
         return $value === '' ? null : $value;
-    }
-
-    private function validateCategory(?string $cat): string
-    {
-        $cat = strtolower(trim($cat ?? ''));
-        $valid = ['award', 'scholarship', 'recognition', 'appreciation', 'other'];
-        return in_array($cat, $valid, true) ? $cat : 'award';
     }
 
     private function validateYear($year): ?int
     {
         $y = (int) $year;
-        return ($y >= 1970 && $y <= (int) date('Y') + 1) ? $y : null;
+        return ($y >= 1950 && $y <= (int) date('Y') + 1) ? $y : null;
     }
 
     private function cleanHtmlForPrompt(string $html): string
     {
         if (empty(trim($html))) return '';
-        $html = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
-        // Explicitly remove HTML comments to save tokens
-        $html = preg_replace('/<!--.*?-->/s', '', $html);
+        $html    = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
+        $html    = preg_replace('/<!--.*?-->/s', '', $html);
         $cleaned = str_replace(['</p>', '</li>', '<br>', '<br/>', '<br />', '</div>', '</ul>', '</ol>'], "\n", $html);
         $cleaned = strip_tags($cleaned);
         $cleaned = html_entity_decode($cleaned, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
-        $lines = explode("\n", $cleaned);
+        $lines  = explode("\n", $cleaned);
         $result = [];
         foreach ($lines as $line) {
             $line = trim($line, " \t\n\r\0\x0B\xc2\xa0-•*");

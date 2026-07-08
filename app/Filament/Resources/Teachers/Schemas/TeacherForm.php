@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Teachers\Schemas;
 
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
@@ -158,7 +159,7 @@ class TeacherForm
                             ->icon('heroicon-o-map-pin')
                             ->schema([
                                 Grid::make(3)->schema([
-                                    TextInput::make('phone')->tel()->required(),
+                                    TextInput::make('phone')->type('tel')->required(),
                                     TextInput::make('personal_phone'),
                                     TextInput::make('extension_no')
                                         ->label('Extension No')
@@ -462,24 +463,51 @@ class TeacherForm
                                                     ->schema([
                                                         Select::make('first_author_id')
                                                             ->label('First Author')
-                                                            ->options(\App\Models\Teacher::pluck('last_name', 'id')) // Simplified for now, should be searchable
                                                             ->searchable()
-                                                            ->preload()
+                                                            ->options(fn () => \App\Models\Teacher::query()->orderBy('sort_order')->limit(10)->get()->pluck('full_name', 'id'))
+                                                            ->getSearchResultsUsing(fn (string $search) => \App\Models\Teacher::query()
+                                                                ->where('first_name', 'like', "%{$search}%")
+                                                                ->orWhere('middle_name', 'like', "%{$search}%")
+                                                                ->orWhere('last_name', 'like', "%{$search}%")
+                                                                ->orWhere('employee_id', 'like', "%{$search}%")
+                                                                ->limit(20)
+                                                                ->get()
+                                                                ->pluck('full_name', 'id')
+                                                            )
+                                                            ->getOptionLabelUsing(fn ($value) => \App\Models\Teacher::find($value)?->full_name)
                                                             ->afterStateHydrated(fn ($component, $record) => $record && $component->state($record->teachers()->wherePivot('author_role', 'first')->first()?->id)),
 
                                                         Select::make('corresponding_author_id')
                                                             ->label('Corresponding Author')
-                                                            ->options(\App\Models\Teacher::pluck('last_name', 'id'))
                                                             ->searchable()
-                                                            ->preload()
+                                                            ->options(fn () => \App\Models\Teacher::query()->orderBy('sort_order')->limit(10)->get()->pluck('full_name', 'id'))
+                                                            ->getSearchResultsUsing(fn (string $search) => \App\Models\Teacher::query()
+                                                                ->where('first_name', 'like', "%{$search}%")
+                                                                ->orWhere('middle_name', 'like', "%{$search}%")
+                                                                ->orWhere('last_name', 'like', "%{$search}%")
+                                                                ->orWhere('employee_id', 'like', "%{$search}%")
+                                                                ->limit(20)
+                                                                ->get()
+                                                                ->pluck('full_name', 'id')
+                                                            )
+                                                            ->getOptionLabelUsing(fn ($value) => \App\Models\Teacher::find($value)?->full_name)
                                                             ->afterStateHydrated(fn ($component, $record) => $record && $component->state($record->teachers()->wherePivot('author_role', 'corresponding')->first()?->id)),
 
                                                         Select::make('co_author_ids')
                                                             ->label('Co-Authors')
-                                                            ->options(\App\Models\Teacher::pluck('last_name', 'id'))
-                                                            ->searchable()
-                                                            ->preload()
                                                             ->multiple()
+                                                            ->searchable()
+                                                            ->options(fn () => \App\Models\Teacher::query()->orderBy('sort_order')->limit(10)->get()->pluck('full_name', 'id'))
+                                                            ->getSearchResultsUsing(fn (string $search) => \App\Models\Teacher::query()
+                                                                ->where('first_name', 'like', "%{$search}%")
+                                                                ->orWhere('middle_name', 'like', "%{$search}%")
+                                                                ->orWhere('last_name', 'like', "%{$search}%")
+                                                                ->orWhere('employee_id', 'like', "%{$search}%")
+                                                                ->limit(20)
+                                                                ->get()
+                                                                ->pluck('full_name', 'id')
+                                                            )
+                                                            ->getOptionLabelsUsing(fn (array $values) => \App\Models\Teacher::whereIn('id', $values)->get()->pluck('full_name', 'id')->toArray())
                                                             ->afterStateHydrated(fn ($component, $record) => $record && $component->state($record->teachers()->wherePivot('author_role', 'co_author')->orderByPivot('sort_order')->pluck('teachers.id')->toArray())),
                                                     ])->columns(3),
 
@@ -496,15 +524,15 @@ class TeacherForm
                                                         Toggle::make('student_involvement'),
                                                         Toggle::make('is_featured'),
                                                         // Status is set automatically based on approval settings
-                                                        TextInput::make('sort_order')->numeric()->default(0),
-                                                    ])->columns(3)->collapsible(),
+                                                    ])->columns(2)->collapsible(),
                                             ])
                                             ->columnSpan(1),
                                     ])
                                     ->columns(2)
                                     ->defaultItems(0)
                                     ->collapsed()
-                                    ->reorderable(false)
+                                    ->reorderable()
+                                    ->orderColumn('publications.sort_order')
                                     ->deletable(true)
                                     ->addable(true)
                                     ->saveRelationshipsUsing(function (Repeater $component, $state, $record) {
@@ -512,6 +540,7 @@ class TeacherForm
                                         $existingIds = collect($state)->pluck('id')->filter()->toArray();
                                         $record->publications()->whereNotIn('publications.id', $existingIds)->delete();
 
+                                        $sortOrder = 0;
                                         foreach ($state ?? [] as $item) {
                                             // Determine status based on approval settings
                                             $requiresApproval = \App\Models\ApprovalSetting::requiresApproval('publication');
@@ -539,7 +568,7 @@ class TeacherForm
                                                 'student_involvement' => $item['student_involvement'] ?? false,
                                                 'is_featured' => $item['is_featured'] ?? false,
                                                 // 'status' => $item['status'], // Field removed, handled below
-                                                'sort_order' => $item['sort_order'] ?? 0,
+                                                'sort_order' => $sortOrder++,
                                             ];
 
                                             $publication = null;
@@ -628,13 +657,15 @@ class TeacherForm
                                     ->columns(3)
                                     ->defaultItems(0)
                                     ->collapsed()
-                                    ->reorderable(false)
+                                    ->reorderable()
+                                    ->orderColumn('sort_order')
                                     ->deletable(true)
                                     ->addable(true)
                                     ->saveRelationshipsUsing(function (Repeater $component, $state, $record) {
                                         $existingIds = collect($state)->pluck('id')->filter()->toArray();
                                         $record->jobExperiences()->whereNotIn('id', $existingIds)->delete();
 
+                                        $sortOrder = 0;
                                         foreach ($state ?? [] as $item) {
                                             $data = [
                                                 'position' => $item['position'],
@@ -645,6 +676,7 @@ class TeacherForm
                                                 'is_current' => $item['is_current'] ?? false,
                                                 'department' => $item['department'] ?? null,
                                                 'responsibilities' => $item['responsibilities'] ?? null,
+                                                'sort_order' => $sortOrder++,
                                             ];
                                             if (isset($item['id'])) {
                                                 $record->jobExperiences()->where('id', $item['id'])->update($data);
@@ -681,13 +713,15 @@ class TeacherForm
                                     ->columns(2)
                                     ->defaultItems(0)
                                     ->collapsed()
-                                    ->reorderable(false)
+                                    ->reorderable()
+                                    ->orderColumn('sort_order')
                                     ->deletable(true)
                                     ->addable(true)
                                     ->saveRelationshipsUsing(function (Repeater $component, $state, $record) {
                                         $existingIds = collect($state)->pluck('id')->filter()->toArray();
                                         $record->trainingExperiences()->whereNotIn('id', $existingIds)->delete();
 
+                                        $sortOrder = 0;
                                         foreach ($state ?? [] as $item) {
                                             $data = [
                                                 'title' => $item['title'],
@@ -699,6 +733,7 @@ class TeacherForm
                                                 'duration_days' => $item['duration_days'] ?? null,
                                                 'is_online' => $item['is_online'] ?? false,
                                                 'description' => $item['description'] ?? null,
+                                                'sort_order' => $sortOrder++,
                                             ];
                                             if (isset($item['id'])) {
                                                 $record->trainingExperiences()->where('id', $item['id'])->update($data);
@@ -717,25 +752,54 @@ class TeacherForm
                                     ->relationship()
                                     ->itemLabel(fn (array $state): ?string => $state['title'] ?? null)
                                     ->schema([
-                                        TextInput::make('title')->required(),
-                                        TextInput::make('awarding_body'),
-                                        TextInput::make('year')->numeric(),
+                                        TextInput::make('title')
+                                            ->required()
+                                            ->columnSpan(2),
+                                        TextInput::make('awarding_body')
+                                            ->columnSpan(2),
+                                        Select::make('type')
+                                            ->options([
+                                                'award' => 'Award',
+                                                'scholarship' => 'Scholarship',
+                                                'recognition' => 'Recognition',
+                                                'appreciation' => 'Appreciation',
+                                                'other' => 'Other',
+                                            ])
+                                            ->default('award')
+                                            ->required(),
+                                        DatePicker::make('date'),
+                                        TextInput::make('year')
+                                            ->numeric()
+                                            ->rules(['integer', 'min:1900', 'max:' . (date('Y') + 10)]),
+                                        FileUpload::make('attachment')
+                                            ->directory('awards-attachments')
+                                            ->downloadable(),
+                                        Textarea::make('remarks')
+                                            ->rows(2)
+                                            ->columnSpanFull(),
                                     ])
-                                    ->columns(2)
+                                    ->columns(3)
                                     ->defaultItems(0)
                                     ->collapsed()
-                                    ->reorderable(false)
+                                    ->reorderable()
+                                    ->orderColumn('sort_order')
                                     ->deletable(true)
                                     ->addable(true)
                                     ->saveRelationshipsUsing(function (Repeater $component, $state, $record) {
                                         $existingIds = collect($state)->pluck('id')->filter()->toArray();
                                         $record->awards()->whereNotIn('id', $existingIds)->delete();
 
+                                        $sortOrder = 0;
                                         foreach ($state ?? [] as $item) {
                                             $data = [
                                                 'title' => $item['title'],
                                                 'awarding_body' => $item['awarding_body'] ?? null,
+                                                'type' => $item['type'] ?? 'award',
+                                                'date' => $item['date'] ?? null,
                                                 'year' => $item['year'] ?? null,
+                                                'remarks' => $item['remarks'] ?? null,
+                                                'attachment' => $item['attachment'] ?? null,
+                                                'sort_order' => $sortOrder++,
                                             ];
                                             if (isset($item['id'])) {
                                                 $record->awards()->where('id', $item['id'])->update($data);
@@ -752,7 +816,7 @@ class TeacherForm
                                 Repeater::make('skills')
                                     ->relationship(
                                         name: 'skills',
-                                        modifyQueryUsing: fn ($query) => $query->orderBy('id')
+                                        modifyQueryUsing: fn ($query) => $query->orderBy('sort_order')
                                     )
                                     ->itemLabel(fn (array $state): ?string => $state['name'] ?? null)
                                     ->schema([
@@ -767,7 +831,8 @@ class TeacherForm
                                     ->columns(2)
                                     ->defaultItems(0)
                                     ->collapsed()
-                                    ->reorderable(false)
+                                    ->reorderable()
+                                    ->orderColumn('sort_order')
                                     ->deletable(true)
                                     ->addable(true)
                                     ->saveRelationshipsUsing(function (Repeater $component, $state, $record) {
@@ -781,18 +846,21 @@ class TeacherForm
                                         $record->skills()->whereNotIn('id', $existingIds)->delete();
 
                                         // Update or create items
+                                        $sortOrder = 0;
                                         foreach ($state ?? [] as $item) {
                                             if (isset($item['id'])) {
                                                 // Update existing
                                                 $record->skills()->where('id', $item['id'])->update([
                                                     'name' => $item['name'],
                                                     'proficiency' => $item['proficiency'] ?? null,
+                                                    'sort_order' => $sortOrder++,
                                                 ]);
                                             } else {
                                                 // Create new
                                                 $record->skills()->create([
                                                     'name' => $item['name'],
                                                     'proficiency' => $item['proficiency'] ?? null,
+                                                    'sort_order' => $sortOrder++,
                                                 ]);
                                             }
                                         }
@@ -807,20 +875,29 @@ class TeacherForm
                                     ->relationship()
                                     ->itemLabel(fn (array $state): ?string => $state['area'] ?? null)
                                     ->schema([
-                                        TextInput::make('area')->required(),
+                                        TextInput::make('area')
+                                            ->label('Teaching Area / Subject')
+                                            ->required(),
+                                        TextInput::make('description')
+                                            ->label('Description / Notes'),
                                     ])
+                                    ->columns(2)
                                     ->defaultItems(0)
                                     ->collapsed()
-                                    ->reorderable(false)
+                                    ->reorderable()
+                                    ->orderColumn('sort_order')
                                     ->deletable(true)
                                     ->addable(true)
                                     ->saveRelationshipsUsing(function (Repeater $component, $state, $record) {
                                         $existingIds = collect($state)->pluck('id')->filter()->toArray();
                                         $record->teachingAreas()->whereNotIn('id', $existingIds)->delete();
 
+                                        $sortOrder = 0;
                                         foreach ($state ?? [] as $item) {
                                             $data = [
                                                 'area' => $item['area'],
+                                                'description' => $item['description'] ?? null,
+                                                'sort_order' => $sortOrder++,
                                             ];
                                             if (isset($item['id'])) {
                                                 $record->teachingAreas()->where('id', $item['id'])->update($data);
@@ -874,13 +951,31 @@ class TeacherForm
                                                 return $org->id;
                                             })
                                             ->required(),
+                                        Select::make('record_type')
+                                            ->label('Record Type')
+                                            ->options([
+                                                'membership' => 'Membership',
+                                                'affiliation' => 'Affiliation',
+                                            ])
+                                            ->default('membership')
+                                            ->required(),
                                         Select::make('membership_type_id')
                                             ->label('Membership Type')
                                             ->relationship('membershipType', 'name', modifyQueryUsing: fn ($query) => $query->where('is_active', true)->orderBy('sort_order'))
                                             ->searchable()
                                             ->preload(),
+                                        TextInput::make('position')
+                                            ->label('Position / Role')
+                                            ->maxLength(255),
                                         TextInput::make('membership_id')
                                             ->label('Membership ID'),
+                                        Select::make('scope')
+                                            ->label('Scope')
+                                            ->options([
+                                                'local' => 'Local',
+                                                'national' => 'National',
+                                                'international' => 'International',
+                                            ]),
                                         DatePicker::make('start_date')
                                             ->label('Start Date'),
                                         DatePicker::make('end_date')
@@ -888,10 +983,15 @@ class TeacherForm
                                         Select::make('status')
                                             ->options([
                                                 'active' => 'Active',
+                                                'inactive' => 'Inactive',
                                                 'expired' => 'Expired',
-                                                'pending' => 'Pending',
                                             ])
                                             ->default('active'),
+                                        TextInput::make('url')
+                                            ->label('Verification URL')
+                                            ->url()
+                                            ->maxLength(500)
+                                            ->columnSpanFull(),
                                         Textarea::make('description')
                                             ->label('Notes')
                                             ->columnSpanFull()
@@ -900,22 +1000,29 @@ class TeacherForm
                                     ->columns(3)
                                     ->defaultItems(0)
                                     ->collapsed()
-                                    ->reorderable(false)
+                                    ->reorderable()
+                                    ->orderColumn('sort_order')
                                     ->deletable(true)
                                     ->addable(true)
                                     ->saveRelationshipsUsing(function (Repeater $component, $state, $record) {
                                         $existingIds = collect($state)->pluck('id')->filter()->toArray();
                                         $record->memberships()->whereNotIn('id', $existingIds)->delete();
 
+                                        $sortOrder = 0;
                                         foreach ($state ?? [] as $item) {
                                             $data = [
                                                 'membership_organization_id' => $item['membership_organization_id'],
                                                 'membership_type_id' => $item['membership_type_id'] ?? null,
+                                                'record_type' => $item['record_type'] ?? 'membership',
+                                                'position' => $item['position'] ?? null,
+                                                'scope' => $item['scope'] ?? null,
+                                                'url' => $item['url'] ?? null,
                                                 'membership_id' => $item['membership_id'] ?? null,
                                                 'start_date' => $item['start_date'] ?? null,
                                                 'end_date' => $item['end_date'] ?? null,
                                                 'status' => $item['status'] ?? 'active',
                                                 'description' => $item['description'] ?? null,
+                                                'sort_order' => $sortOrder++,
                                             ];
                                             if (isset($item['id'])) {
                                                 $record->memberships()->where('id', $item['id'])->update($data);

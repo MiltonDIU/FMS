@@ -9,7 +9,8 @@ class ImportOldTeachersAwardsCommand extends Command
     protected $signature = 'import:old-teachers-awards
                             {--file=teachers_awards_export.json : JSON file name inside storage/app/public/exports/}
                             {--limit=0 : Limit the number of records to process}
-                            {--dry-run : Preview without writing to DB}';
+                            {--dry-run : Preview without writing to DB}
+                            {--skip-existing : Skip already existing database entries}';
 
     protected $description = 'Import teacher awards/scholarships from exported JSON into the new database';
 
@@ -72,6 +73,18 @@ class ImportOldTeachersAwardsCommand extends Command
                 }
 
                 try {
+                    if ($this->option('skip-existing')) {
+                        $exists = \App\Models\Award::where([
+                            'teacher_id'    => $teacher->id,
+                            'title'         => $awardData['title'],
+                            'year'          => $awardData['year'],
+                        ])->exists();
+                        if ($exists) {
+                            $imported++;
+                            continue;
+                        }
+                    }
+
                     \App\Models\Award::updateOrCreate(
                         [
                             'teacher_id'    => $teacher->id,

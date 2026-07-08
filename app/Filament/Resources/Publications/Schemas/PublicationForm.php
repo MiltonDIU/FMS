@@ -86,21 +86,21 @@ class PublicationForm
                     ->schema([
                         Select::make('first_author_id')
                             ->label('First Author')
-                            ->options(\App\Models\Teacher::pluck('last_name', 'id')) // Simplified for now, should be searchable
+                            ->options(\App\Models\Teacher::all()->pluck('full_name', 'id')) // Simplified for now, should be searchable
                             ->searchable()
                             ->preload()
                             ->afterStateHydrated(fn ($component, $record) => $record ? $component->state($record->teachers()->wherePivot('author_role', 'first')->first()?->id) : null),
 
                         Select::make('corresponding_author_id')
                             ->label('Corresponding Author')
-                             ->options(\App\Models\Teacher::pluck('last_name', 'id'))
+                             ->options(\App\Models\Teacher::all()->pluck('full_name', 'id'))
                             ->searchable()
                             ->preload()
                             ->afterStateHydrated(fn ($component, $record) => $record ? $component->state($record->teachers()->wherePivot('author_role', 'corresponding')->first()?->id) : null),
 
                         Select::make('co_author_ids')
                             ->label('Co-Authors')
-                             ->options(\App\Models\Teacher::pluck('last_name', 'id'))
+                             ->options(\App\Models\Teacher::all()->pluck('full_name', 'id'))
                             ->searchable()
                             ->preload()
                             ->multiple()

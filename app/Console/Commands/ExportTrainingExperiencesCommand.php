@@ -35,7 +35,8 @@ class ExportTrainingExperiencesCommand extends Command
                             {--batch-size=3                            : Teachers per AI API call}
                             {--provider=auto                            : AI provider: auto|openrouter|vertex|gemini|groq|anthropic|deepseek|internal|heuristic}
                             {--dry-run                                  : Parse but do not write output file}
-                            {--overwrite                                : Overwrite the output file and re-process all records}';
+                            {--overwrite                                : Overwrite the output file and re-process all records}
+                            {--employee=                                 : Process only a specific employee ID}';
 
     protected $description = 'Export & AI-parse training experiences from old DB/JSON — Phase 2 (supports OpenRouter/Vertex/Gemini/Groq/Anthropic/DeepSeek)';
 
@@ -74,7 +75,7 @@ class ExportTrainingExperiencesCommand extends Command
             $rawRecords = array_slice($rawRecords, 0, $limit);
         }
 
-        $this->info('Total teachers to process: ' . count($rawRecords));
+        $this->info('Total teachers to process (before skip): ' . count($rawRecords));
 
         // Auto-resume check: skip already done employeeIDs unless --overwrite is set
         $existingData = [];
@@ -94,6 +95,13 @@ class ExportTrainingExperiencesCommand extends Command
                 }
             }
         }
+
+        if (empty($rawRecords)) {
+            $this->info("✅ All selected teachers have already been processed. Nothing to do.");
+            return 0;
+        }
+
+        $this->info('Actual teachers to send to AI: ' . count($rawRecords));
 
         // ── Batch process ──
         $batchSize   = max(1, (int) $this->option('batch-size'));
@@ -220,7 +228,7 @@ class ExportTrainingExperiencesCommand extends Command
             ? $this->loadFromDb()
             : $this->loadFromJson();
 
-        if (env('AI_PROCESS_ONLY_ASSIGNED_DEPARTMENT', false)) {
+        if (env('AI_PROCESS_ONLY_ASSIGNED_DEPARTMENT', false) && !$this->option('employee')) {
             $assignedEmployeeIds = \App\Models\Teacher::where(function($query) {
                 $query->whereNotNull('department_id')
                       ->orWhereHas('departments');
@@ -288,6 +296,10 @@ class ExportTrainingExperiencesCommand extends Command
             fn($r) => !empty(trim(strip_tags($r['trainingExperience'] ?? '')))
         ));
 
+        if ($employeeId = $this->option('employee')) {
+            $data = array_values(array_filter($data, fn($r) => (string)($r['employeeID'] ?? '') === (string)$employeeId));
+        }
+
         $this->info("Loaded " . count($data) . " records from JSON ({$path}).");
         return $data;
     }
@@ -295,12 +307,16 @@ class ExportTrainingExperiencesCommand extends Command
     private function loadFromDb(): array
     {
         // Adjust table/column to match your old DB schema
-        $rows = DB::connection('old_db')
+        $query = DB::connection('old_db')
             ->table('teacher')
             ->whereNotNull('trainingExperience')
-            ->where('trainingExperience', '!=', '')
-            ->select('employeeID', 'trainingExperience')
-            ->get();
+            ->where('trainingExperience', '!=', '');
+
+        if ($employeeId = $this->option('employee')) {
+            $query->where('employeeID', $employeeId);
+        }
+
+        $rows = $query->select('employeeID', 'trainingExperience')->get();
 
         $this->info("Loaded " . $rows->count() . " records from old DB.");
         return $rows->map(fn($r) => (array) $r)->toArray();

@@ -9,7 +9,8 @@ class ImportOldTeachersTeachingAreasCommand extends Command
     protected $signature = 'import:old-teachers-teaching-areas
                             {--file=teachers_teaching_areas_export.json : JSON file name inside storage/app/public/exports/}
                             {--limit=0 : Limit the number of records to process}
-                            {--dry-run : Preview without writing to DB}';
+                            {--dry-run : Preview without writing to DB}
+                            {--skip-existing : Skip already existing database entries}';
 
     protected $description = 'Import teacher teaching areas from exported JSON into the new database';
 
@@ -71,6 +72,17 @@ class ImportOldTeachersTeachingAreasCommand extends Command
                 }
 
                 try {
+                    if ($this->option('skip-existing')) {
+                        $exists = \App\Models\TeachingArea::where([
+                            'teacher_id'    => $teacher->id,
+                            'area'          => $areaData['area'],
+                        ])->exists();
+                        if ($exists) {
+                            $imported++;
+                            continue;
+                        }
+                    }
+
                     \App\Models\TeachingArea::updateOrCreate(
                         [
                             'teacher_id'    => $teacher->id,

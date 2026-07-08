@@ -6,36 +6,36 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
-class ExportOldTeachersAwardsCommand extends Command
+class ExportOldTeachersMembershipsCommand extends Command
 {
     /**
      * The name and signature of the console command.
      */
-    protected $signature = 'export:old-teachers-awards
-                            {--source=db                               : Data source: "db" (old_db connection) or "json"}
-                            {--json-file=old_teacher.json              : Source JSON filename (inside storage/app/public/)}
-                            {--output=teachers_awards_export.json      : Output filename (inside storage/app/public/exports/)}
-                            {--limit=0                                  : Limit number of teachers processed (0 = all)}
-                            {--batch-size=5                            : Teachers per AI API call}
-                            {--provider=auto                            : AI provider: auto|openrouter|vertex|gemini|groq|anthropic|deepseek|heuristic}
-                            {--dry-run                                  : Parse but do not write output file}
-                            {--overwrite                                : Overwrite the output file and re-process all records}
-                            {--employee=                                 : Process only a specific employee ID}';
+    protected $signature = 'export:old-teachers-memberships
+                            {--source=db                                    : Data source: "db" (old_db connection) or "json"}
+                            {--json-file=old_teacher.json                   : Source JSON filename (inside storage/app/public/)}
+                            {--output=teachers_memberships_export.json      : Output filename (inside storage/app/public/exports/)}
+                            {--limit=0                                       : Limit number of teachers processed (0 = all)}
+                            {--batch-size=5                                  : Teachers per AI API call}
+                            {--provider=auto                                 : AI provider: auto|openrouter|vertex|gemini|groq|anthropic|deepseek|heuristic}
+                            {--dry-run                                       : Parse but do not write output file}
+                            {--overwrite                                     : Overwrite the output file and re-process all records}
+                            {--employee=                                     : Process only a specific employee ID}';
 
-    protected $description = 'Export and AI-parse teacher awards/scholarships from old database/JSON (supports Vertex/Gemini/Groq/Anthropic/DeepSeek)';
+    protected $description = 'Export and AI-parse teacher memberships from old database/JSON into structured JSON for import';
 
     const MODELS = [
         'anthropic'  => 'claude-sonnet-4-20250514',
         'groq'       => 'llama-3.3-70b-versatile',
         'gemini'     => 'gemini-2.5-flash',
         'vertex'     => 'gemini-2.5-flash',
-        'openrouter' => 'google/gemini-3.5-flash',
+        'openrouter' => 'google/gemini-2.5-flash',
         'deepseek'   => 'deepseek-v4-flash',
     ];
 
-    protected string $aiProvider = 'openrouter'; // resolved at runtime
+    protected string $aiProvider = 'openrouter';
     protected array $employeeToOldId = [];
-    protected float $totalCost       = 0.0;
+    protected float $totalCost = 0.0;
 
     public function handle(): int
     {
@@ -45,7 +45,7 @@ class ExportOldTeachersAwardsCommand extends Command
         $rawRecords = $this->loadSourceRecords();
         if (empty($rawRecords)) {
             $this->error('No source records found.');
-            return 1;
+            return Command::FAILURE;
         }
 
         $limit = (int) $this->option('limit');
@@ -55,7 +55,7 @@ class ExportOldTeachersAwardsCommand extends Command
 
         $this->info('Total teachers to process (before skip): ' . count($rawRecords));
 
-        // Auto-resume check: skip already done employeeIDs unless --overwrite is set
+        // Auto-resume: skip already-done records unless --overwrite
         $existingData = [];
         if (!$this->option('overwrite')) {
             $existingData = $this->loadExistingOutput();
@@ -76,12 +76,11 @@ class ExportOldTeachersAwardsCommand extends Command
 
         if (empty($rawRecords)) {
             $this->info("✅ All selected teachers have already been processed. Nothing to do.");
-            return 0;
+            return Command::SUCCESS;
         }
 
         $this->info('Actual teachers to send to AI: ' . count($rawRecords));
 
-        // Batch process
         $batchSize = max(1, (int) $this->option('batch-size'));
         $batches = array_chunk($rawRecords, $batchSize);
         $exportData = $existingData;
@@ -113,19 +112,19 @@ class ExportOldTeachersAwardsCommand extends Command
                 continue;
             }
 
-            foreach ($parsed as $employeeId => $awards) {
+            foreach ($parsed as $employeeId => $memberships) {
                 $oldTeacherId = $this->employeeToOldId[(string)$employeeId] ?? null;
                 $exportData[] = [
                     '_employee_id'    => (string) $employeeId,
                     '_old_teacher_id' => $oldTeacherId,
-                    'awards'          => $awards,
+                    'memberships'     => $memberships,
                 ];
-                $totalParsed += count($awards);
+                $totalParsed += count($memberships);
             }
 
             $bar->advance(count($batch));
 
-            // Save progress incrementally to protect against crashes/network drops
+            // Save progress incrementally
             if (!$this->option('dry-run')) {
                 $exportDir = storage_path('app/public/exports/');
                 if (!is_dir($exportDir)) {
@@ -144,7 +143,6 @@ class ExportOldTeachersAwardsCommand extends Command
         $bar->finish();
         $this->newLine();
 
-        // Write output
         $exportDir = storage_path('app/public/exports/');
         if (!is_dir($exportDir)) {
             mkdir($exportDir, 0755, true);
@@ -156,7 +154,7 @@ class ExportOldTeachersAwardsCommand extends Command
             $this->info("✅ Export complete → {$path}");
 
             if (!empty($failLog)) {
-                $failPath = $exportDir . 'awards_export_errors.json';
+                $failPath = $exportDir . 'memberships_export_errors.json';
                 file_put_contents($failPath, json_encode($failLog, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
                 $this->warn("⚠️  Error log → {$failPath}");
             }
@@ -178,10 +176,10 @@ class ExportOldTeachersAwardsCommand extends Command
         }
 
         $metrics = [
-            ['Teachers processed',         count($rawRecords)],
-            ['Awards records extracted',   $totalParsed],
-            ['Failed batches (teachers)',  $totalFailed],
-            ['Avg awards / teacher',       $processed > 0 ? round($totalParsed / $processed, 1) : 0],
+            ['Teachers processed',             count($rawRecords)],
+            ['Membership records extracted',   $totalParsed],
+            ['Failed batches (teachers)',      $totalFailed],
+            ['Avg memberships / teacher',      $processed > 0 ? round($totalParsed / $processed, 1) : 0],
         ];
 
         if ($this->totalCost > 0) {
@@ -190,8 +188,10 @@ class ExportOldTeachersAwardsCommand extends Command
 
         $this->table(['Metric', 'Count'], $metrics);
 
-        return $totalFailed > 0 ? 1 : 0;
+        return $totalFailed > 0 ? Command::FAILURE : Command::SUCCESS;
     }
+
+    // ── Data Loading ──────────────────────────────────────────────────────────
 
     private function loadSourceRecords(): array
     {
@@ -200,22 +200,19 @@ class ExportOldTeachersAwardsCommand extends Command
             : $this->loadFromJson();
 
         if (env('AI_PROCESS_ONLY_ASSIGNED_DEPARTMENT', false) && !$this->option('employee')) {
-            $assignedEmployeeIds = \App\Models\Teacher::where(function($query) {
-                $query->whereNotNull('department_id')
-                      ->orWhereHas('departments');
+            $assignedEmployeeIds = \App\Models\Teacher::where(function ($query) {
+                $query->whereNotNull('department_id')->orWhereHas('departments');
             })
-            ->whereHas('user', function($query) {
-                $query->where('is_active', 1);
-            })
+            ->whereHas('user', fn($q) => $q->where('is_active', 1))
             ->pluck('employee_id')
             ->filter()
             ->toArray();
 
-            $data = array_values(array_filter($data, function($r) use ($assignedEmployeeIds) {
+            $data = array_values(array_filter($data, function ($r) use ($assignedEmployeeIds) {
                 return in_array((string)($r['employeeID'] ?? ''), $assignedEmployeeIds, true);
             }));
 
-            $this->info("Filter enabled: Only processing active teachers with an assigned department in new DB. Remaining: " . count($data) . " records.");
+            $this->info("Filter enabled: Only processing active teachers with an assigned department. Remaining: " . count($data) . " records.");
         }
 
         return $data;
@@ -225,14 +222,14 @@ class ExportOldTeachersAwardsCommand extends Command
     {
         $query = DB::connection('old_db')
             ->table('teacher')
-            ->whereNotNull('awardScholarship')
-            ->where('awardScholarship', '!=', '');
+            ->whereNotNull('membership')
+            ->where('membership', '!=', '');
 
         if ($employeeId = $this->option('employee')) {
             $query->where('employeeID', $employeeId);
         }
 
-        $rows = $query->select('employeeID', 'awardScholarship')->get();
+        $rows = $query->select('employeeID', 'membership', 'position')->get();
 
         $this->info("Loaded " . $rows->count() . " records from old DB.");
         return $rows->map(fn($r) => (array) $r)->toArray();
@@ -270,7 +267,7 @@ class ExportOldTeachersAwardsCommand extends Command
 
         $data = array_values(array_filter(
             $data,
-            fn($r) => !empty(trim(strip_tags($r['awardScholarship'] ?? '')))
+            fn($r) => !empty(trim(strip_tags($r['membership'] ?? '')))
         ));
 
         if ($employeeId = $this->option('employee')) {
@@ -288,6 +285,8 @@ class ExportOldTeachersAwardsCommand extends Command
         $data = json_decode(file_get_contents($path), true);
         return is_array($data) ? $data : [];
     }
+
+    // ── AI Provider Resolution ────────────────────────────────────────────────
 
     private function resolveAiProvider(): void
     {
@@ -317,15 +316,15 @@ class ExportOldTeachersAwardsCommand extends Command
             }
         }
 
-        $priority = ['vertex','gemini','deepseek','openrouter','groq','anthropic'];
+        $priority = ['vertex', 'gemini', 'deepseek', 'openrouter', 'groq', 'anthropic'];
         foreach ($priority as $provider) {
             $key = match($provider) {
-                'deepseek'  => env('DEEPSEEK_API_KEY'),
-                'openrouter'=> env('OPENROUTER_API_KEY'),
-                'vertex'    => env('VERTEX_AI_KEY_PATH'),
-                'gemini'    => env('GEMINI_API_KEY'),
-                'groq'      => env('GROQ_API_KEY'),
-                'anthropic' => env('ANTHROPIC_API_KEY'),
+                'deepseek'   => env('DEEPSEEK_API_KEY'),
+                'openrouter' => env('OPENROUTER_API_KEY'),
+                'vertex'     => env('VERTEX_AI_KEY_PATH'),
+                'gemini'     => env('GEMINI_API_KEY'),
+                'groq'       => env('GROQ_API_KEY'),
+                'anthropic'  => env('ANTHROPIC_API_KEY'),
             };
             if (!empty($key)) {
                 $this->aiProvider = $provider;
@@ -356,6 +355,8 @@ class ExportOldTeachersAwardsCommand extends Command
         }
     }
 
+    // ── AI Dispatch ───────────────────────────────────────────────────────────
+
     private function parseWithAi(array $batch): array
     {
         return match($this->aiProvider) {
@@ -368,6 +369,8 @@ class ExportOldTeachersAwardsCommand extends Command
             default      => $this->callAnthropic($batch),
         };
     }
+
+    // ── AI API Calls ──────────────────────────────────────────────────────────
 
     private function callDeepSeek(array $batch): array
     {
@@ -396,13 +399,12 @@ class ExportOldTeachersAwardsCommand extends Command
                 $content .= $block['text'] ?? '';
             }
         }
-        return $this->parseClaudeResponse($content, $batch);
+        return $this->parseAiResponse($content, $batch);
     }
 
     private function callOpenRouter(array $batch): array
     {
         $prompt = $this->buildPrompt($batch);
-        $model  = self::MODELS['openrouter'];
 
         $response = Http::timeout(90)
             ->withHeaders([
@@ -412,15 +414,10 @@ class ExportOldTeachersAwardsCommand extends Command
                 'X-Title'       => env('APP_NAME', 'Faculty | Daffodil International University'),
             ])
             ->post('https://openrouter.ai/api/v1/chat/completions', [
-                'model'       => $model,
-                'temperature' => 0,
-                'max_tokens'  => 1500,
-                'messages'    => [
-                    [
-                        'role'    => 'user',
-                        'content' => $prompt,
-                    ],
-                ],
+                'model'           => self::MODELS['openrouter'],
+                'temperature'     => 0,
+                'max_tokens'      => 2000,
+                'messages'        => [['role' => 'user', 'content' => $prompt]],
                 'response_format' => ['type' => 'json_object'],
             ]);
 
@@ -428,8 +425,7 @@ class ExportOldTeachersAwardsCommand extends Command
             throw new \RuntimeException("OpenRouter API {$response->status()}: " . $response->body());
         }
 
-        $content = $response->json('choices.0.message.content', '');
-        return $this->parseClaudeResponse($content, $batch);
+        return $this->parseAiResponse($response->json('choices.0.message.content', ''), $batch);
     }
 
     private function callAnthropic(array $batch): array
@@ -452,10 +448,7 @@ class ExportOldTeachersAwardsCommand extends Command
             throw new \RuntimeException("Anthropic API {$response->status()}: " . $response->body());
         }
 
-        return $this->parseClaudeResponse(
-            $response->json('content.0.text', ''),
-            $batch
-        );
+        return $this->parseAiResponse($response->json('content.0.text', ''), $batch);
     }
 
     private function callGroq(array $batch): array
@@ -468,13 +461,10 @@ class ExportOldTeachersAwardsCommand extends Command
                 'Content-Type'  => 'application/json',
             ])
             ->post('https://api.groq.com/openai/v1/chat/completions', [
-                'model'       => self::MODELS['groq'],
-                'temperature' => 0,
-                'messages'    => [
-                    [
-                        'role'    => 'system',
-                        'content' => 'You are a structured data extraction assistant. Always respond with valid JSON only — no explanation, no markdown.',
-                    ],
+                'model'           => self::MODELS['groq'],
+                'temperature'     => 0,
+                'messages'        => [
+                    ['role' => 'system', 'content' => 'You are a structured data extraction assistant. Always respond with valid JSON only — no explanation, no markdown.'],
                     ['role' => 'user', 'content' => $prompt],
                 ],
                 'response_format' => ['type' => 'json_object'],
@@ -484,8 +474,7 @@ class ExportOldTeachersAwardsCommand extends Command
             throw new \RuntimeException("Groq API {$response->status()}: " . $response->body());
         }
 
-        $content = $response->json('choices.0.message.content', '');
-        return $this->parseClaudeResponse($content, $batch);
+        return $this->parseAiResponse($response->json('choices.0.message.content', ''), $batch);
     }
 
     private function callGemini(array $batch): array
@@ -497,30 +486,23 @@ class ExportOldTeachersAwardsCommand extends Command
 
         $response = Http::timeout(90)
             ->post($endpoint, [
-                'contents' => [
-                    ['role' => 'user', 'parts' => [['text' => $prompt]]],
-                ],
-                'generationConfig' => [
-                    'temperature'     => 0,
-                    'responseMimeType' => 'application/json',
-                ],
+                'contents'         => [['role' => 'user', 'parts' => [['text' => $prompt]]]],
+                'generationConfig' => ['temperature' => 0, 'responseMimeType' => 'application/json'],
             ]);
 
         if (!$response->successful()) {
             throw new \RuntimeException("Gemini API {$response->status()}: " . $response->body());
         }
 
-        $content = $response->json('candidates.0.content.parts.0.text', '');
-        return $this->parseClaudeResponse($content, $batch);
+        return $this->parseAiResponse($response->json('candidates.0.content.parts.0.text', ''), $batch);
     }
 
     private function callVertex(array $batch): array
     {
-        $prompt   = $this->buildPrompt($batch);
-        $model    = self::MODELS['vertex'];
-
+        $prompt          = $this->buildPrompt($batch);
+        $model           = self::MODELS['vertex'];
         $vertexAIService = resolve(\App\Services\VertexAIService::class);
-        $result = $vertexAIService->generateContent($model, $prompt, 0.0, 'application/json');
+        $result          = $vertexAIService->generateContent($model, $prompt, 0.0, 'application/json');
 
         $this->totalCost += $result['cost'];
 
@@ -531,21 +513,25 @@ class ExportOldTeachersAwardsCommand extends Command
             $result['cost']
         ));
 
-        return $this->parseClaudeResponse($result['content'], $batch);
+        return $this->parseAiResponse($result['content'], $batch);
     }
+
+    // ── Prompt Building ───────────────────────────────────────────────────────
 
     private function buildPrompt(array $batch): string
     {
         $teacherBlocks = '';
         foreach ($batch as $record) {
-            $empId        = htmlspecialchars((string)$record['employeeID'], ENT_XML1);
-            $htmlRaw      = $record['awardScholarship'] ?? '';
-            $cleanedText  = $this->cleanHtmlForPrompt($htmlRaw);
-            $teacherBlocks .= "\n<teacher employeeID=\"{$empId}\">\n{$cleanedText}\n</teacher>\n";
+            $empId       = htmlspecialchars((string)$record['employeeID'], ENT_XML1);
+            $htmlRaw     = $record['membership'] ?? '';
+            $position    = $record['position'] ?? '';
+            $cleanedText = $this->cleanHtmlForPrompt($htmlRaw);
+            $posText     = $position ? "\n[position/title in old record: {$position}]" : '';
+            $teacherBlocks .= "\n<teacher employeeID=\"{$empId}\">{$posText}\n{$cleanedText}\n</teacher>\n";
         }
 
         return <<<PROMPT
-You are a structured data extraction assistant. Parse each teacher's awards, scholarships, recognitions, and achievements list from the HTML below.
+You are a structured data extraction assistant. Parse each teacher's professional memberships, affiliations, and society memberships from the HTML/text below.
 
 Return ONLY a valid JSON object — no explanation, no markdown fences.
 
@@ -553,44 +539,68 @@ Return ONLY a valid JSON object — no explanation, no markdown fences.
 {
   "EMPLOYEE_ID": [
     {
-      "title": "...",
-      "awarding_body": "...",
+      "organization": "...",
+      "record_type": "membership",
       "type": "...",
-      "year": 2024,
-      "remarks": "..."
+      "position": "...",
+      "membership_id": "...",
+      "scope": "...",
+      "start_year": 2010,
+      "end_year": 2023,
+      "url": "...",
+      "description": "..."
     }
   ]
 }
 
 ## Field rules:
-- **title** (required): The clean name of the award, scholarship, or achievement (e.g., "Excellence in Teaching 2023", "Evaluation Panel Member of the 9th International Conference on Hospitality and Tourism Management (ICOHT 2022)"). Strip HTML tags. Never null.
-- **awarding_body**: The organization, institution, university, ministry, or body that gave the award or hosted the event/role (e.g., "Tazkera and Golam Mustafa Center for Teaching and Learning of HRDI institute", "The International Institute Of Knowledge Management (TIIKM)", "Ministry of Civil Aviation and Tourism"). If not explicitly mentioned or cannot be inferred, return null.
-- **type**: Must be exactly one of: award | scholarship | recognition | appreciation | other
-  - "award" -> for winning a prize, best paper, outstanding teaching skills award, etc.
-  - "scholarship" -> for fellowships, research grants, international credit mobility projects, teaching mobility funding, etc.
-  - "recognition" -> for being nominated, serving as a panel member, speaker, advisor, external reviewer, committee member, scientific member, or scholarly publications.
-  - "appreciation" -> for letters of appreciation or gratitude.
-  - "other" -> for other activities not fitting the above.
-- **year**: 4-digit integer if any year is mentioned (e.g., 2023, 2020); null if truly unknown.
-- **remarks**: Any extra information, locations (e.g., "Turkey", "Malaysia", "Vietnam"), dates, or details not covered. If none, return null.
+- **organization** (required): The clean name of the organization, society, association, body, committee, or institution the teacher is a member of (e.g., "Bangladesh Mathematical Society", "IEEE", "Institution of Engineers, Bangladesh"). Strip all HTML. Never null.
+- **record_type**: Must be exactly one of: membership | affiliation
+  - "membership" → formal society or professional body membership (IEEE, Life Member of Bangladesh Mathematical Society, Fellow of IEB, etc.)
+  - "affiliation" → roles, positions, committee memberships, editorial board, conference roles, administrative/academic positions, alumni, club roles, event convener, etc.
+- **type**: The role/membership type. Must be exactly one of: member | life_member | fellow | associate_member | honorary_member | advisor | executive_member | committee_member | reviewer | others
+  - "member" → regular/ordinary/scientific/country representative/working group member
+  - "life_member" → life member, life fellow
+  - "fellow" → Fellow (e.g., "LIFE FELLOW")
+  - "associate_member" → associate member
+  - "honorary_member" → honorary member
+  - "advisor" → advisor, advisory member, convener
+  - "executive_member" → executive member, joint convener, organizing committee member
+  - "committee_member" → board member, editorial board member, managing committee member, academic council member, regent board member, curriculum committee member
+  - "reviewer" → reviewer, referee
+  - "others" → anything not fitting the above categories clearly
+- **position**: The specific role or position title within the organization (e.g. "Vice President", "Editorial Board Member", "Country Representative", "Deputy Proctor"). null if not applicable.
+- **membership_id**: Any explicit membership ID or registration number mentioned (e.g., "LIFE FELLOW / 5020", "DMINB/CE-0359"). null if not mentioned.
+- **scope**: Geographic reach of the organization. Must be exactly one of: local | national | international | null
+  - "local" → university-level clubs, DIU committees, local chapters
+  - "national" → Bangladesh-level societies, national associations
+  - "international" → IEEE, ACM, global organizations, conferences held abroad
+  - null → if cannot be determined
+- **start_year**: 4-digit integer if a start year or "from" year is mentioned; null if unknown.
+- **end_year**: 4-digit integer if an end year is mentioned; null if ongoing or unknown.
+- **url**: Any URL found in the text related to this membership/affiliation. null if not present.
+- **description**: Any extra context like location, conference name, purpose, etc. If none, null.
 
-## Important:
-- Parse each distinct item/bullet point separately. Do NOT merge them.
+## Important rules:
+- **Crucial distinction between type and position**: Do not put membership grades like "Life Member", "Fellow", "Member" in the "position" field. The "type" field indicates the membership grade (e.g., life_member, fellow), while the "position" field holds specific administrative or executive titles/roles within that organization (e.g., "Vice President", "General Secretary", "Editorial Board Member", "Deputy Proctor"). If no specific title is mentioned, "position" should be null.
+- Parse EACH distinct membership/affiliation item separately. Do NOT merge bullet points.
 - Strip all HTML tags from extracted values.
-- Include ALL employeeIDs in the output even if their list is empty.
+- If a bullet point describes a position held at an event/conference (e.g., "Scientific Member to 6th International Conference..."), treat the conference organizer as the organization.
+- Include ALL employeeIDs in the output even if their list is empty ([]).
 
 {$teacherBlocks}
 PROMPT;
     }
 
-    private function parseClaudeResponse(string $content, array $batch): array
+    // ── Response Parsing ──────────────────────────────────────────────────────
+
+    private function parseAiResponse(string $content, array $batch): array
     {
         $content = preg_replace('/^```(?:json)?\s*/m', '', $content);
         $content = preg_replace('/\s*```$/m', '', $content);
         $content = trim($content);
 
         $decoded = json_decode($content, true);
-
         if (json_last_error() !== JSON_ERROR_NONE) {
             if (preg_match('/\{.*\}/s', $content, $matches)) {
                 $decoded = json_decode($matches[0], true);
@@ -603,27 +613,40 @@ PROMPT;
             );
         }
 
+        $validTypes = ['member', 'life_member', 'fellow', 'associate_member', 'honorary_member', 'advisor', 'executive_member', 'committee_member', 'reviewer', 'others'];
+
         $result = [];
 
-        foreach ($decoded as $employeeId => $rawAwards) {
-            if (!is_array($rawAwards)) continue;
+        foreach ($decoded as $employeeId => $rawMemberships) {
+            if (!is_array($rawMemberships)) continue;
 
             $result[(string)$employeeId] = [];
 
-            foreach ($rawAwards as $aw) {
-                $title = trim($aw['title'] ?? '');
-                if ($title === '') continue;
+            foreach ($rawMemberships as $m) {
+                $organization = trim($m['organization'] ?? '');
+                if ($organization === '') continue;
+
+                $type = strtolower(trim($m['type'] ?? ''));
+                if (!in_array($type, $validTypes, true)) {
+                    $type = 'others';
+                }
 
                 $result[(string)$employeeId][] = [
-                    'title'         => $title,
-                    'awarding_body' => $this->cleanText($aw['awarding_body'] ?? null),
-                    'type'          => $this->validateCategory($aw['type'] ?? null),
-                    'year'          => $this->validateYear($aw['year'] ?? null),
-                    'remarks'       => $this->cleanText($aw['remarks'] ?? null),
+                    'organization'  => $organization,
+                    'record_type'   => in_array($m['record_type'] ?? '', ['membership', 'affiliation'], true) ? $m['record_type'] : 'membership',
+                    'type'          => $type,
+                    'position'      => $this->cleanText($m['position'] ?? null),
+                    'membership_id' => $this->cleanText($m['membership_id'] ?? null),
+                    'scope'         => in_array($m['scope'] ?? '', ['local', 'national', 'international'], true) ? $m['scope'] : null,
+                    'start_year'    => $this->validateYear($m['start_year'] ?? null),
+                    'end_year'      => $this->validateYear($m['end_year'] ?? null),
+                    'url'           => $this->cleanText($m['url'] ?? null),
+                    'description'   => $this->cleanText($m['description'] ?? null),
                 ];
             }
         }
 
+        // Ensure all batch items appear in output
         foreach ($batch as $record) {
             $empId = (string)$record['employeeID'];
             if (!isset($result[$empId])) {
@@ -634,142 +657,124 @@ PROMPT;
         return $result;
     }
 
+    // ── Heuristic Fallback ────────────────────────────────────────────────────
+
     private function parseWithHeuristics(array $batch): array
     {
         $result = [];
         foreach ($batch as $record) {
             $empId = (string) $record['employeeID'];
-            $raw = $record['awardScholarship'] ?? '';
-            $result[$empId] = $this->parseAwards($raw);
+            $result[$empId] = $this->parseMembershipsHeuristic($record['membership'] ?? '', $record['position'] ?? '');
         }
         return $result;
     }
 
-    private function parseAwards(string $raw): array
+    private function parseMembershipsHeuristic(string $raw, string $position = ''): array
     {
         if (empty(trim($raw))) return [];
 
-        $raw = mb_convert_encoding($raw, 'UTF-8', 'UTF-8');
-
-        $cleaned = str_replace(['</p>', '</li>', '<br>', '<br/>', '<br />', '</div>'], "\n", $raw);
+        $raw     = mb_convert_encoding($raw, 'UTF-8', 'UTF-8');
+        $cleaned = str_replace(['</p>', '</li>', '<br>', '<br/>', '<br />', '</div>', '</ul>', '</ol>'], "\n", $raw);
         $cleaned = strip_tags($cleaned);
         $cleaned = html_entity_decode($cleaned, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
-        $lines = explode("\n", $cleaned);
-        $awards = [];
+        $lines       = explode("\n", $cleaned);
+        $memberships = [];
 
         foreach ($lines as $line) {
             $line = preg_replace('/\s+/', ' ', $line);
             $line = str_replace("\xc2\xa0", ' ', $line);
-            $line = trim($line, " \t\n\r\0\x0B-•*");
-            if (empty($line) || strlen($line) < 3) continue;
+            // Remove leading list markers: numbers like "1.", "1)", letters "a.", bullet chars
+            $line = preg_replace('/^[\s]*(?:\d+[\.\)]\s*|[a-zA-Z][\.\)]\s*|[-•*►▸▹◦‣⁃]\s*)/', '', $line);
+            $line = trim($line);
+            if (empty($line) || strlen($line) < 5) continue;
 
             $line = mb_convert_encoding($line, 'UTF-8', 'UTF-8');
 
-            $year = null;
-            if (preg_match('/\b(19|20)\d{2}\b/', $line, $matches)) {
-                $year = $matches[0];
+            // Detect years
+            $startYear = null;
+            $endYear   = null;
+            if (preg_match('/\b(?:from\s+)?(\d{4})\s*(?:to|-)\s*(\d{4}|\bdate\b|\bpresent\b|\btill\s+date\b)/i', $line, $ym)) {
+                $startYear = (int)$ym[1];
+                $endYear   = is_numeric($ym[2]) ? (int)$ym[2] : null;
+            } elseif (preg_match('/\b(19|20)\d{2}\b/', $line, $ym)) {
+                $startYear = (int)$ym[0];
             }
 
-            $awardingBody = null;
-            $patterns = [
-                '/\((?:for|to|at|by|from)\s+((?:[A-Z][a-z&0-9\.]+\s*|of\s+|and\s+)+)\)/',
-                '/(?:by|from|at|to)\s+((?:[A-Z][a-z&0-9\.]+\s*|of\s+|and\s+)+)/',
-                '/[,:-]\s*([A-Z][A-Z\s0-9]+)[\.\s]*$/',
-                '/[,:-]\s*((?:[A-Z][a-z&0-9\.]+\s*|of\s+|and\s+)+)[\.\s]*$/',
-            ];
+            // Detect organization: take text after comma/colon/dash if it looks like an org name
+            $organization = $line;
 
-            $instKeywords = ['University', 'College', 'School', 'Ministry', 'Division', 'Board', 'Institute', 'Department', 'Committee', 'Council', 'Center', 'Academy', 'Organization', 'Agency', 'Association', 'Foundation', 'Society', 'DIU', 'Cisco', 'UGC', 'ICT', 'Govt'];
+            // Detect type
+            $type = $this->guessMembershipType($line);
 
-            foreach ($patterns as $pattern) {
-                if (preg_match($pattern, $line, $matches)) {
-                    $candidate = trim($matches[1]);
-                    $candidate = preg_replace('/[,;\.\(\)\s]+$/', '', $candidate);
-                    $candidate = trim($candidate);
-
-                    if (empty($candidate) || strlen($candidate) < 2) continue;
-                    if (is_numeric($candidate)) continue;
-
-                    $isInstitution = preg_match('/^[A-Z]{2,}$/', $candidate);
-                    if (!$isInstitution) {
-                        foreach ($instKeywords as $kw) {
-                            if (stripos($candidate, $kw) !== false) {
-                                $isInstitution = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    if ($isInstitution) {
-                        $candidate = preg_replace('/\b(19|20)\d{2}\b/', '', $candidate);
-                        $awardingBody = trim($candidate, " \t\n\r\0\x0B,-.");
-                        if (!empty($awardingBody)) break;
-                    }
-                }
+            // Detect membership_id
+            $membershipId = null;
+            if (preg_match('/(?:no\.?|id\.?|#|registration\s*no\.?)[:\s]*([A-Z0-9\/\-]+)/i', $line, $mid)) {
+                $membershipId = trim($mid[1]);
+            } elseif (preg_match('/\b([A-Z]{2,}\/[A-Z]{2,}[\-\/][A-Z0-9\-]+)\b/', $line, $mid)) {
+                $membershipId = $mid[1];
+            } elseif (preg_match('/FELLOW\s*\/\s*(\d+)/i', $line, $mid)) {
+                $membershipId = 'FELLOW/' . $mid[1];
             }
 
-            if (!$awardingBody) {
-                $instPattern = '/(?:University|College|Ministry|Division|Board|Institute|Academy|Society|Center)\s+(?:of|at|in)?\s*[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*/i';
-                if (preg_match($instPattern, $line, $matches)) {
-                    $candidate = trim($matches[0]);
-                    if (strlen($candidate) > 10) {
-                        $awardingBody = $candidate;
-                    }
-                }
-            }
-
-            $awards[] = [
-                'title'         => $line,
-                'awarding_body' => $awardingBody,
-                'type'          => $this->guessType($line),
-                'year'          => $year ? (int)$year : null,
-                'remarks'       => null,
+            $memberships[] = [
+                'organization'  => $organization,
+                'type'          => $type,
+                'membership_id' => $membershipId,
+                'start_year'    => $startYear,
+                'end_year'      => $endYear,
+                'description'   => null,
             ];
         }
 
-        return $awards;
+        return $memberships;
     }
 
-    private function guessType(string $text): string
+    private function guessMembershipType(string $text): string
     {
-        $text = strtolower($text);
-        if (str_contains($text, 'scholarship')) return 'scholarship';
-        if (str_contains($text, 'recognition')) return 'recognition';
-        if (str_contains($text, 'appreciation')) return 'appreciation';
-        return 'award';
+        $t = strtolower($text);
+
+        if (str_contains($t, 'life fellow') || preg_match('/\blife\s+fellow\b/i', $t)) return 'life_member';
+        if (str_contains($t, 'life member')) return 'life_member';
+        if (str_contains($t, 'honorary')) return 'honorary_member';
+        if (str_contains($t, 'associate member')) return 'associate_member';
+        if (preg_match('/\bfellow\b/i', $t)) return 'fellow';
+        if (preg_match('/\b(editorial\s+board|managing\s+committee|academic\s+council|regent\s+board|curriculum\s+committee|board\s+of\s+governor)\b/i', $t)) return 'committee_member';
+        if (preg_match('/\b(executive\s+member|organizing\s+committee|joint\s+convener)\b/i', $t)) return 'executive_member';
+        if (preg_match('/\b(advisor|advisory|convener)\b/i', $t)) return 'advisor';
+        if (preg_match('/\b(reviewer|referee)\b/i', $t)) return 'reviewer';
+        if (preg_match('/\b(member)\b/i', $t)) return 'member';
+
+        return 'others';
     }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private function cleanText(?string $value): ?string
     {
         if ($value === null) return null;
+        $value = strip_tags($value);
+        $value = html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $value = trim($value);
         return $value === '' ? null : $value;
-    }
-
-    private function validateCategory(?string $cat): string
-    {
-        $cat = strtolower(trim($cat ?? ''));
-        $valid = ['award', 'scholarship', 'recognition', 'appreciation', 'other'];
-        return in_array($cat, $valid, true) ? $cat : 'award';
     }
 
     private function validateYear($year): ?int
     {
         $y = (int) $year;
-        return ($y >= 1970 && $y <= (int) date('Y') + 1) ? $y : null;
+        return ($y >= 1950 && $y <= (int) date('Y') + 1) ? $y : null;
     }
 
     private function cleanHtmlForPrompt(string $html): string
     {
         if (empty(trim($html))) return '';
-        $html = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
-        // Explicitly remove HTML comments to save tokens
-        $html = preg_replace('/<!--.*?-->/s', '', $html);
+        $html    = mb_convert_encoding($html, 'UTF-8', 'UTF-8');
+        $html    = preg_replace('/<!--.*?-->/s', '', $html);
         $cleaned = str_replace(['</p>', '</li>', '<br>', '<br/>', '<br />', '</div>', '</ul>', '</ol>'], "\n", $html);
         $cleaned = strip_tags($cleaned);
         $cleaned = html_entity_decode($cleaned, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
-        $lines = explode("\n", $cleaned);
+        $lines  = explode("\n", $cleaned);
         $result = [];
         foreach ($lines as $line) {
             $line = trim($line, " \t\n\r\0\x0B\xc2\xa0-•*");

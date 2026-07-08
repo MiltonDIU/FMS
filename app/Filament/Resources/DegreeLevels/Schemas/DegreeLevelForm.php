@@ -21,6 +21,11 @@ class DegreeLevelForm
                         ->required()
                         ->unique(ignoreRecord: true)
                         ->maxLength(50),
+                    TextInput::make('slug')
+                        ->label('Level Slug')
+                        ->required()
+                        ->unique(ignoreRecord: true)
+                        ->maxLength(50),
                     TextInput::make('sort_order')
                         ->numeric()
                         ->required()

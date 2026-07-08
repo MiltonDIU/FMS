@@ -94,20 +94,40 @@ class VertexAIService
         
         $endpoint = "https://{$this->region}-aiplatform.googleapis.com/v1/projects/{$this->projectId}/locations/{$this->region}/publishers/google/models/{$model}:generateContent";
 
-        $response = Http::withToken($accessToken)
-            ->timeout(240)
-            ->post($endpoint, [
-                'contents' => [
-                    ['role' => 'user', 'parts' => [['text' => $prompt]]],
-                ],
-                'generationConfig' => [
-                    'temperature' => $temperature,
-                    'responseMimeType' => $responseMimeType,
-                ],
-            ]);
+        $maxRetries = 3;
+        $delaySeconds = 4;
+        $response = null;
 
-        if (!$response->successful()) {
+        for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
+            $response = Http::withToken($accessToken)
+                ->timeout(240)
+                ->post($endpoint, [
+                    'contents' => [
+                        ['role' => 'user', 'parts' => [['text' => $prompt]]],
+                    ],
+                    'generationConfig' => [
+                        'temperature' => $temperature,
+                        'responseMimeType' => $responseMimeType,
+                    ],
+                ]);
+
+            if ($response->successful()) {
+                break;
+            }
+
+            // If rate limited (429) or server error (5xx), sleep and retry
+            if (($response->status() === 429 || $response->status() >= 500) && $attempt < $maxRetries) {
+                $sleepTime = $delaySeconds * pow(2, $attempt - 1);
+                sleep($sleepTime);
+                continue;
+            }
+
+            // Otherwise, fail immediately (e.g. 400, 401, 403, or max retries reached)
             throw new \RuntimeException("Vertex AI API {$response->status()}: " . $response->body());
+        }
+
+        if (!$response || !$response->successful()) {
+            throw new \RuntimeException("Vertex AI API call failed after {$maxRetries} attempts.");
         }
 
         $inputTokens = $response->json('usageMetadata.promptTokenCount', 0);

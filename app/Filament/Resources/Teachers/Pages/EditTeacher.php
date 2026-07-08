@@ -87,6 +87,8 @@ class EditTeacher extends EditRecord
             
         } catch (\Filament\Support\Exceptions\Halt $exception) {
             return;
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            throw $exception;
         } catch (\Exception $exception) {
              \Filament\Notifications\Notification::make()
                 ->danger()

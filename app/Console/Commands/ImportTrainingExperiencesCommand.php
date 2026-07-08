@@ -11,7 +11,8 @@ class ImportTrainingExperiencesCommand extends Command
     protected $signature = 'import:training-experiences
                             {--file=training_experiences_export.json : JSON file name inside storage/app/public/exports/}
                             {--limit=0 : Limit the number of records to process}
-                            {--dry-run : Preview without writing to DB}';
+                            {--dry-run : Preview without writing to DB}
+                            {--skip-existing : Skip already existing database entries}';
 
     protected $description = 'Import teacher training experiences from exported JSON into the new database';
 
@@ -72,6 +73,19 @@ class ImportTrainingExperiencesCommand extends Command
                 }
 
                 try {
+                    if ($this->option('skip-existing')) {
+                        $exists = TrainingExperience::where([
+                            'teacher_id'   => $teacher->id,
+                            'title'        => $trData['title'],
+                            'organization' => $trData['organization'] ?? '',
+                            'year'         => $trData['year'] ?? null,
+                        ])->exists();
+                        if ($exists) {
+                            $imported++;
+                            continue;
+                        }
+                    }
+
                     // Match uniquely by teacher_id, title, and organization/year/completion_date to avoid duplicates
                     TrainingExperience::updateOrCreate(
                         [

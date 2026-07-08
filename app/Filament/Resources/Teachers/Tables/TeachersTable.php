@@ -123,11 +123,61 @@ class TeachersTable
             ->recordActions([
                 EditAction::make(),
                 ViewAction::make(),
-                Action::make('dashboard')
+                \Filament\Actions\Action::make('dashboard')
                     ->label('Dashboard')
                     ->icon('heroicon-o-presentation-chart-line')
                     ->url(fn (Teacher $record) => \App\Filament\Pages\TeacherDashboard::getUrl(['teacher' => $record->id]))
                     ->openUrlInNewTab(false),
+                \Filament\Actions\Action::make('syncFromOldDb')
+                    ->label('Sync Old Data')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('warning')
+                    ->modalHeading('Sync Teacher Data from Old DB')
+                    ->modalDescription(fn (Teacher $record) => "Are you sure you want to sync data for {$record->full_name} (ID: {$record->employee_id}) from the old database?")
+                    ->form(function (Teacher $record) {
+                        $hasData = $record->educations()->exists() ||
+                            $record->publications()->exists() ||
+                            $record->awards()->exists() ||
+                            $record->teachingAreas()->exists() ||
+                            $record->jobExperiences()->exists() ||
+                            $record->trainingExperiences()->exists() ||
+                            $record->memberships()->exists();
+
+                        if (!$hasData) {
+                            return [];
+                        }
+
+                        return [
+                            \Filament\Forms\Components\Radio::make('sync_mode')
+                                ->label('Existing Data Action')
+                                ->helperText('We found existing records (education, publications, experiences, etc.) for this teacher in the new database.')
+                                ->options([
+                                    'skip' => 'Skip Existing (Only import new/missing items)',
+                                    'overwrite' => 'Overwrite All (Delete existing records and re-import everything)',
+                                ])
+                                ->default('skip')
+                                ->required(),
+                        ];
+                    })
+                    ->action(function (Teacher $record, array $data) {
+                        $mode = $data['sync_mode'] ?? 'skip';
+                        $syncService = resolve(\App\Services\SingleTeacherSyncService::class);
+                        $result = $syncService->sync($record, $mode);
+
+                        if ($result['success'] ?? false) {
+                            \Filament\Notifications\Notification::make()
+                                ->success()
+                                ->title('Sync Successful')
+                                ->body($result['message'])
+                                ->send();
+                        } else {
+                            \Filament\Notifications\Notification::make()
+                                ->danger()
+                                ->title('Sync Failed')
+                                ->body($result['message'] ?? 'An unknown error occurred.')
+                                ->send();
+                        }
+                    })
             ])
             ->recordUrl(null)
             ->toolbarActions([
