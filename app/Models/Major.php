@@ -60,4 +60,9 @@ class Major extends Model
     {
         return $this->belongsTo(User::class, 'approved_by');
     }
+
+    public function teachers()
+    {
+        return $this->belongsToMany(Teacher::class, 'educations', 'major_id', 'teacher_id')->distinct();
+    }
 }

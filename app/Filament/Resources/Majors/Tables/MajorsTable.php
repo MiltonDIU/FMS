@@ -19,6 +19,22 @@ class MajorsTable
                 TextColumn::make('name')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('teachers_count')
+                    ->label('Total Teachers')
+                    ->counts('teachers')
+                    ->sortable()
+                    ->color('primary')
+                    ->weight('bold')
+                    ->action(
+                        \Filament\Tables\Actions\Action::make('viewLinkedTeachers')
+                            ->modalHeading(fn ($record) => "Teachers linked to major: {$record->name}")
+                            ->modalContent(function ($record) {
+                                $teachers = $record->teachers()->with(['faculty', 'department'])->get();
+                                return view('filament.lookup.teachers-modal', ['teachers' => $teachers]);
+                            })
+                            ->modalSubmitAction(false)
+                            ->modalWidth('4xl')
+                    ),
                 IconColumn::make('is_active')
                     ->boolean()
                     ->sortable(),

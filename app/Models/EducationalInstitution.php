@@ -60,4 +60,9 @@ class EducationalInstitution extends Model
     {
         return $this->belongsTo(User::class, 'approved_by');
     }
+
+    public function teachers()
+    {
+        return $this->belongsToMany(Teacher::class, 'educations', 'educational_institution_id', 'teacher_id')->distinct();
+    }
 }
