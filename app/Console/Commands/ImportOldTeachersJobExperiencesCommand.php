@@ -150,9 +150,11 @@ class ImportOldTeachersJobExperiencesCommand extends Command
                 // Resolve Organization ID
                 $organizationId = null;
                 if ($organization !== '') {
-                    $organizationId = \App\Models\Organization::firstOrCreate(
-                        ['name' => $organization],
-                        ['is_active' => true]
+                    $organizationId = \App\Models\Organization::findOrCreateWithAutoApproval(
+                        $organization,
+                        null,
+                        $countryId,
+                        ['is_employer' => true]
                     )->id;
                 }
 

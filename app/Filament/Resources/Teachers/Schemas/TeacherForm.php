@@ -295,40 +295,52 @@ class TeacherForm
                                                   return $record->id;
                                               })
                                               ->columnSpan(2),
-                                          Select::make('educational_institution_id')
-                                              ->label('Institution')
-                                              ->relationship(
-                                                  'educationalInstitution',
-                                                  'name',
-                                                  modifyQueryUsing: function ($query) {
-                                                      $teacherId = auth()->user()?->teacher?->id;
-                                                      return $query->where(function ($q) use ($teacherId) {
-                                                          $q->where('is_active', true);
-                                                          if ($teacherId) {
-                                                              $q->orWhere('created_by', $teacherId);
-                                                          }
-                                                      })->orderBy('name');
-                                                  }
-                                              )
-                                              ->searchable()
-                                              ->preload()
-                                              ->required()
-                                              ->createOptionForm([
-                                                  TextInput::make('name')
-                                                      ->required()
-                                                      ->maxLength(255),
-                                              ])
-                                              ->createOptionUsing(function (array $data) {
-                                                  $teacherId = auth()->user()?->teacher?->id;
-                                                  $record = \App\Models\EducationalInstitution::findOrCreateWithAutoApproval($data['name'], $teacherId);
-                                                  return $record->id;
-                                              }),
-                                        Select::make('country_id')
+                                          Select::make('country_id')
                                             ->label('Country')
                                             ->relationship('country', 'name')
                                             ->searchable()
                                             ->preload()
-                                            ->default(fn () => \App\Models\Country::where('slug', 'bangladesh')->first()?->id),
+                                            ->default(fn () => \App\Models\Country::where('slug', 'bangladesh')->first()?->id)
+                                            ->reactive(),
+                                        Select::make('educational_institution_id')
+                                            ->label('Institution')
+                                            ->relationship(
+                                                'educationalInstitution',
+                                                'name',
+                                                modifyQueryUsing: function ($query, \Filament\Forms\Get $get) {
+                                                    $teacherId = auth()->user()?->teacher?->id;
+                                                    $countryId = $get('country_id');
+                                                    return $query->where('is_educational_institution', true)
+                                                        ->when($countryId, fn ($q) => $q->where('country_id', $countryId))
+                                                        ->where(function ($q) use ($teacherId) {
+                                                            $q->where('is_active', true);
+                                                            if ($teacherId) {
+                                                                $q->orWhere('created_by', $teacherId);
+                                                            }
+                                                        })->orderBy('name');
+                                                }
+                                            )
+                                            ->allowHtml()
+                                            ->getOptionLabelFromRecordUsing(function ($record) {
+                                                if ($record->parent) {
+                                                    return "{$record->name} <span style='font-size: 10px; color: #9ca3af; display: block;'>Under: {$record->parent->name}</span>";
+                                                }
+                                                return $record->name;
+                                            })
+                                            ->searchable()
+                                            ->preload()
+                                            ->required()
+                                            ->createOptionForm([
+                                                TextInput::make('name')
+                                                    ->required()
+                                                    ->maxLength(255),
+                                            ])
+                                            ->createOptionUsing(function (array $data, \Filament\Forms\Get $get) {
+                                                $teacherId = auth()->user()?->teacher?->id;
+                                                $countryId = $get('../../country_id') ?? $get('../country_id') ?? $get('country_id');
+                                                $record = \App\Models\Organization::findOrCreateWithAutoApproval($data['name'], $teacherId, $countryId, ['is_educational_institution' => true]);
+                                                return $record->id;
+                                            }),
                                         TextInput::make('passing_year')
                                             ->label('Passing Year')
                                             ->numeric()
@@ -734,21 +746,38 @@ class TeacherForm
                                                 $record = \App\Models\Position::findOrCreateWithAutoApproval($data['name'], $teacherId);
                                                 return $record->id;
                                             }),
+                                        Select::make('country_id')
+                                            ->label('Country')
+                                            ->relationship('countryRelation', 'name')
+                                            ->searchable()
+                                            ->preload()
+                                            ->default(fn () => \App\Models\Country::where('slug', 'bangladesh')->first()?->id)
+                                            ->reactive(),
                                         Select::make('organization_id')
                                             ->label('Organization')
                                             ->relationship(
                                                 'organizationRelation',
                                                 'name',
-                                                modifyQueryUsing: function ($query) {
+                                                modifyQueryUsing: function ($query, \Filament\Forms\Get $get) {
                                                     $teacherId = auth()->user()?->teacher?->id;
-                                                    return $query->where(function ($q) use ($teacherId) {
-                                                        $q->where('is_active', true);
-                                                        if ($teacherId) {
-                                                            $q->orWhere('created_by', $teacherId);
-                                                        }
-                                                    })->orderBy('name');
+                                                    $countryId = $get('country_id');
+                                                    return $query->where('is_employer', true)
+                                                        ->when($countryId, fn ($q) => $q->where('country_id', $countryId))
+                                                        ->where(function ($q) use ($teacherId) {
+                                                            $q->where('is_active', true);
+                                                            if ($teacherId) {
+                                                                $q->orWhere('created_by', $teacherId);
+                                                            }
+                                                        })->orderBy('name');
                                                 }
                                             )
+                                            ->allowHtml()
+                                            ->getOptionLabelFromRecordUsing(function ($record) {
+                                                if ($record->parent) {
+                                                    return "{$record->name} <span style='font-size: 10px; color: #9ca3af; display: block;'>Under: {$record->parent->name}</span>";
+                                                }
+                                                return $record->name;
+                                            })
                                             ->searchable()
                                             ->preload()
                                             ->required()
@@ -757,17 +786,12 @@ class TeacherForm
                                                     ->required()
                                                     ->maxLength(255),
                                             ])
-                                            ->createOptionUsing(function (array $data) {
+                                            ->createOptionUsing(function (array $data, \Filament\Forms\Get $get) {
                                                 $teacherId = auth()->user()?->teacher?->id;
-                                                $record = \App\Models\Organization::findOrCreateWithAutoApproval($data['name'], $teacherId);
+                                                $countryId = $get('../../country_id') ?? $get('../country_id') ?? $get('country_id');
+                                                $record = \App\Models\Organization::findOrCreateWithAutoApproval($data['name'], $teacherId, $countryId, ['is_employer' => true]);
                                                 return $record->id;
                                             }),
-                                        Select::make('country_id')
-                                            ->label('Country')
-                                            ->options(\App\Models\Country::pluck('name', 'id'))
-                                            ->searchable()
-                                            ->preload()
-                                            ->default(fn () => \App\Models\Country::where('slug', 'bangladesh')->first()?->id),
                                         DatePicker::make('start_date')->required(),
                                         DatePicker::make('end_date'),
                                         Toggle::make('is_current')->label('Currently Working'),
@@ -828,14 +852,52 @@ class TeacherForm
                                     ->itemLabel(fn (array $state): ?string => $state['title'] ?? null)
                                     ->schema([
                                         TextInput::make('title')->required(),
-                                        TextInput::make('organization')->required(),
-                                        TextInput::make('category'),
                                         Select::make('country_id')
                                             ->label('Country')
-                                            ->options(\App\Models\Country::pluck('name', 'id'))
+                                            ->relationship('countryRelation', 'name')
                                             ->searchable()
                                             ->preload()
-                                            ->default(fn () => \App\Models\Country::where('slug', 'bangladesh')->first()?->id),
+                                            ->default(fn () => \App\Models\Country::where('slug', 'bangladesh')->first()?->id)
+                                            ->reactive(),
+                                        Select::make('organization_id')
+                                             ->label('Training Center / Organization')
+                                             ->relationship(
+                                                 'organizationRelation',
+                                                 'name',
+                                                 modifyQueryUsing: function ($query, \Filament\Forms\Get $get) {
+                                                     $teacherId = auth()->user()?->teacher?->id;
+                                                     $countryId = $get('country_id');
+                                                     return $query->where('is_training_center', true)
+                                                         ->when($countryId, fn ($q) => $q->where('country_id', $countryId))
+                                                         ->where(function ($q) use ($teacherId) {
+                                                             $q->where('is_active', true);
+                                                             if ($teacherId) {
+                                                                 $q->orWhere('created_by', $teacherId);
+                                                             }
+                                                         })->orderBy('name');
+                                                 }
+                                             )
+                                             ->allowHtml()
+                                             ->getOptionLabelFromRecordUsing(function ($record) {
+                                                 if ($record->parent) {
+                                                     return "{$record->name} <span style='font-size: 10px; color: #9ca3af; display: block;'>Under: {$record->parent->name}</span>";
+                                                 }
+                                                 return $record->name;
+                                             })
+                                             ->searchable()
+                                             ->preload()
+                                             ->createOptionForm([
+                                                 TextInput::make('name')
+                                                     ->required()
+                                                     ->maxLength(255),
+                                             ])
+                                             ->createOptionUsing(function (array $data, \Filament\Forms\Get $get) {
+                                                 $teacherId = auth()->user()?->teacher?->id;
+                                                 $countryId = $get('../../country_id') ?? $get('../country_id') ?? $get('country_id');
+                                                 $record = \App\Models\Organization::findOrCreateWithAutoApproval($data['name'], $teacherId, $countryId, ['is_training_center' => true]);
+                                                 return $record->id;
+                                             }),
+                                         TextInput::make('category'),
                                         TextInput::make('year')->numeric(),
                                         DatePicker::make('completion_date'),
                                         TextInput::make('duration_days')->numeric()->label('Duration (Days)'),
@@ -855,9 +917,14 @@ class TeacherForm
 
                                         $sortOrder = 0;
                                         foreach ($state ?? [] as $item) {
-                                            $data = [
-                                                'title' => $item['title'],
-                                                'organization' => $item['organization'],
+                                             $orgName = null;
+                                             if (!empty($item['organization_id'])) {
+                                                 $orgName = \App\Models\Organization::find($item['organization_id'])?->name;
+                                             }
+                                             $data = [
+                                                 'title' => $item['title'],
+                                                 'organization_id' => $item['organization_id'] ?? null,
+                                                 'organization' => $orgName,
                                                 'category' => $item['category'] ?? null,
                                                 'country_id' => $item['country_id'] ?? null,
                                                 'year' => $item['year'] ?? null,

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Countries\Tables;
 
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -37,6 +38,28 @@ class CountryTable
                 TextColumn::make('slug')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('organizations_count')
+                    ->label('Organizations')
+                    ->state(fn ($record) => $record->organizations()->count())
+                    ->color('primary')
+                    ->weight('bold')
+                    ->sortable(query: fn ($query, $direction) => $query->withCount('organizations')->orderBy('organizations_count', $direction))
+                    ->action(
+                        Action::make('viewOrganizations')
+                            ->modalHeading(fn ($record) => "Organizations in " . $record->name)
+                            ->modalContent(function ($record) {
+                                $orgs = $record->organizations()
+                                    ->orderBy('name')
+                                    ->get();
+
+                                return view('filament.components.country-organizations-modal', [
+                                    'organizations' => $orgs,
+                                    'country' => $record,
+                                ]);
+                            })
+                            ->modalSubmitAction(false)
+                            ->modalCancelActionLabel('Close')
+                    ),
                 IconColumn::make('is_active')
                     ->boolean()
                     ->sortable(),

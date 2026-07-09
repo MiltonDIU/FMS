@@ -9,7 +9,7 @@ use App\Models\Designation;
 use App\Models\Education;
 use App\Models\JobExperience;
 use App\Models\Membership;
-use App\Models\MembershipOrganization;
+use App\Models\Organization;
 use App\Models\Publication;
 use App\Models\ResearchProject;
 use App\Models\Skill;
@@ -47,9 +47,11 @@ class TeacherSeeder extends Seeder
     public function run(): void
     {
         // ============================================
-        // CONFIGURE NUMBER OF TEACHERS TO CREATE HERE
+        // FAKER / DEMO DATA — DISABLED FOR PRODUCTION
+        // Set to 0 so no fake teacher data is generated on db:seed / migrate:fresh --seed
+        // The specific demo teacher (teacher@fms.diu.edu.bd) is still created below.
         // ============================================
-        $numberOfTeachers = 1; // Change this number as needed (e.g., 100, 500, 1000, 5000)
+        $numberOfTeachers = 0; // <-- Keep at 0 in production
         // ============================================
 
         $this->faker = Faker::create('en_US');
@@ -622,7 +624,7 @@ class TeacherSeeder extends Seeder
 
             // Get random membership type
             $typeId = \App\Models\MembershipType::where('is_active', true)->inRandomOrder()->first()?->id;
-            $orgId = \App\Models\MembershipOrganization::where('is_active', true)->inRandomOrder()->first()?->id;
+            $orgId = Organization::where('is_professional_body', true)->where('is_active', true)->inRandomOrder()->first()?->id;
 
             Membership::create([
                 'teacher_id' => $teacher->id,

@@ -16,6 +16,7 @@ class Certification extends Model
         'title',
         'type',
         'issuing_authority',
+        'issuing_authority_organization_id',
         'issue_date',
         'expiry_date',
         'credential_id',
@@ -35,5 +36,10 @@ class Certification extends Model
     public function teacher(): BelongsTo
     {
         return $this->belongsTo(Teacher::class);
+    }
+
+    public function issuingAuthorityOrganizationRelation(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class, 'issuing_authority_organization_id');
     }
 }

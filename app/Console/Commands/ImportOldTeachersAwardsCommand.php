@@ -38,6 +38,15 @@ class ImportOldTeachersAwardsCommand extends Command
         $bar = $this->output->createProgressBar($processCount);
         $bar->start();
 
+        // Build country name to ID mapping (case-insensitive keys for easy lookup)
+        $countryMap = [];
+        foreach (\App\Models\Country::all() as $country) {
+            $countryMap[mb_strtolower($country->name)] = [
+                'id'   => $country->id,
+                'name' => $country->name,
+            ];
+        }
+
         $limit = (int) $this->option('limit');
         $imported = 0;
         $skipped = 0;
@@ -85,6 +94,35 @@ class ImportOldTeachersAwardsCommand extends Command
                         }
                     }
 
+                    // Resolve Country ID if provided
+                    $countryId = null;
+                    $extractedCountry = trim($awardData['country'] ?? '');
+                    if ($extractedCountry !== '') {
+                        $cSearch = mb_strtolower($extractedCountry);
+                        if (isset($countryMap[$cSearch])) {
+                            $countryId = $countryMap[$cSearch]['id'];
+                        } else {
+                            foreach ($countryMap as $cKey => $cInfo) {
+                                if (stripos($cKey, $cSearch) !== false || stripos($cSearch, $cKey) !== false) {
+                                    $countryId = $cInfo['id'];
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    // Resolve Awarding Body Organization ID
+                    $awardingBodyOrgId = null;
+                    $awardingBody = trim($awardData['awarding_body'] ?? '');
+                    if ($awardingBody !== '') {
+                        $awardingBodyOrgId = \App\Models\Organization::findOrCreateWithAutoApproval(
+                            $awardingBody,
+                            null,
+                            $countryId,
+                            ['is_awarding_body' => true]
+                        )->id;
+                    }
+
                     \App\Models\Award::updateOrCreate(
                         [
                             'teacher_id'    => $teacher->id,
@@ -92,7 +130,8 @@ class ImportOldTeachersAwardsCommand extends Command
                             'year'          => $awardData['year'],
                         ],
                         [
-                            'awarding_body' => $awardData['awarding_body'],
+                            'awarding_body' => $awardingBody,
+                            'awarding_body_organization_id' => $awardingBodyOrgId,
                             'type'          => $awardData['type'],
                             'remarks'       => $awardData['remarks'],
                             'sort_order'    => 0,

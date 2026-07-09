@@ -15,6 +15,7 @@ class Award extends Model
         'teacher_id',
         'title',
         'awarding_body',
+        'awarding_body_organization_id',
         'type',
         'date',
         'year',
@@ -33,5 +34,10 @@ class Award extends Model
     public function teacher(): BelongsTo
     {
         return $this->belongsTo(Teacher::class);
+    }
+
+    public function awardingBodyOrganizationRelation(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class, 'awarding_body_organization_id');
     }
 }

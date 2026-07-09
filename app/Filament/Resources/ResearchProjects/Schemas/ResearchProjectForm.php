@@ -38,9 +38,25 @@ class ResearchProjectForm
                                     ->label('Project Leader')
                                     ->maxLength(255),
                                     
-                                TextInput::make('funding_agency')
+                                Select::make('funding_agency_organization_id')
                                     ->label('Funding Agency')
-                                    ->maxLength(255),
+                                    ->relationship(
+                                        'fundingAgencyOrganizationRelation',
+                                        'name',
+                                        modifyQueryUsing: fn ($query) => $query->where('is_funding_agency', true)->where('is_active', true)->orderBy('name')
+                                    )
+                                    ->searchable()
+                                    ->preload()
+                                    ->createOptionForm([
+                                        TextInput::make('name')
+                                            ->required()
+                                            ->maxLength(255),
+                                    ])
+                                    ->createOptionUsing(function (array $data) {
+                                        $record = \App\Models\Organization::findOrCreateWithAutoApproval($data['name'], null, null, ['is_funding_agency' => true]);
+                                        return $record->id;
+                                    })
+                                    ->required(),
                                     
                                 Select::make('role')
                                     ->options([

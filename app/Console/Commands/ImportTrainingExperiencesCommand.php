@@ -86,15 +86,28 @@ class ImportTrainingExperiencesCommand extends Command
                         }
                     }
 
+                    // Resolve Organization ID
+                    $organizationId = null;
+                    $orgName = trim($trData['organization'] ?? '');
+                    if ($orgName !== '') {
+                        $organizationId = \App\Models\Organization::findOrCreateWithAutoApproval(
+                            $orgName,
+                            null,
+                            $trData['country_id'] ?? null,
+                            ['is_training_center' => true]
+                        )->id;
+                    }
+
                     // Match uniquely by teacher_id, title, and organization/year/completion_date to avoid duplicates
                     TrainingExperience::updateOrCreate(
                         [
                             'teacher_id'   => $teacher->id,
                             'title'        => $trData['title'],
-                            'organization' => $trData['organization'] ?? '',
                             'year'         => $trData['year'] ?? null,
                         ],
                         [
+                            'organization'    => $orgName,
+                            'organization_id' => $organizationId,
                             'category'        => $trData['category'] ?? null,
                             'duration_days'   => $trData['duration_days'] ?? null,
                             'completion_date' => $trData['completion_date'] ?? null,

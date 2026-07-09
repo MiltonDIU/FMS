@@ -15,6 +15,7 @@ class TrainingExperience extends Model
         'teacher_id',
         'title',
         'organization',
+        'organization_id',
         'category',
         'duration_days',
         'completion_date',
@@ -39,8 +40,13 @@ class TrainingExperience extends Model
         return $this->belongsTo(Teacher::class);
     }
 
-    public function country(): BelongsTo
+    public function countryRelation(): BelongsTo
     {
-        return $this->belongsTo(Country::class);
+        return $this->belongsTo(Country::class, 'country_id');
+    }
+
+    public function organizationRelation(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class, 'organization_id');
     }
 }

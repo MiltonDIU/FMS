@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Membership;
-use App\Models\MembershipOrganization;
+use App\Models\Organization;
 use App\Models\MembershipType;
 use App\Models\Teacher;
 use Illuminate\Console\Command;
@@ -92,6 +92,15 @@ class ImportOldTeachersMembershipsCommand extends Command
         $this->newLine();
 
         // ── Counters ──────────────────────────────────────────────────────────
+        // Build country name to ID mapping (case-insensitive keys for easy lookup)
+        $countryMap = [];
+        foreach (\App\Models\Country::all() as $country) {
+            $countryMap[mb_strtolower($country->name)] = [
+                'id'   => $country->id,
+                'name' => $country->name,
+            ];
+        }
+
         $imported      = 0;
         $updated       = 0;
         $skipped       = 0;
@@ -150,9 +159,32 @@ class ImportOldTeachersMembershipsCommand extends Command
                 $typeKey = array_key_exists($typeKey, self::TYPE_LABEL_MAP) ? $typeKey : 'others';
                 $typeId  = $this->resolveMembershipType($typeKey, $dryRun, $verbose);
 
-                // ── Resolve MembershipOrganization ────────────────────────
-                // Checks DB → returns existing id OR creates new and returns new id
-                $orgId = $this->resolveMembershipOrganization($organization, $dryRun, $verbose);
+                // Resolve country ID
+                $countryId = null;
+                $extractedCountry = trim($m['country'] ?? '');
+                if ($extractedCountry !== '') {
+                    $cSearch = mb_strtolower($extractedCountry);
+                    if (isset($countryMap[$cSearch])) {
+                        $countryId = $countryMap[$cSearch]['id'];
+                    } else {
+                        foreach ($countryMap as $cKey => $cInfo) {
+                            if (stripos($cKey, $cSearch) !== false || stripos($cSearch, $cKey) !== false) {
+                                $countryId = $cInfo['id'];
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // Resolve parent organization ID if any
+                $parentId = null;
+                $parentName = trim($m['parent_organization'] ?? '');
+                if ($parentName !== '') {
+                    $parentId = $this->resolveMembershipOrganization($parentName, null, null, $countryId, $dryRun, $verbose);
+                }
+
+                // ── Resolve MembershipOrganization ──
+                $orgId = $this->resolveMembershipOrganization($organization, $parentId, $parentName, $countryId, $dryRun, $verbose);
 
                 if ($dryRun) {
                     $this->line(sprintf(
@@ -326,44 +358,65 @@ class ImportOldTeachersMembershipsCommand extends Command
      *   3. If found  → increment $orgsFound,   return existing id
      *   4. If missing → create new record, increment $orgsCreated, return new id
      */
-    private function resolveMembershipOrganization(string $name, bool $dryRun, bool $verbose): ?int
-    {
+    private function resolveMembershipOrganization(
+        string $name,
+        ?int $parentId,
+        ?string $parentName,
+        ?int $countryId,
+        bool $dryRun,
+        bool $verbose
+    ): ?int {
         $normalizedName = $this->normalizeOrgName($name);
+        $cacheKey = $normalizedName . '|' . ($parentId ?? '') . '|' . ($countryId ?? '');
 
         // 1. In-memory cache hit
-        if (array_key_exists($normalizedName, $this->orgCache)) {
-            return $this->orgCache[$normalizedName];
+        if (array_key_exists($cacheKey, $this->orgCache)) {
+            return $this->orgCache[$cacheKey];
         }
 
         if ($dryRun) {
-            $this->orgCache[$normalizedName] = null;
+            $this->orgCache[$cacheKey] = null;
             return null;
         }
 
-        // 2. DB lookup (case-insensitive)
-        $org = MembershipOrganization::whereRaw('LOWER(name) = ?', [mb_strtolower($normalizedName)])->first();
+        // 2. DB lookup and auto-create with auto-approval
+        $existsBefore = \App\Models\Organization::whereRaw('LOWER(name) = ?', [mb_strtolower($normalizedName)])
+            ->when($countryId, function ($q) use ($countryId) {
+                $q->where(function ($sub) use ($countryId) {
+                    $sub->where('country_id', $countryId)->orWhereNull('country_id');
+                });
+            })
+            ->exists();
 
-        if ($org) {
-            // 3. Found existing → reuse
+        $flags = ['is_professional_body' => true];
+        if ($parentId) {
+            $flags['parent_id'] = $parentId;
+        }
+
+        $org = \App\Models\Organization::findOrCreateWithAutoApproval(
+            $normalizedName,
+            null,
+            $countryId,
+            $flags
+        );
+
+        if ($parentId && !$org->parent_id) {
+            $org->update(['parent_id' => $parentId]);
+        }
+
+        if ($existsBefore) {
             $this->orgsFound++;
             if ($verbose) {
                 $this->line("  [Org]  ✓ Found existing   → \"{$normalizedName}\" (id: {$org->id})");
             }
         } else {
-            // 4. Not found → create new
-            $org = MembershipOrganization::create([
-                'name'        => $normalizedName,
-                'description' => null,
-                'is_active'   => true,
-                'created_by'  => null,
-            ]);
             $this->orgsCreated++;
             if ($verbose) {
                 $this->line("  [Org]  + Created new      → \"{$normalizedName}\" (id: {$org->id})");
             }
         }
 
-        $this->orgCache[$normalizedName] = $org->id;
+        $this->orgCache[$cacheKey] = $org->id;
         return $org->id;
     }
 

@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Major;
-use App\Models\EducationalInstitution;
 use Illuminate\Support\Facades\Log;
 use Exception;
 
@@ -21,7 +20,7 @@ class DuplicateFinderService
         $cachePath = storage_path("app/ai-cache/{$type}_duplicates.json");
         $currentCount = match ($type) {
             'major' => Major::where('is_active', true)->count(),
-            'educational_institution', 'institution' => EducationalInstitution::where('is_active', true)->count(),
+            'educational_institution', 'institution' => \App\Models\Organization::where('is_educational_institution', true)->where('is_active', true)->count(),
             'organization' => \App\Models\Organization::where('is_active', true)->count(),
             'position' => \App\Models\Position::where('is_active', true)->count(),
             default => 0,
@@ -96,7 +95,7 @@ class DuplicateFinderService
         if ($type === 'major') {
             $records = Major::where('is_active', true)->get(['id', 'name']);
         } elseif ($type === 'educational_institution' || $type === 'institution') {
-            $records = EducationalInstitution::where('is_active', true)->get(['id', 'name']);
+            $records = \App\Models\Organization::where('is_educational_institution', true)->where('is_active', true)->get(['id', 'name']);
         } elseif ($type === 'organization') {
             $records = \App\Models\Organization::where('is_active', true)->get(['id', 'name']);
         } elseif ($type === 'position') {

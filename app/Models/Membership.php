@@ -56,7 +56,7 @@ class Membership extends Model
      */
     public function membershipOrganization(): BelongsTo
     {
-        return $this->belongsTo(MembershipOrganization::class);
+        return $this->belongsTo(Organization::class, 'membership_organization_id');
     }
 
     /**

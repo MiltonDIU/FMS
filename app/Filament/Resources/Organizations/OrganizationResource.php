@@ -36,12 +36,28 @@ class OrganizationResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->addSelect([
-            'teachers_count' => DB::table('job_experiences')
-                ->selectRaw('COUNT(DISTINCT job_experiences.teacher_id)')
-                ->join('teachers', 'job_experiences.teacher_id', '=', 'teachers.id')
-                ->whereColumn('job_experiences.organization_id', 'organizations.id')
+            'teachers_count' => DB::table('teachers')
+                ->selectRaw('COUNT(DISTINCT teachers.id)')
                 ->whereNull('teachers.deleted_at')
-                ->where('teachers.is_archived', false),
+                ->where('teachers.is_archived', false)
+                ->whereExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from(function ($unionQuery) {
+                            $unionQuery->select('teacher_id', 'educational_institution_id as org_id')->from('educations')
+                                ->union(DB::table('job_experiences')->select('teacher_id', 'organization_id as org_id'))
+                                ->union(DB::table('training_experiences')->select('teacher_id', 'organization_id as org_id'))
+                                ->union(DB::table('memberships')->select('teacher_id', 'membership_organization_id as org_id'))
+                                ->union(DB::table('awards')->select('teacher_id', 'awarding_body_organization_id as org_id'))
+                                ->union(DB::table('certifications')->select('teacher_id', 'issuing_authority_organization_id as org_id'))
+                                ->union(DB::table('research_projects')->select('teacher_id', 'funding_agency_organization_id as org_id'));
+                        }, 'usages')
+                        ->join('organizations as o', 'usages.org_id', '=', 'o.id')
+                        ->whereColumn('usages.teacher_id', 'teachers.id')
+                        ->where(function ($q) {
+                            $q->whereColumn('o.id', 'organizations.id')
+                              ->orWhereColumn('o.parent_id', 'organizations.id');
+                        });
+                }),
         ]);
     }
 

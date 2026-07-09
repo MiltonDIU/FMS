@@ -3,7 +3,8 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\MembershipOrganization;
+use App\Models\Organization;
+use App\Models\Country;
 
 class MembershipOrganizationSeeder extends Seeder
 {
@@ -12,93 +13,99 @@ class MembershipOrganizationSeeder extends Seeder
      */
     public function run(): void
     {
+        $bangladeshId = Country::where('slug', 'bangladesh')->first()?->id ?? 18;
+        $usId = Country::where('slug', 'united-states')->first()?->id ?? 250;
+        $ukId = Country::where('slug', 'united-kingdom')->first()?->id ?? 249;
+        $franceId = Country::where('slug', 'france')->first()?->id ?? 78;
+
         $organizations = [
             // 🇧🇩 Bangladesh
             [
                 'name' => 'Bangladesh Computer Society (BCS)',
-                'description' => 'Professional body for computing and IT professionals in Bangladesh.',
+                'country_id' => $bangladeshId,
             ],
             [
                 'name' => 'Institution of Engineers, Bangladesh (IEB)',
-                'description' => 'National organization of engineers in Bangladesh.',
+                'country_id' => $bangladeshId,
             ],
             [
                 'name' => 'Bangladesh Physical Society (BPS)',
-                'description' => 'Organization for physicists and physics educators.',
+                'country_id' => $bangladeshId,
             ],
             [
                 'name' => 'Bangladesh Mathematical Society (BMS)',
-                'description' => 'Professional society for mathematicians in Bangladesh.',
+                'country_id' => $bangladeshId,
             ],
             [
                 'name' => 'Bangladesh Chemical Society',
-                'description' => 'Association of chemists and chemical researchers.',
+                'country_id' => $bangladeshId,
             ],
             [
                 'name' => 'Bangladesh Academy of Sciences (BAS)',
-                'description' => 'Premier scientific academy in Bangladesh.',
+                'country_id' => $bangladeshId,
             ],
             [
                 'name' => 'Bangladesh Economic Association (BEA)',
-                'description' => 'Professional association of economists.',
+                'country_id' => $bangladeshId,
             ],
             [
                 'name' => 'Bangladesh Association for the Advancement of Science (BAAS)',
-                'description' => 'Umbrella organization for scientific advancement.',
+                'country_id' => $bangladeshId,
             ],
 
             // 🌍 International
             [
                 'name' => 'IEEE – Institute of Electrical and Electronics Engineers',
-                'description' => 'World’s largest technical professional organization.',
+                'country_id' => $usId,
             ],
             [
                 'name' => 'ACM – Association for Computing Machinery',
-                'description' => 'Global association for computing professionals and researchers.',
+                'country_id' => $usId,
             ],
             [
                 'name' => 'IET – Institution of Engineering and Technology',
-                'description' => 'International professional engineering institution.',
+                'country_id' => $ukId,
             ],
             [
                 'name' => 'American Chemical Society (ACS)',
-                'description' => 'Leading global organization for chemical professionals.',
+                'country_id' => $usId,
             ],
             [
                 'name' => 'American Physical Society (APS)',
-                'description' => 'Professional body for physicists worldwide.',
+                'country_id' => $usId,
             ],
             [
                 'name' => 'Royal Society of Chemistry (RSC)',
-                'description' => 'International chemical science organization.',
+                'country_id' => $ukId,
             ],
             [
                 'name' => 'AAAS – American Association for the Advancement of Science',
-                'description' => 'International nonprofit advancing science and innovation.',
+                'country_id' => $usId,
             ],
             [
                 'name' => 'International Society for Technology in Education (ISTE)',
-                'description' => 'Global community for educators using technology.',
+                'country_id' => $usId,
             ],
             [
                 'name' => 'Academy of Management (AOM)',
-                'description' => 'Professional association for management scholars.',
+                'country_id' => $usId,
             ],
             [
                 'name' => 'World Medical Association (WMA)',
-                'description' => 'International organization of physicians.',
+                'country_id' => $franceId,
             ],
         ];
 
         foreach ($organizations as $org) {
-            MembershipOrganization::firstOrCreate(
-                ['name' => $org['name']],
+            Organization::firstOrCreate(
                 [
-                    'description'   => $org['description'],
-                    'is_active'     => true,
-                    'created_by'    => null,
-                    'activated_at'  => now(),
-                    'activated_by'  => null,
+                    'name' => $org['name'],
+                    'country_id' => $org['country_id'],
+                ],
+                [
+                    'is_professional_body' => true,
+                    'is_active'            => true,
+                    'created_by'           => null,
                 ]
             );
         }

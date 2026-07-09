@@ -32,4 +32,9 @@ class Country extends Model
         return $this->hasMany(JobExperience::class);
     }
 
+    public function organizations(): HasMany
+    {
+        return $this->hasMany(Organization::class);
+    }
+
 }

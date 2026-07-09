@@ -201,9 +201,11 @@ class ImportOldTeachersEducationsCommand extends Command
                 $educationalInstitutionId = null;
                 $institutionName = trim($institution);
                 if ($institutionName !== '') {
-                    $educationalInstitutionId = \App\Models\EducationalInstitution::firstOrCreate(
-                        ['name' => $institutionName],
-                        ['is_active' => true]
+                    $educationalInstitutionId = \App\Models\Organization::findOrCreateWithAutoApproval(
+                        $institutionName,
+                        null,
+                        $countryId,
+                        ['is_educational_institution' => true]
                     )->id;
                 }
 

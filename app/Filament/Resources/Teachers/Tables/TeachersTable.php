@@ -107,7 +107,7 @@ class TeachersTable
                 SelectFilter::make('educational_institution_id')
                     ->label('Institution')
                     ->searchable()
-                    ->options(fn () => \App\Models\EducationalInstitution::query()->where('is_active', true)->pluck('name', 'id')->toArray())
+                    ->options(fn () => \App\Models\Organization::query()->where('is_educational_institution', true)->where('is_active', true)->pluck('name', 'id')->toArray())
                     ->query(function (Builder $query, array $data) {
                         if (!empty($data['value'])) {
                             $query->whereHas('educations', function ($q) use ($data) {

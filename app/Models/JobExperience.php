@@ -53,7 +53,7 @@ class JobExperience extends Model
         return $this->belongsTo(Position::class, 'position_id');
     }
 
-    public function country(): BelongsTo
+    public function countryRelation(): BelongsTo
     {
         return $this->belongsTo(Country::class, 'country_id');
     }

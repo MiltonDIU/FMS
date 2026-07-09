@@ -540,6 +540,8 @@ Return ONLY a valid JSON object — no explanation, no markdown fences.
   "EMPLOYEE_ID": [
     {
       "organization": "...",
+      "parent_organization": "...",
+      "country": "...",
       "record_type": "membership",
       "type": "...",
       "position": "...",
@@ -555,6 +557,8 @@ Return ONLY a valid JSON object — no explanation, no markdown fences.
 
 ## Field rules:
 - **organization** (required): The clean name of the organization, society, association, body, committee, or institution the teacher is a member of (e.g., "Bangladesh Mathematical Society", "IEEE", "Institution of Engineers, Bangladesh"). Strip all HTML. Never null.
+- **parent_organization**: If this organization is a chapter, branch, subsection, division, or subunit of a larger parent organization, extract the clean name of that parent organization (e.g. "IEEE" for "IEEE Computer Society DIU Student Branch Chapter", or "Institution of Engineers, Bangladesh" for "IEB Chittagong Center"). Otherwise, null.
+- **country**: The country where the organization is based or located (e.g. "Bangladesh", "USA", "UK"). If not explicitly mentioned or cannot be inferred, return null.
 - **record_type**: Must be exactly one of: membership | affiliation
   - "membership" → formal society or professional body membership (IEEE, Life Member of Bangladesh Mathematical Society, Fellow of IEB, etc.)
   - "affiliation" → roles, positions, committee memberships, editorial board, conference roles, administrative/academic positions, alumni, club roles, event convener, etc.
@@ -632,9 +636,11 @@ PROMPT;
                 }
 
                 $result[(string)$employeeId][] = [
-                    'organization'  => $organization,
-                    'record_type'   => in_array($m['record_type'] ?? '', ['membership', 'affiliation'], true) ? $m['record_type'] : 'membership',
-                    'type'          => $type,
+                    'organization'        => $organization,
+                    'parent_organization'=> $this->cleanText($m['parent_organization'] ?? null),
+                    'country'            => $this->cleanText($m['country'] ?? null),
+                    'record_type'        => in_array($m['record_type'] ?? '', ['membership', 'affiliation'], true) ? $m['record_type'] : 'membership',
+                    'type'               => $type,
                     'position'      => $this->cleanText($m['position'] ?? null),
                     'membership_id' => $this->cleanText($m['membership_id'] ?? null),
                     'scope'         => in_array($m['scope'] ?? '', ['local', 'national', 'international'], true) ? $m['scope'] : null,
@@ -718,8 +724,10 @@ PROMPT;
             }
 
             $memberships[] = [
-                'organization'  => $organization,
-                'type'          => $type,
+                'organization'        => $organization,
+                'parent_organization'=> null,
+                'country'            => null,
+                'type'               => $type,
                 'membership_id' => $membershipId,
                 'start_year'    => $startYear,
                 'end_year'      => $endYear,

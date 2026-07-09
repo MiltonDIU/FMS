@@ -98,10 +98,25 @@ return new class extends Migration
 
     public function down(): void
     {
+        try {
+            Schema::table('educations', function (Blueprint $table) {
+                $table->dropForeign(['educational_institution_id']);
+            });
+        } catch (\Exception $e) {}
+
+        try {
+            Schema::table('educations', function (Blueprint $table) {
+                $table->dropForeign(['major_id']);
+            });
+        } catch (\Exception $e) {}
+
         Schema::table('educations', function (Blueprint $table) {
-            $table->dropForeign(['educational_institution_id']);
-            $table->dropForeign(['major_id']);
-            $table->dropColumn(['educational_institution_id', 'major_id']);
+            if (Schema::hasColumn('educations', 'educational_institution_id')) {
+                $table->dropColumn('educational_institution_id');
+            }
+            if (Schema::hasColumn('educations', 'major_id')) {
+                $table->dropColumn('major_id');
+            }
         });
 
         Schema::dropIfExists('educational_institutions');
