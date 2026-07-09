@@ -37,7 +37,7 @@
                 wire:loading.class="opacity-50"
                 wire:loading.style="cursor: not-allowed;"
                 wire:target="refreshAiScan"
-                style="background-color: #ffffff; border: 1px solid #d1d5db; color: #374151; font-size: 12px; font-weight: 600; padding: 8px 16px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: all 0.15s;"
+                style="background-color: #ffffff; border: 1px solid #d1d5db; color: #374151; font-size: 12px; font-weight: 600; padding: 8px 16px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: all 0.15s; white-space: nowrap;"
                 onmouseover="this.style.backgroundColor='#f9fafb'; this.style.borderColor='#c0c0c0';"
                 onmouseout="this.style.backgroundColor='#ffffff'; this.style.borderColor='#d1d5db';"
             >
