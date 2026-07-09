@@ -24,11 +24,12 @@
                 type="button" 
                 wire:click="refreshAiScan('{{ $type }}')" 
                 wire:loading.attr="disabled"
+                wire:target="refreshAiScan"
                 style="background-color: #ffffff; border: 1px solid #d1d5db; color: #374151; font-size: 12px; font-weight: 600; padding: 8px 16px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: all 0.15s;"
                 onmouseover="this.style.backgroundColor='#f9fafb'; this.style.borderColor='#c0c0c0';"
                 onmouseout="this.style.backgroundColor='#ffffff'; this.style.borderColor='#d1d5db';"
             >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 14px; height: 14px;">
+                <svg wire:loading.class="animate-spin" wire:target="refreshAiScan" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 14px; height: 14px;">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
                 </svg>
                 Re-scan Now (AI)
@@ -90,6 +91,7 @@
                                     type="button"
                                     wire:click="mergeGroup($event.target.closest('.group-card').querySelector('.merge-target-select').value, {{ json_encode(array_merge([$group['primary']['id']], array_column($group['duplicates'], 'id'))) }}, '{{ $type }}')"
                                     wire:loading.attr="disabled"
+                                    wire:target="mergeGroup"
                                     style="display: inline-flex; align-items: center; justify-content: center; padding: 8px 16px; border: 1px solid transparent; font-size: 12px; font-weight: 600; border-radius: 6px; color: #ffffff; background-color: #d97706; cursor: pointer; transition: background-color 0.15s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);"
                                     onmouseover="this.style.backgroundColor='#b45309'"
                                     onmouseout="this.style.backgroundColor='#d97706'"
