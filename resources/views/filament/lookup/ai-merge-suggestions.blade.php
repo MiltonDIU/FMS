@@ -3,6 +3,16 @@
         $suggestions = $cache['suggestions'] ?? [];
     @endphp
 
+    <style>
+        @keyframes custom-spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .loading-spin {
+            animation: custom-spin 1s linear infinite !important;
+        }
+    </style>
+
     <div style="background-color: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 20px; display: flex; flex-direction: column; md:flex-row; justify-content: space-between; align-items: flex-start; md:align-items: center; gap: 16px;">
         <div style="display: flex; align-items: flex-start; gap: 12px;">
             <div style="color: #4b5563; display: flex; align-items: center; justify-content: center; padding-top: 2px;">
@@ -24,12 +34,14 @@
                 type="button" 
                 wire:click="refreshAiScan('{{ $type }}')" 
                 wire:loading.attr="disabled"
+                wire:loading.class="opacity-50"
+                wire:loading.style="cursor: not-allowed;"
                 wire:target="refreshAiScan"
                 style="background-color: #ffffff; border: 1px solid #d1d5db; color: #374151; font-size: 12px; font-weight: 600; padding: 8px 16px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: all 0.15s;"
                 onmouseover="this.style.backgroundColor='#f9fafb'; this.style.borderColor='#c0c0c0';"
                 onmouseout="this.style.backgroundColor='#ffffff'; this.style.borderColor='#d1d5db';"
             >
-                <svg wire:loading.class="animate-spin" wire:target="refreshAiScan" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 14px; height: 14px;">
+                <svg wire:loading.class="loading-spin" wire:target="refreshAiScan" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 14px; height: 14px;">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
                 </svg>
                 Re-scan Now (AI)
