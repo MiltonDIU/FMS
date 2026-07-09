@@ -85,10 +85,12 @@
                 wire:target="refreshAiScan"
                 class="rescan-btn"
             >
-                <svg wire:loading.class="loading-spin" wire:target="refreshAiScan" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 14px; height: 14px; flex-shrink: 0;">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                </svg>
-                <span>Re-scan Now (AI)</span>
+                <span style="display: inline-flex; width: 14px; height: 14px; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <svg wire:loading.class="loading-spin" wire:target="refreshAiScan" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 14px; height: 14px; flex-shrink: 0; display: block;">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                    </svg>
+                </span>
+                <span style="flex-shrink: 0; white-space: nowrap;">Re-scan Now (AI)</span>
             </button>
         </div>
     </div>
