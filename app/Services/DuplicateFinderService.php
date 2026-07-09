@@ -19,9 +19,13 @@ class DuplicateFinderService
     public function getSuggestionsWithCache(string $type, bool $forceRefresh = false): array
     {
         $cachePath = storage_path("app/ai-cache/{$type}_duplicates.json");
-        $currentCount = $type === 'major' 
-            ? Major::where('is_active', true)->count() 
-            : EducationalInstitution::where('is_active', true)->count();
+        $currentCount = match ($type) {
+            'major' => Major::where('is_active', true)->count(),
+            'educational_institution', 'institution' => EducationalInstitution::where('is_active', true)->count(),
+            'organization' => \App\Models\Organization::where('is_active', true)->count(),
+            'position' => \App\Models\Position::where('is_active', true)->count(),
+            default => 0,
+        };
 
         if (!$forceRefresh && file_exists($cachePath)) {
             $data = json_decode(file_get_contents($cachePath), true);
@@ -91,8 +95,12 @@ class DuplicateFinderService
         $records = [];
         if ($type === 'major') {
             $records = Major::where('is_active', true)->get(['id', 'name']);
-        } else {
+        } elseif ($type === 'educational_institution' || $type === 'institution') {
             $records = EducationalInstitution::where('is_active', true)->get(['id', 'name']);
+        } elseif ($type === 'organization') {
+            $records = \App\Models\Organization::where('is_active', true)->get(['id', 'name']);
+        } elseif ($type === 'position') {
+            $records = \App\Models\Position::where('is_active', true)->get(['id', 'name']);
         }
 
         if ($records->count() < 2) {
@@ -114,7 +122,13 @@ class DuplicateFinderService
             $recordsString .= "{$record->id} - {$record->name}\n";
         }
 
-        $typeName = $type === 'major' ? 'majors or academic disciplines' : 'educational institutions or universities';
+        $typeName = match ($type) {
+            'major' => 'majors or academic disciplines',
+            'educational_institution', 'institution' => 'educational institutions or universities',
+            'organization' => 'companies, organizations, or employers',
+            'position' => 'job roles, designations, or work positions',
+            default => 'records',
+        };
 
         $prompt = "You are a data cleansing expert. Your task is to identify duplicate records from a list of {$typeName}.
 Duplicates represent the same entity, but have different spellings, typos, abbreviations, acronyms, or word orders.

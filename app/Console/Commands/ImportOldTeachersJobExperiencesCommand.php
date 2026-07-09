@@ -138,6 +138,24 @@ class ImportOldTeachersJobExperiencesCommand extends Command
                     $endDate = "{$exp['end_year']}-{$month}-28";
                 }
 
+                // Resolve Position ID
+                $positionId = null;
+                if ($position !== '') {
+                    $positionId = \App\Models\Position::firstOrCreate(
+                        ['name' => $position],
+                        ['is_active' => true]
+                    )->id;
+                }
+
+                // Resolve Organization ID
+                $organizationId = null;
+                if ($organization !== '') {
+                    $organizationId = \App\Models\Organization::firstOrCreate(
+                        ['name' => $organization],
+                        ['is_active' => true]
+                    )->id;
+                }
+
                 if ($dryRun) {
                     $this->line(sprintf(
                         "\n  [DRY RUN] %-15s → Position: %-30s | Organization: %-30s | Dates: %s to %s",
@@ -154,9 +172,9 @@ class ImportOldTeachersJobExperiencesCommand extends Command
                 try {
                     if ($this->option('skip-existing')) {
                         $exists = JobExperience::where([
-                            'teacher_id'   => $teacher->id,
-                            'position'     => $position,
-                            'organization' => $organization,
+                            'teacher_id'      => $teacher->id,
+                            'position_id'     => $positionId,
+                            'organization_id' => $organizationId,
                         ])->exists();
                         if ($exists) {
                             $imported++;
@@ -166,11 +184,13 @@ class ImportOldTeachersJobExperiencesCommand extends Command
 
                     $result = JobExperience::updateOrCreate(
                         [
-                            'teacher_id'   => $teacher->id,
-                            'position'     => $position,
-                            'organization' => $organization,
+                            'teacher_id'      => $teacher->id,
+                            'position_id'     => $positionId,
+                            'organization_id' => $organizationId,
                         ],
                         [
+                            'position'         => $position,
+                            'organization'     => $organization,
                             'department'       => $exp['department'] ?? null,
                             'location'         => $exp['location'] ?? null,
                             'country'          => $countryName,

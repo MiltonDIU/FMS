@@ -115,6 +115,28 @@ class TeachersTable
                             });
                         }
                     }),
+                SelectFilter::make('organization_id')
+                    ->label('Organization')
+                    ->searchable()
+                    ->options(fn () => \App\Models\Organization::query()->where('is_active', true)->pluck('name', 'id')->toArray())
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['value'])) {
+                            $query->whereHas('jobExperiences', function ($q) use ($data) {
+                                $q->where('organization_id', $data['value']);
+                            });
+                        }
+                    }),
+                SelectFilter::make('position_id')
+                    ->label('Position')
+                    ->searchable()
+                    ->options(fn () => \App\Models\Position::query()->where('is_active', true)->pluck('name', 'id')->toArray())
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['value'])) {
+                            $query->whereHas('jobExperiences', function ($q) use ($data) {
+                                $q->where('position_id', $data['value']);
+                            });
+                        }
+                    }),
                 SelectFilter::make('employment_status_id')
                     ->relationship('employmentStatus', 'name')
                     ->label('Employment Status')

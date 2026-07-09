@@ -14,7 +14,9 @@ class JobExperience extends Model
     protected $fillable = [
         'teacher_id',
         'position',
+        'position_id',
         'organization',
+        'organization_id',
         'department',
         'location',
         'country_id',
@@ -41,6 +43,15 @@ class JobExperience extends Model
         return $this->belongsTo(Teacher::class);
     }
 
+    public function organizationRelation(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class, 'organization_id');
+    }
+
+    public function positionRelation(): BelongsTo
+    {
+        return $this->belongsTo(Position::class, 'position_id');
+    }
 
     public function country(): BelongsTo
     {

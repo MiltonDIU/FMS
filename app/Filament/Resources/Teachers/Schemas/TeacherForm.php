@@ -694,10 +694,74 @@ class TeacherForm
                             ->schema([
                                 Repeater::make('jobExperiences')
                                     ->relationship()
-                                    ->itemLabel(fn (array $state): ?string => ($state['position'] ?? '') . ' at ' . ($state['organization'] ?? ''))
+                                    ->itemLabel(function (array $state): ?string {
+                                        $position = $state['position'] ?? '';
+                                        if (empty($position) && !empty($state['position_id'])) {
+                                            $position = \App\Models\Position::find($state['position_id'])?->name;
+                                        }
+                                        $organization = $state['organization'] ?? '';
+                                        if (empty($organization) && !empty($state['organization_id'])) {
+                                            $organization = \App\Models\Organization::find($state['organization_id'])?->name;
+                                        }
+                                        return ($position ?: '') . ' at ' . ($organization ?: '');
+                                    })
                                     ->schema([
-                                        TextInput::make('position')->required(),
-                                        TextInput::make('organization')->required(),
+                                        Select::make('position_id')
+                                            ->label('Position')
+                                            ->relationship(
+                                                'positionRelation',
+                                                'name',
+                                                modifyQueryUsing: function ($query) {
+                                                    $teacherId = auth()->user()?->teacher?->id;
+                                                    return $query->where(function ($q) use ($teacherId) {
+                                                        $q->where('is_active', true);
+                                                        if ($teacherId) {
+                                                            $q->orWhere('created_by', $teacherId);
+                                                        }
+                                                    })->orderBy('name');
+                                                }
+                                            )
+                                            ->searchable()
+                                            ->preload()
+                                            ->required()
+                                            ->createOptionForm([
+                                                TextInput::make('name')
+                                                    ->required()
+                                                    ->maxLength(255),
+                                            ])
+                                            ->createOptionUsing(function (array $data) {
+                                                $teacherId = auth()->user()?->teacher?->id;
+                                                $record = \App\Models\Position::findOrCreateWithAutoApproval($data['name'], $teacherId);
+                                                return $record->id;
+                                            }),
+                                        Select::make('organization_id')
+                                            ->label('Organization')
+                                            ->relationship(
+                                                'organizationRelation',
+                                                'name',
+                                                modifyQueryUsing: function ($query) {
+                                                    $teacherId = auth()->user()?->teacher?->id;
+                                                    return $query->where(function ($q) use ($teacherId) {
+                                                        $q->where('is_active', true);
+                                                        if ($teacherId) {
+                                                            $q->orWhere('created_by', $teacherId);
+                                                        }
+                                                    })->orderBy('name');
+                                                }
+                                            )
+                                            ->searchable()
+                                            ->preload()
+                                            ->required()
+                                            ->createOptionForm([
+                                                TextInput::make('name')
+                                                    ->required()
+                                                    ->maxLength(255),
+                                            ])
+                                            ->createOptionUsing(function (array $data) {
+                                                $teacherId = auth()->user()?->teacher?->id;
+                                                $record = \App\Models\Organization::findOrCreateWithAutoApproval($data['name'], $teacherId);
+                                                return $record->id;
+                                            }),
                                         Select::make('country_id')
                                             ->label('Country')
                                             ->options(\App\Models\Country::pluck('name', 'id'))
@@ -723,9 +787,21 @@ class TeacherForm
 
                                         $sortOrder = 0;
                                         foreach ($state ?? [] as $item) {
+                                            $posName = null;
+                                            if (!empty($item['position_id'])) {
+                                                $posName = \App\Models\Position::find($item['position_id'])?->name;
+                                            }
+
+                                            $orgName = null;
+                                            if (!empty($item['organization_id'])) {
+                                                $orgName = \App\Models\Organization::find($item['organization_id'])?->name;
+                                            }
+
                                             $data = [
-                                                'position' => $item['position'],
-                                                'organization' => $item['organization'],
+                                                'position_id' => $item['position_id'] ?? null,
+                                                'position' => $posName,
+                                                'organization_id' => $item['organization_id'] ?? null,
+                                                'organization' => $orgName,
                                                 'country_id' => $item['country_id'] ?? null,
                                                 'start_date' => $item['start_date'],
                                                 'end_date' => $item['end_date'] ?? null,
