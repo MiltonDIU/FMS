@@ -1,4 +1,41 @@
 <div style="font-family: inherit; color: #1f2937;">
+    @php
+        $suggestions = $cache['suggestions'] ?? [];
+    @endphp
+
+    <div style="background-color: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 20px; display: flex; flex-direction: column; md:flex-row; justify-content: space-between; align-items: flex-start; md:align-items: center; gap: 16px;">
+        <div style="display: flex; align-items: flex-start; gap: 12px;">
+            <div style="color: #4b5563; display: flex; align-items: center; justify-content: center; padding-top: 2px;">
+                <svg width="20" height="20" style="width: 20px; height: 20px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <div>
+                <h4 style="font-size: 13px; font-weight: 600; color: #111827; margin: 0 0 2px 0;">AI Duplicate Finder Cache</h4>
+                <p style="font-size: 12px; color: #4b5563; margin: 0; line-height: 1.5;">
+                    Last Scan: <strong>{{ $cache['last_checked_at'] ?? 'Never' }}</strong> 
+                    ({{ $cache['total_records'] ?? 0 }} records scanned). 
+                    Database currently has <strong>{{ $cache['current_records'] ?? 0 }}</strong> records.
+                </p>
+            </div>
+        </div>
+        <div style="flex-shrink: 0;">
+            <button 
+                type="button" 
+                wire:click="refreshAiScan('{{ $type }}')" 
+                wire:loading.attr="disabled"
+                style="background-color: #ffffff; border: 1px solid #d1d5db; color: #374151; font-size: 12px; font-weight: 600; padding: 8px 16px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: all 0.15s;"
+                onmouseover="this.style.backgroundColor='#f9fafb'; this.style.borderColor='#c0c0c0';"
+                onmouseout="this.style.backgroundColor='#ffffff'; this.style.borderColor='#d1d5db';"
+            >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 14px; height: 14px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                </svg>
+                Re-scan Now (AI)
+            </button>
+        </div>
+    </div>
+
     @if(empty($suggestions))
         <div style="text-align: center; padding: 40px; background-color: #f9fafb; border: 1px dashed #d1d5db; border-radius: 12px;">
             <div style="display: inline-block; padding: 12px; background-color: #ecfdf5; border-radius: 9999px; margin-bottom: 12px; color: #059669;">
@@ -8,24 +45,10 @@
             </div>
             <h3 style="font-size: 16px; font-weight: 600; color: #111827; margin: 0 0 8px 0;">All Clear!</h3>
             <p style="font-size: 14px; color: #6b7280; margin: 0;">
-                AI did not find any potential duplicate groups. Your database lookup values look clean and well-structured!
+                No duplicates found. Your database lookup values look clean and well-structured!
             </p>
         </div>
     @else
-        <div style="background-color: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; padding: 16px; margin-bottom: 20px; display: flex; align-items: flex-start; gap: 12px;">
-            <div style="color: #d97706; display: flex; align-items: center; justify-content: center; padding-top: 2px;">
-                <svg width="20" height="20" style="width: 20px; height: 20px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-            </div>
-            <div>
-                <h4 style="font-size: 14px; font-weight: 600; color: #92400e; margin: 0 0 4px 0;">Review AI Merge Suggestions</h4>
-                <p style="font-size: 12px; color: #b45309; margin: 0; line-height: 1.5;">
-                    Below are the duplicate groups identified. For each group, choose which name to keep as the primary target. Merging will update all associated teachers and delete the duplicates.
-                </p>
-            </div>
-        </div>
-
         <div style="overflow-x: auto; border: 1px solid #e5e7eb; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
             <table style="width: 100%; border-collapse: collapse; text-align: left; background-color: #ffffff;">
                 <thead>

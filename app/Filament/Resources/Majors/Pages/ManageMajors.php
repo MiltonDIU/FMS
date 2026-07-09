@@ -24,15 +24,27 @@ class ManageMajors extends ManageRecords
                 ->color('warning')
                 ->modalHeading('AI-Powered Duplicate Suggestions')
                 ->modalContent(function () {
-                    $suggestions = app(\App\Services\DuplicateFinderService::class)->findDuplicates('major');
+                    $cache = app(\App\Services\DuplicateFinderService::class)->getSuggestionsWithCache('major');
                     return view('filament.lookup.ai-merge-suggestions', [
-                        'suggestions' => $suggestions,
+                        'cache' => $cache,
                         'type' => 'major',
                     ]);
                 })
                 ->modalSubmitAction(false)
                 ->modalWidth('4xl'),
         ];
+    }
+
+    public function refreshAiScan(string $type): void
+    {
+        app(\App\Services\DuplicateFinderService::class)->getSuggestionsWithCache($type, forceRefresh: true);
+        
+        Notification::make()
+            ->title('AI duplicate scan refreshed successfully')
+            ->success()
+            ->send();
+            
+        $this->mountAction('aiSuggestMerges');
     }
 
     public function mergeGroup($targetId, array $allIds, string $type): void
@@ -60,12 +72,15 @@ class ManageMajors extends ManageRecords
             Major::whereIn('id', $sourceIds)->delete();
         });
 
+        // Update the cached file dynamically
+        app(\App\Services\DuplicateFinderService::class)->removeGroupFromCache($type, $targetId, $sourceIds);
+
         Notification::make()
             ->title('Merged successfully')
             ->success()
             ->send();
 
-        // Close the modal
-        $this->unmountAction();
+        // Re-mount the action modal to display remaining duplicate groups
+        $this->mountAction('aiSuggestMerges');
     }
 }

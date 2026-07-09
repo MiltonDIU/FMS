@@ -16,6 +16,76 @@ class DuplicateFinderService
         $this->ai = $ai;
     }
 
+    public function getSuggestionsWithCache(string $type, bool $forceRefresh = false): array
+    {
+        $cachePath = storage_path("app/ai-cache/{$type}_duplicates.json");
+        $currentCount = $type === 'major' 
+            ? Major::where('is_active', true)->count() 
+            : EducationalInstitution::where('is_active', true)->count();
+
+        if (!$forceRefresh && file_exists($cachePath)) {
+            $data = json_decode(file_get_contents($cachePath), true);
+            if (is_array($data)) {
+                $data['current_records'] = $currentCount;
+                $data['is_cached'] = true;
+                return $data;
+            }
+        }
+
+        // Run fresh duplicate scan
+        $suggestions = $this->findDuplicates($type);
+
+        $cacheData = [
+            'last_checked_at' => now()->format('Y-m-d H:i:s'),
+            'total_records' => $currentCount,
+            'suggestions' => $suggestions,
+        ];
+
+        // Ensure directory exists
+        $dir = dirname($cachePath);
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+
+        file_put_contents($cachePath, json_encode($cacheData, JSON_PRETTY_PRINT));
+
+        $cacheData['current_records'] = $currentCount;
+        $cacheData['is_cached'] = false;
+
+        return $cacheData;
+    }
+
+    public function removeGroupFromCache(string $type, int $targetId, array $sourceIds): void
+    {
+        $cachePath = storage_path("app/ai-cache/{$type}_duplicates.json");
+        if (!file_exists($cachePath)) {
+            return;
+        }
+
+        $data = json_decode(file_get_contents($cachePath), true);
+        if (!is_array($data) || !isset($data['suggestions'])) {
+            return;
+        }
+
+        $allMergedIds = array_merge([$targetId], $sourceIds);
+        $newSuggestions = [];
+
+        foreach ($data['suggestions'] as $group) {
+            $primaryId = (int)$group['primary']['id'];
+            $dupIds = array_column($group['duplicates'], 'id');
+            $allGroupIds = array_merge([$primaryId], $dupIds);
+
+            if (empty(array_intersect($allGroupIds, $allMergedIds))) {
+                $newSuggestions[] = $group;
+            }
+        }
+
+        $data['suggestions'] = $newSuggestions;
+        $data['total_records'] = max(0, $data['total_records'] - count($sourceIds));
+
+        file_put_contents($cachePath, json_encode($data, JSON_PRETTY_PRINT));
+    }
+
     public function findDuplicates(string $type): array
     {
         $records = [];
