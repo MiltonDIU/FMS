@@ -197,12 +197,33 @@ class ImportOldTeachersEducationsCommand extends Command
                     continue;
                 }
 
+                // Resolve Educational Institution ID
+                $educationalInstitutionId = null;
+                $institutionName = trim($institution);
+                if ($institutionName !== '') {
+                    $educationalInstitutionId = \App\Models\EducationalInstitution::firstOrCreate(
+                        ['name' => $institutionName],
+                        ['is_active' => true]
+                    )->id;
+                }
+
+                // Resolve Major ID
+                $majorId = null;
+                $majorName = trim($edu['major'] ?? '');
+                if ($majorName !== '') {
+                    $majorId = \App\Models\Major::firstOrCreate(
+                        ['name' => $majorName],
+                        ['is_active' => true]
+                    )->id;
+                }
+
                 try {
                     if ($this->option('skip-existing')) {
                         $exists = Education::where([
-                            'teacher_id'     => $teacher->id,
-                            'degree_type_id' => $degreeTypeId,
-                            'institution'    => $institution,
+                            'teacher_id'                 => $teacher->id,
+                            'degree_type_id'             => $degreeTypeId,
+                            'educational_institution_id' => $educationalInstitutionId,
+                            'major_id'                   => $majorId,
                         ])->exists();
                         if ($exists) {
                             $skipped++;
@@ -212,9 +233,10 @@ class ImportOldTeachersEducationsCommand extends Command
 
                     $result = Education::updateOrCreate(
                         [
-                            'teacher_id'     => $teacher->id,
-                            'degree_type_id' => $degreeTypeId,
-                            'institution'    => $institution,
+                            'teacher_id'                 => $teacher->id,
+                            'degree_type_id'             => $degreeTypeId,
+                            'educational_institution_id' => $educationalInstitutionId,
+                            'major_id'                   => $majorId,
                         ],
                         [
                             'country_id'     => $countryId,
@@ -225,7 +247,8 @@ class ImportOldTeachersEducationsCommand extends Command
                             'grade'          => $edu['grade'] ?? null,
                             'passing_year'   => $passingYear,
                             'duration'       => $edu['duration'] ?? null,
-                            'major'          => $edu['major'] ?? null,
+                            'institution'    => $institution,
+                            'major'          => $majorName,
                             'sort_order'     => 0,
                         ]
                     );
