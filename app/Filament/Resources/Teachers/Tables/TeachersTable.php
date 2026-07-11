@@ -14,6 +14,9 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Filters\TrashedFilter;
+use Filament\Tables\Filters\Filter;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Get;
 use App\Models\Teacher;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -105,9 +108,8 @@ class TeachersTable
                         }
                     }),
                 SelectFilter::make('educational_institution_id')
-                    ->label('Institution')
-                    ->searchable()
-                    ->options(fn () => \App\Models\Organization::query()->where('is_educational_institution', true)->where('is_active', true)->pluck('name', 'id')->toArray())
+                    ->hidden()
+                    ->options(fn () => \App\Models\Organization::query()->where('is_educational_institution', true)->pluck('name', 'id')->toArray())
                     ->query(function (Builder $query, array $data) {
                         if (!empty($data['value'])) {
                             $query->whereHas('educations', function ($q) use ($data) {
@@ -115,14 +117,62 @@ class TeachersTable
                             });
                         }
                     }),
-                SelectFilter::make('organization_id')
+                Filter::make('organization_id')
                     ->label('Organization')
-                    ->searchable()
-                    ->options(fn () => \App\Models\Organization::query()->where('is_active', true)->pluck('name', 'id')->toArray())
+                    ->form([
+                        Select::make('type')
+                            ->label('Organization Type')
+                            ->options([
+                                'is_educational_institution' => 'Educational Institution',
+                                'is_employer' => 'Employer / Company',
+                                'is_training_center' => 'Training Center',
+                                'is_professional_body' => 'Professional Body / Membership Org',
+                                'is_awarding_body' => 'Awarding Body',
+                                'is_certifying_authority' => 'Certifying Authority',
+                                'is_funding_agency' => 'Funding Agency',
+                            ])
+                            ->live(),
+                        Select::make('value')
+                            ->label('Organization')
+                            ->searchable()
+                            ->getSearchResultsUsing(function (string $search, Get $get) {
+                                $type = $get('type');
+                                return \App\Models\Organization::query()
+                                    ->where('is_active', true)
+                                    ->when($type, fn ($q) => $q->where($type, true))
+                                    ->where('name', 'like', "%{$search}%")
+                                    ->limit(50)
+                                    ->pluck('name', 'id');
+                            })
+                            ->getOptionLabelUsing(fn ($value) => \App\Models\Organization::find($value)?->name),
+                    ])
                     ->query(function (Builder $query, array $data) {
-                        if (!empty($data['value'])) {
-                            $query->whereHas('jobExperiences', function ($q) use ($data) {
-                                $q->where('organization_id', $data['value']);
+                        $orgId = $data['value'] ?? null;
+                        $type = $data['type'] ?? null;
+                        
+                        if ($orgId) {
+                            $query->where(function ($q) use ($orgId, $type) {
+                                if (!$type || $type === 'is_educational_institution') {
+                                    $q->orWhereHas('educations', fn ($sub) => $sub->where('educational_institution_id', $orgId));
+                                }
+                                if (!$type || $type === 'is_employer') {
+                                    $q->orWhereHas('jobExperiences', fn ($sub) => $sub->where('organization_id', $orgId));
+                                }
+                                if (!$type || $type === 'is_training_center') {
+                                    $q->orWhereHas('trainingExperiences', fn ($sub) => $sub->where('organization_id', $orgId));
+                                }
+                                if (!$type || $type === 'is_professional_body') {
+                                    $q->orWhereHas('memberships', fn ($sub) => $sub->where('membership_organization_id', $orgId));
+                                }
+                                if (!$type || $type === 'is_awarding_body') {
+                                    $q->orWhereHas('awards', fn ($sub) => $sub->where('awarding_body_organization_id', $orgId));
+                                }
+                                if (!$type || $type === 'is_certifying_authority') {
+                                    $q->orWhereHas('certifications', fn ($sub) => $sub->where('issuing_authority_organization_id', $orgId));
+                                }
+                                if (!$type || $type === 'is_funding_agency') {
+                                    $q->orWhereHas('researchProjects', fn ($sub) => $sub->where('funding_agency_organization_id', $orgId));
+                                }
                             });
                         }
                     }),
@@ -137,6 +187,11 @@ class TeachersTable
                             });
                         }
                     }),
+                SelectFilter::make('designation_id')
+                    ->relationship('designation', 'name')
+                    ->label('Designation')
+                    ->searchable()
+                    ->preload(),
                 SelectFilter::make('employment_status_id')
                     ->relationship('employmentStatus', 'name')
                     ->label('Employment Status')

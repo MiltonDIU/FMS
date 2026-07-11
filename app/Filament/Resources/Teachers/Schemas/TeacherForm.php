@@ -214,7 +214,7 @@ class TeacherForm
                                         $degree = \App\Models\DegreeType::find($state['degree_type_id'] ?? null)?->name ?? 'Degree';
                                         $inst = $state['institution'] ?? null;
                                         if (empty($inst) && !empty($state['educational_institution_id'])) {
-                                            $inst = \App\Models\EducationalInstitution::find($state['educational_institution_id'])?->name;
+                                            $inst = \App\Models\Organization::find($state['educational_institution_id'])?->name;
                                         }
                                         return $degree . ' - ' . ($inst ?? 'New Education');
                                     })
@@ -307,7 +307,7 @@ class TeacherForm
                                             ->relationship(
                                                 'educationalInstitution',
                                                 'name',
-                                                modifyQueryUsing: function ($query, \Filament\Forms\Get $get) {
+                                                modifyQueryUsing: function ($query,Get $get) {
                                                     $teacherId = auth()->user()?->teacher?->id;
                                                     $countryId = $get('country_id');
                                                     return $query->where('is_educational_institution', true)
@@ -335,7 +335,7 @@ class TeacherForm
                                                     ->required()
                                                     ->maxLength(255),
                                             ])
-                                            ->createOptionUsing(function (array $data, \Filament\Forms\Get $get) {
+                                            ->createOptionUsing(function (array $data, Get $get) {
                                                 $teacherId = auth()->user()?->teacher?->id;
                                                 $countryId = $get('../../country_id') ?? $get('../country_id') ?? $get('country_id');
                                                 $record = \App\Models\Organization::findOrCreateWithAutoApproval($data['name'], $teacherId, $countryId, ['is_educational_institution' => true]);
@@ -424,7 +424,7 @@ class TeacherForm
                                         foreach ($state ?? [] as $item) {
                                             $instName = null;
                                             if (!empty($item['educational_institution_id'])) {
-                                                $instName = \App\Models\EducationalInstitution::find($item['educational_institution_id'])?->name;
+                                                $instName = \App\Models\Organization::find($item['educational_institution_id'])?->name;
                                             }
 
                                             $majorName = null;
@@ -758,7 +758,7 @@ class TeacherForm
                                             ->relationship(
                                                 'organizationRelation',
                                                 'name',
-                                                modifyQueryUsing: function ($query, \Filament\Forms\Get $get) {
+                                                modifyQueryUsing: function ($query, Get $get) {
                                                     $teacherId = auth()->user()?->teacher?->id;
                                                     $countryId = $get('country_id');
                                                     return $query->where('is_employer', true)
@@ -786,7 +786,7 @@ class TeacherForm
                                                     ->required()
                                                     ->maxLength(255),
                                             ])
-                                            ->createOptionUsing(function (array $data, \Filament\Forms\Get $get) {
+                                            ->createOptionUsing(function (array $data, Get $get) {
                                                 $teacherId = auth()->user()?->teacher?->id;
                                                 $countryId = $get('../../country_id') ?? $get('../country_id') ?? $get('country_id');
                                                 $record = \App\Models\Organization::findOrCreateWithAutoApproval($data['name'], $teacherId, $countryId, ['is_employer' => true]);
@@ -864,7 +864,7 @@ class TeacherForm
                                              ->relationship(
                                                  'organizationRelation',
                                                  'name',
-                                                 modifyQueryUsing: function ($query, \Filament\Forms\Get $get) {
+                                                 modifyQueryUsing: function ($query, Get $get) {
                                                      $teacherId = auth()->user()?->teacher?->id;
                                                      $countryId = $get('country_id');
                                                      return $query->where('is_training_center', true)
@@ -891,7 +891,7 @@ class TeacherForm
                                                      ->required()
                                                      ->maxLength(255),
                                              ])
-                                             ->createOptionUsing(function (array $data, \Filament\Forms\Get $get) {
+                                             ->createOptionUsing(function (array $data, Get $get) {
                                                  $teacherId = auth()->user()?->teacher?->id;
                                                  $countryId = $get('../../country_id') ?? $get('../country_id') ?? $get('country_id');
                                                  $record = \App\Models\Organization::findOrCreateWithAutoApproval($data['name'], $teacherId, $countryId, ['is_training_center' => true]);
@@ -1113,40 +1113,32 @@ class TeacherForm
                             ->schema([
                                 Repeater::make('memberships')
                                     ->relationship()
-                                    ->itemLabel(fn (array $state): ?string => \App\Models\MembershipOrganization::find($state['membership_organization_id'] ?? null)?->name)
+                                    ->itemLabel(fn (array $state): ?string => \App\Models\Organization::find($state['membership_organization_id'] ?? null)?->name)
                                     ->schema([
                                         Select::make('membership_organization_id')
                                             ->label('Organization')
                                             ->relationship(
                                                 'membershipOrganization',
                                                 'name',
-                                                modifyQueryUsing: fn ($query, $get) => $query->where(function ($q) use ($get) {
-                                                    $q->where('is_active', true)
-                                                        ->orWhere('created_by', auth()->user()?->teacher?->id);
-                                                })->orderBy('name')
+                                                modifyQueryUsing: fn ($query) => $query->where('is_professional_body', true)
+                                                    ->where('is_active', true)
+                                                    ->orderBy('name')
                                             )
                                             ->searchable()
                                             ->preload()
                                             ->createOptionForm([
                                                 TextInput::make('name')
                                                     ->required()
-                                                    ->unique('membership_organizations', 'name')
                                                     ->maxLength(255),
-                                                Textarea::make('description')
-                                                    ->rows(2),
                                             ])
                                             ->createOptionUsing(function (array $data) {
                                                 $teacherId = auth()->user()?->teacher?->id;
-
-                                                $org = \App\Models\MembershipOrganization::create([
-                                                    'name' => $data['name'],
-                                                    'description' => $data['description'] ?? null,
-                                                    'is_active' => false,
-                                                    'created_by' => $teacherId,
-                                                ]);
-
-                                                \App\Models\MembershipOrganization::checkAndActivateDuplicate($data['name'], $teacherId);
-
+                                                $org = \App\Models\Organization::findOrCreateWithAutoApproval(
+                                                    $data['name'],
+                                                    $teacherId,
+                                                    null,
+                                                    ['is_professional_body' => true]
+                                                );
                                                 return $org->id;
                                             })
                                             ->required(),
