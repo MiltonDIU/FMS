@@ -16,11 +16,8 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
-use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Placeholder;
-use Filament\Schemas\Components\Group;
+use Filament\Schemas\Components\View;
 use Filament\Actions\Action as FormAction;
 
 class TeacherVersionsTable
@@ -407,40 +404,90 @@ class TeacherVersionsTable
         // Filter out system keys
         $keys = array_filter($keys, fn($k) => !in_array($k, ['id', 'created_at', 'updated_at', 'teacher_id']));
 
-        $fields = [];
-        $fields[] = Grid::make(2)->schema([
-            Placeholder::make('lbl_old_' . $uniqueId)->label('Current Data')->content(''),
-            Placeholder::make('lbl_new_' . $uniqueId)->label('Proposed Changes')->content(''),
-        ]);
+        $rows = [];
 
         foreach ($keys as $key) {
             $oldVal = $old[$key] ?? null;
             $newVal = $new[$key] ?? null;
+            $hasChanged = self::normalizeDiffValue($oldVal) !== self::normalizeDiffValue($newVal);
 
-            // Determine style for Old Data
-            // If data is changed (and not just null->null), highlight old data
-            $hasChanged = $oldVal !== $newVal;
-
-            $oldStyle = 'background-color: #f9fafb; color: #4b5563;';
-            if ($hasChanged && !is_null($oldVal)) {
-                $oldStyle = 'background-color: #fef2f2; color: #ef4444; text-decoration: line-through;';
-            }
-
-            $fields[] = Grid::make(2)->schema([
-                TextInput::make('old_' . $key . '_' . $uniqueId)
-                    ->label(\Illuminate\Support\Str::headline($key))
-                    ->default(is_array($oldVal) ? json_encode($oldVal) : $oldVal)
-                    ->disabled()
-                    ->extraInputAttributes(['style' => $oldStyle]),
-
-                TextInput::make('new_' . $key . '_' . $uniqueId)
-                    ->label(\Illuminate\Support\Str::headline($key))
-                    ->default(is_array($newVal) ? json_encode($newVal) : $newVal)
-                    ->disabled()
-                    ->extraInputAttributes(['style' => 'background-color: #ffffff; border-color: #93c5fd; color: #111827; box-shadow: 0 0 0 1px #eff6ff;']),
-            ]);
+            $rows[] = [
+                'key' => $key,
+                'label' => \Illuminate\Support\Str::headline($key),
+                'old' => self::formatDiffValue($oldVal),
+                'new' => self::formatDiffValue($newVal),
+                'status' => match (true) {
+                    !$hasChanged => 'same',
+                    blank($oldVal) && filled($newVal) => 'added',
+                    filled($oldVal) && blank($newVal) => 'removed',
+                    default => 'changed',
+                },
+            ];
         }
-        return $fields;
+
+        return [
+            View::make('filament.modals.teacher-version-diff')
+                ->viewData([
+                    'rows' => $rows,
+                    'uid' => 'teacher-version-diff-' . md5($uniqueId ?: implode('|', $keys)),
+                ]),
+        ];
+    }
+
+    protected static function normalizeDiffValue(mixed $value): string
+    {
+        if (is_array($value)) {
+            return json_encode($value) ?: '';
+        }
+
+        if (is_bool($value)) {
+            return $value ? '1' : '0';
+        }
+
+        if ($value === null) {
+            return '';
+        }
+
+        $stringValue = trim((string) $value);
+
+        if ($stringValue === '') {
+            return '';
+        }
+
+        if (is_numeric($stringValue)) {
+            return (string) (float) $stringValue;
+        }
+
+        if (preg_match('/^\d{1,2}:\d{2}(:\d{2})?$/', $stringValue)) {
+            $parts = explode(':', $stringValue);
+            $hour = str_pad($parts[0], 2, '0', STR_PAD_LEFT);
+            $minute = str_pad($parts[1], 2, '0', STR_PAD_LEFT);
+
+            return "{$hour}:{$minute}";
+        }
+
+        if (preg_match('/^(\d{4}-\d{2}-\d{2})/', $stringValue, $matches)) {
+            return $matches[1];
+        }
+
+        return $stringValue;
+    }
+
+    protected static function formatDiffValue(mixed $value): string
+    {
+        if (is_array($value)) {
+            return json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '';
+        }
+
+        if (is_bool($value)) {
+            return $value ? 'Yes' : 'No';
+        }
+
+        if ($value === null) {
+            return '';
+        }
+
+        return (string) $value;
     }
 
     protected static function getRelationSchema(array $items, string $sectionKey): array
