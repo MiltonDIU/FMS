@@ -146,7 +146,11 @@ class SystemSettings extends Page
                             ->schema([
                                 Section::make('Background Data Export')
                                     ->description('Export data from the old database into JSON export files in the background using AI parsing.')
+                                    ->poll('5s')
                                     ->schema([
+                                        \Filament\Forms\Components\Placeholder::make('export_progress')
+                                            ->label('Current Progress')
+                                            ->content(fn() => Setting::get('export_progress', 'Idle')),
                                         TextInput::make('export_limit')
                                             ->label('Export Limit')
                                             ->numeric()
@@ -179,7 +183,11 @@ class SystemSettings extends Page
                                     ]),
                                 Section::make('Background Data Import')
                                     ->description('Import parsed JSON data into the FMS database in the background.')
+                                    ->poll('5s')
                                     ->schema([
+                                        \Filament\Forms\Components\Placeholder::make('import_progress')
+                                            ->label('Current Progress')
+                                            ->content(fn() => Setting::get('import_progress', 'Idle')),
                                         TextInput::make('import_limit')
                                             ->label('Import Limit')
                                             ->numeric()

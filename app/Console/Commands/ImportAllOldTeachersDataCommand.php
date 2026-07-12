@@ -52,8 +52,14 @@ class ImportAllOldTeachersDataCommand extends Command
 
         $this->info("🏁 Starting master import for all old teacher data...");
         $this->newLine();
+        \App\Models\Setting::set('import_progress', 'Started master import...');
+
+        $totalCommands = count($commands);
+        $currentIndex = 0;
 
         foreach ($commands as $command) {
+            $currentIndex++;
+            \App\Models\Setting::set('import_progress', "Running: php artisan {$command} ({$currentIndex} / {$totalCommands})");
             $this->info("================================================================================");
             $this->info("➡️ Running: php artisan {$command}");
             $this->info("================================================================================");
@@ -61,10 +67,13 @@ class ImportAllOldTeachersDataCommand extends Command
             $exitCode = $this->call($command, $options);
             
             if ($exitCode !== 0) {
+                \App\Models\Setting::set('import_progress', "Failed on command: {$command}");
                 $this->error("❌ Command {$command} failed with exit code: {$exitCode}");
             }
             $this->newLine();
         }
+
+        \App\Models\Setting::set('import_progress', 'Master import completed successfully!');
 
         $this->info("🎉 Master import completed successfully!");
         return Command::SUCCESS;

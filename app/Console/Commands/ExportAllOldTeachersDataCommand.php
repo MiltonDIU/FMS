@@ -50,8 +50,14 @@ class ExportAllOldTeachersDataCommand extends Command
 
         $this->info("🏁 Starting master export for all old teacher data...");
         $this->newLine();
+        \App\Models\Setting::set('export_progress', 'Started master export...');
+
+        $totalCommands = count($commands);
+        $currentIndex = 0;
 
         foreach ($commands as $command => $specificOptions) {
+            $currentIndex++;
+            \App\Models\Setting::set('export_progress', "Running: php artisan {$command} ({$currentIndex} / {$totalCommands})");
             $this->info("================================================================================");
             $this->info("➡️ Running: php artisan {$command}");
             $this->info("================================================================================");
@@ -62,10 +68,13 @@ class ExportAllOldTeachersDataCommand extends Command
             $exitCode = $this->call($command, $options);
             
             if ($exitCode !== 0) {
+                \App\Models\Setting::set('export_progress', "Failed on command: {$command}");
                 $this->error("❌ Command {$command} failed with exit code: {$exitCode}");
             }
             $this->newLine();
         }
+
+        \App\Models\Setting::set('export_progress', 'Master export completed successfully!');
 
         $this->info("🎉 Master export completed successfully!");
         return Command::SUCCESS;
