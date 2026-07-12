@@ -142,6 +142,7 @@ class SystemSettings extends Page
                             ]),
                         Tab::make('Data Migration')
                             ->icon('heroicon-o-arrow-path')
+                            ->visible(fn() => env('SHOW_DATA_MIGRATION_TAB', false))
                             ->schema([
                                 Section::make('Background Data Export')
                                     ->description('Export data from the old database into JSON export files in the background using AI parsing.')
