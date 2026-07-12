@@ -229,7 +229,7 @@ class SystemSettings extends Page
         Notification::make()
             ->success()
             ->title('Master Export Job Dispatched!')
-            ->description('The export process has been queued in the background. You can monitor it in Telescope under the Jobs tab.')
+            ->body('The export process has been queued in the background. You can monitor it in Telescope under the Jobs tab.')
             ->send();
     }
 
@@ -244,7 +244,7 @@ class SystemSettings extends Page
         Notification::make()
             ->success()
             ->title('Master Import Job Dispatched!')
-            ->description('The import process has been queued in the background. You can monitor it in Telescope under the Jobs tab.')
+            ->body('The import process has been queued in the background. You can monitor it in Telescope under the Jobs tab.')
             ->send();
     }
 
