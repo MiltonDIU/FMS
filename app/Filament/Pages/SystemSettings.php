@@ -44,7 +44,14 @@ class SystemSettings extends Page
             }
         }
 
-        $this->form->fill($settings);
+        $this->form->fill(array_merge($settings, [
+            'export_limit' => 0,
+            'export_provider' => 'auto',
+            'export_overwrite' => false,
+            'import_limit' => 0,
+            'import_dry_run' => false,
+            'import_skip_existing' => true,
+        ]));
     }
 
     public function form(Schema $schema): Schema
@@ -125,6 +132,66 @@ class SystemSettings extends Page
                                             ->default(config('app.name')),
                                     ])->columns(2),
                             ]),
+                        Tab::make('Data Migration')
+                            ->icon('heroicon-o-arrow-path')
+                            ->schema([
+                                Section::make('Background Data Export')
+                                    ->description('Export data from the old database into JSON export files in the background using AI parsing.')
+                                    ->schema([
+                                        TextInput::make('export_limit')
+                                            ->label('Export Limit')
+                                            ->numeric()
+                                            ->default(0)
+                                            ->helperText('Limit the number of teachers processed per command (0 = all)'),
+                                        \Filament\Forms\Components\Select::make('export_provider')
+                                            ->label('AI Provider')
+                                            ->options([
+                                                'auto' => 'Auto-Detect',
+                                                'vertex' => 'Vertex AI (Gemini)',
+                                                'gemini' => 'Gemini API',
+                                                'openrouter' => 'OpenRouter',
+                                                'groq' => 'Groq',
+                                                'anthropic' => 'Anthropic',
+                                                'deepseek' => 'DeepSeek',
+                                                'heuristic' => 'Heuristic (Rule-based / No AI)',
+                                            ])
+                                            ->default('auto')
+                                            ->required(),
+                                        Toggle::make('export_overwrite')
+                                            ->label('Overwrite Existing Exports')
+                                            ->helperText('Re-process and overwrite already parsed files'),
+                                        \Filament\Schemas\Components\Actions::make([
+                                            Action::make('run_export')
+                                                ->label('Start Background Export')
+                                                ->action('startBackgroundExport')
+                                                ->color('warning')
+                                                ->icon('heroicon-o-arrow-up-tray'),
+                                        ]),
+                                    ]),
+                                Section::make('Background Data Import')
+                                    ->description('Import parsed JSON data into the FMS database in the background.')
+                                    ->schema([
+                                        TextInput::make('import_limit')
+                                            ->label('Import Limit')
+                                            ->numeric()
+                                            ->default(0)
+                                            ->helperText('Limit the number of records processed per command (0 = all)'),
+                                        Toggle::make('import_dry_run')
+                                            ->label('Dry Run')
+                                            ->helperText('Validate and preview records without writing to the database'),
+                                        Toggle::make('import_skip_existing')
+                                            ->label('Skip Existing')
+                                            ->default(true)
+                                            ->helperText('Skip records if they are already imported'),
+                                        \Filament\Schemas\Components\Actions::make([
+                                            Action::make('run_import')
+                                                ->label('Start Background Import')
+                                                ->action('startBackgroundImport')
+                                                ->color('success')
+                                                ->icon('heroicon-o-arrow-down-tray'),
+                                        ]),
+                                    ]),
+                            ]),
                     ])->columnSpanFull(),
             ]);
     }
@@ -133,13 +200,51 @@ class SystemSettings extends Page
     {
         $data = $this->form->getState();
 
+        $excludeKeys = [
+            'export_limit', 'export_provider', 'export_overwrite',
+            'import_limit', 'import_dry_run', 'import_skip_existing'
+        ];
+
         foreach ($data as $key => $value) {
+            if (in_array($key, $excludeKeys)) {
+                continue;
+            }
             Setting::set($key, $value);
         }
 
         Notification::make()
             ->success()
             ->title('Settings saved successfully')
+            ->send();
+    }
+
+    public function startBackgroundExport(): void
+    {
+        $limit = (int) ($this->data['export_limit'] ?? 0);
+        $provider = $this->data['export_provider'] ?? 'auto';
+        $overwrite = (bool) ($this->data['export_overwrite'] ?? false);
+
+        \App\Jobs\RunMasterExportJob::dispatch($limit, $provider, $overwrite);
+
+        Notification::make()
+            ->success()
+            ->title('Master Export Job Dispatched!')
+            ->description('The export process has been queued in the background. You can monitor it in Telescope under the Jobs tab.')
+            ->send();
+    }
+
+    public function startBackgroundImport(): void
+    {
+        $limit = (int) ($this->data['import_limit'] ?? 0);
+        $dryRun = (bool) ($this->data['import_dry_run'] ?? false);
+        $skipExisting = (bool) ($this->data['import_skip_existing'] ?? true);
+
+        \App\Jobs\RunMasterImportJob::dispatch($limit, $dryRun, $skipExisting);
+
+        Notification::make()
+            ->success()
+            ->title('Master Import Job Dispatched!')
+            ->description('The import process has been queued in the background. You can monitor it in Telescope under the Jobs tab.')
             ->send();
     }
 
