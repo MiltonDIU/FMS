@@ -10,6 +10,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Table;
 use App\Models\Organization;
 use Illuminate\Database\Eloquent\Builder;
@@ -107,7 +108,10 @@ class OrganizationsTable
                             $query->whereNotNull('parent_id');
                         }
                     }),
-            ])
+            ], layout: FiltersLayout::Modal)
+            ->filtersTriggerAction(function ($action) {
+                return $action->slideOver();
+            })
             ->recordActions([
                 EditAction::make(),
                 DeleteAction::make(),

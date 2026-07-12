@@ -11,6 +11,7 @@ use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
@@ -50,6 +51,29 @@ class DepartmentTeachersTable
                     ->formatStateUsing(fn ($record) => $record->teacher->first_name . ' '  .$record->teacher->middle_name . ' ' . $record->teacher->last_name)
                     ->searchable(['first_name', 'middle_name', 'last_name'])
                     ->sortable(),
+
+                TextColumn::make('teacher.designation.name')
+                    ->label('Designation')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(),
+
+                TextColumn::make('teacher.user.administrativeRoles.name')
+                    ->label('Admin Role')
+                    ->placeholder('—')
+                    ->badge()
+                    ->color('warning')
+                    ->state(function ($record) {
+                        $user = $record->teacher?->user;
+                        if (!$user) return null;
+                        
+                        return $user->administrativeRoles()
+                            ->wherePivot('is_active', true)
+                            ->whereNull('administrative_role_user.end_date')
+                            ->pluck('administrative_roles.name')
+                            ->toArray();
+                    })
+                    ->toggleable(),
                 TextColumn::make('department.name')
                     ->label('Department')
                     ->searchable()
@@ -67,6 +91,12 @@ class DepartmentTeachersTable
                     ->label('Job Type')
                     ->badge()
                     ->color('info')
+                    ->toggleable(),
+
+                TextColumn::make('teacher.employmentStatus.name')
+                    ->label('Teacher Status')
+                    ->badge()
+                    ->color(fn ($record) => $record->teacher?->employmentStatus?->color ?? 'gray')
                     ->toggleable(),
 
                 TextColumn::make('sort_order')
@@ -150,12 +180,46 @@ class DepartmentTeachersTable
                             );
                     }),
 
+                SelectFilter::make('administrative_role')
+                    ->label('Admin Role')
+                    ->options(\App\Models\AdministrativeRole::pluck('name', 'id'))
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['value'])) {
+                            $query->whereHas('teacher.user.administrativeRoles', function (Builder $q) use ($data) {
+                                $q->where('administrative_roles.id', $data['value'])
+                                  ->where('administrative_role_user.is_active', true)
+                                  ->whereNull('administrative_role_user.end_date');
+                            });
+                        }
+                    }),
+
+                SelectFilter::make('teacher_designation')
+                    ->label('Designation')
+                    ->options(\App\Models\Designation::pluck('name', 'id'))
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['value'])) {
+                            $query->whereHas('teacher', fn (Builder $q) => $q->where('designation_id', $data['value']));
+                        }
+                    }),
+
+                SelectFilter::make('teacher_status')
+                    ->label('Teacher Status')
+                    ->options(\App\Models\EmploymentStatus::pluck('name', 'id'))
+                    ->query(function (Builder $query, array $data) {
+                        if (!empty($data['value'])) {
+                            $query->whereHas('teacher', fn (Builder $q) => $q->where('employment_status_id', $data['value']));
+                        }
+                    }),
+
                 SelectFilter::make('job_type_id')
                     ->label('Job Type')
                     ->relationship('jobType', 'name'),
 
                 TrashedFilter::make(),
-            ])
+            ],layout: FiltersLayout::Modal)
+            ->filtersTriggerAction(function ($action) {
+                return $action->slideOver();
+            })
             ->recordActions([
                 EditAction::make(),
                 DeleteAction::make(),

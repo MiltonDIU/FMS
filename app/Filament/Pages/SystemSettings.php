@@ -150,7 +150,14 @@ class SystemSettings extends Page
                                     ->schema([
                                         \Filament\Forms\Components\Placeholder::make('export_progress')
                                             ->label('Current Progress')
-                                            ->content(fn() => Setting::get('export_progress', 'Idle')),
+                                            ->content(function() {
+                                                $status = Setting::get('export_progress', 'Idle');
+                                                if (str_starts_with($status, 'Running:') && !\Illuminate\Support\Facades\DB::table('jobs')->exists()) {
+                                                    $status = 'Idle';
+                                                    Setting::set('export_progress', 'Idle');
+                                                }
+                                                return $status;
+                                            }),
                                         TextInput::make('export_limit')
                                             ->label('Export Limit')
                                             ->numeric()
@@ -187,7 +194,14 @@ class SystemSettings extends Page
                                     ->schema([
                                         \Filament\Forms\Components\Placeholder::make('import_progress')
                                             ->label('Current Progress')
-                                            ->content(fn() => Setting::get('import_progress', 'Idle')),
+                                            ->content(function() {
+                                                $status = Setting::get('import_progress', 'Idle');
+                                                if (str_starts_with($status, 'Running:') && !\Illuminate\Support\Facades\DB::table('jobs')->exists()) {
+                                                    $status = 'Idle';
+                                                    Setting::set('import_progress', 'Idle');
+                                                }
+                                                return $status;
+                                            }),
                                         TextInput::make('import_limit')
                                             ->label('Import Limit')
                                             ->numeric()

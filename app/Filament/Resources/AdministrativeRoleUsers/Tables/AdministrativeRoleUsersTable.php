@@ -12,6 +12,7 @@ use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
@@ -208,7 +209,10 @@ class AdministrativeRoleUsersTable
                     ]),
 
                 TrashedFilter::make(),
-            ])
+            ],layout: FiltersLayout::Modal)
+            ->filtersTriggerAction(function ($action) {
+                return $action->slideOver();
+            })
             ->recordActions([
                 EditAction::make(),
                 DeleteAction::make(),

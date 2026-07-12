@@ -25,6 +25,7 @@ use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
@@ -239,7 +240,10 @@ class PublicationsTable
                     }),
 
                 TrashedFilter::make(),
-            ])
+            ],layout: FiltersLayout::Modal)
+            ->filtersTriggerAction(function ($action) {
+                return $action->slideOver();
+            })
             ->recordActions([
                 EditAction::make(),
                 Action::make('add_incentive')

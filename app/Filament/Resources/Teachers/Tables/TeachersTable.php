@@ -9,14 +9,16 @@ use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Filters\Filter;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Get;
+
 use App\Models\Teacher;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -149,7 +151,7 @@ class TeachersTable
                     ->query(function (Builder $query, array $data) {
                         $orgId = $data['value'] ?? null;
                         $type = $data['type'] ?? null;
-                        
+
                         if ($orgId) {
                             $query->where(function ($q) use ($orgId, $type) {
                                 if (!$type || $type === 'is_educational_institution') {
@@ -218,7 +220,10 @@ class TeachersTable
                         blank: fn (Builder $query) => $query, // Show all
                     ),
                 TrashedFilter::make(),
-            ])
+            ],layout: FiltersLayout::Modal)
+            ->filtersTriggerAction(function ($action) {
+                return $action->slideOver();
+            })
             ->recordActions([
                 EditAction::make(),
                 ViewAction::make(),

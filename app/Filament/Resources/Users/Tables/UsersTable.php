@@ -14,6 +14,7 @@ use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\ViewBulkAction;
 use Filament\Actions\ViewAction;
+use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
@@ -56,7 +57,10 @@ class UsersTable
                     ->multiple()
                     ->preload()
                     ->label('Filter by Role'),
-            ])
+            ],layout: FiltersLayout::Modal)
+            ->filtersTriggerAction(function ($action) {
+        return $action->slideOver();
+    })
             ->recordActions([
                 ViewAction::make(),
                 EditAction::make(),
@@ -86,22 +90,22 @@ class UsersTable
                     ->using(function ($record, array $data): \App\Models\User {
                         // Create a replica
                         $replica = $record->replicate();
-                        
+
                         // Set form data
                         $replica->email = $data['email'];
                         $replica->password = bcrypt($data['password']);
-                        
+
                         // Save first
                         $replica->save();
-                        
+
                         // Sync roles
                         if (!empty($data['roles'])) {
                             $replica->roles()->sync($data['roles']);
                         }
-                        
+
                         return $replica;
                     }),
-                              
+
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

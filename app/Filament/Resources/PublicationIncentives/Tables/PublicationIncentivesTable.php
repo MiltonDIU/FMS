@@ -10,6 +10,7 @@ use Filament\Actions\ViewAction;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Table;
 
 class PublicationIncentivesTable
@@ -120,7 +121,10 @@ class PublicationIncentivesTable
                                 fn ($query, $date) => $query->whereHas('publication', fn($q) => $q->whereDate('publication_date', '<=', $date)),
                             );
                     })
-            ])
+            ],layout: FiltersLayout::Modal)
+            ->filtersTriggerAction(function ($action) {
+                return $action->slideOver();
+            })
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
