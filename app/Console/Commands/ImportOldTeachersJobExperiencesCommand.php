@@ -33,6 +33,13 @@ class ImportOldTeachersJobExperiencesCommand extends Command
             return Command::FAILURE;
         }
 
+        // Trim all string values recursively
+        array_walk_recursive($data, function (&$val) {
+            if (is_string($val)) {
+                $val = trim($val);
+            }
+        });
+
         $limit        = (int) $this->option('limit');
         $processCount = ($limit > 0 && $limit < count($data)) ? $limit : count($data);
 
@@ -107,6 +114,7 @@ class ImportOldTeachersJobExperiencesCommand extends Command
 
                 $extractedCountry = trim($exp['country'] ?? '');
                 if ($extractedCountry !== '') {
+                    $extractedCountry = \App\Models\Organization::normalizeCountryName($extractedCountry);
                     $searchKey = mb_strtolower($extractedCountry);
                     
                     // 1. Direct case-insensitive match

@@ -33,6 +33,13 @@ class ImportOldTeachersEducationsCommand extends Command
             return Command::FAILURE;
         }
 
+        // Trim all string values recursively
+        array_walk_recursive($data, function (&$val) {
+            if (is_string($val)) {
+                $val = trim($val);
+            }
+        });
+
         $limit        = (int) $this->option('limit');
         $processCount = ($limit > 0 && $limit < count($data)) ? $limit : count($data);
 
@@ -138,6 +145,7 @@ class ImportOldTeachersEducationsCommand extends Command
                 $countryId = 18;
                 $extractedCountry = trim($edu['country'] ?? '');
                 if ($extractedCountry !== '') {
+                    $extractedCountry = \App\Models\Organization::normalizeCountryName($extractedCountry);
                     $cSearch = mb_strtolower($extractedCountry);
                     if (isset($countryMap[$cSearch])) {
                         $countryId = $countryMap[$cSearch]['id'];

@@ -64,6 +64,14 @@ class Teacher extends Model implements HasMedia
     ];
 
     /**
+     * Set the teacher's employee ID, automatically trimming any spaces.
+     */
+    public function setEmployeeIdAttribute($value)
+    {
+        $this->attributes['employee_id'] = $value !== null ? trim($value) : null;
+    }
+
+    /**
      * Scope: Only active (non-archived) teachers.
      */
     public function scopeActive($query)

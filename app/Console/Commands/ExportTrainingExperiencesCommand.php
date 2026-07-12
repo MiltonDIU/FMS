@@ -369,7 +369,7 @@ class ExportTrainingExperiencesCommand extends Command
         }
 
         // Auto-detect: prefer DeepSeek/OpenRouter first if key exists, then others
-        $priority = ['deepseek', 'openrouter', 'vertex', 'gemini', 'groq', 'anthropic'];
+        $priority = ['vertex','deepseek', 'openrouter', 'gemini', 'groq', 'anthropic'];
         foreach ($priority as $provider) {
             $key = match($provider) {
                 'deepseek'  => env('DEEPSEEK_API_KEY'),
@@ -627,7 +627,7 @@ Return ONLY a valid JSON object — no explanation, no markdown fences.
 - **duration_days**: integer (convert: "2 weeks"→14, "3 months"→90, "1 year"→365); null if unknown
 - **completion_date**: full date as YYYY-MM-DD only if day+month+year all known; else null
 - **year**: 4-digit integer if any year mentioned; else null
-- **country**: country name string if mentioned; default "Bangladesh" for DIU/local events; null if truly unknown
+- **country**: country name string if mentioned. Always use standard full country names (e.g. "United Kingdom" instead of "UK" or "England", "United States" instead of "USA" or "US", "United Arab Emirates" instead of "UAE"). Default "Bangladesh" for DIU/local events; null if truly unknown.
 - **is_online**: true only if explicitly "webinar", "online", "virtual"
 - **description**: any meaningful extra detail not captured above; null if nothing extra
 
@@ -827,7 +827,7 @@ PROMPT;
             $results = json_decode(file_get_contents($resultsPath), true);
             if (is_array($results)) {
                 $this->info('Merging results from internal_agent_results.json...');
-                
+
                 $mergedCount = 0;
                 foreach ($results as $item) {
                     $exportData[] = $item;
@@ -836,7 +836,7 @@ PROMPT;
 
                 file_put_contents($outputPath, json_encode($exportData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
                 $this->info("✅ Merged {$mergedCount} records into {$outputPath}");
-                
+
                 // Cleanup
                 @unlink($resultsPath);
                 @unlink($queuePath);
@@ -855,7 +855,7 @@ PROMPT;
         // 3. Stage the current batch
         $this->info('Staging batch for Internal Agent...');
         file_put_contents($queuePath, json_encode($batch, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-        
+
         $this->warn("⚠️  Batch of " . count($batch) . " teachers staged in: {$queuePath}");
         $this->info('Please ask the Internal Agent (me) to process this file.');
     }
@@ -870,7 +870,7 @@ PROMPT;
 
             // 1. Split by common delimiters (li, p, br, or double newline)
             $parts = preg_split('/<(?:li|p|br\s*\/?)>|\r\n\r\n|\n\n/i', $html, -1, PREG_SPLIT_NO_EMPTY);
-            
+
             $sortOrder = 1;
             foreach ($parts as $part) {
                 $text = strip_tags($part);
@@ -946,7 +946,7 @@ PROMPT;
                 if (preg_match('/(.+?)\s+(?:at|from|by|organized by|offered by)\s+(.+)/i', $text, $m)) {
                     $data['title'] = trim($m[1], " ,;");
                     $data['organization'] = trim($m[2], " ,;.");
-                    
+
                     // Cleanup title if it still has trailing date garbage
                     $data['title'] = preg_replace('/\s*\(?(?:19|20)\d{2}\)?$/', '', $data['title']);
                 }
@@ -976,7 +976,7 @@ PROMPT;
         $cleaned = str_replace(['</p>', '</li>', '<br>', '<br/>', '<br />', '</div>', '</ul>', '</ol>'], "\n", $html);
         $cleaned = strip_tags($cleaned);
         $cleaned = html_entity_decode($cleaned, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        
+
         $lines = explode("\n", $cleaned);
         $result = [];
         foreach ($lines as $line) {

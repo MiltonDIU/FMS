@@ -566,7 +566,7 @@ Return ONLY a valid JSON object — no explanation, no markdown fences.
 ## Field rules:
 - **title** (required): The clean name of the award, scholarship, or achievement (e.g., "Excellence in Teaching 2023", "Evaluation Panel Member of the 9th International Conference on Hospitality and Tourism Management (ICOHT 2022)"). Strip HTML tags. Never null.
 - **awarding_body**: The organization, institution, university, ministry, or body that gave the award or hosted the event/role (e.g., "Tazkera and Golam Mustafa Center for Teaching and Learning of HRDI institute", "The International Institute Of Knowledge Management (TIIKM)", "Ministry of Civil Aviation and Tourism"). If not explicitly mentioned or cannot be inferred, return null.
-- **country**: The name of the country where the awarding body is located or where the award was given (e.g., "Bangladesh", "Turkey", "Malaysia", "Vietnam", "UK", "USA"). If not explicitly mentioned or cannot be inferred, return null.
+- **country**: The name of the country where the awarding body is located or where the award was given. Always use standard full country names (e.g. "United Kingdom" instead of "UK" or "England", "United States" instead of "USA" or "US", "United Arab Emirates" instead of "UAE"). If not explicitly mentioned or cannot be inferred, return null.
 - **type**: Must be exactly one of: award | scholarship | recognition | appreciation | other
   - "award" -> for winning a prize, best paper, outstanding teaching skills award, etc.
   - "scholarship" -> for fellowships, research grants, international credit mobility projects, teaching mobility funding, etc.

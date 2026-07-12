@@ -558,7 +558,7 @@ Return ONLY a valid JSON object — no explanation, no markdown fences.
 ## Field rules:
 - **organization** (required): The clean name of the organization, society, association, body, committee, or institution the teacher is a member of (e.g., "Bangladesh Mathematical Society", "IEEE", "Institution of Engineers, Bangladesh"). Strip all HTML. Never null.
 - **parent_organization**: If this organization is a chapter, branch, subsection, division, or subunit of a larger parent organization, extract the clean name of that parent organization (e.g. "IEEE" for "IEEE Computer Society DIU Student Branch Chapter", or "Institution of Engineers, Bangladesh" for "IEB Chittagong Center"). Otherwise, null.
-- **country**: The country where the organization is based or located (e.g. "Bangladesh", "USA", "UK"). If not explicitly mentioned or cannot be inferred, return null.
+- **country**: The country where the organization is based or located. Always use standard full country names (e.g. "United Kingdom" instead of "UK" or "England", "United States" instead of "USA" or "US", "United Arab Emirates" instead of "UAE"). If not explicitly mentioned or cannot be inferred, return null.
 - **record_type**: Must be exactly one of: membership | affiliation
   - "membership" → formal society or professional body membership (IEEE, Life Member of Bangladesh Mathematical Society, Fellow of IEB, etc.)
   - "affiliation" → roles, positions, committee memberships, editorial board, conference roles, administrative/academic positions, alumni, club roles, event convener, etc.

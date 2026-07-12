@@ -57,6 +57,13 @@ class ImportOldTeachersCommand extends Command
             return Command::FAILURE;
         }
 
+        // Trim all string values recursively
+        array_walk_recursive($data, function (&$val) {
+            if (is_string($val)) {
+                $val = trim($val);
+            }
+        });
+
         if ($limit > 0) {
             $data = array_slice($data, 0, $limit);
         }

@@ -572,7 +572,7 @@ Return ONLY a valid JSON object — no explanation, no markdown fences.
 - **marks**: Decimal value if percentage is mentioned (e.g. 85.0). null if not applicable.
 - **grade**: String value for grade or division (e.g. "A+", "1st Class", "1st in order of merit"). If result_type is Division, write the division name here. If result_type is Grade, write the letter grade here.
 - **duration**: Duration of study (e.g. "4 years", "1 year", "2 years") if mentioned. null if not.
-- **country**: The country where the institution is located (e.g. "Bangladesh", "England", "United Kingdom", "USA"). If not mentioned or cannot be inferred, default to "Bangladesh".
+- **country**: The country where the institution is located. Always use standard full country names (e.g. "United Kingdom" instead of "UK" or "England", "United States" instead of "USA" or "US", "United Arab Emirates" instead of "UAE"). If not mentioned or cannot be inferred, default to "Bangladesh".
 
 ## Important rules:
 - Parse EACH distinct degree separately.

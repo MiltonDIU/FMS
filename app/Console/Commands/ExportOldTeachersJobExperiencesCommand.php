@@ -558,7 +558,7 @@ Return ONLY a valid JSON object — no explanation, no markdown fences.
 - **organization** (required): The clean name of the university, company, institute, or employer (e.g. "Daffodil International University", "University of Malaya", "Bangladesh Institute of Development Studies", "SPARRSO"). Strip all HTML. Never null.
 - **department**: The specific department, division, or faculty (e.g. "Department of Real Estate", "Faculty of Business & Economics", "Department of Mass Communication and Journalism"). null if not mentioned.
 - **location**: City or region of employment if mentioned (e.g. "Kuala Lumpur", "Dhaka"). null if not mentioned.
-- **country**: The clean name of the country of employment (e.g. "Brunei", "Malaysia", "Bangladesh", "Canada"). If not explicitly mentioned or cannot be inferred, default to "Bangladesh".
+- **country**: The clean name of the country of employment. Always use standard full country names (e.g. "United Kingdom" instead of "UK" or "England", "United States" instead of "USA" or "US", "United Arab Emirates" instead of "UAE"). If not explicitly mentioned or cannot be inferred, default to "Bangladesh".
 - **start_year**: 4-digit integer for start year (e.g. 2011, 2007); null if unknown.
 - **start_month**: Integer between 1 and 12 for start month (e.g. 4 for April, 10 for October); null if unknown.
 - **end_year**: 4-digit integer for end year; null if unknown or if the job is ongoing/current.

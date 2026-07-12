@@ -31,6 +31,13 @@ class ImportOldTeachersTeachingAreasCommand extends Command
             return Command::FAILURE;
         }
 
+        // Trim all string values recursively
+        array_walk_recursive($data, function (&$val) {
+            if (is_string($val)) {
+                $val = trim($val);
+            }
+        });
+
         $limit = (int) $this->option('limit');
         $processCount = ($limit > 0 && $limit < count($data)) ? $limit : count($data);
 

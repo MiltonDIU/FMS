@@ -41,12 +41,17 @@ class Organization extends Model
             // United Kingdom (249)
             249 => [
                 'UK', 'United Kingdom', 'U.K.', 'England', 'Britain', 'Great Britain',
-                'London', 'Manchester', 'Cambridge', 'Oxford', 'Coventry', 'IET'
+                'London', 'Manchester', 'Cambridge', 'Oxford', 'Coventry', 'IET',
+                'Lancaster', 'Leeds', 'Nottingham', 'Sheffield', 'Southampton', 
+                'Birmingham', 'Cardiff', 'Glasgow', 'Edinburgh', 'Surrey', 'Sussex', 
+                'Warwick', 'York'
             ],
             // United States (250)
             250 => [
                 'USA', 'United States', 'U.S.A.', 'America', 'US ', 'U.S. ', 'Washington',
-                'California', 'Harvard', 'MIT', 'Stanford', 'IEEE', 'USAID', 'ACM'
+                'California', 'Harvard', 'MIT', 'Stanford', 'IEEE', 'USAID', 'ACM',
+                'Texas', 'Boston', 'Chicago', 'Michigan', 'Illinois', 'Florida', 'NY', 
+                'New York', 'Yale', 'Princeton', 'Columbia', 'Cornell', 'Penn'
             ],
             // Australia (13)
             13 => [
@@ -117,7 +122,161 @@ class Organization extends Model
     }
 
     /**
-     * Case-insensitive find or create with auto-approval logic.
+     * Normalize country names and standard abbreviations (e.g. "UK", "USA", "UAE").
+     */
+    public static function normalizeCountryName(string $name): string
+    {
+        $name = trim($name);
+        $lower = mb_strtolower($name);
+        
+        $map = [
+            'uk'                       => 'United Kingdom',
+            'u.k'                      => 'United Kingdom',
+            'u.k.'                     => 'United Kingdom',
+            'england'                  => 'United Kingdom',
+            'great britain'            => 'United Kingdom',
+            'scotland'                 => 'United Kingdom',
+            'wales'                    => 'United Kingdom',
+            'usa'                      => 'United States',
+            'u.s.a'                    => 'United States',
+            'u.s.a.'                   => 'United States',
+            'us'                       => 'United States',
+            'u.s'                      => 'United States',
+            'u.s.'                     => 'United States',
+            'united states of america' => 'United States',
+            'uae'                      => 'United Arab Emirates',
+            'u.a.e'                     => 'United Arab Emirates',
+            'u.a.e.'                    => 'United Arab Emirates',
+            'united arab rows'          => 'United Arab Emirates',
+            'ksa'                      => 'Saudi Arabia',
+            'k.s.a'                     => 'Saudi Arabia',
+            'k.s.a.'                    => 'Saudi Arabia',
+            'saudi arab'                => 'Saudi Arabia',
+            'bangladesh'               => 'Bangladesh',
+            'bd'                       => 'Bangladesh',
+            'b.d'                      => 'Bangladesh',
+            'b.d.'                     => 'Bangladesh',
+        ];
+        
+        return $map[$lower] ?? $name;
+    }
+
+    /**
+     * Get a canonicalized version of the organization name for comparison.
+     */
+    public static function getCanonicalName(string $name): string
+    {
+        $name = trim(preg_replace('/\s+/', ' ', $name));
+        $lower = mb_strtolower($name);
+        
+        // Strip short acronyms in parentheses first (e.g. "(NIIT)", "(DIU)")
+        $lower = preg_replace('/\s*\([a-z]{2,6}\)/', '', $lower);
+        
+        // Strip common punctuation and remaining brackets
+        $lower = str_replace(['.', ',', '(', ')', '[', ']'], '', $lower);
+        
+        // Remove leading "the"
+        $lower = preg_replace('/^the\s+/', '', $lower);
+        
+        // Map common abbreviations to full names
+        $abbreviations = [
+            'diu'   => 'daffodil international university',
+            'du'    => 'university of dhaka',
+            'ju'    => 'jahangirnagar university',
+            'ru'    => 'rajshahi university',
+            'cu'   => 'chittagong university',
+            'buet'  => 'bangladesh university of engineering and technology',
+            'niit'  => 'national institute of information technology',
+            'niffa' => 'national institute of film and fine arts',
+        ];
+        if (isset($abbreviations[$lower])) {
+            return $abbreviations[$lower];
+        }
+        
+        // Transform "university of X" to "X university" for standard comparison
+        if (preg_match('/^university\s+of\s+(.+)$/', $lower, $matches)) {
+            return trim($matches[1]) . ' university';
+        }
+        
+        return $lower;
+    }
+
+    /**
+     * Get the canonical child name by removing the parent part.
+     */
+    public static function getCanonicalChildName(string $name): string
+    {
+        $name = trim($name);
+        $parentName = self::extractParentName($name);
+        if (!$parentName) {
+            return self::getCanonicalName($name);
+        }
+        
+        // Remove parent name from child name (case-insensitive)
+        $child = preg_replace('/' . preg_quote($parentName, '/') . '/i', '', $name);
+        
+        // Remove other common separators
+        $child = preg_replace('/\bof\b/i', '', $child);
+        $child = preg_replace('/\bat\b/i', '', $child);
+        
+        return self::getCanonicalName($child);
+    }
+
+    /**
+     * Try to extract and resolve parent organization from a name.
+     */
+    public static function extractParentName(string $name): ?string
+    {
+        $name = trim($name);
+        
+        // Pattern 1: "Child Name, Parent Name"
+        if (str_contains($name, ',')) {
+            $parts = array_map('trim', explode(',', $name));
+            if (count($parts) > 1) {
+                return end($parts);
+            }
+        }
+        
+        // Pattern 2: "Child Name of Parent Name"
+        if (preg_match('/^(.+)\s+of\s+(.+)$/i', $name, $matches)) {
+            $childPart = trim($matches[1]);
+            $parentCandidate = trim($matches[2]);
+            
+            // Only split by "of" if the child part contains a known sub-unit indicator
+            $subUnitKeywords = ['department', 'dept', 'division', 'bureau', 'club', 'alumni', 'association', 'office', 'faculty', 'center'];
+            $isSubUnit = false;
+            foreach ($subUnitKeywords as $kw) {
+                if (stripos($childPart, $kw) !== false) {
+                    $isSubUnit = true;
+                    break;
+                }
+            }
+            
+            if ($isSubUnit && !in_array(strtolower($parentCandidate), ['bangladesh', 'science', 'arts', 'engineering'])) {
+                return $parentCandidate;
+            }
+        }
+        
+        // Pattern 3: "Child Name at Parent Name"
+        if (preg_match('/^(.+)\s+at\s+(.+)$/i', $name, $matches)) {
+            return trim($matches[2]);
+        }
+        
+        // Pattern 4: "Child Name (Parent Name)"
+        if (preg_match('/(.+)\s*\(([^)]+)\)$/', $name, $matches)) {
+            $parentCandidate = trim($matches[2]);
+            // If it is a short acronym, it's an abbreviation of the current org, not a parent!
+            if (strlen($parentCandidate) > 1 && !preg_match('/^[A-Za-z]{2,6}$/', $parentCandidate)) {
+                return $parentCandidate;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Case-insensitive find or create with auto-approval logic, smart similarity matching,
+     * and dynamic parent-child resolution.
      *
      * @param string $name
      * @param int|null $teacherId
@@ -136,21 +295,58 @@ class Organization extends Model
                 $countryId = $detectedCountryId;
             }
         }
-        
-        $existing = self::whereRaw('LOWER(name) = ?', [strtolower($name)])
-            ->when($countryId, function ($q) use ($countryId) {
-                $q->where(function ($sub) use ($countryId) {
-                    $sub->where('country_id', $countryId)
-                        ->orWhereNull('country_id');
+
+        // Resolve parent organization if it already exists in the database
+        $parentId = null;
+        $parentName = self::extractParentName($name);
+        if ($parentName && self::getCanonicalName($name) !== self::getCanonicalName($parentName)) {
+            $canonicalParent = self::getCanonicalName($parentName);
+            $parentOrg = self::where(function ($query) use ($countryId) {
+                    if ($countryId) {
+                        $query->where('country_id', $countryId)
+                              ->orWhereNull('country_id');
+                    }
+                })
+                ->get()
+                ->first(function ($org) use ($canonicalParent) {
+                    return self::getCanonicalName($org->name) === $canonicalParent;
                 });
+            
+            if ($parentOrg) {
+                $parentId = $parentOrg->id;
+            }
+        }
+
+        // Match similar organization names dynamically using canonical names
+        $canonicalInput = self::getCanonicalName($name);
+        $childNameInput = self::getCanonicalChildName($name);
+        
+        $existing = self::where(function ($query) use ($countryId) {
+                if ($countryId) {
+                    $query->where('country_id', $countryId)
+                          ->orWhereNull('country_id');
+                }
             })
-            ->when($countryId, function ($q) use ($countryId) {
-                $q->orderByRaw('CASE WHEN country_id = ? THEN 0 ELSE 1 END', [$countryId]);
+            ->get()
+            ->sortBy(function ($org) use ($countryId) {
+                if ($countryId) {
+                    return $org->country_id == $countryId ? 0 : 1;
+                }
+                return $org->country_id === null ? 0 : 1;
             })
-            ->when(!$countryId, function ($q) {
-                $q->orderByRaw('CASE WHEN country_id IS NULL THEN 0 ELSE 1 END');
-            })
-            ->first();
+            ->first(function ($org) use ($canonicalInput, $parentId, $childNameInput) {
+                // Exact canonical match
+                if (self::getCanonicalName($org->name) === $canonicalInput) {
+                    return true;
+                }
+                // Parent-Child match (same parent and same child name)
+                if ($parentId && $org->parent_id == $parentId) {
+                    if (self::getCanonicalChildName($org->name) === $childNameInput) {
+                        return true;
+                    }
+                }
+                return false;
+            });
 
         // Check if console or admin/staff
         $isAdmin = app()->runningInConsole() || (auth()->check() && !auth()->user()->hasRole('teacher'));
@@ -166,6 +362,9 @@ class Organization extends Model
             if ($countryId && !$existing->country_id) {
                 $update['country_id'] = $countryId;
             }
+            if ($parentId && !$existing->parent_id) {
+                $update['parent_id'] = $parentId;
+            }
             if (!$existing->is_active && ($isAdmin || ($teacherId && $existing->created_by !== $teacherId))) {
                 $update['is_active'] = true;
                 $update['approved_by'] = auth()->check() ? auth()->id() : null;
@@ -179,6 +378,7 @@ class Organization extends Model
         $insertData = array_merge([
             'name'        => $name,
             'country_id'  => $countryId,
+            'parent_id'   => $parentId,
             'is_active'   => $isAdmin,
             'created_by'  => $teacherId,
             'approved_by' => $isAdmin && auth()->check() ? auth()->id() : null,
