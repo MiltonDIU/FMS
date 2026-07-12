@@ -44,14 +44,22 @@ class SystemSettings extends Page
             }
         }
 
-        $this->form->fill(array_merge($settings, [
+        // Explicitly cast custom boolean settings
+        $boolKeys = ['export_overwrite', 'import_dry_run', 'import_skip_existing'];
+        foreach ($boolKeys as $bk) {
+            if (isset($settings[$bk])) {
+                $settings[$bk] = filter_var($settings[$bk], FILTER_VALIDATE_BOOLEAN);
+            }
+        }
+
+        $this->form->fill(array_merge([
             'export_limit' => 0,
             'export_provider' => 'auto',
             'export_overwrite' => false,
             'import_limit' => 0,
             'import_dry_run' => false,
             'import_skip_existing' => true,
-        ]));
+        ], $settings));
     }
 
     public function form(Schema $schema): Schema
@@ -200,15 +208,7 @@ class SystemSettings extends Page
     {
         $data = $this->form->getState();
 
-        $excludeKeys = [
-            'export_limit', 'export_provider', 'export_overwrite',
-            'import_limit', 'import_dry_run', 'import_skip_existing'
-        ];
-
         foreach ($data as $key => $value) {
-            if (in_array($key, $excludeKeys)) {
-                continue;
-            }
             Setting::set($key, $value);
         }
 
