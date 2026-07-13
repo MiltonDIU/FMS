@@ -63,62 +63,51 @@
                 Academic Roster & Biographies
             </h1>
             <p class="text-sm text-gray-600 max-w-xl mx-auto mt-2 italic">
-                A classic registry of our university's professors, lectures, and academic leaders.
+                A classic registry of our university's professors, lecturers, and academic departments.
             </p>
         </div>
 
-        <!-- Directory Grid -->
-        @if($teachers->isEmpty())
-            <div class="text-center py-12 bg-white border border-gray-200">
-                <h3 class="text-lg font-bold text-gray-800">No records found</h3>
-                <p class="text-sm text-gray-500 mt-1">Please try again with a different search.</p>
-            </div>
-        @else
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                @foreach($teachers as $teacher)
-                    <div class="bg-white border-t-4 border-royal-800 shadow-sm hover:shadow-md p-6 transition-all duration-300">
-                        <div class="flex items-start space-x-4">
-                            <!-- Photo -->
-                            <div class="w-20 h-20 shrink-0 bg-gray-100 border border-gray-200">
-                                @if($teacher->photo)
-                                    <img src="{{ $teacher->photo }}" alt="{{ $teacher->first_name }}" class="w-full h-full object-cover" />
-                                @else
-                                    <div class="w-full h-full flex items-center justify-center bg-royal-50 text-royal-800 font-bold text-xl">
-                                        {{ substr($teacher->first_name, 0, 1) }}
-                                    </div>
-                                @endif
-                            </div>
-
-                            <!-- Identity -->
-                            <div>
-                                <h3 class="font-display font-bold text-lg text-gray-900">
-                                    {{ $teacher->first_name }} {{ $teacher->last_name }}
-                                </h3>
-                                <p class="text-xs text-royal-700 font-bold uppercase tracking-wider mt-1">
-                                    {{ optional($teacher->designation)->name ?? 'Faculty Member' }}
-                                </p>
-                                <p class="text-xs text-gray-500 font-medium mt-1">
-                                    Dept. of {{ optional($teacher->department)->name ?? 'General' }}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="border-b border-gray-100 my-4"></div>
-
-                        <!-- Mini Bio -->
-                        @if($teacher->research_interest)
-                            <p class="text-xs text-gray-600 line-clamp-2 italic mb-4">
-                                "{{ $teacher->research_interest }}"
-                            </p>
-                        @endif
-
-                        <a href="{{ url('/teachers/' . ($teacher->employee_id ?? $teacher->id)) }}" class="inline-block text-xs font-bold text-royal-800 hover:text-royal-900 hover:underline">
-                            View Academic Profile &rarr;
-                        </a>
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <!-- Sidebar: Filter by Faculty -->
+            <div class="lg:col-span-1">
+                <div class="bg-white border border-gray-200 p-6 shadow-sm">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-royal-900 border-b border-gray-100 pb-2 mb-4">
+                        Faculty List
+                    </h3>
+                    <div class="space-y-1">
+                        @foreach($faculties as $faculty)
+                            <a 
+                                href="{{ url('/?faculty=' . strtolower($faculty->short_name)) }}" 
+                                class="block text-left px-3 py-2 rounded text-sm font-semibold transition {{ ($selectedFaculty && $selectedFaculty->id === $faculty->id) ? 'bg-royal-50 text-royal-900 border-l-4 border-royal-700 pl-2' : 'text-gray-600 hover:bg-gray-50' }}"
+                            >
+                                {{ $faculty->name }}
+                            </a>
+                        @endforeach
                     </div>
-                @endforeach
+                </div>
             </div>
-        @endif
+
+            <!-- Main Area: Departments Grid -->
+            <div class="lg:col-span-3">
+                @if($departments->isEmpty())
+                    <div class="bg-white border border-gray-200 p-12 text-center shadow-sm">
+                        <p class="text-gray-500 italic">No departments listed for this faculty.</p>
+                    </div>
+                @else
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        @foreach($departments as $dept)
+                            <div class="bg-white border border-gray-200 p-6 shadow-sm hover:shadow transition">
+                                <h3 class="font-display font-bold text-lg text-royal-900">{{ $dept->name }}</h3>
+                                <div class="border-b border-gray-100 my-4"></div>
+                                <a href="{{ url('/departments/' . $dept->code) }}" class="inline-block text-xs font-bold text-royal-800 hover:text-royal-900 hover:underline">
+                                    Browse Faculty Members &rarr;
+                                </a>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+        </div>
     </main>
 
     <!-- Footer -->

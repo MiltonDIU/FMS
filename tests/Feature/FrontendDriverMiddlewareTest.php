@@ -39,7 +39,7 @@ class FrontendDriverMiddlewareTest extends TestCase
         $response = $this->get('/');
 
         $response->assertStatus(200);
-        $response->assertSee('Explore Our Distinguished');
+        $response->assertSee('Welcome to the');
     }
 
     public function test_redirects_to_nextjs_url_when_nextjs_driver_active()

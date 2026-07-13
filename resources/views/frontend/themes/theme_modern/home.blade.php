@@ -64,54 +64,60 @@
                     Next-Gen Faculty <span class="bg-gradient-to-r from-brand-500 to-indigo-400 bg-clip-text text-transparent">Information Directory</span>
                 </h1>
                 <p class="mt-4 text-gray-400 text-base max-w-lg mx-auto">
-                    Meet the educators, creators, and innovators shaping the future of Daffodil International University.
+                    Browse the academic departments and faculties shaping the future of Daffodil International University.
                 </p>
             </div>
         </section>
 
-        <!-- Directory Grid -->
+        <!-- Dynamic Content Section -->
         <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            @if($teachers->isEmpty())
-                <div class="text-center py-12">
-                    <h3 class="text-lg font-semibold text-gray-300">No instructors matching the query</h3>
-                </div>
-            @else
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    @foreach($teachers as $teacher)
-                        <div class="bg-gray-900/40 border border-gray-900 hover:border-brand-500/40 p-6 rounded-3xl hover:bg-gray-900/80 transition-all duration-300 group flex flex-col justify-between">
-                            <div>
-                                <!-- Image & Status -->
-                                <div class="flex items-center justify-between mb-4">
-                                    <div class="w-14 h-14 bg-gray-800 rounded-2xl overflow-hidden border border-gray-700/50">
-                                        @if($teacher->photo)
-                                            <img src="{{ $teacher->photo }}" alt="{{ $teacher->first_name }}" class="w-full h-full object-cover" />
-                                        @else
-                                            <div class="w-full h-full flex items-center justify-center bg-brand-600/10 text-brand-500 font-bold text-lg">
-                                                {{ substr($teacher->first_name, 0, 1) }}
-                                            </div>
-                                        @endif
-                                    </div>
-                                    <span class="px-2.5 py-1 bg-brand-600/10 text-brand-500 text-[10px] font-bold rounded-lg uppercase tracking-wide">
-                                        {{ optional($teacher->department)->name ?? 'Dept' }}
-                                    </span>
-                                </div>
-
-                                <!-- Body -->
-                                <h3 class="text-white font-bold text-md group-hover:text-brand-500 transition duration-300">
-                                    {{ $teacher->first_name }} {{ $teacher->last_name }}
-                                </h3>
-                                <p class="text-xs text-gray-400 mt-1">
-                                    {{ optional($teacher->designation)->name ?? 'Faculty' }}
-                                </p>
-                            </div>
-
-                            <a href="{{ url('/teachers/' . ($teacher->employee_id ?? $teacher->id)) }}" class="mt-6 w-full py-2.5 bg-gray-800/80 hover:bg-brand-600 text-white hover:shadow-lg hover:shadow-brand-600/20 text-center rounded-xl text-xs font-bold transition duration-300 block">
-                                Show Portfolio
-                            </a>
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                
+                <!-- Sidebar: Faculties -->
+                <div class="lg:col-span-1">
+                    <div class="bg-gray-900/30 border border-gray-900 p-6 rounded-3xl">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-brand-500 mb-4">
+                            Faculties
+                        </h3>
+                        <div class="space-y-1">
+                            @foreach($faculties as $faculty)
+                                <a 
+                                    href="{{ url('/?faculty=' . strtolower($faculty->short_name)) }}" 
+                                    class="block text-left px-4 py-2.5 rounded-xl text-sm font-semibold transition {{ ($selectedFaculty && $selectedFaculty->id === $faculty->id) ? 'bg-brand-600 text-white shadow-md' : 'text-gray-400 hover:text-white hover:bg-gray-900/50' }}"
+                                >
+                                    {{ $faculty->name }}
+                                </a>
+                            @endforeach
                         </div>
-                    @endforeach
+                    </div>
                 </div>
-            @endif
+
+                <!-- Main Area: Departments -->
+                <div class="lg:col-span-3">
+                    @if($departments->isEmpty())
+                        <div class="bg-gray-900/30 border border-gray-900 p-12 text-center rounded-3xl">
+                            <p class="text-gray-400 italic">No departments listed for this faculty.</p>
+                        </div>
+                    @else
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            @foreach($departments as $dept)
+                                <div class="bg-gray-900/30 border border-gray-900 hover:border-brand-500/40 p-6 rounded-3xl hover:bg-gray-900/60 transition duration-300 flex flex-col justify-between">
+                                    <div>
+                                        <div class="w-10 h-10 rounded-xl bg-brand-600/10 text-brand-500 flex items-center justify-center font-bold text-lg mb-4">
+                                            {{ substr($dept->name, 0, 1) }}
+                                        </div>
+                                        <h3 class="text-white font-bold text-base leading-snug">{{ $dept->name }}</h3>
+                                    </div>
+                                    <a href="{{ url('/departments/' . $dept->code) }}" class="mt-6 w-full py-2 bg-gray-800 hover:bg-brand-600 text-white text-center rounded-xl text-xs font-bold transition duration-300 block">
+                                        Browse Directory
+                                    </a>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+
+            </div>
         </section>
     </main>
 

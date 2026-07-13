@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\Route;
 // Public frontend routes protected by Frontend Driver Middleware
 Route::middleware(HandleFrontendDriverMiddleware::class)->group(function () {
     Route::get('/', [HomeController::class, 'index']);
-    Route::get('/teachers/{id}', [TeacherController::class, 'show']);
+    Route::get('/teachers/{webpage}', [TeacherController::class, 'show']);
+    Route::get('/departments/{code}', [\App\Http\Controllers\Frontend\DepartmentController::class, 'show']);
 });
 
 // Integration Mapping API endpoints

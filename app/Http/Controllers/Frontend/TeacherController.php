@@ -13,13 +13,30 @@ class TeacherController extends Controller
     {
         $activeTheme = Setting::get('active_theme', 'theme_default');
 
-        // Load teacher by employee_id or database id
+        // Load teacher by webpage or employee_id or database id with all relations eager loaded
         $teacher = Teacher::where(function ($query) use ($id) {
-                $query->where('employee_id', $id)
+                $query->where('webpage', $id)
+                    ->orWhere('employee_id', $id)
                     ->orWhere('id', $id);
             })
             ->where('is_active', true)
             ->where('is_archived', false)
+            ->with([
+                'designation',
+                'department',
+                'educations.degreeLevel',
+                'educations.degreeType',
+                'educations.resultType',
+                'publications',
+                'trainingExperiences',
+                'certifications',
+                'skills',
+                'teachingAreas',
+                'memberships.membershipType',
+                'awards',
+                'jobExperiences',
+                'socialLinks.platform'
+            ])
             ->firstOrFail();
 
         return view("frontend.themes.{$activeTheme}.profile", compact('teacher'));
