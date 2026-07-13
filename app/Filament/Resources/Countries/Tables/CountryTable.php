@@ -45,7 +45,7 @@ class CountryTable
                     ->weight('bold')
                     ->sortable(query: fn ($query, $direction) => $query->withCount('teachers')->orderBy('teachers_count', $direction))
                     ->url(fn ($record) => \App\Filament\Resources\Teachers\TeacherResource::getUrl('index', [
-                        'tableFilters' => [
+                        'filters' => [
                             'country_id' => [
                                 'value' => $record->id,
                             ],
