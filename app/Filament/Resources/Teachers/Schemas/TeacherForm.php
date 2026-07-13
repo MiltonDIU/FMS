@@ -1349,6 +1349,11 @@ class TeacherForm
                                                             $set('is_archived', false);
                                                         }
                                                     }
+
+                                                    // Auto-disable login_allowed if status forbids login
+                                                    if (!$status->allow_login) {
+                                                        $set('login_allowed', false);
+                                                    }
                                                 }
                                             }
                                         })
@@ -1419,6 +1424,24 @@ class TeacherForm
                                             }
                                         })
                                         ->disabled($isOwnProfile)
+                                        ->dehydrated(! $isOwnProfile),
+                                    Toggle::make('login_allowed')
+                                        ->label('Login Allowed')
+                                        ->helperText('If disabled, teacher will not be able to log in (unless overridden globally)')
+                                        ->default(true)
+                                        ->disabled(function (Get $get) use ($isOwnProfile) {
+                                            if ($isOwnProfile) {
+                                                return true;
+                                            }
+                                            $statusId = $get('employment_status_id');
+                                            if ($statusId) {
+                                                $status = \App\Models\EmploymentStatus::find($statusId);
+                                                if ($status && !$status->allow_login) {
+                                                    return true;
+                                                }
+                                            }
+                                            return false;
+                                        })
                                         ->dehydrated(! $isOwnProfile),
                                     Toggle::make('is_archived')
                                         ->label('Archived')

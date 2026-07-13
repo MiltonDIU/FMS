@@ -9,8 +9,10 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, HasRoles, SoftDeletes;
@@ -77,5 +79,50 @@ class User extends Authenticatable
     public function isTeacher(): bool
     {
         return $this->teacher()->exists();
+    }
+
+    /**
+     * Determine if the user can access the Filament panel.
+     */
+    public function canAccessPanel(Panel $panel): bool
+    {
+        // 1. Check if the user is active (applies to ALL roles/users)
+        if (!$this->is_active) {
+            return false;
+        }
+
+        // 2. Super admins and admins bypass other restrictions
+        if ($this->hasRole(['super_admin', 'admin'])) {
+            return true;
+        }
+
+        // 3. For teachers, perform detailed checks
+        if ($this->isTeacher()) {
+            // Check if teacher profile is active (not retired/resigned/suspended etc.)
+            if (!$this->teacher?->is_active) {
+                return false;
+            }
+
+            // Check if their current employment status allows login
+            $employmentStatus = $this->teacher?->employmentStatus;
+            if ($employmentStatus && !$employmentStatus->allow_login) {
+                return false;
+            }
+
+            // Check global login mode
+            $loginMode = Setting::get('teacher_login_mode', 'individual');
+            if ($loginMode === 'disable_all') {
+                return false;
+            }
+            if ($loginMode === 'allow_all') {
+                return true;
+            }
+
+            // Individual level setting
+            return (bool) $this->teacher?->login_allowed;
+        }
+
+        // 4. For other roles (registrar, dean, head, etc.) who are not teachers:
+        return true;
     }
 }

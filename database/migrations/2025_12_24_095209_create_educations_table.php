@@ -22,7 +22,7 @@ return new class extends Migration
             $table->decimal('cgpa', 4, 2)->nullable(); // For CGPA/GPA (e.g., 3.75)
             $table->decimal('scale', 3, 1)->nullable(); // For CGPA/GPA Scale (e.g., 4.0, 5.0)
             $table->decimal('marks', 5, 2)->nullable(); // For Percentage (e.g., 85.50)
-            $table->string('grade', 50)->nullable(); // For Grade/Division (e.g., "First Class", "A+")
+            $table->string('grade', 200)->nullable(); // For Grade/Division (e.g., "First Class", "A+")
             // Institution Details
             $table->string('institution');
             // Timeline

@@ -67,6 +67,7 @@ class ExportOldTeachersCommand extends Command
                 't.cell',
                 't.webpage',
                 't.currentResearch',
+                't.study_leave',
                 // Primary dept: prefer recordListingID=1, else MIN
                 DB::raw('COALESCE(
                     MIN(CASE WHEN dfd.recordListingID = 1 THEN dfd.department_id END),
@@ -350,6 +351,16 @@ class ExportOldTeachersCommand extends Command
             }
         }
 
+        $employmentStatusId = 1; // Default: Active (ID 1)
+        if (!$isArchived) {
+            $studyLeaveVal = (int) ($t->study_leave ?? 0);
+            if ($studyLeaveVal === 1) {
+                $employmentStatusId = 3; // Study Leave (ID 3)
+            } elseif ($studyLeaveVal === 2) {
+                $employmentStatusId = 2; // On Leave (ID 2)
+            }
+        }
+
         // ── Employee ID duplicate check ──
         $employeeId = $t->employeeID ?? null;
         if ($employeeId !== null && $employeeId !== '') {
@@ -456,6 +467,7 @@ class ExportOldTeachersCommand extends Command
                     'research_interest'    => null,
                     'is_public'            => false,
                     'is_active'            => false,
+                    'login_allowed'        => false,
                     'is_archived'          => true,
                     'profile_status'       => 'archived',
                     '_old_teacher_id'      => $t->old_teacher_id,
@@ -489,7 +501,7 @@ class ExportOldTeachersCommand extends Command
                 'department_id'        => $newDeptId,
                 'designation_id'       => $newDesigId,
                 'job_type_id'          => $jobTypeId,
-                'employment_status_id' => 1,
+                'employment_status_id' => $employmentStatusId,
                 'country_id'           => 18,
                 'gender_id'            => 0,
                 'blood_group_id'       => 0,
@@ -502,6 +514,7 @@ class ExportOldTeachersCommand extends Command
                 'research_interest'    => null,
                 'is_public'            => true,
                 'is_active'            => true,
+                'login_allowed'        => true,
                 'is_archived'          => false,
                 'profile_status'       => 'approved',
                 '_old_teacher_id'      => $t->old_teacher_id,

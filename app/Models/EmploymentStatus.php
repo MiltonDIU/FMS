@@ -15,6 +15,7 @@ class EmploymentStatus extends Model
         'slug',
         'color',
         'check_active',
+        'allow_login',
         'description',
         'is_active',
         'sort_order',
@@ -22,6 +23,7 @@ class EmploymentStatus extends Model
 
     protected $casts = [
         'check_active' => 'boolean',
+        'allow_login' => 'boolean',
         'is_active' => 'boolean',
     ];
 

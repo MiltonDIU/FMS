@@ -60,8 +60,6 @@ class Setting extends Model
              ['value' => $value, 'group' => 'system'] // Default group if creating
         );
 
-        return true;
-
         // Clear cache
         Cache::forget("setting.{$key}");
 

@@ -53,6 +53,11 @@ class EmploymentStatusForm
                         ->helperText('If disabled, teachers with this status will be automatically deactivated')
                         ->default(true),
 
+                    Toggle::make('allow_login')
+                        ->label('Allow Login')
+                        ->helperText('If disabled, teachers with this status will be blocked from logging in')
+                        ->default(true),
+
                     Toggle::make('is_active')
                         ->label('Active Status')
                         ->default(true),

@@ -32,6 +32,9 @@ class EmploymentStatusesTable
                     ->label('Keeps Active')
                     ->boolean()
                     ->sortable(),
+                \Filament\Tables\Columns\ToggleColumn::make('allow_login')
+                    ->label('Allow Login')
+                    ->sortable(),
                 IconColumn::make('is_active')
                     ->label('Status')
                     ->boolean()

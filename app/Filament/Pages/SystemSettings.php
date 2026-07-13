@@ -59,6 +59,7 @@ class SystemSettings extends Page
             'import_limit' => 0,
             'import_dry_run' => false,
             'import_skip_existing' => true,
+            'teacher_login_mode' => 'individual',
         ], $settings));
     }
 
@@ -83,6 +84,19 @@ class SystemSettings extends Page
                                         Toggle::make('teacher_send_welcome_email')
                                             ->label('Send Welcome Email')
                                             ->helperText('Automatically send login credentials to new teachers'),
+                                    ]),
+                                Section::make('Teacher Login Control')
+                                    ->description('Configure login access modes for teachers')
+                                    ->schema([
+                                        \Filament\Forms\Components\Select::make('teacher_login_mode')
+                                            ->label('Teacher Login Mode')
+                                            ->options([
+                                                'individual' => 'Individual Settings Only',
+                                                'allow_all' => 'Allow All Active Teachers (Override)',
+                                                'disable_all' => 'Disable All Teacher Logins',
+                                            ])
+                                            ->default('individual')
+                                            ->required(),
                                     ]),
                             ]),
                         Tab::make('Dashboard Settings')

@@ -88,6 +88,16 @@ class TeachersTable
                 IconColumn::make('is_active')
                     ->boolean()
                     ->label('Active'),
+                \Filament\Tables\Columns\ToggleColumn::make('login_allowed')
+                    ->label('Login Allowed')
+                    ->disabled(function (Teacher $record) {
+                        // Check if teacher's employment status allows login
+                        $status = $record->employmentStatus;
+                        if ($status && !$status->allow_login) {
+                            return true;
+                        }
+                        return false;
+                    }),
                 TextColumn::make('joining_date')
                     ->date()
                     ->sortable()

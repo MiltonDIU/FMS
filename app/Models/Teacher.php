@@ -48,7 +48,7 @@ class Teacher extends Model implements HasMedia
         'profile_status',
         'is_public',
         'is_active',
-        'is_active',
+        'login_allowed',
         'employment_status_id',
         'job_type_id',
         'is_archived',
@@ -60,6 +60,7 @@ class Teacher extends Model implements HasMedia
         'joining_date' => 'date',
         'is_public' => 'boolean',
         'is_active' => 'boolean',
+        'login_allowed' => 'boolean',
         'is_archived' => 'boolean',
     ];
 
