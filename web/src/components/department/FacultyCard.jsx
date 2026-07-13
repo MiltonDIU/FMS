@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import { FaTimes, FaArrowRight } from "react-icons/fa";
 import { ArrowRight } from "lucide-react";
 
@@ -95,7 +95,7 @@ const FacultyCard = ({ faculty }) => {
   return (
     <div className="relative">
       {/* Faculty Card */}
-      <Link to={`/faculty/${faculty?.id}`}>
+      <Link href={`/${faculty?.faculty}/${faculty?.department}/${faculty?.id}`}>
         <div
           ref={cardRef}
           className="group bg-white rounded-xl shadow-sm hover:shadow-md border transition-all duration-300 overflow-hidden cursor-pointer"
@@ -133,14 +133,12 @@ const FacultyCard = ({ faculty }) => {
                 </h3>
                 
               </div>
-              <Link
-                to={`/faculty/${faculty?.id}`}
+              <span
                 className="text-sm text-neutral-600 hover:text-primary-600 group-hover:text-diuBlue transition-colors flex items-center justify-end gap-2 mr-2 "
-                onClick={(e) => e.stopPropagation()}
               >
                 View Profile
                 <FaArrowRight className="text-sm text-neutral-500 group-hover:translate-x-1 group-hover:text-diuBlue transition-transform duration-200" />
-              </Link>
+              </span>
             </div>
           </div>
         </div>
@@ -192,10 +190,10 @@ const FacultyCard = ({ faculty }) => {
               <div className="text-sm">
                 <p className="font-medium text-neutral-900">Education:</p>
                 <p className="text-neutral-800">
-                  {faculty?.education[0]?.degree}
+                  {faculty?.education?.[0]?.degree}
                 </p>
                 <p className="text-neutral-700 text-xs">
-                  {faculty?.education[0]?.institution}
+                  {faculty?.education?.[0]?.institution}
                 </p>
               </div>
               <div className="text-sm">
@@ -214,7 +212,7 @@ const FacultyCard = ({ faculty }) => {
               </div>
             </div>
             <Link
-              to={`/faculty/${faculty?.id}`}
+              href={`/${faculty?.faculty}/${faculty?.department}/${faculty?.id}`}
               className="group mt-4 inline-block w-full text-center text-diuBlue border border-diuBlue hover:bg-gradient-to-r from-[#034EA2] to-[#011D3C] hover:text-white font-medium py-2 px-4 rounded-lg transition duration-300"
             >
               View Full Profile

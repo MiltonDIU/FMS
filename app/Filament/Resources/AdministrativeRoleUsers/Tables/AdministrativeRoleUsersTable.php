@@ -151,14 +151,7 @@ class AdministrativeRoleUsersTable
                                 return $query->pluck('name', 'id');
                             })
                             ->live()
-                            ->afterStateUpdated(fn ($set) => $set('department_id', null))
-                            ->default(function() use ($adminRoleUser) {
-                                 if (!$adminRoleUser || !$adminRoleUser->pivot) return null;
-                                 if ($adminRoleUser->pivot->faculty_id) {
-                                     return $adminRoleUser->pivot->faculty_id;
-                                 }
-                                 return null;
-                            }),
+                            ->afterStateUpdated(fn ($set) => $set('department_id', null)),
 
                         Select::make('department_id')
                             ->label('Department')
@@ -183,8 +176,7 @@ class AdministrativeRoleUsersTable
                                 return $query->pluck('name', 'id');
                             })
                             ->searchable()
-                            ->preload()
-                            ->default($adminRoleUser && $adminRoleUser->pivot ? $adminRoleUser->pivot->department_id : null),
+                            ->preload(),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
                         return $query
@@ -199,6 +191,25 @@ class AdministrativeRoleUsersTable
                                 $data['department_id'] ?? null,
                                 fn (Builder $query, $id) => $query->where('department_id', $id)
                             );
+                    })
+                    ->indicateUsing(function (array $data): array {
+                        $indicators = [];
+                        
+                        if ($data['faculty_id'] ?? null) {
+                            $faculty = Faculty::find($data['faculty_id']);
+                            if ($faculty) {
+                                $indicators['faculty_id'] = 'Faculty: ' . $faculty->name;
+                            }
+                        }
+                        
+                        if ($data['department_id'] ?? null) {
+                            $department = Department::find($data['department_id']);
+                            if ($department) {
+                                $indicators['department_id'] = 'Department: ' . $department->name;
+                            }
+                        }
+                        
+                        return $indicators;
                     }),
 
                 SelectFilter::make('is_active')

@@ -87,9 +87,7 @@ export default function Home({ params }) {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredDepartments.map((dept) => (
                   <div key={dept.id}>
-                    <a href={`/${selectedFaculty}/${dept.id}`} className="block">
-                      <DepartmentCard department={dept} />
-                    </a>
+                    <DepartmentCard department={dept} />
                   </div>
                 ))}
               </div>

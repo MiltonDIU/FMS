@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import ProfileHeader from "../../../../src/components/faculty/ProfileHeader";
 import ProfileTabs from "../../../../src/components/faculty/ProfileTabs";
 
 export default function TeacherProfilePage({ params }) {
-  const { faculty, department: deptCode, teacher: teacherWebpage } = params;
+  const resolvedParams = use(params);
+  const { faculty, department: deptCode, teacher: teacherWebpage } = resolvedParams;
 
   const [teacher, setTeacher] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -17,7 +18,7 @@ export default function TeacherProfilePage({ params }) {
       .then(data => {
         const mappedTeacher = {
           id: data.webpage,
-          name: `${data.first_name} ${data.last_name}`,
+          name: data.name,
           role: data.designation ? data.designation.name : "Faculty Member",
           email: data.secondary_email || "",
           imageUrl: data.photo || "",

@@ -1,7 +1,9 @@
 'use client';
 
+import { use } from "react";
 import Home from "../page";
 
 export default function FacultyPage({ params }) {
-  return <Home params={params} />;
+  const resolvedParams = use(params);
+  return <Home params={resolvedParams} />;
 }

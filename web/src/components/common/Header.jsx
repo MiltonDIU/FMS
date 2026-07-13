@@ -1,5 +1,8 @@
+'use client';
+
 import { useState, useEffect } from "react";
-import { Link, useLocation, useParams } from "react-router-dom";
+import Link from "next/link";
+import { usePathname, useParams } from "next/navigation";
 import { FaBars, FaTimes } from "react-icons/fa";
 import { Search } from "lucide-react";
 import Logo from "../../assets/DIU.png";
@@ -11,7 +14,7 @@ const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const location = useLocation();
+  const pathname = usePathname();
   const { deptId } = useParams();
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
@@ -33,10 +36,10 @@ const Header = () => {
 
   useEffect(() => {
     closeMenu();
-  }, [location]);
+  }, [pathname]);
 
   const getContactLink = () => {
-    const pathSegments = location.pathname.split('/').filter(Boolean);
+    const pathSegments = pathname.split('/').filter(Boolean);
     
     // For department pages
     if (pathSegments[0] === 'department' && pathSegments[1] && !pathSegments[2]) {
@@ -73,7 +76,7 @@ const Header = () => {
       </a>
     ) : (
       <Link
-        to={contactUrl}
+        href={contactUrl}
         className={`font-semibold text-sm ${
           isScrolled ? "text-neutral-700" : "text-neutral-800"
         } hover:text-primary-600 transition-colors duration-200`}
@@ -90,14 +93,14 @@ const Header = () => {
       }`}
     >
       <div className="container mx-auto px-4 flex justify-between items-center">
-        <Link to="/" className="flex items-center space-x-3">
+        <Link href="/" className="flex items-center space-x-3">
           <img src={Logo} alt="DIU Logo" className="w-40 object-contain" />
         </Link>
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-10">
           <Link
-            to="/"
+            href="/"
             className={`font-semibold text-sm ${
               isScrolled ? "text-neutral-700" : "text-neutral-800"
             } hover:text-primary-600 transition-colors duration-200`}
@@ -159,7 +162,7 @@ const Header = () => {
       >
         <nav className="container mx-auto px-4 py-4 flex flex-col space-y-4">
           <Link
-            to="/"
+            href="/"
             className="font-semibold text-sm text-neutral-800 py-2 hover:text-primary-600 transition-colors duration-200"
           >
             Home

@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import {
   FaFacebook,
   FaTwitter,
@@ -18,7 +18,7 @@ const Footer = () => {
         {links.map((link) => (
           <li key={link.id}>
             <Link
-              to={link.url}
+              href={link.url}
               className="hover:text-blue-200 hover:underline transition-all"
             >
               {link.title}

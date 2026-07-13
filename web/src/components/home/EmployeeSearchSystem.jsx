@@ -1,6 +1,6 @@
 import { Fragment, useState, useCallback } from "react";
 import { Search, X, Mail, Phone, Briefcase } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 import { facultyMembers } from "../../data/facultyMembers";
 
 const SearchModal = ({
@@ -11,13 +11,13 @@ const SearchModal = ({
   searchResults,
   isLoading,
 }) => {
-  const navigate = useNavigate();
+  const router = useRouter();
 
   if (!isOpen) return null;
 
-  const handleFacultyClick = (facultyId) => {
+  const handleFacultyClick = (result) => {
     onClose(); // Close the modal
-    navigate(`/faculty/${facultyId}`); // Navigate to faculty profile
+    router.push(`/${result?.faculty || "fsit"}/${result?.department || "cse"}/${result?.id}`); // Navigate to faculty profile
   };
 
   return (
@@ -63,7 +63,7 @@ const SearchModal = ({
                 {searchResults?.map((result) => (
                   <div
                     key={result?.id}
-                    onClick={() => handleFacultyClick(result.id)}
+                    onClick={() => handleFacultyClick(result)}
                     className="group flex items-start gap-4 p-4 rounded-lg hover:bg-neutral-100 transition-colors cursor-pointer border border-gray-200"
                   >
                     <img

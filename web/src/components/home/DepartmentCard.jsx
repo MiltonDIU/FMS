@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import { FaArrowRight } from "react-icons/fa";
 import { motion } from "framer-motion";
 
@@ -11,7 +11,7 @@ const DepartmentCard = ({ department }) => {
       viewport={{ once: true }}
     >
       <Link
-        to={`/department/${department.id}`}
+        href={`/${department.faculty}/${department.id}`}
         className="group block h-full flex flex-col bg-[#F4F4F4] transition-shadow rounded-xl duration-700 p-4 hover:shadow-md"
       >
         {/* Image */}

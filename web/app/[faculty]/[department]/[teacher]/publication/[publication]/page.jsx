@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { lodash as _ } from "lodash";
 
 export default function PublicationDetailPage({ params }) {
-  const { faculty, department: deptCode, teacher: teacherWebpage, publication: pubSlug } = params;
+  const resolvedParams = use(params);
+  const { faculty, department: deptCode, teacher: teacherWebpage, publication: pubSlug } = resolvedParams;
 
   const [teacher, setTeacher] = useState(null);
   const [publication, setPublication] = useState(null);
@@ -72,7 +73,7 @@ export default function PublicationDetailPage({ params }) {
             <span>/</span>
             <Link href={`/${faculty}/${deptCode}`} className="hover:text-blue-600 transition uppercase">{deptCode}</Link>
             <span>/</span>
-            <Link href={`/${faculty}/${deptCode}/${teacherWebpage}`} className="hover:text-blue-600 transition">{teacher.first_name} {teacher.last_name}</Link>
+            <Link href={`/${faculty}/${deptCode}/${teacherWebpage}`} className="hover:text-blue-600 transition">{teacher.name}</Link>
             <span>/</span>
             <span class="text-blue-600 truncate max-w-xs">Publication Details</span>
         </div>
