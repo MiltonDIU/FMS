@@ -17,9 +17,8 @@ class BloodGroupResource extends Resource
     protected static ?string $model = BloodGroup::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedHeart;
-    // Navigation Group - UnitEnum|string|null type
-    protected static UnitEnum|string|null $navigationGroup = 'Settings';
-    protected static ?int $navigationSort = 5;
+    protected static UnitEnum|string|null $navigationGroup = 'General Lookups';
+    protected static ?int $navigationSort = 4;
     // Navigation Label (ঐচ্ছিক)
     protected static ?string $navigationLabel = 'Blood Groups';
 

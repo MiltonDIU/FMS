@@ -61,6 +61,15 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->databaseNotifications()
             ->databaseNotificationsPolling('30s')
+            ->navigationGroups([
+                'User Management',
+                'Publications',
+                'Approvals',
+                'Academic Structure',
+                'Academic Lookups',
+                'General Lookups',
+                'Settings',
+            ])
             ->authMiddleware([
                 Authenticate::class,
             ])

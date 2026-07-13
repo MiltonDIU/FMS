@@ -19,9 +19,9 @@ class MajorResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBookmark;
     
-    protected static UnitEnum|string|null $navigationGroup = 'Settings';
+    protected static UnitEnum|string|null $navigationGroup = 'Academic Lookups';
     
-    protected static ?int $navigationSort = 10;
+    protected static ?int $navigationSort = 4;
 
     public static function form(Schema $schema): Schema
     {

@@ -21,8 +21,7 @@ class DesignationResource extends Resource
     protected static ?string $model = Designation::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedStar;
-    // Navigation Group - UnitEnum|string|null type
-    protected static UnitEnum|string|null $navigationGroup = 'Settings';
+    protected static UnitEnum|string|null $navigationGroup = 'Academic Structure';
     protected static ?int $navigationSort = 3;
     // Navigation Label (ঐচ্ছিক)
     protected static ?string $navigationLabel = 'Designations';

@@ -23,6 +23,10 @@ class TeacherResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserPlus;
 
+    protected static \UnitEnum|string|null $navigationGroup = 'User Management';
+
+    protected static ?int $navigationSort = 2;
+
     /**
      * Hide navigation for teacher role - they use "My Profile" instead.
      * Only users with ViewAny:Teacher permission (via Shield) can see this menu.

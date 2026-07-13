@@ -18,9 +18,8 @@ class EmploymentStatusResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedAcademicCap;
 
-    // Navigation Group - UnitEnum|string|null type
-    protected static UnitEnum|string|null $navigationGroup = 'Faculty Settings';
-    protected static ?int $navigationSort = 1;
+    protected static UnitEnum|string|null $navigationGroup = 'Academic Structure';
+    protected static ?int $navigationSort = 5;
     // Navigation Label (ঐচ্ছিক)
     protected static ?string $navigationLabel = 'Employment Statuses';
 

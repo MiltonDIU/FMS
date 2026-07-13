@@ -25,8 +25,7 @@ class DepartmentResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingOffice;
 
-    // Navigation Group - UnitEnum|string|null type
-    protected static UnitEnum|string|null $navigationGroup = 'Settings';
+    protected static UnitEnum|string|null $navigationGroup = 'Academic Structure';
     protected static ?int $navigationSort = 2;
     // Navigation Label (ঐচ্ছিক)
     protected static ?string $navigationLabel = 'Departments';

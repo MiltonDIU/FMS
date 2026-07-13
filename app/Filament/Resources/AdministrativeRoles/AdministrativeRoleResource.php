@@ -21,8 +21,7 @@ class AdministrativeRoleResource extends Resource
     protected static ?string $model = AdministrativeRole::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCommandLine;
-    // Navigation Group - UnitEnum|string|null type
-    protected static UnitEnum|string|null $navigationGroup = 'Settings';
+    protected static UnitEnum|string|null $navigationGroup = 'Academic Structure';
     protected static ?int $navigationSort = 4;
     // Navigation Label (ঐচ্ছিক)
     protected static ?string $navigationLabel = 'Administrative Roles';
