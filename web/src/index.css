@@ -1,0 +1,88 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: "Manrope", sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary-500 hover:bg-primary-600 text-white font-medium py-2 px-4 rounded transition duration-200;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary-500 hover:bg-secondary-600 text-neutral-800 font-medium py-2 px-4 rounded transition duration-200;
+  }
+
+  .card {
+    @apply bg-white rounded-lg shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg;
+  }
+
+  .section-title {
+    @apply text-2xl font-bold text-neutral-800 mb-4;
+  }
+
+  .custom-btn {
+    background-color: transparent;
+    border: 1px solid #9ca3af;
+    /* gray-400 */
+    color: #1f2937;
+    /* gray-800 text tone */
+    font-weight: 500;
+    font-size: 1.125rem;
+    /* text-lg */
+    padding: 0.5rem 1rem;
+    /* px-4 py-2 */
+    border-radius: 0.5rem;
+    /* rounded-lg */
+    margin-top: 1.25rem;
+    /* mt-5 */
+    cursor: pointer;
+    position: relative;
+    transition: all 0.3s ease;
+    width: auto;
+  }
+
+  .custom-btn:hover {
+    background: linear-gradient(to right, #034EA2, #002652);
+    border-color: transparent;
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(3, 78, 162, 0.3);
+  }
+
+  /* Responsive: small screens (max-sm:w-full) */
+  @media (max-width: 640px) {
+    .custom-btn {
+      width: 100%;
+    }
+  }
+}

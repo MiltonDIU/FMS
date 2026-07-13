@@ -9,15 +9,15 @@ use Illuminate\View\View;
 
 class HomeController extends Controller
 {
-    public function index(): View
+    public function index(?string $faculty_short_name = null): View
     {
         $activeTheme = Setting::get('active_theme', 'theme_default');
 
         // Fetch all faculties
         $faculties = Faculty::orderBy('sort_order', 'asc')->get();
 
-        // Get selected faculty from query (can be id or short_name)
-        $selectedFacultyVal = request()->query('faculty');
+        // Get selected faculty from route parameter or query (id or short_name)
+        $selectedFacultyVal = $faculty_short_name ?? request()->query('faculty');
         $selectedFaculty = null;
 
         if ($selectedFacultyVal) {

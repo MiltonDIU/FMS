@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
+use App\Models\Faculty;
 use App\Models\Department;
 use App\Models\Designation;
 use App\Models\Setting;
@@ -12,13 +13,21 @@ use Illuminate\View\View;
 
 class DepartmentController extends Controller
 {
-    public function show(Request $request, string $id): View
+    public function show(Request $request, string $faculty_short_name, string $department_code): View
     {
         $activeTheme = Setting::get('active_theme', 'theme_default');
 
-        // Find department by code or ID
-        $department = Department::where('code', $id)
-            ->orWhere('id', $id)
+        // Find faculty
+        $faculty = Faculty::where('short_name', $faculty_short_name)
+            ->orWhere('id', $faculty_short_name)
+            ->firstOrFail();
+
+        // Find department under that faculty
+        $department = Department::where('faculty_id', $faculty->id)
+            ->where(function ($q) use ($department_code) {
+                $q->where('code', $department_code)
+                  ->orWhere('id', $department_code);
+            })
             ->firstOrFail();
 
         // Get filter designation from query
@@ -52,6 +61,6 @@ class DepartmentController extends Controller
             ->orderBy('sort_order', 'asc')
             ->get();
 
-        return view("frontend.themes.{$activeTheme}.department", compact('department', 'teachers', 'designations'));
+        return view("frontend.themes.{$activeTheme}.department", compact('faculty', 'department', 'teachers', 'designations'));
     }
 }

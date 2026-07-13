@@ -55,7 +55,7 @@
                 </div>
             </a>
             
-            <a href="{{ url('/departments/' . (optional($teacher->department)->code ?? '')) }}" class="text-sm font-bold text-gray-600 hover:text-diu-600 transition">
+            <a href="{{ url('/' . strtolower($faculty->short_name) . '/' . strtolower($department->code)) }}" class="text-sm font-bold text-gray-600 hover:text-diu-600 transition">
                 &larr; Back to Department
             </a>
         </div>
@@ -318,12 +318,17 @@
                                 <p class="text-xs text-gray-500 mt-2">
                                     Published in: <span class="text-gray-700 font-semibold">{{ $pub->journal_name ?? 'N/A' }}</span> | Year: <span class="text-gray-700 font-semibold">{{ $pub->published_year ?? 'N/A' }}</span>
                                 </p>
-                                @if($pub->paper_link)
-                                    <a href="{{ $pub->paper_link }}" target="_blank" class="inline-flex items-center text-xs font-bold text-diu-600 hover:underline mt-4">
-                                        <span>View Document</span>
+                                <div class="flex items-center space-x-4 mt-4">
+                                    <a href="{{ url('/' . strtolower($faculty->short_name) . '/' . strtolower($department->code) . '/' . $teacher->webpage . '/publication/' . \Illuminate\Support\Str::slug($pub->title)) }}" class="inline-flex items-center text-xs font-bold text-diu-600 hover:underline">
+                                        <span>View Details</span>
                                         <span class="ml-1.5">&rarr;</span>
                                     </a>
-                                @endif
+                                    @if($pub->paper_link)
+                                        <a href="{{ $pub->paper_link }}" target="_blank" class="inline-flex items-center text-xs font-semibold text-gray-500 hover:text-gray-700 hover:underline">
+                                            <span>External Link</span>
+                                        </a>
+                                    @endif
+                                </div>
                             </div>
                         @endforeach
                     @endif

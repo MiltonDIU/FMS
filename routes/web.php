@@ -2,19 +2,23 @@
 
 use App\Http\Controllers\Admin\IntegrationMappingController;
 use App\Http\Controllers\Frontend\HomeController;
+use App\Http\Controllers\Frontend\DepartmentController;
 use App\Http\Controllers\Frontend\TeacherController;
+use App\Http\Controllers\Frontend\PublicationController;
 use App\Http\Middleware\HandleFrontendDriverMiddleware;
 use Illuminate\Support\Facades\Route;
 
-// Public frontend routes protected by Frontend Driver Middleware
-Route::middleware(HandleFrontendDriverMiddleware::class)->group(function () {
-    Route::get('/', [HomeController::class, 'index']);
-    Route::get('/teachers/{webpage}', [TeacherController::class, 'show']);
-    Route::get('/departments/{code}', [\App\Http\Controllers\Frontend\DepartmentController::class, 'show']);
-});
-
-// Integration Mapping API endpoints
+// Integration Mapping API endpoints (placed first)
 Route::prefix('admin/integration-mappings')->group(function () {
     Route::post('/fetch-api', [IntegrationMappingController::class, 'fetchApiData']);
     Route::post('/model-fields', [IntegrationMappingController::class, 'getModelFields']);
+});
+
+// Public nested frontend routes protected by Frontend Driver Middleware (placed at the bottom)
+Route::middleware(HandleFrontendDriverMiddleware::class)->group(function () {
+    Route::get('/', [HomeController::class, 'index']);
+    Route::get('/{faculty_short_name}', [HomeController::class, 'index']);
+    Route::get('/{faculty_short_name}/{department_code}', [DepartmentController::class, 'show']);
+    Route::get('/{faculty_short_name}/{department_code}/{teacher_webpage}', [TeacherController::class, 'show']);
+    Route::get('/{faculty_short_name}/{department_code}/{teacher_webpage}/publication/{publication_slug}', [PublicationController::class, 'show']);
 });

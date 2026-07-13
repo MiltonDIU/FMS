@@ -1,0 +1,29 @@
+{
+  "brandingLinks": [
+    { "id": 1, "title": "DIU Branding", "url": "#" },
+    { "id": 2, "title": "Career Opportunities", "url": "#" },
+    { "id": 3, "title": "Bangladesh Corner", "url": "#" },
+    { "id": 4, "title": "Blog", "url": "#" },
+    { "id": 5, "title": "DIU Press", "url": "#" },
+    { "id": 6, "title": "Photo Gallery", "url": "#" },
+    { "id": 7, "title": "Employability 360", "url": "#" }
+  ],
+  "usefulLinks": [
+    { "id": 1, "title": "skill.jobs", "url": "#" },
+    { "id": 2, "title": "Internship Portal", "url": "#" },
+    { "id": 3, "title": "Convocation", "url": "#" },
+    { "id": 4, "title": "DIU Annual Report", "url": "#" },
+    { "id": 5, "title": "Brochure", "url": "#" },
+    { "id": 6, "title": "Prospectus", "url": "#" },
+    { "id": 7, "title": "FAQ", "url": "#" }
+  ],
+  "quickLinks": [
+    { "id": 1, "title": "DIU News", "url": "#" },
+    { "id": 2, "title": "Forum", "url": "#" },
+    { "id": 3, "title": "Student", "url": "#" },
+    { "id": 4, "title": "Parents", "url": "#" },
+    { "id": 5, "title": "Teacher", "url": "#" },
+    { "id": 6, "title": "Alumni", "url": "#" },
+    { "id": 7, "title": "Administration", "url": "#" }
+  ]
+}

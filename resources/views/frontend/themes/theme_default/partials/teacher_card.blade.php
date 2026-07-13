@@ -29,7 +29,7 @@
 
     <!-- View Profile Link -->
     <a 
-        href="{{ url('/teachers/' . $teacher->webpage) }}" 
+        href="{{ url('/' . strtolower($faculty->short_name) . '/' . strtolower($department->code) . '/' . $teacher->webpage) }}" 
         class="mt-6 w-full py-2 bg-gray-50 group-hover:bg-diu-600 group-hover:text-white rounded-xl text-xs font-bold text-gray-700 transition duration-300"
     >
         View Profile

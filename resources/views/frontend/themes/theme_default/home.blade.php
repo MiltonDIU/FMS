@@ -101,7 +101,7 @@
                         <div class="space-y-1">
                             @foreach($faculties as $faculty)
                                 <a 
-                                    href="{{ url('/?faculty=' . strtolower($faculty->short_name)) }}" 
+                                    href="{{ url('/' . strtolower($faculty->short_name)) }}" 
                                     class="w-full text-left px-4 py-3 rounded-xl text-sm font-semibold flex items-center justify-between transition-all duration-200 {{ ($selectedFaculty && $selectedFaculty->id === $faculty->id) ? 'bg-diu-50 text-diu-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}"
                                 >
                                     <span>{{ $faculty->name }}</span>
@@ -133,7 +133,7 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             @foreach($departments as $dept)
                                 <a 
-                                    href="{{ url('/departments/' . $dept->code) }}" 
+                                    href="{{ url('/' . strtolower($selectedFaculty->short_name) . '/' . strtolower($dept->code)) }}" 
                                     class="bg-white border border-gray-100 hover:border-diu-100 p-6 rounded-3xl shadow-sm hover:shadow-xl hover:shadow-diu-600/5 transition-all duration-300 group flex flex-col justify-between"
                                 >
                                     <div>

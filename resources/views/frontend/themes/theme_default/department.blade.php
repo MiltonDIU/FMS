@@ -87,14 +87,14 @@
                     </h3>
                     <div class="space-y-1">
                         <a 
-                            href="{{ url('/departments/' . $department->id) }}" 
+                            href="{{ url('/' . strtolower($faculty->short_name) . '/' . strtolower($department->code)) }}" 
                             class="w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-between transition {{ !request('designation') ? 'bg-diu-50 text-diu-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}"
                         >
                             <span>All Roles</span>
                         </a>
                         @foreach($designations as $desig)
                             <a 
-                                href="{{ url('/departments/' . $department->id . '?designation=' . $desig->id) }}" 
+                                href="{{ url('/' . strtolower($faculty->short_name) . '/' . strtolower($department->code) . '?designation=' . $desig->id) }}" 
                                 class="w-full text-left px-4 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-between transition {{ (request('designation') == $desig->id) ? 'bg-diu-50 text-diu-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}"
                             >
                                 <span>{{ $desig->name }}</span>
@@ -124,7 +124,7 @@
                             || str_contains($designation, 'director') 
                             || str_contains($designation, 'coordinator');
                     });
-                    $faculty = $teachers->diff($management);
+                    $generalFaculty = $teachers->diff($management);
                 @endphp
 
                 <!-- Departmental Management -->
@@ -150,7 +150,7 @@
                     </h2>
                     
                     @php
-                        $listToDisplay = request('designation') ? $teachers : $faculty;
+                        $listToDisplay = request('designation') ? $teachers : $generalFaculty;
                     @endphp
 
                     @if($listToDisplay->isEmpty())
