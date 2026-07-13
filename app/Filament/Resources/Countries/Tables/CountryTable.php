@@ -38,6 +38,19 @@ class CountryTable
                 TextColumn::make('slug')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('teachers_count')
+                    ->label('Teachers')
+                    ->state(fn ($record) => $record->teachers()->count())
+                    ->color('primary')
+                    ->weight('bold')
+                    ->sortable(query: fn ($query, $direction) => $query->withCount('teachers')->orderBy('teachers_count', $direction))
+                    ->url(fn ($record) => \App\Filament\Resources\Teachers\TeacherResource::getUrl('index', [
+                        'tableFilters' => [
+                            'country_id' => [
+                                'value' => $record->id,
+                            ],
+                        ],
+                    ])),
                 TextColumn::make('organizations_count')
                     ->label('Organizations')
                     ->state(fn ($record) => $record->organizations()->count())

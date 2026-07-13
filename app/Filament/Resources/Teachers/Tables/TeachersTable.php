@@ -204,6 +204,11 @@ class TeachersTable
                     ->label('Designation')
                     ->searchable()
                     ->preload(),
+                SelectFilter::make('country_id')
+                    ->relationship('country', 'name')
+                    ->label('Country')
+                    ->searchable()
+                    ->preload(),
                 SelectFilter::make('employment_status_id')
                     ->relationship('employmentStatus', 'name')
                     ->label('Employment Status')
