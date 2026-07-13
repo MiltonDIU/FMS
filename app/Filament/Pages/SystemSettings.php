@@ -195,7 +195,7 @@ class SystemSettings extends Page
                                             ->url()
                                             ->placeholder('https://teachers.diu.edu.bd')
                                             ->requiredIf('frontend_driver', 'nextjs')
-                                            ->visible(fn (\Filament\Forms\Get $get) => $get('frontend_driver') === 'nextjs')
+                                            ->visible(fn ($get) => $get('frontend_driver') === 'nextjs')
                                             ->helperText('Public web visitors will be redirected to this URL'),
                                         \Filament\Forms\Components\Select::make('active_theme')
                                             ->label('Active Theme')
