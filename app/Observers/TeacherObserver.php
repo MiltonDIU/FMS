@@ -19,6 +19,14 @@ class TeacherObserver
      */
     public function creating(Teacher $teacher): void
     {
+        // Auto-disable login_allowed if status forbids login
+        if ($teacher->employment_status_id) {
+            $status = $teacher->employmentStatus ?? \App\Models\EmploymentStatus::find($teacher->employment_status_id);
+            if ($status && !$status->allow_login) {
+                $teacher->login_allowed = false;
+            }
+        }
+
         // Only create user if user_id is not set
         if (empty($teacher->user_id)) {
             // Build name from teacher fields
@@ -98,6 +106,14 @@ class TeacherObserver
      */
     public function updating(Teacher $teacher): void
     {
+        // Auto-disable login_allowed if status forbids login
+        if ($teacher->employment_status_id) {
+            $status = $teacher->employmentStatus ?? \App\Models\EmploymentStatus::find($teacher->employment_status_id);
+            if ($status && !$status->allow_login) {
+                $teacher->login_allowed = false;
+            }
+        }
+
         // Check if update is being handled by Service to prevent recursion
         if (TeacherVersionService::$ignoreObserver) {
             return;

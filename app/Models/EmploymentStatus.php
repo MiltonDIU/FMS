@@ -19,6 +19,7 @@ class EmploymentStatus extends Model
         'description',
         'is_active',
         'sort_order',
+
     ];
 
     protected $casts = [

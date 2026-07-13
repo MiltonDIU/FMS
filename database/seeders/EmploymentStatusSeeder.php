@@ -19,6 +19,7 @@ class EmploymentStatusSeeder extends Seeder
                 'description' => 'Currently employed and working',
                 'is_active' => true,
                 'sort_order' => 1,
+                'allow_login' => 1,
             ],
             [
                 'name' => 'On Leave',
@@ -28,6 +29,7 @@ class EmploymentStatusSeeder extends Seeder
                 'description' => 'On temporary leave',
                 'is_active' => true,
                 'sort_order' => 2,
+                'allow_login' => 1,
             ],
             [
                 'name' => 'Study Leave',
@@ -37,6 +39,7 @@ class EmploymentStatusSeeder extends Seeder
                 'description' => 'On study leave for higher education',
                 'is_active' => true,
                 'sort_order' => 3,
+                'allow_login' => 1,
             ],
             [
                 'name' => 'Deputation',
@@ -46,6 +49,7 @@ class EmploymentStatusSeeder extends Seeder
                 'description' => 'On deputation to another institution',
                 'is_active' => true,
                 'sort_order' => 4,
+                'allow_login' => 0,
             ],
             [
                 'name' => 'Retired',
@@ -55,6 +59,7 @@ class EmploymentStatusSeeder extends Seeder
                 'description' => 'Retired from service',
                 'is_active' => true,
                 'sort_order' => 5,
+                'allow_login' => 0,
             ],
             [
                 'name' => 'Resigned',
@@ -64,6 +69,7 @@ class EmploymentStatusSeeder extends Seeder
                 'description' => 'Resigned from the position',
                 'is_active' => true,
                 'sort_order' => 6,
+                'allow_login' => 0,
             ],
             [
                 'name' => 'Terminated',
@@ -73,6 +79,7 @@ class EmploymentStatusSeeder extends Seeder
                 'description' => 'Employment terminated',
                 'is_active' => true,
                 'sort_order' => 7,
+                'allow_login' => 0,
             ],
             [
                 'name' => 'Suspended',
@@ -82,6 +89,7 @@ class EmploymentStatusSeeder extends Seeder
                 'description' => 'Currently suspended',
                 'is_active' => true,
                 'sort_order' => 8,
+                'allow_login' => 0,
             ],
             [
                 'name' => 'Archived',
@@ -91,6 +99,7 @@ class EmploymentStatusSeeder extends Seeder
                 'description' => 'Archived status for historical records',
                 'is_active' => true,
                 'sort_order' => 9,
+                'allow_login' => 0,
             ],
         ];
 
