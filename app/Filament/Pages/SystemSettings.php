@@ -30,6 +30,24 @@ class SystemSettings extends Page
         return auth()->user()->can('View:SystemSettings', Setting::class);
     }
 
+    public static function getAvailableThemes(): array
+    {
+        $themesPath = resource_path('views/frontend/themes');
+        $themes = [];
+        if (is_dir($themesPath)) {
+            $dirs = array_filter(glob($themesPath . '/*'), 'is_dir');
+            foreach ($dirs as $dir) {
+                $slug = basename($dir);
+                $name = str_replace(['_', '-'], ' ', $slug);
+                $themes[$slug] = ucwords($name);
+            }
+        }
+        if (empty($themes)) {
+            $themes['theme_default'] = 'Theme Default';
+        }
+        return $themes;
+    }
+
     public ?array $data = [];
 
     public function mount(): void
@@ -60,6 +78,9 @@ class SystemSettings extends Page
             'import_dry_run' => false,
             'import_skip_existing' => true,
             'teacher_login_mode' => 'individual',
+            'frontend_driver' => 'blade',
+            'nextjs_url' => '',
+            'active_theme' => 'theme_default',
         ], $settings));
     }
 
@@ -153,6 +174,35 @@ class SystemSettings extends Page
                                             ->label('From Name')
                                             ->default(config('app.name')),
                                     ])->columns(2),
+                            ]),
+                        Tab::make('Frontend Settings')
+                            ->icon('heroicon-o-globe-alt')
+                            ->schema([
+                                Section::make('Frontend Configuration')
+                                    ->description('Choose how the public teacher portal is served')
+                                    ->schema([
+                                        \Filament\Forms\Components\Select::make('frontend_driver')
+                                            ->label('Frontend Driver')
+                                            ->options([
+                                                'blade' => 'Laravel Blade (Monolith)',
+                                                'nextjs' => 'Next.js (Headless Redirect)',
+                                            ])
+                                            ->default('blade')
+                                            ->live()
+                                            ->required(),
+                                        TextInput::make('nextjs_url')
+                                            ->label('Next.js App URL')
+                                            ->url()
+                                            ->placeholder('https://teachers.diu.edu.bd')
+                                            ->requiredIf('frontend_driver', 'nextjs')
+                                            ->visible(fn (\Filament\Forms\Get $get) => $get('frontend_driver') === 'nextjs')
+                                            ->helperText('Public web visitors will be redirected to this URL'),
+                                        \Filament\Forms\Components\Select::make('active_theme')
+                                            ->label('Active Theme')
+                                            ->options(fn () => static::getAvailableThemes())
+                                            ->default('theme_default')
+                                            ->required(),
+                                    ]),
                             ]),
                         Tab::make('Data Migration')
                             ->icon('heroicon-o-arrow-path')
