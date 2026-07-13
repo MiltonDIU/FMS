@@ -25,13 +25,13 @@ class DepartmentController extends Controller
         $designationId = $request->query('designation');
 
         // Fetch teachers in this department
-        $query = Teacher::where('department_id', $department->id)
-            ->where('is_active', true)
-            ->where('is_archived', false)
+        $query = Teacher::where('teachers.department_id', $department->id)
+            ->where('teachers.is_active', true)
+            ->where('teachers.is_archived', false)
             ->with(['designation', 'employmentStatus']);
 
         if ($designationId) {
-            $query->where('designation_id', $designationId);
+            $query->where('teachers.designation_id', $designationId);
         }
 
         // Order by designation sort_order, then teacher sort_order
