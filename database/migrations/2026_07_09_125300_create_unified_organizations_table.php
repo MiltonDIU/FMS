@@ -473,6 +473,40 @@ return new class extends Migration
         Schema::dropIfExists('old_educational_institutions');
         Schema::dropIfExists('old_membership_organizations');
 
+        // Clean up orphaned foreign key values before re-adding constraints to avoid integrity violations
+        if (Schema::hasTable('educational_institutions')) {
+            DB::table('educations')
+                ->whereNotNull('educational_institution_id')
+                ->whereNotExists(function ($query) {
+                    $query->select('id')
+                        ->from('educational_institutions')
+                        ->whereColumn('educational_institutions.id', 'educations.educational_institution_id');
+                })
+                ->update(['educational_institution_id' => null]);
+        }
+
+        if (Schema::hasTable('organizations')) {
+            DB::table('job_experiences')
+                ->whereNotNull('organization_id')
+                ->whereNotExists(function ($query) {
+                    $query->select('id')
+                        ->from('organizations')
+                        ->whereColumn('organizations.id', 'job_experiences.organization_id');
+                })
+                ->update(['organization_id' => null]);
+        }
+
+        if (Schema::hasTable('membership_organizations')) {
+            DB::table('memberships')
+                ->whereNotNull('membership_organization_id')
+                ->whereNotExists(function ($query) {
+                    $query->select('id')
+                        ->from('membership_organizations')
+                        ->whereColumn('membership_organizations.id', 'memberships.membership_organization_id');
+                })
+                ->update(['membership_organization_id' => null]);
+        }
+
         // Re-add legacy foreign keys
         Schema::table('educations', function (Blueprint $table) {
             if (Schema::hasTable('educational_institutions')) {
