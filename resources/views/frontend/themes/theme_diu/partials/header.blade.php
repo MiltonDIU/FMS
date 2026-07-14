@@ -33,25 +33,6 @@
                 </div>
             </a>
 
-            <!-- Search bar inside header -->
-            <form action="{{ route('home') }}" method="GET" class="relative flex-1 max-w-lg mx-0 md:mx-8">
-                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                    <svg class="w-4 h-4 text-diu-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-                </div>
-                <input
-                    type="text"
-                    name="q"
-                    value="{{ request('q') }}"
-                    placeholder="Search teachers by name, email, department, faculty, designation..."
-                    class="block w-full pl-10 pr-12 py-2.5 border border-slate-200 rounded-xl text-sm bg-white/50 backdrop-blur-xs hover:bg-white/90 focus:bg-white focus:outline-none focus:ring-2 focus:ring-diu-primary focus:border-diu-primary transition-all placeholder:text-slate-400 shadow-2xs"
-                />
-                @if(request('q'))
-                    <a href="{{ route('home') }}" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-xs font-semibold text-slate-400 hover:text-slate-600 transition-colors">
-                        Clear
-                    </a>
-                @endif
-            </form>
-
             <!-- Badge with count and Teacher Login Button -->
             <div class="flex items-center gap-3 justify-between md:justify-end">
                 <div class="hidden lg:flex items-center gap-3 bg-slate-50 border border-slate-200/60 rounded-xl p-1.5 pl-3">

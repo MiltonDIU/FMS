@@ -17,19 +17,14 @@ class TeacherSearch extends Component
 {
     use WithPagination;
 
-    #[Url(as: 'q')]
     public string $q = '';
 
-    #[Url(as: 'faculty')]
     public ?string $facultyId = null;
 
-    #[Url(as: 'department')]
     public ?string $departmentId = null;
 
-    #[Url(as: 'designation')]
     public ?string $designationId = null;
 
-    #[Url(as: 'admin')]
     public ?string $adminRoleId = null;
 
     public function mount(?string $selectedFacultyId = null): void
