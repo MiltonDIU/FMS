@@ -9,7 +9,7 @@
             </div>
 
             <div class="flex gap-4 text-[11px] font-semibold text-slate-300">
-                <span class="text-diu-orange">Smart City Campus, Dhaka</span>
+                <span class="text-diu-accent">Smart City Campus, Dhaka</span>
             </div>
         </div>
 

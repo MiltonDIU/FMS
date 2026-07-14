@@ -97,6 +97,34 @@ class Teacher extends Model implements HasMedia
     }
 
     /**
+     * Determine whether the teacher holds an administrative designation
+     * (dean, head, chairman, director, coordinator, advisor).
+     */
+    public function getIsAdministrativeAttribute(): bool
+    {
+        $designation = optional($this->designation)->name;
+
+        return $designation
+            ? (bool) preg_match('/(dean|head|chairman|director|coordinator|advisor)/i', $designation)
+            : false;
+    }
+
+    /**
+     * Get the research interests as a clean, trimmed array
+     * (parsed from the comma-separated source string).
+     */
+    public function getResearchInterestsAttribute(): array
+    {
+        if (!$this->research_interest) {
+            return [];
+        }
+
+        return array_values(array_filter(
+            array_map('trim', explode(',', $this->research_interest))
+        ));
+    }
+
+    /**
      * Get the user that owns the teacher profile.
      */
     public function user(): BelongsTo

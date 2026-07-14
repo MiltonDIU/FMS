@@ -27,6 +27,18 @@ class Faculty extends Model
     ];
 
     /**
+     * Null-safe public URL for this faculty. Falls back to the home route
+     * when the short_name (a nullable column) is missing, so route generation
+     * never throws a UrlGenerationException.
+     */
+    public function getUrlAttribute(): string
+    {
+        return $this->short_name
+            ? route('faculty.show', ['faculty_short_name' => strtolower($this->short_name)])
+            : route('home');
+    }
+
+    /**
      * Get the departments for the faculty.
      */
     public function departments(): HasMany

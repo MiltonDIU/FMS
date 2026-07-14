@@ -7,10 +7,22 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class Publication extends Model
 {
     use HasFactory, SoftDeletes;
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saving(function (Publication $publication) {
+            if (empty($publication->slug) || $publication->isDirty('title')) {
+                $publication->slug = Str::slug((string) $publication->title) ?: 'publication';
+            }
+        });
+    }
 
     protected $fillable = [
         'faculty_id',
@@ -21,6 +33,7 @@ class Publication extends Model
         'grant_type_id',
         'research_collaboration_id',
         'title',
+        'slug',
         'journal_name',
         'journal_link',
         'publication_date',
@@ -101,5 +114,24 @@ class Publication extends Model
     public function collaboration(): BelongsTo
     {
         return $this->belongsTo(ResearchCollaboration::class, 'research_collaboration_id');
+    }
+
+    /**
+     * Build scholarly citations (APA, IEEE, BibTeX) for this publication.
+     *
+     * @return array{apa: string, ieee: string, bibtex: string}
+     */
+    public function citations(string $authors): array
+    {
+        $authors = trim($authors);
+        $year = $this->publication_year ?? 'n.d.';
+        $venue = $this->journal_name ?? '';
+        $title = $this->title;
+
+        return [
+            'apa' => "{$authors} ({$year}). {$title}. {$venue}.",
+            'ieee' => "[1] {$authors}, \"{$title},\" {$venue}, {$year}.",
+            'bibtex' => "@article{diu_{$this->id},\n  author = {{$authors}},\n  title = {{$title}},\n  journal = {{$venue}},\n  year = {{$year}}\n}",
+        ];
     }
 }

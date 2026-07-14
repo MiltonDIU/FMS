@@ -31,9 +31,9 @@ class PublicationController extends Controller
             ->where('is_archived', false)
             ->firstOrFail();
 
-        // Find publication by matching title slug or ID
+        // Find publication by slug (computed from title as a fallback).
         $publication = $teacher->publications->first(function ($pub) use ($publication_slug) {
-            return Str::slug($pub->title) === $publication_slug;
+            return ($pub->slug ?: Str::slug($pub->title)) === $publication_slug;
         });
 
         if (!$publication) {
@@ -44,6 +44,10 @@ class PublicationController extends Controller
             abort(404);
         }
 
-        return view("frontend.themes.{$activeTheme}.publication", compact('faculty', 'department', 'teacher', 'publication'));
+        // Build citations here (kept out of the view for separation of concerns)
+        $authors = trim($teacher->first_name . ' ' . $teacher->last_name);
+        $citations = $publication->citations($authors);
+
+        return view("frontend.themes.{$activeTheme}.publication", compact('faculty', 'department', 'teacher', 'publication', 'authors', 'citations'));
     }
 }

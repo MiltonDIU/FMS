@@ -90,7 +90,7 @@ const SearchModal = ({
                   <Search className="w-8 h-8 text-gray-400" />
                 </div>
                 <p className="text-gray-500 text-lg">
-                  No results found for "{searchTerm}"
+                  No results found for &quot;{searchTerm}&quot;
                 </p>
                 <p className="text-gray-400 text-sm mt-2">
                   Try searching by name, email, phone, or designation

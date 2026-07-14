@@ -16,9 +16,9 @@ Route::prefix('admin/integration-mappings')->group(function () {
 
 // Public nested frontend routes protected by Frontend Driver Middleware (placed at the bottom)
 Route::middleware(HandleFrontendDriverMiddleware::class)->group(function () {
-    Route::get('/', [HomeController::class, 'index']);
-    Route::get('/{faculty_short_name}', [HomeController::class, 'index']);
-    Route::get('/{faculty_short_name}/{department_code}', [DepartmentController::class, 'show']);
-    Route::get('/{faculty_short_name}/{department_code}/{teacher_webpage}', [TeacherController::class, 'show']);
-    Route::get('/{faculty_short_name}/{department_code}/{teacher_webpage}/publication/{publication_slug}', [PublicationController::class, 'show']);
+    Route::get('/', [HomeController::class, 'index'])->name('home');
+    Route::get('/{faculty_short_name}', [HomeController::class, 'index'])->name('faculty.show');
+    Route::get('/{faculty_short_name}/{department_code}', [DepartmentController::class, 'show'])->name('department.show');
+    Route::get('/{faculty_short_name}/{department_code}/{teacher_webpage}', [TeacherController::class, 'show'])->name('teacher.show');
+    Route::get('/{faculty_short_name}/{department_code}/{teacher_webpage}/publication/{publication_slug}', [PublicationController::class, 'show'])->name('publication.show');
 });
