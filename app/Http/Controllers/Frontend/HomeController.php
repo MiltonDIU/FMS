@@ -18,18 +18,13 @@ class HomeController extends Controller
             ->orderBy('sort_order', 'asc')
             ->get();
 
-        $selectedFacultyVal = $faculty_short_name ?? request()->query('faculty');
         $selectedFaculty = null;
 
-        if ($selectedFacultyVal) {
-            $selectedFaculty = $faculties->first(function ($f) use ($selectedFacultyVal) {
-                return $f->id == $selectedFacultyVal
-                    || strtolower($f->short_name) === strtolower($selectedFacultyVal);
+        if ($faculty_short_name) {
+            $selectedFaculty = $faculties->first(function ($f) use ($faculty_short_name) {
+                return $f->id == $faculty_short_name
+                    || strtolower($f->short_name) === strtolower($faculty_short_name);
             });
-        }
-
-        if (! $selectedFaculty && $faculties->isNotEmpty()) {
-            $selectedFaculty = $faculties->first();
         }
 
         return view("frontend.themes.{$activeTheme}.home", compact(

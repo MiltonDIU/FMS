@@ -37,19 +37,7 @@
                 </p>
             </div>
 
-            @if($teachers->total() === 0)
-                <div class="bg-white/40 backdrop-blur-md border border-white/60 rounded-2xl p-12 text-center shadow-sm">
-                    <p class="text-gray-500 font-semibold">No faculty members found for the selected filter.</p>
-                </div>
-            @else
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    @foreach($teachers as $teacher)
-                        @include('frontend.themes.theme_diu.partials.teacher_card', ['teacher' => $teacher, 'faculty' => $faculty, 'department' => $department])
-                    @endforeach
-                </div>
-
-                {{ $teachers->links('frontend.themes.theme_diu.partials.pagination') }}
-            @endif
+            <livewire:department-search :department-id="$department->id" />
         </div>
 
     </div>

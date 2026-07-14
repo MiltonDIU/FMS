@@ -58,5 +58,6 @@ class AppServiceProvider extends ServiceProvider
 
         // Register Livewire components explicitly (auto-discovery provider not wired up).
         Livewire::component('teacher-search', \App\Livewire\Frontend\TeacherSearch::class);
+        Livewire::component('department-search', \App\Livewire\Frontend\DepartmentSearch::class);
     }
 }
