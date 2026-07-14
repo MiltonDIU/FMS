@@ -46,19 +46,6 @@ class TeacherSearch extends Component
         $this->q = '';
     }
 
-    public function setFaculty($id): void
-    {
-        $this->facultyId = $this->facultyId == $id ? null : $id;
-        $this->departmentId = null;
-        $this->resetPage();
-    }
-
-    public function setDepartment($id): void
-    {
-        $this->departmentId = $this->departmentId == $id ? null : $id;
-        $this->resetPage();
-    }
-
     public function setDesignation($id): void
     {
         $this->designationId = $this->designationId == $id ? null : $id;

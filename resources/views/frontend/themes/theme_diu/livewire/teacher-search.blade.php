@@ -11,11 +11,11 @@
             <div class="space-y-1.5">
                 @foreach($this->faculties as $fac)
                     @php $active = (string) $fac->id === (string) $this->facultyId; @endphp
-                    <button type="button" wire:click="setFaculty({{ $fac->id }})"
-                        class="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold font-sans tracking-tight transition-all flex items-center justify-between gap-2 {{ $active ? 'bg-diu-primary/15 text-diu-primary shadow-xs' : 'hover:bg-white/40 text-slate-600 hover:text-slate-900' }}">
+                    <a href="{{ $fac->url }}" wire:navigate
+                        class="block w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold font-sans tracking-tight transition-all flex items-center justify-between gap-2 {{ $active ? 'bg-diu-primary/15 text-diu-primary shadow-xs' : 'hover:bg-white/40 text-slate-600 hover:text-slate-900' }}">
                         <span class="truncate">{{ $fac->name }}</span>
                         <span class="bg-white/60 text-slate-500 text-[9px] font-bold px-1.5 py-0.5 rounded-sm shrink-0 border border-white/60">{{ $fac->teachers_count }}</span>
-                    </button>
+                    </a>
                 @endforeach
             </div>
         </div>
@@ -30,11 +30,11 @@
                 <div class="space-y-1">
                     @foreach($this->departments as $dept)
                         @php $active = (string) $dept->id === (string) $this->departmentId; @endphp
-                        <button type="button" wire:click="setDepartment({{ $dept->id }})"
-                            class="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center justify-between gap-2 {{ $active ? 'bg-diu-accent/15 text-diu-accent font-bold shadow-xs' : 'hover:bg-white/40 text-slate-600 hover:text-slate-900' }}">
+                        <a href="{{ route('department.show', ['faculty_short_name' => strtolower($this->selectedFaculty->short_name), 'department_code' => strtolower($dept->code)]) }}" wire:navigate
+                            class="block w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center justify-between gap-2 {{ $active ? 'bg-diu-accent/15 text-diu-accent font-bold shadow-xs' : 'hover:bg-white/40 text-slate-600 hover:text-slate-900' }}">
                             <span class="truncate">{{ $dept->name }}</span>
                             <svg class="w-3.5 h-3.5 shrink-0 ml-1 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-                        </button>
+                        </a>
                     @endforeach
                 </div>
             </div>
@@ -94,10 +94,10 @@
 
         <!-- Clear all -->
         @if($this->facultyId || $this->departmentId || $this->designationId || $this->adminRoleId)
-            <button type="button" wire:click="setFaculty(null); setDepartment(null); setDesignation(null); setAdmin(null)"
-                class="w-full text-[11px] font-semibold text-slate-400 hover:text-diu-primary transition-colors pt-2">
+            <a href="{{ route('home') }}" wire:navigate
+                class="block w-full text-[11px] font-semibold text-slate-400 hover:text-diu-primary transition-colors pt-2">
                 Clear all filters
-            </button>
+            </a>
         @endif
     </aside>
 
