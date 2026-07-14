@@ -30,30 +30,42 @@ class DepartmentController extends Controller
             })
             ->firstOrFail();
 
-        // Get filter designation from query
+        // Get filter designation / administrative role from query
         $designationId = $request->query('designation');
+        $adminId = $request->query('admin');
 
         // Fetch teachers in this department
         $query = Teacher::where('teachers.department_id', $department->id)
             ->where('teachers.is_active', true)
-            ->where('teachers.is_archived', false)
-            ->with(['designation', 'employmentStatus']);
+            ->where('teachers.is_archived', false);
 
         if ($designationId) {
             $query->where('teachers.designation_id', $designationId);
         }
 
+        if ($adminId) {
+            $adminTeacherIds = \DB::table('administrative_role_user')
+                ->join('teachers', 'teachers.user_id', '=', 'administrative_role_user.user_id')
+                ->where('teachers.department_id', $department->id)
+                ->where('administrative_role_user.administrative_role_id', $adminId)
+                ->pluck('teachers.id');
+            $query->whereIn('teachers.id', $adminTeacherIds);
+        }
+
         // Order by designation sort_order, then teacher sort_order
-        $teachers = $query->join('designations', 'teachers.designation_id', '=', 'designations.id')
+        $teachers = $query->with(['designation', 'department'])
+            ->join('designations', 'teachers.designation_id', '=', 'designations.id')
             ->select('teachers.*')
             ->orderBy('designations.sort_order', 'asc')
             ->orderBy('teachers.sort_order', 'asc')
-            ->get();
+            ->paginate(12)
+            ->withQueryString();
 
         // Get designations present in this department for filters
         $designationIds = Teacher::where('department_id', $department->id)
             ->where('is_active', true)
             ->where('is_archived', false)
+            ->whereNotNull('designation_id')
             ->distinct()
             ->pluck('designation_id');
 
@@ -61,6 +73,20 @@ class DepartmentController extends Controller
             ->orderBy('sort_order', 'asc')
             ->get();
 
-        return view("frontend.themes.{$activeTheme}.department", compact('faculty', 'department', 'teachers', 'designations'));
+        // Get administrative roles present in this department (via administrative_role_user pivot)
+        $adminRoleIds = \DB::table('administrative_role_user')
+            ->join('teachers', 'teachers.user_id', '=', 'administrative_role_user.user_id')
+            ->where('teachers.department_id', $department->id)
+            ->whereNotNull('administrative_role_user.administrative_role_id')
+            ->distinct()
+            ->pluck('administrative_role_user.administrative_role_id');
+
+        $adminRoles = \App\Models\AdministrativeRole::whereIn('id', $adminRoleIds)
+            ->orderBy('sort_order', 'asc')
+            ->get();
+
+        $faculties = Faculty::orderBy('sort_order')->get();
+
+        return view("frontend.themes.{$activeTheme}.department", compact('faculties', 'faculty', 'department', 'teachers', 'designations', 'adminRoles'));
     }
 }
