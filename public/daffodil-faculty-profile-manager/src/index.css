@@ -1,0 +1,50 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --color-diu-green-dark: #0a2540;
+  --color-diu-green: #0e3d75;
+  --color-diu-green-light: #1d4ed8;
+  --color-diu-green-hover: #0b305c;
+  --color-diu-blue-dark: #071930;
+  --color-diu-blue: #0e3d75;
+  --color-diu-blue-light: #2563eb;
+  --color-diu-orange: #3b82f6;
+  --color-diu-orange-light: #60a5fa;
+  --color-diu-orange-hover: #1d4ed8;
+}
+
+@layer base {
+  body {
+    background-color: #f4f8fc;
+    background-image: radial-gradient(at 0% 0%, rgba(14, 61, 117, 0.06) 0px, transparent 50%),
+                      radial-gradient(at 100% 0%, rgba(37, 99, 235, 0.04) 0px, transparent 50%),
+                      radial-gradient(at 50% 100%, rgba(59, 130, 246, 0.02) 0px, transparent 50%),
+                      linear-gradient(to bottom right, #f5f9fc, #edf3f8);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+}
+
+/* Custom frosted glass utility in case backdrop blur is not fully clear */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.glass-panel-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-panel-hover:hover {
+  background: rgba(255, 255, 255, 0.8);
+  border-color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 10px 30px -10px rgba(0, 106, 78, 0.1);
+  transform: translateY(-2px);
+}
+

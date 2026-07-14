@@ -18,5 +18,16 @@ abstract class TestCase extends BaseTestCase
             \Illuminate\Support\Facades\DB::purge('mysql');
             \Illuminate\Support\Facades\DB::reconnect('mysql');
         }
+
+        // Begin transaction to prevent test data from persisting in MySQL
+        \Illuminate\Support\Facades\DB::beginTransaction();
+    }
+
+    protected function tearDown(): void
+    {
+        // Rollback transaction to clean database
+        \Illuminate\Support\Facades\DB::rollBack();
+
+        parent::tearDown();
     }
 }

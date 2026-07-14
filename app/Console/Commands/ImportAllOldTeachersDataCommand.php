@@ -40,7 +40,7 @@ class ImportAllOldTeachersDataCommand extends Command
         }
 
         $commands = [
-            'import:old-teachers',
+            //'import:old-teachers',
             'import:old-teachers-educations',
             'import:old-teachers-job-experiences',
             'import:old-teachers-memberships',
@@ -63,9 +63,9 @@ class ImportAllOldTeachersDataCommand extends Command
             $this->info("================================================================================");
             $this->info("➡️ Running: php artisan {$command}");
             $this->info("================================================================================");
-            
+
             $exitCode = $this->call($command, $options);
-            
+
             if ($exitCode !== 0) {
                 \App\Models\Setting::set('import_progress', "Failed on command: {$command}");
                 $this->error("❌ Command {$command} failed with exit code: {$exitCode}");

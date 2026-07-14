@@ -823,9 +823,9 @@ class TeacherForm
 
                                             $data = [
                                                 'position_id' => $item['position_id'] ?? null,
-                                                'position' => $posName,
+                                                'position' => $posName ?? '',
                                                 'organization_id' => $item['organization_id'] ?? null,
-                                                'organization' => $orgName,
+                                                'organization' => $orgName ?? '',
                                                 'country_id' => $item['country_id'] ?? null,
                                                 'start_date' => $item['start_date'],
                                                 'end_date' => $item['end_date'] ?? null,
@@ -924,7 +924,7 @@ class TeacherForm
                                              $data = [
                                                  'title' => $item['title'],
                                                  'organization_id' => $item['organization_id'] ?? null,
-                                                 'organization' => $orgName,
+                                                 'organization' => $orgName ?? '',
                                                 'category' => $item['category'] ?? null,
                                                 'country_id' => $item['country_id'] ?? null,
                                                 'year' => $item['year'] ?? null,

@@ -31,4 +31,4 @@ Homestead.json
 auth.json
 .next/
 web/.next/
-web/src/pages_old/
+web/node_module

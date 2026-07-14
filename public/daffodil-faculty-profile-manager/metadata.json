@@ -1,0 +1,6 @@
+{
+  "name": "Daffodil Faculty Profile Manager",
+  "description": "A highly polished, brand-aligned academic directory and profile portal for Daffodil International University (DIU), showcasing faculties, departments, scholars, and publications.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
