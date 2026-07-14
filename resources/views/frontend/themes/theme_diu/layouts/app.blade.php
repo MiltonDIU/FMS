@@ -14,5 +14,6 @@
 
     @include('frontend.themes.theme_diu.partials.footer')
 
+    @livewireScripts
 </body>
 </html>

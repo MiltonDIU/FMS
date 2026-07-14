@@ -11,6 +11,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Livewire\Livewire;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -54,5 +55,8 @@ class AppServiceProvider extends ServiceProvider
 
         // Dynamic Mail Configuration
         MailConfigService::configure();
+
+        // Register Livewire components explicitly (auto-discovery provider not wired up).
+        Livewire::component('teacher-search', \App\Livewire\Frontend\TeacherSearch::class);
     }
 }

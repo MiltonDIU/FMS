@@ -42,11 +42,11 @@
                     type="text"
                     name="q"
                     value="{{ request('q') }}"
-                    placeholder="Search faculty by name, department, research, keywords..."
+                    placeholder="Search teachers by name, email, department, faculty, designation..."
                     class="block w-full pl-10 pr-12 py-2.5 border border-slate-200 rounded-xl text-sm bg-white/50 backdrop-blur-xs hover:bg-white/90 focus:bg-white focus:outline-none focus:ring-2 focus:ring-diu-primary focus:border-diu-primary transition-all placeholder:text-slate-400 shadow-2xs"
                 />
                 @if(request('q'))
-                    <a href="{{ url()->current() }}" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-xs font-semibold text-slate-400 hover:text-slate-600 transition-colors">
+                    <a href="{{ route('home') }}" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-xs font-semibold text-slate-400 hover:text-slate-600 transition-colors">
                         Clear
                     </a>
                 @endif

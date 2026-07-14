@@ -4,7 +4,7 @@
         @if($paginator->onFirstPage())
             <span class="px-3.5 py-1.5 border border-gray-200 rounded-lg text-xs font-semibold text-gray-300 cursor-not-allowed">Previous</span>
         @else
-            <a href="{{ $paginator->previousPageUrl() }}" rel="prev" class="px-3.5 py-1.5 border border-gray-200 rounded-lg text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-all cursor-pointer">Previous</a>
+            <a href="{{ $paginator->previousPageUrl() }}" wire:navigate rel="prev" class="px-3.5 py-1.5 border border-gray-200 rounded-lg text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-all cursor-pointer">Previous</a>
         @endif
 
         {{-- Page numbers --}}
@@ -18,7 +18,7 @@
                     @if($page == $paginator->currentPage())
                         <span class="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-semibold bg-diu-primary text-white shadow-md shadow-diu-primary/10 cursor-default">{{ $page }}</span>
                     @else
-                        <a href="{{ $url }}" class="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 transition-all cursor-pointer">{{ $page }}</a>
+                        <a href="{{ $url }}" wire:navigate class="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 transition-all cursor-pointer">{{ $page }}</a>
                     @endif
                 @endforeach
             @endif
@@ -26,7 +26,7 @@
 
         {{-- Next --}}
         @if($paginator->hasMorePages())
-            <a href="{{ $paginator->nextPageUrl() }}" rel="next" class="px-3.5 py-1.5 border border-gray-200 rounded-lg text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-all cursor-pointer">Next</a>
+            <a href="{{ $paginator->nextPageUrl() }}" wire:navigate rel="next" class="px-3.5 py-1.5 border border-gray-200 rounded-lg text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-all cursor-pointer">Next</a>
         @else
             <span class="px-3.5 py-1.5 border border-gray-200 rounded-lg text-xs font-semibold text-gray-300 cursor-not-allowed">Next</span>
         @endif
