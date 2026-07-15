@@ -193,7 +193,7 @@ class TeacherSearch extends Component
                 ->join('teachers as t2', 't2.user_id', '=', 'administrative_role_user.user_id')
                 ->join('department_teacher as dt', 'dt.teacher_id', '=', 't2.id')
                 ->whereNull('dt.deleted_at')
-                ->when($this->facultyId, fn ($q) => $q->where('dt.department_id', fn ($sub) => $sub->select('id')->from('departments')->where('faculty_id', $this->facultyId)))
+                ->when($this->facultyId, fn ($q) => $q->whereIn('dt.department_id', fn ($sub) => $sub->select('id')->from('departments')->where('faculty_id', $this->facultyId)))
                 ->where('administrative_role_user.administrative_role_id', $this->adminRoleId)
                 ->distinct()
                 ->pluck('t2.id');
