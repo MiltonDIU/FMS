@@ -1,414 +1,151 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $teacher->first_name }} {{ $teacher->last_name }} - Profile</title>
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Alpine.js for Tabs -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
-                    },
-                    colors: {
-                        diu: {
-                            50: '#f2f7fd',
-                            100: '#e4effb',
-                            600: '#034ea2',
-                            700: '#023c80',
-                            900: '#011d3c',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        .glass-header {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(229, 231, 235, 0.5);
-        }
-    </style>
-</head>
-<body class="bg-slate-50 text-neutral-800 min-h-screen flex flex-col font-sans antialiased">
+@extends('frontend.themes.theme_diu.layouts.app')
 
-    <!-- Header Navigation -->
-    <header class="sticky top-0 z-50 glass-header">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-            <a href="{{ url('/') }}" class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-xl bg-diu-600 flex items-center justify-center text-white font-extrabold text-xl shadow-lg shadow-diu-600/20">
-                    DIU
-                </div>
-                <div>
-                    <span class="text-lg font-bold tracking-tight text-gray-900">Faculty <span class="text-diu-600">Directory</span></span>
-                    <p class="text-[9px] text-gray-500 font-semibold tracking-wide uppercase">Daffodil International University</p>
-                </div>
+@section('title', $teacher->first_name . ' ' . $teacher->last_name . ' - Profile')
+
+@section('content')
+
+    @php
+        $facSlug = $faculty->short_name ? strtolower($faculty->short_name) : null;
+        $deptUrl = $facSlug
+            ? route('department.show', ['faculty_short_name' => $facSlug, 'department_code' => strtolower($department->code)])
+            : route('home');
+    @endphp
+
+    <!-- Breadcrumbs -->
+    <div class="text-xs text-slate-500 font-semibold mb-8 flex flex-wrap items-center gap-2 glass-panel py-2.5 px-5 rounded-2xl">
+        <a href="{{ route('home') }}" class="hover:text-diu-primary transition">Home</a>
+        <svg class="w-3.5 h-3.5 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        <a href="{{ $faculty->url }}" class="hover:text-diu-primary transition">{{ $faculty->short_name }}</a>
+        <svg class="w-3.5 h-3.5 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        <a href="{{ $deptUrl }}" class="hover:text-diu-primary transition">{{ $department->code }}</a>
+        <svg class="w-3.5 h-3.5 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        <span class="text-diu-primary truncate max-w-xs">{{ $teacher->first_name }} {{ $teacher->last_name }}</span>
+    </div>
+
+    <div class="bg-white/40 backdrop-blur-md rounded-2xl border border-white/60 shadow-sm overflow-hidden" id="teacher-profile-{{ $teacher->id }}">
+
+        <!-- Cover / Hero header banner -->
+        <div class="relative h-48 bg-gradient-to-r from-diu-primary-dark via-diu-primary to-diu-accent/80 p-6 md:p-8 flex items-end border-b border-white/20">
+            <a href="{{ $deptUrl }}"
+               class="absolute top-4 left-4 bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all backdrop-blur-xs">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
+                Back to list
             </a>
-            
-            <a href="{{ url('/' . strtolower($faculty->short_name) . '/' . strtolower($department->code)) }}" class="text-sm font-bold text-gray-600 hover:text-diu-600 transition">
-                &larr; Back to Department
-            </a>
+            <div class="absolute right-6 top-6 text-white/10 font-display font-extrabold text-7xl select-none hidden sm:block">DIU</div>
         </div>
-    </header>
 
-    <!-- Main Container -->
-    <main class="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-12">
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            
-            <!-- Left Side: Profile Information & Photo Card -->
-            <div class="lg:col-span-1">
-                <div class="bg-white rounded-3xl border border-gray-100 p-8 flex flex-col items-center text-center shadow-lg shadow-gray-100/40 sticky top-28 space-y-6">
-                    <!-- Photo -->
-                    <div class="w-36 h-36 relative">
+        <!-- Main Info Frame -->
+        <div class="px-6 md:px-8 pb-8 relative">
+
+            <!-- Profile Avatar shifted on top of cover -->
+            <div class="flex flex-col md:flex-row md:items-end justify-between -mt-16 mb-6 gap-4">
+                <div class="flex flex-col md:flex-row items-center md:items-end gap-5 text-center md:text-left">
+                    <div class="w-32 h-32 rounded-2xl overflow-hidden border-4 border-white shadow-lg bg-slate-100 shrink-0">
                         @if($teacher->photo)
-                            <img src="{{ $teacher->photo }}" alt="{{ $teacher->first_name }}" class="w-full h-full object-cover rounded-3xl shadow-md border-2 border-white" />
-                        @else
-                            <div class="w-full h-full rounded-3xl bg-diu-50 flex items-center justify-center text-diu-600 font-extrabold text-4xl border border-diu-100/50">
-                                {{ substr($teacher->first_name, 0, 1) }}{{ substr($teacher->last_name, 0, 1) }}
+                            <img src="https://faculty.daffodilvarsity.edu.bd/images/teacher/{{ $teacher->photo }}" alt="{{ $teacher->first_name }}" class="w-full h-full object-cover" />
+                           @else
+                            <div class="w-full h-full bg-diu-primary text-white flex items-center justify-center font-display font-bold text-4xl">
+                                {{ strtoupper(substr($teacher->first_name, 0, 1)) }}
                             </div>
                         @endif
-                        <span class="absolute bottom-2 right-2 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></span>
                     </div>
 
-                    <!-- Profile Bio Info -->
-                    <div>
-                        <h2 class="text-xl font-extrabold text-gray-900 leading-tight">
+                    <div class="pt-2">
+                        <div class="flex flex-wrap items-center justify-center md:justify-start gap-2 mb-1.5">
+                            @if($teacher->administrativeRoles->isNotEmpty())
+                                @php
+                                    $adminRoleName = optional($teacher->administrativeRoles->first())->administrativeRole?->name;
+                                @endphp
+                                @if($adminRoleName)
+                                    <span class="bg-diu-accent text-white text-[10px] font-sans font-bold uppercase px-2.5 py-0.5 rounded-sm shadow-xs border border-diu-accent/20">
+                                        {{ $adminRoleName }}
+                                    </span>
+                                @endif
+                            @endif
+                            <span class="bg-white/60 text-slate-700 text-[10px] font-sans font-bold uppercase px-2.5 py-0.5 rounded-sm border border-white/80">
+                                {{ optional($teacher->designation)->name ?? 'Faculty Member' }}
+                            </span>
+                        </div>
+                        <h2 class="text-xl md:text-2xl font-display font-bold text-slate-900 tracking-tight leading-tight">
                             {{ $teacher->first_name }} {{ $teacher->middle_name }} {{ $teacher->last_name }}
                         </h2>
-                        <p class="text-xs font-semibold text-diu-700 bg-diu-50 px-3 py-1 rounded-full mt-2 inline-block">
-                            {{ optional($teacher->designation)->name ?? 'Faculty Member' }}
-                        </p>
-                        <p class="text-[10px] text-gray-400 font-bold uppercase mt-1">
-                            {{ optional($teacher->department)->name ?? 'General' }}
+                        <p class="text-xs text-slate-500 font-sans font-medium mt-1">
+                            {{ optional($teacher->department)->name ?? 'General' }} • <span class="text-slate-400">{{ $faculty->name ?? 'DIU' }}</span>
                         </p>
                     </div>
+                </div>
 
-                    <div class="w-full border-t border-gray-100 my-4"></div>
-
-                    <!-- Contact Details -->
-                    <div class="w-full space-y-4 text-left">
-                        <div class="flex items-start space-x-3 text-sm">
-                            <span class="text-gray-400">📧</span>
-                            <div class="break-all">
-                                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Email Address</p>
-                                <a href="mailto:{{ $teacher->secondary_email }}" class="text-gray-900 font-semibold hover:underline">{{ $teacher->secondary_email ?? 'N/A' }}</a>
-                            </div>
-                        </div>
-
-                        @if($teacher->phone)
-                            <div class="flex items-start space-x-3 text-sm">
-                                <span class="text-gray-400">📞</span>
-                                <div>
-                                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Office Phone</p>
-                                    <span class="text-gray-900 font-semibold">{{ $teacher->phone }}</span>
-                                </div>
-                            </div>
-                        @endif
-
-                        @if($teacher->personal_phone)
-                            <div class="flex items-start space-x-3 text-sm">
-                                <span class="text-gray-400">📱</span>
-                                <div>
-                                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Mobile</p>
-                                    <span class="text-gray-900 font-semibold">{{ $teacher->personal_phone }}</span>
-                                </div>
-                            </div>
-                        @endif
-
-                        @if($teacher->webpage)
-                            <div class="flex items-start space-x-3 text-sm">
-                                <span class="text-gray-400">🌐</span>
-                                <div class="break-all">
-                                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Webpage</p>
-                                    <a href="{{ $teacher->webpage }}" target="_blank" class="text-diu-600 font-semibold hover:underline">{{ $teacher->webpage }}</a>
-                                </div>
-                            </div>
-                        @endif
-                    </div>
-
-                    <!-- Social Icons -->
-                    @if($teacher->socialLinks->isNotEmpty())
-                        <div class="w-full border-t border-gray-100 my-4"></div>
-                        <div class="flex items-center justify-center space-x-3">
-                            @foreach($teacher->socialLinks as $link)
-                                <a href="{{ $link->url }}" target="_blank" class="w-8 h-8 rounded-xl bg-gray-50 border border-gray-100 hover:border-diu-200 flex items-center justify-center text-gray-500 hover:text-diu-600 transition" title="{{ optional($link->platform)->name }}">
-                                    🔗
-                                </a>
-                            @endforeach
-                        </div>
-                    @endif
-
+                <!-- Social / Scholars Web Profile Buttons -->
+                <div class="flex flex-wrap items-center justify-center gap-2">
+                    @foreach($teacher->socialLinks as $link)
+                        <a href="{{ $link->url }}" target="_blank" rel="noopener noreferrer"
+                           class="p-2 bg-white/40 hover:bg-white/80 text-slate-600 rounded-lg border border-white/60 transition-colors shadow-2xs"
+                           title="{{ optional($link->platform)->name ?? 'Link' }}">
+                            @include("frontend.themes.{$activeTheme}.partials.social_icon", ['platform' => optional($link->platform)->name ?? ''])
+                        </a>
+                    @endforeach
                 </div>
             </div>
 
-            <!-- Right Side: Portfolio Content Tabs (Alpine.js) -->
-            <div class="lg:col-span-3 space-y-8" x-data="{ tab: 'overview' }">
-                
-                <!-- Tab Headers -->
-                <div class="bg-white border border-gray-100 rounded-2xl p-2 shadow-sm flex items-center space-x-2 overflow-x-auto whitespace-nowrap">
-                    <button 
-                        @click="tab = 'overview'" 
-                        :class="tab === 'overview' ? 'bg-diu-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'"
-                        class="px-5 py-2.5 rounded-xl text-xs font-bold transition duration-200"
-                    >
-                        Overview
-                    </button>
-                    <button 
-                        @click="tab = 'courses'" 
-                        :class="tab === 'courses' ? 'bg-diu-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'"
-                        class="px-5 py-2.5 rounded-xl text-xs font-bold transition duration-200"
-                    >
-                        Courses
-                    </button>
-                    <button 
-                        @click="tab = 'research'" 
-                        :class="tab === 'research' ? 'bg-diu-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'"
-                        class="px-5 py-2.5 rounded-xl text-xs font-bold transition duration-200"
-                    >
-                        Research
-                    </button>
-                    <button 
-                        @click="tab = 'publications'" 
-                        :class="tab === 'publications' ? 'bg-diu-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'"
-                        class="px-5 py-2.5 rounded-xl text-xs font-bold transition duration-200"
-                    >
-                        Publications ({{ $teacher->publications->count() }})
-                    </button>
-                    <button 
-                        @click="tab = 'training'" 
-                        :class="tab === 'training' ? 'bg-diu-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'"
-                        class="px-5 py-2.5 rounded-xl text-xs font-bold transition duration-200"
-                    >
-                        Training
-                    </button>
-                    <button 
-                        @click="tab = 'awards'" 
-                        :class="tab === 'awards' ? 'bg-diu-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'"
-                        class="px-5 py-2.5 rounded-xl text-xs font-bold transition duration-200"
-                    >
-                        Awards
-                    </button>
-                    <button 
-                        @click="tab = 'memberships'" 
-                        :class="tab === 'memberships' ? 'bg-diu-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'"
-                        class="px-5 py-2.5 rounded-xl text-xs font-bold transition duration-200"
-                    >
-                        Memberships
-                    </button>
-                </div>
-
-                <!-- Tab Contents -->
-                
-                <!-- Overview Tab -->
-                <div x-show="tab === 'overview'" class="space-y-8" x-cloak>
-                    <!-- Biography -->
-                    @if($teacher->bio)
-                        <div class="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm">
-                            <h3 class="text-lg font-extrabold text-gray-900 mb-4 flex items-center">
-                                <span class="w-1.5 h-5 bg-diu-600 rounded-full mr-2.5"></span>
-                                Biography
-                            </h3>
-                            <p class="text-gray-600 text-sm leading-relaxed whitespace-pre-line">{{ $teacher->bio }}</p>
-                        </div>
-                    @endif
-
-                    <!-- Educations -->
-                    <div class="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm">
-                        <h3 class="text-lg font-extrabold text-gray-900 mb-6 flex items-center">
-                            <span class="w-1.5 h-5 bg-diu-600 rounded-full mr-2.5"></span>
-                            Education Background
-                        </h3>
-                        @if($teacher->educations->isEmpty())
-                            <p class="text-sm text-gray-500 italic">No education records found.</p>
-                        @else
-                            <div class="relative pl-6 border-l border-slate-200 space-y-8">
-                                @foreach($teacher->educations as $edu)
-                                    <div class="relative">
-                                        <span class="absolute -left-[30.5px] top-1.5 w-3 h-3 rounded-full bg-diu-600 border-2 border-white shadow-sm"></span>
-                                        <h4 class="font-extrabold text-gray-900 text-sm">{{ $edu->degree_name }}</h4>
-                                        <p class="text-xs text-gray-600 font-medium mt-1">{{ $edu->institution_name }}</p>
-                                        <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wide mt-1">
-                                            Passed Year: {{ $edu->passing_year ?? 'N/A' }} | Result: {{ $edu->result ?? 'N/A' }}
-                                        </p>
-                                    </div>
-                                @endforeach
-                            </div>
-                        @endif
+            <!-- Contact Strip -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 py-4 px-5 bg-white/30 backdrop-blur-xs rounded-xl border border-white/60 mb-8 text-xs text-slate-600 font-sans ring-1 ring-slate-900/5">
+                <div class="flex items-center gap-2.5">
+                    <svg class="w-4 h-4 text-diu-primary shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                    <div class="min-w-0">
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Email Address</p>
+                        <p class="font-mono truncate font-semibold text-slate-700">{{ $teacher->user->email ?? 'N/A' }}</p>
                     </div>
                 </div>
-
-                <!-- Courses Tab -->
-                <div x-show="tab === 'courses'" class="space-y-8" x-cloak>
-                    <div class="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm">
-                        <h3 class="text-lg font-extrabold text-gray-900 mb-4 flex items-center">
-                            <span class="w-1.5 h-5 bg-diu-600 rounded-full mr-2.5"></span>
-                            Courses Assigned
-                        </h3>
-                        @if($teacher->teachingAreas->isEmpty())
-                            <p class="text-sm text-gray-500 italic">No assigned teaching courses found.</p>
-                        @else
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                @foreach($teacher->teachingAreas as $area)
-                                    <div class="bg-slate-50 border border-gray-100 p-4 rounded-2xl flex items-center space-x-3">
-                                        <span class="text-diu-600 text-lg">📚</span>
-                                        <div>
-                                            <h4 class="font-bold text-gray-900 text-sm">{{ $area->name }}</h4>
-                                            <p class="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Active Curriculum</p>
-                                        </div>
-                                    </div>
-                                @endforeach
-                            </div>
-                        @endif
+                <div class="flex items-center gap-2.5">
+                    <svg class="w-4 h-4 text-diu-primary shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    <div>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Contact Number</p>
+                        <p class="font-semibold text-slate-700">{{ $teacher->phone ?? ($teacher->personal_phone ?? 'N/A') }}</p>
                     </div>
                 </div>
-
-                <!-- Research Tab -->
-                <div x-show="tab === 'research'" class="space-y-8" x-cloak>
-                    <div class="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm">
-                        <h3 class="text-lg font-extrabold text-gray-900 mb-4 flex items-center">
-                            <span class="w-1.5 h-5 bg-diu-600 rounded-full mr-2.5"></span>
-                            Research Profile
-                        </h3>
-                        @if($teacher->research_interest)
-                            <div class="p-5 bg-diu-50/50 border border-diu-50 rounded-2xl italic text-gray-700 text-sm">
-                                "{{ $teacher->research_interest }}"
-                            </div>
-                        @endif
-
-                        @if($teacher->researchProjects->isEmpty())
-                            <p class="text-sm text-gray-500 italic mt-4">No specific research projects registered.</p>
-                        @else
-                            <div class="space-y-4 mt-6">
-                                @foreach($teacher->researchProjects as $proj)
-                                    <div class="border-b border-gray-100 pb-4 last:border-0 last:pb-0">
-                                        <h4 class="font-extrabold text-gray-900 text-sm">{{ $proj->title }}</h4>
-                                        <p class="text-xs text-gray-500 mt-1">Funding: {{ $proj->funding_agency ?? 'N/A' }} | Role: {{ $proj->role ?? 'N/A' }}</p>
-                                    </div>
-                                @endforeach
-                            </div>
-                        @endif
+                <div class="flex items-center gap-2.5">
+                    <svg class="w-4 h-4 text-diu-primary shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                    <div class="min-w-0">
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Office Location</p>
+                        <p class="font-semibold text-slate-700 truncate">{{ $teacher->office_room ?? 'N/A' }}</p>
                     </div>
                 </div>
+            </div>
 
-                <!-- Publications Tab -->
-                <div x-show="tab === 'publications'" class="space-y-6" x-cloak>
-                    @if($teacher->publications->isEmpty())
-                        <div class="bg-white border border-gray-100 rounded-3xl p-8 text-center shadow-sm">
-                            <p class="text-sm text-gray-500 italic">No publications indexed.</p>
-                        </div>
-                    @else
-                        @foreach($teacher->publications as $pub)
-                            <div class="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm hover:border-diu-100 transition-all duration-300">
-                                <span class="px-2.5 py-1 bg-diu-50 text-diu-700 text-[10px] font-bold rounded-lg uppercase tracking-wide">
-                                    {{ $pub->type ?? 'Research Paper' }}
-                                </span>
-                                <h4 class="font-extrabold text-gray-900 text-base mt-3 leading-snug">
-                                    {{ $pub->title }}
-                                </h4>
-                                <p class="text-xs text-gray-500 mt-2">
-                                    Published in: <span class="text-gray-700 font-semibold">{{ $pub->journal_name ?? 'N/A' }}</span> | Year: <span class="text-gray-700 font-semibold">{{ $pub->published_year ?? 'N/A' }}</span>
-                                </p>
-                                <div class="flex items-center space-x-4 mt-4">
-                                    <a href="{{ url('/' . strtolower($faculty->short_name) . '/' . strtolower($department->code) . '/' . $teacher->webpage . '/publication/' . \Illuminate\Support\Str::slug($pub->title)) }}" class="inline-flex items-center text-xs font-bold text-diu-600 hover:underline">
-                                        <span>View Details</span>
-                                        <span class="ml-1.5">&rarr;</span>
-                                    </a>
-                                    @if($pub->paper_link)
-                                        <a href="{{ $pub->paper_link }}" target="_blank" class="inline-flex items-center text-xs font-semibold text-gray-500 hover:text-gray-700 hover:underline">
-                                            <span>External Link</span>
-                                        </a>
-                                    @endif
-                                </div>
-                            </div>
-                        @endforeach
-                    @endif
+            <!-- Tab Controls -->
+            <div x-data="{ tab: 'overview' }">
+                <div class="flex border-b border-white/40 mb-6 overflow-x-auto gap-1 pb-1">
+                    @foreach([
+                        ['id' => 'overview', 'label' => 'Overview'],
+                        ['id' => 'academic', 'label' => 'Academic Background'],
+                        ['id' => 'courses', 'label' => 'Teaching Area'],
+                        ['id' => 'research', 'label' => 'Research'],
+                        ['id' => 'publications', 'label' => 'Publications (' . $teacher->publications->count() . ')'],
+                        ['id' => 'experience', 'label' => 'Experience'],
+                        ['id' => 'training', 'label' => 'Training'],
+                        ['id' => 'awards', 'label' => 'Awards'],
+                        ['id' => 'memberships', 'label' => 'Memberships'],
+                    ] as $tab)
+                        <button @click="tab = '{{ $tab['id'] }}'"
+                                :class="tab === '{{ $tab['id'] }}' ? 'border-diu-primary text-diu-primary font-bold bg-white/40 rounded-t-lg' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-white/10'"
+                                class="px-4 py-3 text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-2 border-b-2 -mb-px cursor-pointer">
+                            {{ $tab['label'] }}
+                        </button>
+                    @endforeach
                 </div>
 
-                <!-- Training Tab -->
-                <div x-show="tab === 'training'" class="space-y-8" x-cloak>
-                    <div class="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm">
-                        <h3 class="text-lg font-extrabold text-gray-900 mb-4 flex items-center">
-                            <span class="w-1.5 h-5 bg-diu-600 rounded-full mr-2.5"></span>
-                            Training & Workshops
-                        </h3>
-                        @if($teacher->trainingExperiences->isEmpty())
-                            <p class="text-sm text-gray-500 italic">No training experience indexed.</p>
-                        @else
-                            <div class="space-y-6">
-                                @foreach($teacher->trainingExperiences as $trn)
-                                    <div class="border-b border-gray-100 pb-4 last:border-0 last:pb-0">
-                                        <h4 class="font-bold text-gray-900 text-sm">{{ $trn->title }}</h4>
-                                        <p class="text-xs text-gray-600 mt-1">{{ $trn->institution_name }} ({{ $trn->duration ?? 'N/A' }})</p>
-                                    </div>
-                                @endforeach
-                            </div>
-                        @endif
-                    </div>
-                </div>
-
-                <!-- Awards Tab -->
-                <div x-show="tab === 'awards'" class="space-y-8" x-cloak>
-                    <div class="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm">
-                        <h3 class="text-lg font-extrabold text-gray-900 mb-4 flex items-center">
-                            <span class="w-1.5 h-5 bg-diu-600 rounded-full mr-2.5"></span>
-                            Awards & Scholarships
-                        </h3>
-                        @if($teacher->awards->isEmpty())
-                            <p class="text-sm text-gray-500 italic">No awards registered.</p>
-                        @else
-                            <div class="space-y-6">
-                                @foreach($teacher->awards as $awr)
-                                    <div class="border-b border-gray-100 pb-4 last:border-0 last:pb-0">
-                                        <h4 class="font-bold text-gray-900 text-sm">{{ $awr->title }}</h4>
-                                        <p class="text-xs text-gray-600 mt-1">Given by: {{ $awr->awarding_body ?? 'N/A' }} | Year: {{ $awr->year ?? 'N/A' }}</p>
-                                    </div>
-                                @endforeach
-                            </div>
-                        @endif
-                    </div>
-                </div>
-
-                <!-- Memberships Tab -->
-                <div x-show="tab === 'memberships'" class="space-y-8" x-cloak>
-                    <div class="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm">
-                        <h3 class="text-lg font-extrabold text-gray-900 mb-4 flex items-center">
-                            <span class="w-1.5 h-5 bg-diu-600 rounded-full mr-2.5"></span>
-                            Professional Memberships
-                        </h3>
-                        @if($teacher->memberships->isEmpty())
-                            <p class="text-sm text-gray-500 italic">No memberships indexed.</p>
-                        @else
-                            <div class="space-y-6">
-                                @foreach($teacher->memberships as $mem)
-                                    <div class="border-b border-gray-100 pb-4 last:border-0 last:pb-0">
-                                        <h4 class="font-bold text-gray-900 text-sm">{{ $mem->title }}</h4>
-                                        <p class="text-xs text-gray-600 mt-1">Role: {{ $mem->membership_role ?? 'Member' }}</p>
-                                    </div>
-                                @endforeach
-                            </div>
-                        @endif
-                    </div>
-                </div>
+                @include('frontend.themes.theme_diu.partials.profile.overview')
+                @include('frontend.themes.theme_diu.partials.profile.academic')
+                @include('frontend.themes.theme_diu.partials.profile.courses')
+                @include('frontend.themes.theme_diu.partials.profile.research')
+                @include('frontend.themes.theme_diu.partials.profile.publications')
+                @include('frontend.themes.theme_diu.partials.profile.experience')
+                @include('frontend.themes.theme_diu.partials.profile.training')
+                @include('frontend.themes.theme_diu.partials.profile.awards')
+                @include('frontend.themes.theme_diu.partials.profile.memberships')
 
             </div>
         </div>
-    </main>
+    </div>
 
-    <!-- Footer -->
-    <footer class="bg-white border-t border-gray-100 py-8 mt-12">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs text-gray-500">
-            &copy; {{ date('Y') }} Daffodil International University. Faculty Directory. All rights reserved.
-        </div>
-    </footer>
-</body>
-</html>
+@endsection

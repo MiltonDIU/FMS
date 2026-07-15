@@ -1,199 +1,189 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $publication->title }} - Publication Details</title>
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
-                    },
-                    colors: {
-                        diu: {
-                            50: '#f2f7fd',
-                            100: '#e4effb',
-                            600: '#034ea2',
-                            700: '#023c80',
-                            900: '#011d3c',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        .glass-header {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(229, 231, 235, 0.5);
-        }
-    </style>
-</head>
-<body class="bg-slate-50 text-neutral-800 min-h-screen flex flex-col font-sans antialiased">
+@extends('frontend.themes.theme_diu.layouts.app')
 
-    <!-- Header Navigation -->
-    <header class="sticky top-0 z-50 glass-header">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-            <a href="{{ url('/') }}" class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-xl bg-diu-600 flex items-center justify-center text-white font-extrabold text-xl shadow-lg shadow-diu-600/20">
-                    DIU
-                </div>
+@section('title', $publication->title . ' - Publication Details')
+
+@section('content')
+
+    @php
+        // $authors and $citations are provided by the controller.
+        $venue = $publication->journal_name ?? '';
+
+        // Null-safe URLs (faculties.short_name and teachers.webpage are nullable columns).
+        $facSlug = $faculty->short_name ? strtolower($faculty->short_name) : null;
+        $departmentUrl = $facSlug
+            ? route('department.show', ['faculty_short_name' => $facSlug, 'department_code' => strtolower($department->code)])
+            : route('home');
+        $teacherUrl = ($facSlug && $teacher->webpage)
+            ? route('teacher.show', ['faculty_short_name' => $facSlug, 'department_code' => strtolower($department->code), 'teacher_webpage' => $teacher->webpage])
+            : route('home');
+    @endphp
+
+    <!-- Breadcrumbs -->
+    <div class="text-xs text-slate-500 font-semibold mb-8 flex flex-wrap items-center gap-2 glass-panel py-2.5 px-5 rounded-2xl">
+        <a href="{{ route('home') }}" class="hover:text-diu-primary transition">Home</a>
+        <svg class="w-3.5 h-3.5 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        <a href="{{ $faculty->url }}" class="hover:text-diu-primary transition">{{ $faculty->short_name }}</a>
+        <svg class="w-3.5 h-3.5 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        <a href="{{ $departmentUrl }}" class="hover:text-diu-primary transition">{{ $department->code }}</a>
+        <svg class="w-3.5 h-3.5 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        <a href="{{ $teacherUrl }}" class="hover:text-diu-primary transition">{{ $teacher->first_name }} {{ $teacher->last_name }}</a>
+        <svg class="w-3.5 h-3.5 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        <span class="text-diu-primary truncate max-w-xs">Publication Details</span>
+    </div>
+
+    <div class="bg-white/40 backdrop-blur-md rounded-2xl border border-white/60 shadow-xs overflow-hidden font-sans">
+
+        <!-- Upper header -->
+        <div class="bg-gradient-to-r from-diu-primary to-diu-primary-dark p-6 md:p-8 text-white relative">
+            <a href="{{ $teacherUrl }}"
+               class="bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all mb-4 backdrop-blur-xs inline-flex">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
+                Back to Profile
+            </a>
+
+            <span class="bg-diu-accent text-white text-[10px] font-sans font-bold uppercase px-2.5 py-0.5 rounded-sm tracking-wide">
+                {{ optional($publication->type)->name ?? 'Research' }} Publication
+            </span>
+            <h2 class="text-lg md:text-xl font-display font-bold text-white tracking-tight mt-3 leading-snug">{{ $publication->title }}</h2>
+            <p class="text-xs text-white/85 mt-2 font-medium">Authors: {{ $authors }}</p>
+        </div>
+
+        <div class="p-6 md:p-8 space-y-8">
+
+            <!-- Core Metadata Block -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-white/30 backdrop-blur-xs rounded-xl border border-white/60 text-xs ring-1 ring-slate-900/5">
+                @if($venue)
+                    <div>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase">Journal / Conference</p>
+                        <p class="font-semibold text-slate-800 mt-1 leading-tight">{{ $venue }}</p>
+                    </div>
+                @endif
                 <div>
-                    <span class="text-lg font-bold tracking-tight text-gray-900">Faculty <span class="text-diu-600">Directory</span></span>
-                    <p class="text-[9px] text-gray-500 font-semibold tracking-wide uppercase">Daffodil International University</p>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase">Published Year</p>
+                    <p class="font-semibold text-slate-800 mt-1 flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5 text-diu-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></svg>
+                        {{ $publication->publication_year ?? 'N/A' }}
+                    </p>
                 </div>
-            </a>
-            
-            <a href="{{ url('/' . strtolower($faculty->short_name) . '/' . strtolower($department->code) . '/' . $teacher->webpage) }}" class="text-sm font-bold text-gray-600 hover:text-diu-600 transition">
-                &larr; Back to Profile
-            </a>
-        </div>
-    </header>
+                @if($publication->impact_factor)
+                    <div>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase">Impact Factor</p>
+                        <p class="font-semibold text-emerald-600 mt-1">{{ $publication->impact_factor }}</p>
+                    </div>
+                @endif
+                @if($publication->citescore)
+                    <div>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase">CiteScore</p>
+                        <p class="font-semibold text-blue-600 mt-1">{{ $publication->citescore }}</p>
+                    </div>
+                @endif
+                @if($publication->h_index)
+                    <div>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase">H-Index</p>
+                        <p class="font-semibold text-indigo-600 mt-1">{{ $publication->h_index }}</p>
+                    </div>
+                @endif
+                @if($publication->research_area)
+                    <div>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase">Research Area</p>
+                        <p class="text-xs font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md inline-block mt-1">{{ $publication->research_area }}</p>
+                    </div>
+                @endif
+            </div>
 
-    <!-- Main Container -->
-    <main class="flex-grow max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-12">
-        
-        <!-- Breadcrumbs -->
-        <div class="text-xs text-gray-500 font-semibold mb-8 flex flex-wrap items-center gap-2">
-            <a href="{{ url('/') }}" class="hover:text-diu-600 transition">Home</a>
-            <span>/</span>
-            <a href="{{ url('/' . strtolower($faculty->short_name)) }}" class="hover:text-diu-600 transition">{{ $faculty->short_name }}</a>
-            <span>/</span>
-            <a href="{{ url('/' . strtolower($faculty->short_name) . '/' . strtolower($department->code)) }}" class="hover:text-diu-600 transition">{{ $department->code }}</a>
-            <span>/</span>
-            <a href="{{ url('/' . strtolower($faculty->short_name) . '/' . strtolower($department->code) . '/' . $teacher->webpage) }}" class="hover:text-diu-600 transition">{{ $teacher->first_name }} {{ $teacher->last_name }}</a>
-            <span>/</span>
-            <span class="text-diu-600 truncate max-w-xs">Publication Details</span>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            
-            <!-- Left Side: Publication Metadata -->
-            <div class="lg:col-span-1 space-y-6">
-                <div class="bg-white rounded-3xl border border-gray-100 p-6 shadow-sm space-y-6">
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">
-                        Publication Metrics
+            <!-- Abstract Section -->
+            @if($publication->abstract)
+                <div>
+                    <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                        <svg class="w-4 h-4 text-diu-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+                        Abstract
                     </h3>
+                    <p class="text-sm text-slate-600 leading-relaxed font-sans text-justify">{{ $publication->abstract }}</p>
+                </div>
+            @endif
 
-                    <div class="space-y-4">
-                        @if($publication->journal_name)
-                            <div>
-                                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Journal / Venue</p>
-                                <p class="text-sm font-extrabold text-gray-900 leading-snug">{{ $publication->journal_name }}</p>
-                            </div>
-                        @endif
+            <!-- Dynamic Citation Generator Widget -->
+            <div x-data="{ copied: null, doCopy(ref, key) { const el = $refs[ref]; if(!el) return; navigator.clipboard.writeText(el.innerText); copied = key; setTimeout(() => copied = null, 2000); } }"
+                 class="bg-white/30 backdrop-blur-xs rounded-xl border border-white/60 p-5 ring-1 ring-slate-900/5">
+                <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4 flex items-center gap-1.5">
+                    <svg class="w-4 h-4 text-diu-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 9 5 10 5 10zM18 21c-3 0-7-1-7-8V5c0-1.25.757-2.017 2-2h3c1.25 0 2 .75 2 1.972V11c0 9-5 10-5 10z"/></svg>
+                    Scholarly Citation Generator
+                </h3>
 
-                        @if($publication->publication_year)
-                            <div>
-                                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Year of Publication</p>
-                                <p class="text-sm font-extrabold text-gray-900">{{ $publication->publication_year }}</p>
-                            </div>
-                        @endif
-
-                        @if($publication->impact_factor)
-                            <div>
-                                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Impact Factor</p>
-                                <p class="text-sm font-extrabold text-emerald-600">{{ $publication->impact_factor }}</p>
-                            </div>
-                        @endif
-
-                        @if($publication->citescore)
-                            <div>
-                                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">CiteScore</p>
-                                <p class="text-sm font-extrabold text-blue-600">{{ $publication->citescore }}</p>
-                            </div>
-                        @endif
-
-                        @if($publication->h_index)
-                            <div>
-                                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">H-Index</p>
-                                <p class="text-sm font-extrabold text-indigo-600">{{ $publication->h_index }}</p>
-                            </div>
-                        @endif
-
-                        @if($publication->research_area)
-                            <div>
-                                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Research Area</p>
-                                <p class="text-xs font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md inline-block mt-1">
-                                    {{ $publication->research_area }}
-                                </p>
-                            </div>
-                        @endif
+                <div class="space-y-4">
+                    <!-- APA -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1 text-[11px] font-semibold text-gray-400">
+                            <span>APA STYLE</span>
+                            <button @click="doCopy('apa', 'apa')" class="hover:text-diu-primary flex items-center gap-1 cursor-pointer transition-colors">
+                                <template x-if="copied === 'apa'">
+                                    <span class="text-emerald-600 flex items-center gap-1 font-sans"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg> Copied</span>
+                                </template>
+                                <template x-if="copied !== 'apa'">
+                                    <span class="flex items-center gap-1 font-sans"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg> Copy Citation</span>
+                                </template>
+                            </button>
+                        </div>
+                        <p x-ref="apa" class="p-3 bg-white/50 border border-white/80 rounded-lg text-xs text-slate-700 font-sans select-all leading-relaxed">{{ $citations['apa'] }}</p>
                     </div>
 
-                    @if($publication->journal_link || $publication->paper_link)
-                        <div class="border-t border-gray-100 pt-6 space-y-2">
-                            @if($publication->paper_link)
-                                <a href="{{ $publication->paper_link }}" target="_blank" class="w-full py-3 bg-diu-600 hover:bg-diu-700 text-white rounded-2xl text-center font-bold text-xs uppercase tracking-wider block transition duration-300 shadow-md shadow-diu-600/10">
-                                    Open Paper Link
-                                </a>
-                            @endif
-                            @if($publication->journal_link)
-                                <a href="{{ $publication->journal_link }}" target="_blank" class="w-full py-3 bg-slate-50 hover:bg-slate-100 border border-gray-200 text-gray-700 rounded-2xl text-center font-bold text-xs uppercase tracking-wider block transition duration-300">
-                                    Journal Website
-                                </a>
-                            @endif
+                    <!-- IEEE -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1 text-[11px] font-semibold text-gray-400">
+                            <span>IEEE STYLE</span>
+                            <button @click="doCopy('ieee', 'ieee')" class="hover:text-diu-primary flex items-center gap-1 cursor-pointer transition-colors">
+                                <template x-if="copied === 'ieee'">
+                                    <span class="text-emerald-600 flex items-center gap-1 font-sans"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg> Copied</span>
+                                </template>
+                                <template x-if="copied !== 'ieee'">
+                                    <span class="flex items-center gap-1 font-sans"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg> Copy Citation</span>
+                                </template>
+                            </button>
                         </div>
-                    @endif
+                        <p x-ref="ieee" class="p-3 bg-white/50 border border-white/80 rounded-lg text-xs text-slate-700 font-sans select-all leading-relaxed">{{ $citations['ieee'] }}</p>
+                    </div>
+
+                    <!-- BibTeX -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1 text-[11px] font-semibold text-gray-400">
+                            <span>BIBTEX PARSER</span>
+                            <button @click="doCopy('bibtex', 'bibtex')" class="hover:text-diu-primary flex items-center gap-1 cursor-pointer transition-colors">
+                                <template x-if="copied === 'bibtex'">
+                                    <span class="text-emerald-600 flex items-center gap-1 font-sans"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg> Copied</span>
+                                </template>
+                                <template x-if="copied !== 'bibtex'">
+                                    <span class="flex items-center gap-1 font-sans"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg> Copy BibTeX</span>
+                                </template>
+                            </button>
+                        </div>
+                        <pre x-ref="bibtex" class="p-3 bg-slate-900 text-slate-100 rounded-lg text-[11px] font-mono select-all overflow-x-auto whitespace-pre leading-normal shadow-inner">{{ $citations['bibtex'] }}</pre>
+                    </div>
                 </div>
             </div>
 
-            <!-- Right Side: Publication Content -->
-            <div class="lg:col-span-2 space-y-8">
-                <div class="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm space-y-6">
-                    <span class="px-2.5 py-1 bg-diu-50 text-diu-700 text-[10px] font-bold rounded-lg uppercase tracking-wide">
-                        {{ $publication->type ?? 'Research Publication' }}
-                    </span>
-                    
-                    <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-snug">
-                        {{ $publication->title }}
-                    </h1>
-
-                    @if($publication->abstract)
-                        <div class="border-t border-gray-100 pt-6">
-                            <h3 class="text-sm font-bold uppercase tracking-wider text-gray-400 mb-3">
-                                Abstract
-                            </h3>
-                            <p class="text-gray-600 text-sm leading-relaxed text-justify">
-                                {{ $publication->abstract }}
-                            </p>
-                        </div>
-                    @endif
-
-                    @if($publication->keywords)
-                        <div class="border-t border-gray-100 pt-6">
-                            <h3 class="text-sm font-bold uppercase tracking-wider text-gray-400 mb-3">
-                                Keywords
-                            </h3>
-                            <div class="flex flex-wrap gap-2">
-                                @foreach(explode(',', $publication->keywords) as $keyword)
-                                    <span class="px-3 py-1 bg-slate-50 border border-gray-100 rounded-lg text-xs font-medium text-gray-600">
-                                        {{ trim($keyword) }}
-                                    </span>
-                                @endforeach
-                            </div>
-                        </div>
-                    @endif
+            <!-- Contributing Academic Member info -->
+            <div class="p-4 bg-white/30 border border-white/60 rounded-xl flex items-center justify-between ring-1 ring-slate-900/5">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full overflow-hidden bg-slate-200 shrink-0">
+                        @if($teacher->photo)
+                            <img src="https://faculty.daffodilvarsity.edu.bd/images/teacher/{{ $teacher->photo }}" alt="{{ $teacher->first_name }}" class="w-full h-full object-cover" />
+                        @else
+                            <div class="w-full h-full bg-diu-primary text-white flex items-center justify-center font-display font-bold">{{ strtoupper(substr($teacher->first_name, 0, 1)) }}</div>
+                        @endif
+                    </div>
+                    <div>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase">Contributing Scholar</p>
+                        <p class="text-xs font-bold text-slate-800 font-display">{{ $teacher->first_name }} {{ $teacher->last_name }}</p>
+                    </div>
                 </div>
+
+                <a href="{{ $teacherUrl }}"
+                   class="text-xs font-semibold text-diu-primary hover:text-diu-accent transition-colors flex items-center gap-1">
+                    Back to Academic Profile <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg>
+                </a>
             </div>
 
         </div>
-    </main>
+    </div>
 
-    <!-- Footer -->
-    <footer class="bg-white border-t border-gray-100 py-8 mt-12">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs text-gray-500">
-            &copy; {{ date('Y') }} Daffodil International University. Faculty Directory. All rights reserved.
-        </div>
-    </footer>
-</body>
-</html>
+@endsection
