@@ -14,7 +14,7 @@
                         <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6m0 5h12m0-5h1.5a2.5 2.5 0 0 1 0 5H18m0 0v2a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4v-2m8 0h-4"/></svg>
                     </div>
                     <div>
-                        <span class="bg-diu-accent text-white text-[8px] font-sans font-bold uppercase px-1.5 py-0.5 rounded-xs">{{ $awr->title }}</span>
+                        <span class="bg-diu-accent text-white text-[8px] font-sans font-bold uppercase px-1.5 py-0.5 rounded-xs">{{ $awr->type ?? 'Award' }}</span>
                         <h4 class="text-xs font-bold text-slate-800 mt-1.5 leading-snug font-display">{{ $awr->title }}</h4>
                         <p class="text-[11px] text-slate-500 font-semibold mt-0.5">{{ $awr->awarding_body ?? '' }} • {{ $awr->year ?? '' }}</p>
                     </div>

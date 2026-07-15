@@ -132,14 +132,7 @@ class DepartmentTeachersTable
                                 return $query->pluck('name', 'id');
                             })
                             ->live()
-                            ->afterStateUpdated(fn ($set) => $set('department_id', null))
-                            ->default(function() use ($adminRole) {
-                                 if (!$adminRole || !$adminRole->pivot) return null;
-                                 if ($adminRole->pivot->faculty_id) {
-                                     return $adminRole->pivot->faculty_id;
-                                 }
-                                 return null;
-                            }),
+                            ->afterStateUpdated(fn ($set) => $set('department_id', null)),
 
                         Select::make('department_id')
                             ->label('Department')
@@ -165,10 +158,28 @@ class DepartmentTeachersTable
                                 return $query->pluck('name', 'id');
                             })
                             ->searchable()
-                            ->preload()
-                            ->default($adminRole && $adminRole->pivot ? $adminRole->pivot->department_id : null),
+                            ->preload(),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
+                        $user = auth()->user();
+                        $adminRole = null;
+
+                        if ($user && ! $user->hasRole('super_admin')) {
+                            $adminRole = $user->administrativeRoles()
+                                ->wherePivot('is_active', true)
+                                ->whereNull('administrative_role_user.end_date')
+                                ->first();
+                        }
+
+                        // Enforce scoped-admin restrictions (the selection alone is not trusted)
+                        if ($adminRole && $adminRole->pivot) {
+                            if ($adminRole->pivot->department_id) {
+                                $data['department_id'] = $adminRole->pivot->department_id;
+                            } elseif ($adminRole->pivot->faculty_id) {
+                                $data['faculty_id'] = $adminRole->pivot->faculty_id;
+                            }
+                        }
+
                         return $query
                             ->when(
                                 $data['faculty_id'] ?? null,

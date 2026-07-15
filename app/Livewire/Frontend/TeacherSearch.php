@@ -6,6 +6,7 @@ use App\Models\AdministrativeRole;
 use App\Models\Designation;
 use App\Models\Faculty;
 use App\Models\Teacher;
+use App\Models\UserAdministrativeRole;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Request;
@@ -60,7 +61,8 @@ class TeacherSearch extends Component
 
     public function getFacultiesProperty()
     {
-        return Faculty::withCount(['departments', 'teachers'])
+        return Faculty::where('is_active', true)
+            ->withCount(['departments', 'teachers'])
             ->orderBy('sort_order')
             ->get();
     }
@@ -78,14 +80,24 @@ class TeacherSearch extends Component
     {
         $faculty = $this->selectedFaculty;
 
-        return $faculty ? $faculty->departments()->orderBy('sort_order')->get() : collect();
+        return $faculty ? $faculty->departments()->where('is_active', true)->orderBy('sort_order')->get() : collect();
     }
 
     public function getVisibleDesignationsProperty()
     {
+        $deptId = $this->departmentId ? (int) $this->departmentId : null;
+        $facId = $this->facultyId ? (int) $this->facultyId : null;
+        $assignedIds = $deptId
+            ? Teacher::whereHas('departments', fn ($q) => $q->whereNull('department_teacher.deleted_at')->where('department_teacher.department_id', $deptId))->pluck('id')->all()
+            : [];
+
         $ids = Teacher::query()
-            ->join('departments', 'departments.id', '=', 'teachers.department_id')
-            ->when($this->facultyId, fn ($q) => $q->where('departments.faculty_id', $this->facultyId))
+            ->when($deptId, fn ($q) => $q->where(fn ($q2) => $q2->where('teachers.department_id', $deptId)->orWhereIn('teachers.id', $assignedIds)))
+            ->when($facId, fn ($q) => $q->where(fn ($q2) => $q2
+                ->whereIn('teachers.department_id', fn ($sub) => $sub->select('id')->from('departments')->where('faculty_id', $facId))
+                ->orWhereIn('teachers.id', fn ($sub) => $sub->select('teacher_id')->from('department_teacher')
+                    ->whereNull('department_teacher.deleted_at')
+                    ->whereIn('department_id', fn ($s2) => $s2->select('id')->from('departments')->where('faculty_id', $facId)))))
             ->where('teachers.is_active', true)
             ->where('teachers.is_archived', false)
             ->whereNotNull('teachers.designation_id')
@@ -97,10 +109,20 @@ class TeacherSearch extends Component
 
     public function getVisibleAdminRolesProperty()
     {
-        $ids = DB::table('administrative_role_user')
+        $deptId = $this->departmentId ? (int) $this->departmentId : null;
+        $facId = $this->facultyId ? (int) $this->facultyId : null;
+        $assignedIds = $deptId
+            ? Teacher::whereHas('departments', fn ($q) => $q->whereNull('department_teacher.deleted_at')->where('department_teacher.department_id', $deptId))->pluck('id')->all()
+            : [];
+
+        $ids = UserAdministrativeRole::query()
             ->join('teachers', 'teachers.user_id', '=', 'administrative_role_user.user_id')
-            ->join('departments', 'departments.id', '=', 'teachers.department_id')
-            ->when($this->facultyId, fn ($q) => $q->where('departments.faculty_id', $this->facultyId))
+            ->when($deptId, fn ($q) => $q->where(fn ($q2) => $q2->where('teachers.department_id', $deptId)->orWhereIn('teachers.id', $assignedIds)))
+            ->when($facId, fn ($q) => $q->where(fn ($q2) => $q2
+                ->whereIn('teachers.department_id', fn ($sub) => $sub->select('id')->from('departments')->where('faculty_id', $facId))
+                ->orWhereIn('teachers.id', fn ($sub) => $sub->select('teacher_id')->from('department_teacher')
+                    ->whereNull('department_teacher.deleted_at')
+                    ->whereIn('department_id', fn ($s2) => $s2->select('id')->from('departments')->where('faculty_id', $facId)))))
             ->whereNotNull('administrative_role_user.administrative_role_id')
             ->distinct()
             ->pluck('administrative_role_user.administrative_role_id');
@@ -108,10 +130,28 @@ class TeacherSearch extends Component
         return AdministrativeRole::whereIn('id', $ids)->orderBy('sort_order')->get();
     }
 
-    public function getTeachersProperty()
+    private function getBaseTeachersQuery()
     {
+        $deptId = $this->departmentId ? (int) $this->departmentId : null;
+        $facId = $this->facultyId ? (int) $this->facultyId : null;
+
+        $scopeParts = [];
+        if ($deptId) {
+            $scopeParts[] = 'aru.department_id = ' . $deptId;
+        }
+        if ($facId) {
+            $facCond = 'aru.faculty_id = ' . $facId;
+            if ($deptId) {
+                $facCond = '(aru.department_id IS NULL AND ' . $facCond . ')';
+            }
+            $scopeParts[] = $facCond;
+        }
+        $adminScope = $scopeParts ? '(' . implode(' OR ', $scopeParts) . ')' : '1=1';
+
         $query = Teacher::query()
             ->select('teachers.*')
+            ->selectRaw("EXISTS (SELECT 1 FROM administrative_role_user aru WHERE aru.user_id = teachers.user_id AND ({$adminScope}) AND aru.deleted_at IS NULL) as has_admin_role")
+            ->selectRaw("(SELECT MIN(admin_roles.sort_order) FROM administrative_role_user aru JOIN administrative_roles admin_roles ON admin_roles.id = aru.administrative_role_id WHERE aru.user_id = teachers.user_id AND ({$adminScope}) AND aru.deleted_at IS NULL) as admin_role_sort")
             ->join('departments', 'departments.id', '=', 'teachers.department_id')
             ->join('faculties', 'faculties.id', '=', 'departments.faculty_id')
             ->leftJoin('designations', 'designations.id', '=', 'teachers.designation_id')
@@ -140,7 +180,8 @@ class TeacherSearch extends Component
         }
 
         if ($this->departmentId) {
-            $query->where('departments.id', $this->departmentId);
+            $assignedIds = Teacher::whereHas('departments', fn ($q) => $q->whereNull('department_teacher.deleted_at')->where('department_teacher.department_id', $this->departmentId))->pluck('id');
+            $query->where(fn ($q) => $q->where('departments.id', $this->departmentId)->orWhereIn('teachers.id', $assignedIds));
         }
 
         if ($this->designationId) {
@@ -148,19 +189,63 @@ class TeacherSearch extends Component
         }
 
         if ($this->adminRoleId) {
-            $adminTeacherIds = DB::table('administrative_role_user')
+            $adminTeacherIds = UserAdministrativeRole::query()
                 ->join('teachers as t2', 't2.user_id', '=', 'administrative_role_user.user_id')
-                ->join('departments as d2', 'd2.id', '=', 't2.department_id')
-                ->when($this->facultyId, fn ($q) => $q->where('d2.faculty_id', $this->facultyId))
+                ->join('department_teacher as dt', 'dt.teacher_id', '=', 't2.id')
+                ->whereNull('dt.deleted_at')
+                ->when($this->facultyId, fn ($q) => $q->where('dt.department_id', fn ($sub) => $sub->select('id')->from('departments')->where('faculty_id', $this->facultyId)))
                 ->where('administrative_role_user.administrative_role_id', $this->adminRoleId)
+                ->distinct()
                 ->pluck('t2.id');
             $query->whereIn('teachers.id', $adminTeacherIds);
         }
 
+        return [$query, $adminScope];
+    }
+
+    public function getAdminTeachersProperty()
+    {
+        [$query, $adminScope] = $this->getBaseTeachersQuery();
+
         return $query
-            ->with(['designation', 'department.faculty'])
+            ->whereRaw("EXISTS (SELECT 1 FROM administrative_role_user aru WHERE aru.user_id = teachers.user_id AND ({$adminScope}) AND aru.deleted_at IS NULL)")
+            ->with(['designation', 'department.faculty', 'teachingAreas', 'administrativeRoles'])
+            ->orderBy('admin_role_sort')
+            ->orderBy('designations.sort_order')
+            ->orderBy('teachers.sort_order')
+            ->orderBy('teachers.first_name')
+            ->get();
+    }
+
+    public function getTeachersProperty()
+    {
+        [$query, $adminScope] = $this->getBaseTeachersQuery();
+
+        return $query
+            ->whereRaw("NOT EXISTS (SELECT 1 FROM administrative_role_user aru WHERE aru.user_id = teachers.user_id AND ({$adminScope}) AND aru.deleted_at IS NULL)")
+            ->with(['designation', 'department.faculty', 'teachingAreas', 'administrativeRoles'])
+            ->orderBy('designations.sort_order')
+            ->orderBy('teachers.sort_order')
             ->orderBy('teachers.first_name')
             ->paginate(12);
+    }
+    public function getStaticTeacherCountProperty(): int
+    {
+        $deptId = $this->departmentId ? (int) $this->departmentId : null;
+        $facId = $this->facultyId ? (int) $this->facultyId : null;
+
+        $query = Teacher::query()
+            ->where('teachers.is_active', true)
+            ->where('teachers.is_archived', false);
+
+        if ($deptId) {
+            $assignedIds = Teacher::whereHas('departments', fn ($q) => $q->whereNull('department_teacher.deleted_at')->where('department_teacher.department_id', $deptId))->pluck('id');
+            $query->where(fn ($q) => $q->where('teachers.department_id', $deptId)->orWhereIn('teachers.id', $assignedIds));
+        } elseif ($facId) {
+            $query->whereIn('teachers.department_id', fn ($sub) => $sub->select('id')->from('departments')->where('faculty_id', $facId)->where('is_active', true));
+        }
+
+        return $query->count();
     }
 
     public function render(): View

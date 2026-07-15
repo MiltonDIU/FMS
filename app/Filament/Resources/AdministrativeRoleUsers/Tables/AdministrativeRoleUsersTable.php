@@ -55,41 +55,14 @@ class AdministrativeRoleUsersTable
 
                 TextColumn::make('department.name')
                     ->label('Department')
-                    ->getStateUsing(function ($record) {
-                        // First try the role's own department_id
-                        if ($record->department_id && $record->department) {
-                            return $record->department->name;
-                        }
-                        // Fallback: teacher's primary department
-                        return optional(
-                            optional(optional($record->user)->teacher)->department
-                        )->name;
-                    })
-                    ->searchable(query: function ($query, string $search) {
-                        $query->where(function ($q) use ($search) {
-                            $q->whereHas('department', fn ($dq) => $dq->where('name', 'like', "%{$search}%"))
-                              ->orWhereHas('user.teacher.department', fn ($dq) => $dq->where('name', 'like', "%{$search}%"));
-                        });
-                    })
+                    ->placeholder('N/A')
+                    ->searchable()
                     ->toggleable(),
 
                 TextColumn::make('faculty.name')
                     ->label('Faculty')
-                    ->getStateUsing(function ($record) {
-                        // First try the role's own faculty_id
-                        if ($record->faculty_id && $record->faculty) {
-                            return $record->faculty->name;
-                        }
-                        // Fallback: teacher's department → faculty
-                        $department = optional(optional(optional($record->user)->teacher)->department);
-                        return optional($department->faculty)->name;
-                    })
-                    ->searchable(query: function ($query, string $search) {
-                        $query->where(function ($q) use ($search) {
-                            $q->whereHas('faculty', fn ($fq) => $fq->where('name', 'like', "%{$search}%"))
-                              ->orWhereHas('user.teacher.department.faculty', fn ($fq) => $fq->where('name', 'like', "%{$search}%"));
-                        });
-                    })
+                    ->placeholder('N/A')
+                    ->searchable()
                     ->toggleable(),
 
                 TextColumn::make('start_date')

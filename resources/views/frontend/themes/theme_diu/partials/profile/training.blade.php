@@ -15,10 +15,10 @@
                     </div>
                     <div>
                         <h4 class="text-xs font-bold text-slate-800 leading-snug font-display">{{ $trn->title }}</h4>
-                        <p class="text-[11px] text-slate-500 font-semibold mt-0.5">{{ $trn->institution_name ?? '' }}</p>
+                        <p class="text-[11px] text-slate-500 font-semibold mt-0.5">{{ $trn->organization ?? optional($trn->organizationRelation)->name ?? '' }}</p>
                         <div class="flex items-center gap-4 mt-2 text-[10px] text-slate-400 font-bold uppercase">
                             <span>Year: {{ $trn->year ?? 'N/A' }}</span>
-                            @if($trn->duration)<span>• Duration: {{ $trn->duration }}</span>@endif
+                            @if($trn->duration_days)<span>• Duration: {{ $trn->duration_days }} Days</span>@endif
                         </div>
                     </div>
                 </div>

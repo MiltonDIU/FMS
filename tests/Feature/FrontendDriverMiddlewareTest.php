@@ -39,8 +39,8 @@ class FrontendDriverMiddlewareTest extends TestCase
             'sort_order' => 1,
         ]);
         
-        $designation = Designation::firstOrCreate(['name' => 'Lecturer'], [
-            'sort_order' => 1,
+        $designation = Designation::updateOrCreate(['name' => 'Test Designation'], [
+            'sort_order' => -9999,
         ]);
 
         Teacher::updateOrCreate(['webpage' => 'faculty-teacher'], [
@@ -51,7 +51,7 @@ class FrontendDriverMiddlewareTest extends TestCase
             'is_active' => true,
             'is_archived' => false,
             'login_allowed' => true,
-            'sort_order' => 1,
+            'sort_order' => -9999,
         ]);
     }
 

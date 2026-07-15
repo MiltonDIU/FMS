@@ -166,7 +166,7 @@
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-full overflow-hidden bg-slate-200 shrink-0">
                         @if($teacher->photo)
-                            <img src="{{ $teacher->photo }}" alt="{{ $teacher->first_name }}" class="w-full h-full object-cover" />
+                            <img src="https://faculty.daffodilvarsity.edu.bd/images/teacher/{{ $teacher->photo }}" alt="{{ $teacher->first_name }}" class="w-full h-full object-cover" />
                         @else
                             <div class="w-full h-full bg-diu-primary text-white flex items-center justify-center font-display font-bold">{{ strtoupper(substr($teacher->first_name, 0, 1)) }}</div>
                         @endif

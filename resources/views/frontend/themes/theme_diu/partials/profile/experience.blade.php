@@ -15,9 +15,9 @@
                         <svg class="w-3.5 h-3.5 text-diu-primary shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></svg>
                         {{ $exp->start_date ? date('Y', strtotime($exp->start_date)) : '' }} - {{ $exp->is_current ? 'Present' : ($exp->end_date ? date('Y', strtotime($exp->end_date)) : 'Past') }}
                     </div>
-                    <h4 class="text-sm font-bold text-slate-800 mt-1 font-display">{{ $exp->title }}</h4>
-                    <p class="text-xs text-slate-500 font-semibold mt-0.5">{{ $exp->institution_name ?? '' }}</p>
-                    @if($exp->description)<p class="text-xs text-slate-500 font-sans mt-1 leading-relaxed">{{ $exp->description }}</p>@endif
+                    <h4 class="text-sm font-bold text-slate-800 mt-1 font-display">{{ $exp->position ?? optional($exp->positionRelation)->name }}</h4>
+                    <p class="text-xs text-slate-500 font-semibold mt-0.5">{{ $exp->organization ?? optional($exp->organizationRelation)->name ?? '' }}</p>
+                    @if($exp->responsibilities)<p class="text-xs text-slate-500 font-sans mt-1 leading-relaxed">{{ $exp->responsibilities }}</p>@endif
                 </div>
             @endforeach
         </div>

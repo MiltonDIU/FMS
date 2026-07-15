@@ -34,6 +34,8 @@ class ImportOldTeachersCommand extends Command
     private array $deptCodeMap = [];
     // faculties.short_name (matches old faculty.short_name) → faculties.id
     private array $facultyShortNameMap = [];
+    // administrative_roles.id → administrative_roles.name (lowercase)
+    private array $adminRoleNameMap = [];
 
     public function handle(): int
     {
@@ -247,6 +249,17 @@ class ImportOldTeachersCommand extends Command
                         $resolvedFacultyId = $this->facultyShortNameMap[strtolower(trim($ar['faculty_short_name']))] ?? null;
                     }
 
+                    $roleName = $this->adminRoleNameMap[$ar['role_id']] ?? '';
+
+                    // Deans and Associate Deans should only be assigned to faculty (department_id is null)
+                    if (str_contains($roleName, 'dean')) {
+                        $resolvedDeptId = null;
+                    }
+                    // Heads and Associate Heads should only be assigned to department (faculty_id is null)
+                    elseif (str_contains($roleName, 'head')) {
+                        $resolvedFacultyId = null;
+                    }
+
                     UserAdministrativeRole::updateOrCreate([
                         'user_id'                => $user->id,
                         'administrative_role_id' => $ar['role_id'],
@@ -295,7 +308,16 @@ class ImportOldTeachersCommand extends Command
             }
         }
 
+        // administrative_roles.id → name
+        $roles = DB::table('administrative_roles')->whereNull('deleted_at')->get(['id', 'name']);
+        foreach ($roles as $r) {
+            if (!empty($r->name)) {
+                $this->adminRoleNameMap[$r->id] = strtolower(trim($r->name));
+            }
+        }
+
         $this->line('Lookup maps built — Depts: ' . count($this->deptCodeMap) .
-                    ', Faculties: ' . count($this->facultyShortNameMap));
+                    ', Faculties: ' . count($this->facultyShortNameMap) .
+                    ', Admin Roles: ' . count($this->adminRoleNameMap));
     }
 }

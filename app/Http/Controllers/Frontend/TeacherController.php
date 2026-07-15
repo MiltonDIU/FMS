@@ -16,12 +16,16 @@ class TeacherController extends Controller
         $activeTheme = Setting::get('active_theme', 'theme_default');
 
         // Find faculty
-        $faculty = Faculty::where('short_name', $faculty_short_name)
-            ->orWhere('id', $faculty_short_name)
+        $faculty = Faculty::where('is_active', true)
+            ->where(function ($q) use ($faculty_short_name) {
+                $q->where('short_name', $faculty_short_name)
+                  ->orWhere('id', $faculty_short_name);
+            })
             ->firstOrFail();
 
         // Find department under that faculty
         $department = Department::where('faculty_id', $faculty->id)
+            ->where('is_active', true)
             ->where(function ($q) use ($department_code) {
                 $q->where('code', $department_code)
                   ->orWhere('id', $department_code);
@@ -29,7 +33,14 @@ class TeacherController extends Controller
             ->firstOrFail();
 
         // Load teacher by webpage or employee_id or database id under the department
-        $teacher = Teacher::where('department_id', $department->id)
+        // (matches either the teacher's home department or a department_teacher assignment)
+        $teacher = Teacher::where(function ($query) use ($department) {
+                $query->where('department_id', $department->id)
+                    ->orWhereHas('departments', function ($q) use ($department) {
+                        $q->whereNull('department_teacher.deleted_at')
+                            ->where('department_teacher.department_id', $department->id);
+                    });
+            })
             ->where(function ($query) use ($teacher_webpage) {
                 $query->where('webpage', $teacher_webpage)
                     ->orWhere('employee_id', $teacher_webpage)
@@ -51,10 +62,11 @@ class TeacherController extends Controller
                 'memberships.membershipType',
                 'awards',
                 'jobExperiences',
-                'socialLinks.platform'
+                'socialLinks.platform',
+                'administrativeRoles'
             ])
             ->firstOrFail();
 
-        return view("frontend.themes.{$activeTheme}.profile", compact('faculty', 'department', 'teacher'));
+        return view("frontend.themes.{$activeTheme}.profile", compact('activeTheme', 'faculty', 'department', 'teacher'));
     }
 }

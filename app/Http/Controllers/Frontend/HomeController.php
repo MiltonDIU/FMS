@@ -14,7 +14,8 @@ class HomeController extends Controller
     {
         $activeTheme = Setting::get('active_theme', 'theme_default');
 
-        $faculties = Faculty::withCount(['departments', 'teachers'])
+        $faculties = Faculty::where('is_active', true)
+            ->withCount(['departments', 'teachers'])
             ->orderBy('sort_order', 'asc')
             ->get();
 
@@ -27,9 +28,18 @@ class HomeController extends Controller
             });
         }
 
+        $departments = collect();
+        if ($selectedFaculty) {
+            $departments = $selectedFaculty->departments()
+                ->where('is_active', true)
+                ->orderBy('sort_order', 'asc')
+                ->get();
+        }
+
         return view("frontend.themes.{$activeTheme}.home", compact(
             'faculties',
             'selectedFaculty',
+            'departments',
         ));
     }
 }

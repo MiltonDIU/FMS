@@ -198,6 +198,7 @@ class Teacher extends Model implements HasMedia
     {
         return $this->morphToMany(Publication::class, 'authorable', 'publication_authors')
             ->withPivot(['author_role', 'sort_order', 'incentive_amount'])
+            ->orderBy('publications.sort_order')
             ->withTimestamps();
     }
 
@@ -284,11 +285,11 @@ class Teacher extends Model implements HasMedia
     }
 
     /**
-     * Get the teacher administrative role assignments.
+     * Get the teacher's administrative role assignments (via the user).
      */
-    public function teacherAdministrativeRoles(): HasMany
+    public function administrativeRoles(): HasMany
     {
-        return $this->hasMany(TeacherAdministrativeRole::class);
+        return $this->hasMany(UserAdministrativeRole::class, 'user_id', 'user_id');
     }
 
     /**

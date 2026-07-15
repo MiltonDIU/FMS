@@ -42,8 +42,8 @@
                 <div class="flex flex-col md:flex-row items-center md:items-end gap-5 text-center md:text-left">
                     <div class="w-32 h-32 rounded-2xl overflow-hidden border-4 border-white shadow-lg bg-slate-100 shrink-0">
                         @if($teacher->photo)
-                            <img src="{{ $teacher->photo }}" alt="{{ $teacher->first_name }}" class="w-full h-full object-cover" />
-                        @else
+                            <img src="https://faculty.daffodilvarsity.edu.bd/images/teacher/{{ $teacher->photo }}" alt="{{ $teacher->first_name }}" class="w-full h-full object-cover" />
+                           @else
                             <div class="w-full h-full bg-diu-primary text-white flex items-center justify-center font-display font-bold text-4xl">
                                 {{ strtoupper(substr($teacher->first_name, 0, 1)) }}
                             </div>
@@ -52,10 +52,15 @@
 
                     <div class="pt-2">
                         <div class="flex flex-wrap items-center justify-center md:justify-start gap-2 mb-1.5">
-                            @if($teacher->is_administrative)
-                                <span class="bg-diu-accent text-white text-[10px] font-sans font-bold uppercase px-2.5 py-0.5 rounded-sm shadow-xs border border-diu-accent/20">
-                                    {{ optional($teacher->designation)->name }}
-                                </span>
+                            @if($teacher->administrativeRoles->isNotEmpty())
+                                @php
+                                    $adminRoleName = optional($teacher->administrativeRoles->first())->administrativeRole?->name;
+                                @endphp
+                                @if($adminRoleName)
+                                    <span class="bg-diu-accent text-white text-[10px] font-sans font-bold uppercase px-2.5 py-0.5 rounded-sm shadow-xs border border-diu-accent/20">
+                                        {{ $adminRoleName }}
+                                    </span>
+                                @endif
                             @endif
                             <span class="bg-white/60 text-slate-700 text-[10px] font-sans font-bold uppercase px-2.5 py-0.5 rounded-sm border border-white/80">
                                 {{ optional($teacher->designation)->name ?? 'Faculty Member' }}
@@ -88,7 +93,7 @@
                     <svg class="w-4 h-4 text-diu-primary shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
                     <div class="min-w-0">
                         <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Email Address</p>
-                        <p class="font-mono truncate font-semibold text-slate-700">{{ $teacher->secondary_email ?? 'N/A' }}</p>
+                        <p class="font-mono truncate font-semibold text-slate-700">{{ $teacher->user->email ?? 'N/A' }}</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-2.5">
@@ -113,7 +118,7 @@
                     @foreach([
                         ['id' => 'overview', 'label' => 'Overview'],
                         ['id' => 'academic', 'label' => 'Academic Background'],
-                        ['id' => 'courses', 'label' => 'Courses'],
+                        ['id' => 'courses', 'label' => 'Teaching Area'],
                         ['id' => 'research', 'label' => 'Research'],
                         ['id' => 'publications', 'label' => 'Publications (' . $teacher->publications->count() . ')'],
                         ['id' => 'experience', 'label' => 'Experience'],
