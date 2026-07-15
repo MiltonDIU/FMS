@@ -59,6 +59,13 @@ class TeacherSearch extends Component
         $this->resetPage();
     }
 
+    public function selectFaculty($id = null): void
+    {
+        $this->facultyId = $id ? (string) $id : null;
+        $this->departmentId = null;
+        $this->resetPage();
+    }
+
     public function getFacultiesProperty()
     {
         return Faculty::where('is_active', true)

@@ -1,4 +1,4 @@
-<header class="glass-header sticky top-0 z-40">
+<header class="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-sm">
     <!-- Top micro-bar -->
     <div class="bg-gradient-to-r from-diu-primary-dark to-diu-secondary-dark text-white text-[11px] font-sans tracking-wide py-1.5 px-4 md:px-8 flex justify-between items-center">
         <div class="flex items-center gap-4">

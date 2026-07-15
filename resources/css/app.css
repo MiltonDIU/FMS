@@ -11,25 +11,25 @@
     --font-display: 'Space Grotesk', sans-serif;
     --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
-    --color-diu-primary-dark: #0a2540;
-    --color-diu-primary: #0e3d75;
-    --color-diu-primary-light: #1d4ed8;
-    --color-diu-primary-hover: #0b305c;
-    --color-diu-secondary-dark: #071930;
-    --color-diu-secondary: #0e3d75;
-    --color-diu-secondary-light: #2563eb;
-    --color-diu-accent: #3b82f6;
-    --color-diu-accent-light: #60a5fa;
-    --color-diu-accent-hover: #1d4ed8;
+    --color-diu-primary-dark: #002652;
+    --color-diu-primary: #034ea2;
+    --color-diu-primary-light: #0072bc;
+    --color-diu-primary-hover: #023b7a;
+    --color-diu-secondary-dark: #002652;
+    --color-diu-secondary: #034ea2;
+    --color-diu-secondary-light: #0072bc;
+    --color-diu-accent: #0072bc;
+    --color-diu-accent-light: #4dc3e6;
+    --color-diu-accent-hover: #005fa3;
 }
 
 /* theme_diu custom styles (previously inlined in head.blade.php) */
 body {
     background-color: #f4f8fc;
     background-image:
-        radial-gradient(at 0% 0%, rgba(14, 61, 117, 0.06) 0px, transparent 50%),
-        radial-gradient(at 100% 0%, rgba(37, 99, 235, 0.04) 0px, transparent 50%),
-        radial-gradient(at 50% 100%, rgba(59, 130, 246, 0.02) 0px, transparent 50%),
+        radial-gradient(at 0% 0%, rgba(0, 114, 188, 0.06) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(0, 169, 207, 0.04) 0px, transparent 50%),
+        radial-gradient(at 50% 100%, rgba(0, 114, 188, 0.02) 0px, transparent 50%),
         linear-gradient(to bottom right, #f5f9fc, #edf3f8);
     background-attachment: fixed;
     min-height: 100vh;
