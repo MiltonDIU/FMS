@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
+use App\Models\Department;
 use App\Models\Faculty;
+use App\Models\Publication;
 use App\Models\Setting;
-use Illuminate\Support\Facades\Request;
+use App\Models\Teacher;
 use Illuminate\View\View;
 
 class HomeController extends Controller
@@ -36,10 +38,19 @@ class HomeController extends Controller
                 ->get();
         }
 
+        $totalTeachers   = Teacher::where('is_active', true)->where('is_archived', false)->count();
+        $totalDepartments = Department::where('is_active', true)->count();
+        $totalFaculties  = $faculties->count();
+        $totalPublications = Publication::count();
+
         return view("frontend.themes.{$activeTheme}.home", compact(
             'faculties',
             'selectedFaculty',
             'departments',
+            'totalTeachers',
+            'totalDepartments',
+            'totalFaculties',
+            'totalPublications',
         ));
     }
 }
