@@ -282,7 +282,7 @@ class ColorPalette
         return ":root {\n" . implode("\n", $lines) . "\n}";
     }
 
-    private static function isValidHex(string $value): bool
+    public static function isValidHex(string $value): bool
     {
         return (bool) preg_match('/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $value);
     }

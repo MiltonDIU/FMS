@@ -214,7 +214,7 @@ class SystemSettings extends Page
                             ->icon('heroicon-o-globe-alt')
                             ->schema([
                                 Section::make('Frontend Configuration')
-                                    ->description('Choose how the public teacher portal is served. The "Reset Colors to Default" button restores the original DIU theme colors and clears all manual overrides below.')
+                                    ->description('Choose how the public teacher portal is served and select the active design theme.')
                                     ->columns(2)
                                     ->schema([
                                         \Filament\Forms\Components\Select::make('frontend_driver')
@@ -238,39 +238,7 @@ class SystemSettings extends Page
                                             ->options(fn () => static::getAvailableThemes())
                                             ->default('theme_default')
                                             ->required(),
-                                        \Filament\Forms\Components\Radio::make('theme_color_mode')
-                                            ->label('Theme Color Settings Mode')
-                                            ->options([
-                                                'preset' => 'Preset Color Theme (Select from pre-defined colors)',
-                                                'custom' => 'Custom Brand Color (Input your own Hex Code)',
-                                            ])
-                                            ->default('preset')
-                                            ->live()
-                                            ->columnSpanFull(),
-                                        \Filament\Forms\Components\Select::make('diu_color_palette')
-                                            ->label('Color Palette')
-                                            ->options(\App\Helpers\ColorPalette::presetOptions())
-                                            ->default('diu')
-                                            ->required()
-                                            ->visible(fn ($get) => $get('theme_color_mode') === 'preset')
-                                            ->helperText('Auto-generates the full color scheme from a single base color.'),
-                                        \Filament\Forms\Components\ColorPicker::make('diu_primary_color')
-                                            ->label('Custom Primary Color')
-                                            ->hex()
-                                            ->default(null)
-                                            ->requiredIf('theme_color_mode', 'custom')
-                                            ->visible(fn ($get) => $get('theme_color_mode') === 'custom')
-                                            ->helperText('Enter a custom HEX code to generate your theme colors.'),
                                     ]),
-
-                                \Filament\Schemas\Components\Actions::make([
-                                    \Filament\Actions\Action::make('reset_colors')
-                                        ->label('Reset Colors to Default')
-                                        ->icon('heroicon-o-arrow-path')
-                                        ->color('gray')
-                                        ->requiresConfirmation()
-                                        ->action('resetColors'),
-                                ]),
 
                                 \Filament\Schemas\Components\Section::make('Global Custom Font Library')
                                     ->description('Upload and manage custom web fonts (.woff2, .ttf, .otf, .sfnt). Once uploaded, you can select these fonts in any of the theme dropdowns below.')
@@ -310,22 +278,63 @@ class SystemSettings extends Page
 
                                 ...self::fontSections(),
 
-                                \Filament\Schemas\Components\Section::make('Manual Color Overrides')
-                                    ->description('Each color is used in a specific place on the site (shown under the picker). Leave a field empty to let the selected palette generate it automatically; fill only the ones you want to change. The "Auto default" shown is what the palette produces. Use "Reset Colors to Default" above to restore everything at once.')
+                                \Filament\Schemas\Components\Section::make('Theme Color Customization')
+                                    ->description('Configure the site color system. Choose a preset or define a custom brand color. You can also customize individual overrides below. Changing the mode or color will instantly update the default values below in real-time before saving.')
                                     ->collapsed()
                                     ->columns(3)
-                                    ->schema(
-                                        collect(\App\Helpers\ColorPalette::colorFields())
-                                            ->map(function ($f) {
-                                                $default = \App\Helpers\ColorPalette::defaultValueFor($f['key']);
-                                                return \Filament\Forms\Components\ColorPicker::make($f['key'])
-                                                    ->label($f['label'])
-                                                    ->hex()
-                                                    ->default($default)
-                                                    ->helperText($f['usage'] . ' (Auto default: ' . ($default ?? 'n/a') . ')');
-                                            })
-                                            ->all()
-                                    ),
+                                    ->schema(array_merge([
+                                        \Filament\Forms\Components\Radio::make('theme_color_mode')
+                                            ->label('Theme Color Settings Mode')
+                                            ->options([
+                                                'preset' => 'Preset Color Theme (Select from pre-defined colors)',
+                                                'custom' => 'Custom Brand Color (Input your own Hex Code)',
+                                            ])
+                                            ->default('preset')
+                                            ->live()
+                                            ->columnSpanFull()
+                                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                                self::updateOverridesLive($state, $set, $get);
+                                            }),
+                                        \Filament\Forms\Components\Select::make('diu_color_palette')
+                                            ->label('Color Palette')
+                                            ->options(\App\Helpers\ColorPalette::presetOptions())
+                                            ->default('diu')
+                                            ->required()
+                                            ->live()
+                                            ->visible(fn ($get) => $get('theme_color_mode') === 'preset')
+                                            ->helperText('Auto-generates the full color scheme from a single base color.')
+                                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                                self::updateOverridesLive($state, $set, $get);
+                                            }),
+                                        \Filament\Forms\Components\ColorPicker::make('diu_primary_color')
+                                            ->label('Custom Primary Color')
+                                            ->hex()
+                                            ->default(null)
+                                            ->requiredIf('theme_color_mode', 'custom')
+                                            ->live()
+                                            ->visible(fn ($get) => $get('theme_color_mode') === 'custom')
+                                            ->helperText('Enter a custom HEX code to generate your theme colors.')
+                                            ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                                self::updateOverridesLive($state, $set, $get);
+                                            }),
+                                        \Filament\Schemas\Components\Actions::make([
+                                            \Filament\Actions\Action::make('reset_colors')
+                                                ->label('Reset Colors to Default')
+                                                ->icon('heroicon-o-arrow-path')
+                                                ->color('gray')
+                                                ->requiresConfirmation()
+                                                ->action('resetColors'),
+                                        ])->columnSpanFull(),
+                                    ], collect(\App\Helpers\ColorPalette::colorFields())
+                                        ->map(function ($f) {
+                                            $default = \App\Helpers\ColorPalette::defaultValueFor($f['key']);
+                                            return \Filament\Forms\Components\ColorPicker::make($f['key'])
+                                                ->label($f['label'])
+                                                ->hex()
+                                                ->default($default)
+                                                ->helperText($f['usage'] . ' (Auto default: ' . ($default ?? 'n/a') . ')');
+                                        })
+                                        ->all())),
                             ]),
 
                         Tab::make('Data Migration')
@@ -513,6 +522,32 @@ class SystemSettings extends Page
         })->values()->all();
     }
 
+    protected static function updateOverridesLive($state, callable $set, callable $get): void
+    {
+        $mode = $get('theme_color_mode') ?? 'preset';
+        $presetKey = $get('diu_color_palette') ?? 'diu';
+        $manual = $get('diu_primary_color') ?? '';
+
+        if ($mode === 'custom' && $manual !== '' && \App\Helpers\ColorPalette::isValidHex($manual)) {
+            $generated = \App\Helpers\ColorPalette::fromBase($manual);
+        } else {
+            $base = \App\Helpers\ColorPalette::PRESETS[$presetKey]['base'] ?? \App\Helpers\ColorPalette::DEFAULT_BASE;
+            if ($presetKey === 'diu') {
+                $generated = \App\Helpers\ColorPalette::ORIGINAL;
+            } else {
+                $generated = \App\Helpers\ColorPalette::fromBase($base);
+            }
+        }
+
+        foreach (\App\Helpers\ColorPalette::OVERRIDE_KEYS as $key) {
+            $cssKey = '--color-' . str_replace('_', '-', $key);
+            $newDefault = $generated[$cssKey] ?? null;
+            if ($newDefault) {
+                $set($key, $newDefault);
+            }
+        }
+    }
+
     protected static function fontFormatFromPath(string $path): string
     {
         $ext = strtolower(pathinfo(parse_url($path, PHP_URL_PATH) ?: $path, PATHINFO_EXTENSION));
@@ -620,7 +655,7 @@ class SystemSettings extends Page
 
         $this->form->fill(array_merge(
             $this->form->getState(),
-            ['diu_color_palette' => 'diu', 'diu_primary_color' => null]
+            ['theme_color_mode' => 'preset', 'diu_color_palette' => 'diu', 'diu_primary_color' => null]
             + $resetOverrides
         ));
 
