@@ -7,7 +7,12 @@
         'resources/views/frontend/themes/theme_diu/assets/js/theme.js',
     ])
 
-    <style>{{ \App\Helpers\ColorPalette::cssRootBlock() }}</style>
+    {!! \App\Helpers\FontManager::googleLinks('theme_diu') !!}
+    {!! \App\Helpers\FontManager::customStylesheetLinks('theme_diu') !!}
+    <style>
+        {!! \App\Helpers\ColorPalette::cssRootBlock() !!}
+    </style>
+    {!! \App\Helpers\FontManager::cssBlock('theme_diu') !!}
 </head>
 <body class="bg-transparent min-h-screen flex flex-col font-sans text-slate-800 antialiased">
 

@@ -68,6 +68,7 @@ class ExportOldTeachersCommand extends Command
                 't.webpage',
                 't.currentResearch',
                 't.study_leave',
+                't.picture',
                 // Primary dept: prefer recordListingID=1, else MIN
                 DB::raw('COALESCE(
                     MIN(CASE WHEN dfd.recordListingID = 1 THEN dfd.department_id END),
@@ -463,6 +464,7 @@ class ExportOldTeachersCommand extends Command
                     'extension_no'         => $phoneParsed['extension_no'],
                     'personal_phone'       => $personalPhone,
                     'webpage'              => $t->webpage ?? null,
+                    'photo'                => $t->picture ?: null,
                     'bio'                  => null,
                     'research_interest'    => null,
                     'is_public'            => false,
@@ -510,6 +512,7 @@ class ExportOldTeachersCommand extends Command
                 'extension_no'         => $phoneParsed['extension_no'],
                 'personal_phone'       => $personalPhone,
                 'webpage'              => $t->webpage ?? null,
+                'photo'                => $t->picture ?: null,
                 'bio'                  => null,
                 'research_interest'    => null,
                 'is_public'            => true,

@@ -7,7 +7,12 @@
         'resources/views/frontend/themes/theme_default/assets/js/theme.js',
     ])
 
-    <style>{{ \App\Helpers\ColorPalette::cssRootBlock() }}</style>
+    {!! \App\Helpers\FontManager::googleLinks('theme_default') !!}
+    {!! \App\Helpers\FontManager::customStylesheetLinks('theme_default') !!}
+    <style>
+        {!! \App\Helpers\ColorPalette::cssRootBlock() !!}
+    </style>
+    {!! \App\Helpers\FontManager::cssBlock('theme_default') !!}
 </head>
 <body class="bg-transparent min-h-screen flex flex-col font-sans text-slate-800 antialiased">
 

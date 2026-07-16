@@ -171,6 +171,23 @@ class ColorPalette
     }
 
     /**
+     * The auto-generated (palette-based, non-overridden) value for a single
+     * override key. Used by the admin UI to show admins what the color will be
+     * if they leave the override empty.
+     */
+    public static function defaultValueFor(string $key): ?string
+    {
+        if (! array_key_exists($key, self::COLOR_META)) {
+            return null;
+        }
+
+        $generated = self::resolve();
+        $cssKey = '--color-' . str_replace('_', '-', $key);
+
+        return $generated[$cssKey] ?? null;
+    }
+
+    /**
      * Generate the full shade set from a single base hex.
      *
      * @return array<string,string>
