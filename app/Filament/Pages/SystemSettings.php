@@ -213,16 +213,6 @@ class SystemSettings extends Page
                         Tab::make('Frontend Settings')
                             ->icon('heroicon-o-globe-alt')
                             ->schema([
-                                Section::make('Frontend Configuration')
-                                    ->description('Choose the active design theme for the teacher portal.')
-                                    ->schema([
-                                        \Filament\Forms\Components\Select::make('active_theme')
-                                            ->label('Active Theme')
-                                            ->options(fn () => static::getAvailableThemes())
-                                            ->default('theme_default')
-                                            ->required(),
-                                    ]),
-
                                 \Filament\Schemas\Components\Section::make('Global Custom Font Library')
                                     ->description('Upload and manage custom web fonts (.woff2, .ttf, .otf, .sfnt). Once uploaded, you can select these fonts in any of the theme dropdowns below.')
                                     ->collapsed()
@@ -261,11 +251,17 @@ class SystemSettings extends Page
 
                                 ...self::fontSections(),
 
-                                \Filament\Schemas\Components\Section::make('Theme Color Customization')
-                                    ->description('Configure the site color system. Choose a preset or define a custom brand color. You can also customize individual overrides below. Changing the mode or color will instantly update the default values below in real-time before saving.')
+                                \Filament\Schemas\Components\Section::make('Theme and Color Customization')
+                                    ->description('Select the active design theme and configure the portal color system. Changing the color mode or custom base color will instantly update the default values below in real-time before saving.')
                                     ->collapsed()
                                     ->columns(3)
                                     ->schema(array_merge([
+                                        \Filament\Forms\Components\Select::make('active_theme')
+                                            ->label('Active Theme')
+                                            ->options(fn () => static::getAvailableThemes())
+                                            ->default('theme_default')
+                                            ->required()
+                                            ->columnSpanFull(),
                                         \Filament\Forms\Components\Radio::make('theme_color_mode')
                                             ->label('Theme Color Settings Mode')
                                             ->options([
