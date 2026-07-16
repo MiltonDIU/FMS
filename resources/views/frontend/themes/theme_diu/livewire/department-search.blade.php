@@ -124,13 +124,24 @@
     <div class="lg:col-span-3 space-y-6">
 
         @if($this->department)
-            <div>
-                <span class="text-[10px] bg-diu-primary/10 text-diu-primary font-bold uppercase tracking-wider px-2.5 py-1 rounded-md">Department Active</span>
-                <h2 class="text-2xl font-extrabold text-gray-900 mt-2 font-display">{{ $this->department->name }}</h2>
-                <p class="text-sm text-gray-500 mt-1 flex items-center gap-2">
-                    <svg class="w-4 h-4 text-diu-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    {{ $this->totalMembers }} Faculty Members
-                </p>
+            <div class="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                    <span class="text-[10px] bg-diu-primary/10 text-diu-primary font-bold uppercase tracking-wider px-2.5 py-1 rounded-md">Department Active</span>
+                    <h2 class="text-2xl font-extrabold text-gray-900 mt-2 font-display">{{ $this->department->name }}</h2>
+                    <p class="text-sm text-gray-500 mt-1 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-diu-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        {{ $this->totalMembers }} Faculty Members
+                    </p>
+                </div>
+
+                @if($this->department->faculty)
+                    <a href="{{ route('department.contact', ['faculty_short_name' => strtolower($this->department->faculty->short_name), 'department_code' => strtolower($this->department->code)]) }}"
+                       wire:navigate
+                       class="inline-flex items-center gap-2 bg-diu-primary hover:bg-diu-primary-dark text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors shadow-sm shrink-0">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                        Contact Us
+                    </a>
+                @endif
             </div>
         @endif
 

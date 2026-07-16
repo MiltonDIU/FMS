@@ -9,7 +9,9 @@ use App\Models\Designation;
 use App\Models\Setting;
 use App\Models\Teacher;
 use App\Models\UserAdministrativeRole;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\View\View;
 
 class DepartmentController extends Controller
@@ -118,5 +120,90 @@ class DepartmentController extends Controller
             ->count();
 
         return view("frontend.themes.{$activeTheme}.department", compact('faculties', 'faculty', 'department', 'teachers', 'designations', 'adminRoles', 'totalMembers'));
+    }
+
+    public function contact(Request $request, string $faculty_short_name, string $department_code): View
+    {
+        $activeTheme = Setting::get('active_theme', 'theme_default');
+
+        // Resolve the department (same lookup as the department page)
+        $faculty = Faculty::where('is_active', true)
+            ->where(function ($q) use ($faculty_short_name) {
+                $q->where('short_name', $faculty_short_name)
+                  ->orWhere('id', $faculty_short_name);
+            })
+            ->firstOrFail();
+
+        $department = Department::where('faculty_id', $faculty->id)
+            ->where('is_active', true)
+            ->where(function ($q) use ($department_code) {
+                $q->where('code', $department_code)
+                  ->orWhere('id', $department_code);
+            })
+            ->firstOrFail();
+
+        // Pull contact data from the DIU backend department contact API (keyed by department code)
+        $apiBase = rtrim(config('services.diu_contacts_api', 'https://webbackend.daffodilvarsity.edu.bd/api/v1/public/department'), '/');
+        $shortName = strtolower($department->code ?? $department->short_name ?? '');
+
+        $sections = [
+            'department'        => null,
+            'deans'             => [],
+            'deans_officers'    => [],
+            'department_heads'  => [],
+            'department_officers' => [],
+        ];
+        $apiError = null;
+
+        if ($shortName) {
+            try {
+                $response = Http::timeout(8)->get("{$apiBase}/{$shortName}/contact-us");
+                if ($response->successful()) {
+                    $payload = $response->json();
+                    $data = $payload['data'] ?? $payload;
+                    $sections['department']         = $data['department'] ?? null;
+                    $sections['deans']              = $this->contactList($data['deans'] ?? []);
+                    $sections['deans_officers']     = $this->contactList($data['deans_officers'] ?? []);
+                    $sections['department_heads']   = $this->contactList($data['department_heads'] ?? []);
+                    $sections['department_officers'] = $this->contactList($data['department_officers'] ?? []);
+                } else {
+                    $apiError = "Could not load contacts (HTTP {$response->status()}).";
+                }
+            } catch (ConnectionException $e) {
+                $apiError = 'Could not reach the contacts service.';
+            }
+        }
+
+        $blocks = [
+            ['key' => 'deans',              'title' => 'Dean',                'icon' => 'dean'],
+            ['key' => 'deans_officers',     'title' => 'Dean\'s Office',      'icon' => 'office'],
+            ['key' => 'department_heads',   'title' => 'Head of Department',  'icon' => 'head'],
+            ['key' => 'department_officers','title' => 'Department Office',   'icon' => 'office'],
+        ];
+
+        return view("frontend.themes.{$activeTheme}.contact", compact(
+            'faculty', 'department', 'sections', 'blocks', 'apiError', 'shortName'
+        ));
+    }
+
+    /**
+     * Normalize the API's associative contact arrays into a clean list.
+     */
+    protected function contactList(array $raw): array
+    {
+        return collect($raw)
+            ->values()
+            ->map(function ($c) {
+                return [
+                    'name'      => $c['name'] ?? null,
+                    'email'     => $c['email'] ?? null,
+                    'mobile'    => $c['mobile'] ?? null,
+                    'ip_phone'  => $c['ip_phone'] ?? null,
+                    'designation' => $c['designation'] ?? null,
+                    'photo'     => $c['photo'] ?? null,
+                ];
+            })
+            ->filter(fn ($c) => $c['name'])
+            ->all();
     }
 }

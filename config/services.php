@@ -38,4 +38,6 @@ return [
         'api_key' => env('ANTHROPIC_API_KEY'),
     ],
 
+    'diu_contacts_api' => env('DIU_CONTACTS_API', 'https://webbackend.daffodilvarsity.edu.bd/api/v1/public/department'),
+
 ];
