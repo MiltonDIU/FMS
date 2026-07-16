@@ -39,8 +39,14 @@ class AdministrativeRoleUsersTable
         }
 
         return $table
-            ->defaultSort('created_at', 'desc')
+            ->defaultSort('sort_order', 'asc')
+            ->reorderable('sort_order')
             ->columns([
+                TextColumn::make('sort_order')
+                    ->label('#')
+                    ->numeric()
+                    ->sortable(),
+
                 TextColumn::make('user.name')
                     ->label('User')
                     ->searchable()
