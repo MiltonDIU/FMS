@@ -94,6 +94,13 @@ class SystemSettings extends Page
 
         $settings['global_custom_fonts'] = \App\Helpers\FontManager::customFonts();
 
+        $mode = 'preset';
+        if (isset($settings['theme_color_mode'])) {
+            $mode = $settings['theme_color_mode'];
+        } elseif (! empty($settings['diu_primary_color'])) {
+            $mode = 'custom';
+        }
+
         $this->form->fill(array_merge([
             'export_limit' => 0,
             'export_provider' => 'auto',
@@ -108,6 +115,7 @@ class SystemSettings extends Page
             'diu_color_palette' => 'diu',
             'diu_primary_color' => null,
             'global_custom_fonts' => [],
+            'theme_color_mode' => $mode,
         ] + array_fill_keys(\App\Helpers\ColorPalette::OVERRIDE_KEYS, null), $settings));
     }
 
@@ -230,17 +238,29 @@ class SystemSettings extends Page
                                             ->options(fn () => static::getAvailableThemes())
                                             ->default('theme_default')
                                             ->required(),
+                                        \Filament\Forms\Components\Radio::make('theme_color_mode')
+                                            ->label('Theme Color Settings Mode')
+                                            ->options([
+                                                'preset' => 'Preset Color Theme (Select from pre-defined colors)',
+                                                'custom' => 'Custom Brand Color (Input your own Hex Code)',
+                                            ])
+                                            ->default('preset')
+                                            ->live()
+                                            ->columnSpanFull(),
                                         \Filament\Forms\Components\Select::make('diu_color_palette')
                                             ->label('Color Palette')
                                             ->options(\App\Helpers\ColorPalette::presetOptions())
                                             ->default('diu')
                                             ->required()
+                                            ->visible(fn ($get) => $get('theme_color_mode') === 'preset')
                                             ->helperText('Auto-generates the full color scheme from a single base color.'),
                                         \Filament\Forms\Components\ColorPicker::make('diu_primary_color')
-                                            ->label('Custom Primary Color (optional)')
+                                            ->label('Custom Primary Color')
                                             ->hex()
                                             ->default(null)
-                                            ->helperText('Overrides the palette base color if set. Leave empty to use the selected palette.'),
+                                            ->requiredIf('theme_color_mode', 'custom')
+                                            ->visible(fn ($get) => $get('theme_color_mode') === 'custom')
+                                            ->helperText('Enter a custom HEX code to generate your theme colors.'),
                                     ]),
 
                                 \Filament\Schemas\Components\Actions::make([
@@ -539,7 +559,25 @@ class SystemSettings extends Page
             }
         }
 
+        // Save base color settings first so that subsequent defaultValueFor() calls resolve using the new base color/palette!
+        if (isset($data['theme_color_mode'])) {
+            Setting::set('theme_color_mode', $data['theme_color_mode']);
+        }
+        if (isset($data['diu_color_palette'])) {
+            Setting::set('diu_color_palette', $data['diu_color_palette']);
+        }
+        if (isset($data['diu_primary_color'])) {
+            Setting::set('diu_primary_color', $data['diu_primary_color']);
+        }
+
+        // Clear color cache immediately so ColorPalette::resolve() reads the newly saved base color
+        \App\Helpers\ColorPalette::forgetCache();
+
         foreach ($data as $key => $value) {
+            if (in_array($key, ['theme_color_mode', 'diu_color_palette', 'diu_primary_color'], true)) {
+                continue;
+            }
+
             // Override fields show the auto-generated palette value in the UI
             // for visibility. If the admin left it unchanged (equal to the
             // generated default), treat it as "no override" so we don't persist

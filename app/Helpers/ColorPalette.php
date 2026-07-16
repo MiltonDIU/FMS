@@ -99,17 +99,18 @@ class ColorPalette
      */
     public static function resolve(): array
     {
+        $mode = Setting::get('theme_color_mode', 'preset');
         $manual = trim((string) Setting::get('diu_primary_color', ''));
         $presetKey = Setting::get('diu_color_palette', 'diu');
 
-        // The "diu" preset reproduces the exact original theme colors.
-        if (($presetKey === 'diu' || ! isset(self::PRESETS[$presetKey])) && $manual === '') {
-            $set = self::ORIGINAL;
+        if ($mode === 'custom' && $manual !== '' && self::isValidHex($manual)) {
+            $set = self::fromBase($manual);
         } else {
-            $base = $manual !== '' && self::isValidHex($manual)
-                ? $manual
-                : (self::PRESETS[$presetKey]['base'] ?? self::DEFAULT_BASE);
-            $set = self::fromBase($base);
+            if ($presetKey === 'diu' || ! isset(self::PRESETS[$presetKey])) {
+                $set = self::ORIGINAL;
+            } else {
+                $set = self::fromBase(self::PRESETS[$presetKey]['base'] ?? self::DEFAULT_BASE);
+            }
         }
 
         // Layer individual overrides on top of the generated/default set.

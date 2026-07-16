@@ -1,5 +1,5 @@
 @php
-    $matchFooter = \App\Models\Setting::get('theme_theme_diu_footer_match_theme', false);
+    $matchFooter = filter_var(\App\Models\Setting::get('theme_theme_diu_footer_match_theme', false), FILTER_VALIDATE_BOOLEAN);
 @endphp
 <footer class="{{ $matchFooter ? 'text-slate-200' : 'bg-slate-950 border-slate-800 text-slate-400' }} border-t text-xs mt-12 font-sans"
     {!! $matchFooter ? 'style="background-color: var(--color-diu-primary-dark); border-color: var(--color-diu-primary-light);"' : '' !!}>
