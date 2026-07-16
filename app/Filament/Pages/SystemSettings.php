@@ -214,25 +214,8 @@ class SystemSettings extends Page
                             ->icon('heroicon-o-globe-alt')
                             ->schema([
                                 Section::make('Frontend Configuration')
-                                    ->description('Choose how the public teacher portal is served and select the active design theme.')
-                                    ->columns(2)
+                                    ->description('Choose the active design theme for the teacher portal.')
                                     ->schema([
-                                        \Filament\Forms\Components\Select::make('frontend_driver')
-                                            ->label('Frontend Driver')
-                                            ->options([
-                                                'blade' => 'Laravel Blade (Monolith)',
-                                                'nextjs' => 'Next.js (Headless Redirect)',
-                                            ])
-                                            ->default('blade')
-                                            ->live()
-                                            ->required(),
-                                        TextInput::make('nextjs_url')
-                                            ->label('Next.js App URL')
-                                            ->url()
-                                            ->placeholder('https://teachers.diu.edu.bd')
-                                            ->requiredIf('frontend_driver', 'nextjs')
-                                            ->visible(fn ($get) => $get('frontend_driver') === 'nextjs')
-                                            ->helperText('Public web visitors will be redirected to this URL'),
                                         \Filament\Forms\Components\Select::make('active_theme')
                                             ->label('Active Theme')
                                             ->options(fn () => static::getAvailableThemes())
@@ -593,6 +576,10 @@ class SystemSettings extends Page
                 $data['global_custom_fonts'][$index] = $font;
             }
         }
+
+        // Hardcode frontend driver settings to always use Blade monolith
+        Setting::set('frontend_driver', 'blade');
+        Setting::set('nextjs_url', '');
 
         // Save base color settings first so that subsequent defaultValueFor() calls resolve using the new base color/palette!
         if (isset($data['theme_color_mode'])) {
