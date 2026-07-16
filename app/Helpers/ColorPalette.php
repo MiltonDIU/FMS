@@ -309,7 +309,8 @@ class ColorPalette
         $d = $max - $min;
 
         if ($d !== 0.0) {
-            $s = $d / (1 - abs(2 * $l - 1));
+            $denominator = 1 - abs(2 * $l - 1);
+            $s = $denominator == 0 ? 0 : $d / $denominator;
             switch ($max) {
                 case $r:
                     $h = 60 * fmod((($g - $b) / $d), 6);
