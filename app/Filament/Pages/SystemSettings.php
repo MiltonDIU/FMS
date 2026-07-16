@@ -73,6 +73,9 @@ class SystemSettings extends Page
 
         // Explicitly cast custom boolean settings
         $boolKeys = ['export_overwrite', 'import_dry_run', 'import_skip_existing'];
+        foreach (array_keys(static::getAvailableThemes()) as $slug) {
+            $boolKeys[] = \App\Helpers\FontManager::settingKey($slug, 'footer_match_theme');
+        }
         foreach ($boolKeys as $bk) {
             if (isset($settings[$bk])) {
                 $settings[$bk] = filter_var($settings[$bk], FILTER_VALIDATE_BOOLEAN);
@@ -404,8 +407,8 @@ class SystemSettings extends Page
         return collect($themes)->map(function ($slug) {
             $label = ucwords(str_replace(['_', '-'], ' ', $slug));
 
-            return \Filament\Schemas\Components\Section::make("Fonts — {$label}")
-                ->description('Choose the fonts used by this theme. Pick a Google preset or an installed custom font for each role. Custom fonts are uploaded/installed below.')
+            return \Filament\Schemas\Components\Section::make("Typography & Layout — {$label}")
+                ->description('Configure typography settings, sizing, and footer styles for this theme.')
                 ->collapsed()
                 ->columns(3)
                 ->schema([
@@ -480,6 +483,12 @@ class SystemSettings extends Page
                                 ])
                                 ->default('400'),
                         ]),
+
+                    \Filament\Forms\Components\Toggle::make(\App\Helpers\FontManager::settingKey($slug, 'footer_match_theme'))
+                        ->label('Match Footer Background with Theme Color')
+                        ->helperText('If enabled, the footer background will dynamically use the dark primary color of the theme instead of static black.')
+                        ->default(false)
+                        ->columnSpanFull(),
                 ]);
         })->values()->all();
     }

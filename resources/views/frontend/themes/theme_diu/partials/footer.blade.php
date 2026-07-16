@@ -1,4 +1,8 @@
-<footer class="bg-slate-950 border-t border-slate-800 text-slate-400 text-xs mt-12 font-sans">
+@php
+    $matchFooter = \App\Models\Setting::get('theme_theme_diu_footer_match_theme', false);
+@endphp
+<footer class="{{ $matchFooter ? 'text-slate-200' : 'bg-slate-950 border-slate-800 text-slate-400' }} border-t text-xs mt-12 font-sans"
+    {!! $matchFooter ? 'style="background-color: var(--color-diu-primary-dark); border-color: var(--color-diu-primary-light);"' : '' !!}>
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col md:flex-row justify-between items-center gap-4 border-b border-slate-800 pb-6 mb-6 pt-8">
             <div class="text-center md:text-left">
