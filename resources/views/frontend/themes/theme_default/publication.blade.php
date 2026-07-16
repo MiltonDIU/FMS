@@ -1,4 +1,4 @@
-@extends('frontend.themes.theme_diu.layouts.app')
+@extends('frontend.themes.theme_default.layouts.app')
 
 @section('title', $publication->title . ' - Publication Details')
 

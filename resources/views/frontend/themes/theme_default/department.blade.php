@@ -1,4 +1,4 @@
-@extends('frontend.themes.theme_diu.layouts.app')
+@extends('frontend.themes.theme_default.layouts.app')
 
 @section('title', ($department->name ?? 'Department') . ' - Faculty Directory')
 
@@ -15,7 +15,7 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
 
-        @include('frontend.themes.theme_diu.partials.sidebar', [
+        @include('frontend.themes.theme_default.partials.sidebar', [
             'faculties' => $faculties,
             'currentFaculty' => $faculty,
             'departments' => $faculty->departments()->where('is_active', true)->orderBy('sort_order')->get(),

@@ -44,7 +44,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     @foreach($this->adminTeachers as $teacher)
                         @if($teacher->department)
-                            @include('frontend.themes.theme_diu.partials.teacher_card', [
+                            @include('frontend.themes.theme_default.partials.teacher_card', [
                                 'teacher' => $teacher,
                                 'faculty' => $this->department?->faculty,
                                 'department' => $this->department ?? $teacher->department,
@@ -67,7 +67,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     @foreach($this->teachers as $teacher)
                         @if($teacher->department)
-                            @include('frontend.themes.theme_diu.partials.teacher_card', [
+                            @include('frontend.themes.theme_default.partials.teacher_card', [
                                 'teacher' => $teacher,
                                 'faculty' => $this->department?->faculty,
                                 'department' => $this->department ?? $teacher->department,
@@ -78,7 +78,7 @@
                 </div>
 
                 <div class="mt-6">
-                    {{ $this->teachers->links('frontend.themes.theme_diu.partials.pagination') }}
+                    {{ $this->teachers->links('frontend.themes.theme_default.partials.pagination') }}
                 </div>
             </div>
         @endif

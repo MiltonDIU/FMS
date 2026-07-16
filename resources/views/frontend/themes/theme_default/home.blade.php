@@ -1,4 +1,4 @@
-@extends('frontend.themes.theme_diu.layouts.app')
+@extends('frontend.themes.theme_default.layouts.app')
 
 @section('title', 'Faculty Directory — Daffodil International University')
 @section('meta_description', 'Explore academic credentials, research profiles, and connect with faculty members of Daffodil International University.')

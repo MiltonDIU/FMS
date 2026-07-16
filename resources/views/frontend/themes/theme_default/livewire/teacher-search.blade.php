@@ -9,13 +9,17 @@
                 Academic Faculties
             </h3>
             <div class="space-y-1.5">
+                <button type="button" wire:click="selectFaculty(null)"
+                    class="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold font-sans tracking-tight transition-all flex items-center justify-between gap-2 {{ ! $this->facultyId ? 'bg-diu-primary/15 text-diu-primary shadow-xs' : 'hover:bg-white/40 text-slate-600 hover:text-slate-900' }}">
+                    <span class="truncate">All Faculties</span>
+                </button>
                 @foreach($this->faculties as $fac)
                     @php $active = (string) $fac->id === (string) $this->facultyId; @endphp
                     <a href="{{ $fac->url }}" wire:navigate
                         class="block w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold font-sans tracking-tight transition-all flex items-center justify-between gap-2 {{ $active ? 'bg-diu-primary/15 text-diu-primary shadow-xs' : 'hover:bg-white/40 text-slate-600 hover:text-slate-900' }}">
-                        <span class="truncate">{{ $fac->name }}</span>
-                        <span class="bg-white/60 text-slate-500 text-[9px] font-bold px-1.5 py-0.5 rounded-sm shrink-0 border border-white/60">{{ $fac->teachers_count }}</span>
-                    </a>
+                            <span class="truncate">{{ $fac->name }}</span>
+                            <span class="bg-white/60 text-slate-500 text-[9px] font-bold px-1.5 py-0.5 rounded-sm shrink-0 border border-white/60">{{ $fac->teachers_count }}</span>
+                        </a>
                 @endforeach
             </div>
         </div>
@@ -159,7 +163,7 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         @foreach($this->adminTeachers as $teacher)
                             @if($teacher->department)
-                                @include('frontend.themes.theme_diu.partials.teacher_card', [
+                                @include('frontend.themes.theme_default.partials.teacher_card', [
                                     'teacher' => $teacher,
                                     'faculty' => $teacher->department->faculty,
                                     'department' => $teacher->department,
@@ -182,7 +186,7 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         @foreach($this->teachers as $teacher)
                             @if($teacher->department)
-                                @include('frontend.themes.theme_diu.partials.teacher_card', [
+                                @include('frontend.themes.theme_default.partials.teacher_card', [
                                     'teacher' => $teacher,
                                     'faculty' => $teacher->department->faculty,
                                     'department' => $teacher->department,
@@ -193,7 +197,7 @@
                     </div>
 
                     <div class="mt-6">
-                        {{ $this->teachers->links('frontend.themes.theme_diu.partials.pagination') }}
+                        {{ $this->teachers->links('frontend.themes.theme_default.partials.pagination') }}
                     </div>
                 </div>
             @endif

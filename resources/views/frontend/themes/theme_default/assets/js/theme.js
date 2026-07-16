@@ -1,4 +1,4 @@
-import './bootstrap';
+import '../../../../../../js/bootstrap';
 
 // Alpine is provided and started by Livewire v4 (via @livewireScripts).
 // Starting a second Alpine instance here conflicts with Livewire's bundled

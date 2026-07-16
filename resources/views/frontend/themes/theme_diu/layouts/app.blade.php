@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
     @include('frontend.themes.theme_diu.partials.head')
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @vite([
+        'resources/views/frontend/themes/theme_diu/assets/css/theme.css',
+        'resources/views/frontend/themes/theme_diu/assets/js/theme.js',
+    ])
 </head>
 <body class="bg-transparent min-h-screen flex flex-col font-sans text-slate-800 antialiased">
 

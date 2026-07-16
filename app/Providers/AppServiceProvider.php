@@ -30,9 +30,9 @@ class AppServiceProvider extends ServiceProvider
     {
         JsonResource::withoutWrapping();
 
-        // Share header statistics with the theme_diu header partial so the
+        // Share header statistics with every theme's header partial so the
         // view no longer runs database queries itself.
-        View::composer('frontend.themes.theme_diu.partials.header', function ($view) {
+        View::composer('frontend.themes.*.partials.header', function ($view) {
             $view->with([
                 'facultiesCount' => Faculty::count(),
                 'departmentsCount' => Department::count(),

@@ -1,9 +1,9 @@
 @import 'tailwindcss';
 
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
-@source '../**/*.blade.php';
-@source '../**/*.js';
+@source '../../../../../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../../../../../storage/framework/views/*.php';
+@source '../../../../../../**/*.blade.php';
+@source '../../../../../../**/*.js';
 
 @theme {
     --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
@@ -23,7 +23,7 @@
     --color-diu-accent-hover: #005fa3;
 }
 
-/* theme_diu custom styles (previously inlined in head.blade.php) */
+/* theme_diu custom styles (owned by theme_diu, editable independently) */
 body {
     background-color: #f4f8fc;
     background-image:

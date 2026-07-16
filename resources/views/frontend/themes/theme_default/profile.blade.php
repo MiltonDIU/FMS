@@ -1,4 +1,4 @@
-@extends('frontend.themes.theme_diu.layouts.app')
+@extends('frontend.themes.theme_default.layouts.app')
 
 @section('title', $teacher->first_name . ' ' . $teacher->last_name . ' - Profile')
 
@@ -134,15 +134,15 @@
                     @endforeach
                 </div>
 
-                @include('frontend.themes.theme_diu.partials.profile.overview')
-                @include('frontend.themes.theme_diu.partials.profile.academic')
-                @include('frontend.themes.theme_diu.partials.profile.courses')
-                @include('frontend.themes.theme_diu.partials.profile.research')
-                @include('frontend.themes.theme_diu.partials.profile.publications')
-                @include('frontend.themes.theme_diu.partials.profile.experience')
-                @include('frontend.themes.theme_diu.partials.profile.training')
-                @include('frontend.themes.theme_diu.partials.profile.awards')
-                @include('frontend.themes.theme_diu.partials.profile.memberships')
+                @include('frontend.themes.theme_default.partials.profile.overview')
+                @include('frontend.themes.theme_default.partials.profile.academic')
+                @include('frontend.themes.theme_default.partials.profile.courses')
+                @include('frontend.themes.theme_default.partials.profile.research')
+                @include('frontend.themes.theme_default.partials.profile.publications')
+                @include('frontend.themes.theme_default.partials.profile.experience')
+                @include('frontend.themes.theme_default.partials.profile.training')
+                @include('frontend.themes.theme_default.partials.profile.awards')
+                @include('frontend.themes.theme_default.partials.profile.memberships')
 
             </div>
         </div>

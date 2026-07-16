@@ -3,6 +3,7 @@
 namespace App\Livewire\Frontend;
 
 use App\Models\Department;
+use App\Models\Setting;
 use App\Models\Teacher;
 use App\Models\UserAdministrativeRole;
 use Illuminate\Contracts\View\View;
@@ -144,6 +145,13 @@ class DepartmentSearch extends Component
 
     public function render(): View
     {
-        return view('frontend.themes.theme_diu.livewire.department-search');
+        $activeTheme = Setting::get('active_theme', 'theme_default');
+        $view = "frontend.themes.{$activeTheme}.livewire.department-search";
+
+        if (! view()->exists($view)) {
+            $view = 'frontend.themes.theme_diu.livewire.department-search';
+        }
+
+        return view($view);
     }
 }
