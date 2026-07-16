@@ -5,7 +5,7 @@
         List of Scholarly Papers
     </h3>
     @if($teacher->publications->isEmpty())
-        <div class="text-center py-12 border-2 border-dashed border-white/60 rounded-xl bg-white/10">
+        <div class="text-center py-12 border-2 border-dashed border-slate-200 rounded-xl bg-white/10">
             <svg class="w-10 h-10 text-slate-400 mx-auto mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
             <p class="text-sm text-slate-500 font-sans font-medium">No publications added yet for this teacher.</p>
         </div>
@@ -17,7 +17,7 @@
                         ? route('publication.show', ['faculty_short_name' => strtolower($faculty->short_name), 'department_code' => strtolower($department->code), 'teacher_webpage' => $teacher->webpage,                     'publication_slug' => $pub->slug ?: \Illuminate\Support\Str::slug($pub->title)])
                         : '#';
                 @endphp
-                <div class="p-4 rounded-xl border border-white/60 hover:border-diu-primary/40 bg-white/30 backdrop-blur-xs shadow-3xs hover:shadow-xs transition-all flex items-start gap-4">
+                <div class="p-4 rounded-xl border border-slate-200 hover:border-diu-primary/40  shadow-3xs hover:shadow-xs transition-all flex items-start gap-4">
                     <div class="bg-diu-primary/10 text-diu-primary p-2.5 rounded-lg shrink-0 mt-0.5">
                         <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
                     </div>

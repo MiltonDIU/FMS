@@ -22,10 +22,10 @@
         <span class="text-diu-primary truncate max-w-xs">{{ $teacher->first_name }} {{ $teacher->last_name }}</span>
     </div>
 
-    <div class="bg-white/40 backdrop-blur-md rounded-2xl border border-white/60 shadow-sm overflow-hidden" id="teacher-profile-{{ $teacher->id }}">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden" id="teacher-profile-{{ $teacher->id }}">
 
         <!-- Cover / Hero header banner -->
-        <div class="relative h-48 bg-gradient-to-r from-diu-primary-dark via-diu-primary to-diu-accent/80 p-6 md:p-8 flex items-end border-b border-white/20">
+        <div class="relative h-48 bg-gradient-to-r from-diu-primary-dark via-diu-primary to-diu-accent/80 p-6 md:p-8 flex items-end border-b border-slate-200/60">
             <a href="{{ $deptUrl }}"
                class="absolute top-4 left-4 bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all backdrop-blur-xs">
                 <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
@@ -62,7 +62,7 @@
                                     </span>
                                 @endif
                             @endif
-                            <span class="bg-white/60 text-slate-700 text-[10px] font-sans font-bold uppercase px-2.5 py-0.5 rounded-sm border border-white/80">
+                            <span class="bg-slate-100 text-slate-700 text-[10px] font-sans font-bold uppercase px-2.5 py-0.5 rounded-sm border border-slate-200">
                                 {{ optional($teacher->designation)->name ?? 'Faculty Member' }}
                             </span>
                         </div>
@@ -79,7 +79,7 @@
                 <div class="flex flex-wrap items-center justify-center gap-2">
                     @foreach($teacher->socialLinks as $link)
                         <a href="{{ $link->url }}" target="_blank" rel="noopener noreferrer"
-                           class="p-2 bg-white/40 hover:bg-white/80 text-slate-600 rounded-lg border border-white/60 transition-colors shadow-2xs"
+                           class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border border-slate-200 transition-colors"
                            title="{{ optional($link->platform)->name ?? 'Link' }}">
                             @include("frontend.themes.{$activeTheme}.partials.social_icon", ['platform' => optional($link->platform)->name ?? ''])
                         </a>
@@ -88,7 +88,7 @@
             </div>
 
             <!-- Contact Strip -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 py-4 px-5 bg-white/30 backdrop-blur-xs rounded-xl border border-white/60 mb-8 text-xs text-slate-600 font-sans ring-1 ring-slate-900/5">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 py-4 px-5 bg-slate-50 rounded-xl border border-slate-100 mb-8 text-xs text-slate-600 font-sans ring-1 ring-slate-900/5">
                 <div class="flex items-center gap-2.5">
                     <svg class="w-4 h-4 text-diu-primary shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
                     <div class="min-w-0">
@@ -114,7 +114,7 @@
 
             <!-- Tab Controls -->
             <div x-data="{ tab: 'overview' }">
-                <div class="flex border-b border-white/40 mb-6 overflow-x-auto gap-1 pb-1">
+                <div class="flex border-b border-slate-200 mb-6 overflow-x-auto gap-1 pb-1">
                     @foreach([
                         ['id' => 'overview', 'label' => 'Overview'],
                         ['id' => 'academic', 'label' => 'Academic Background'],
@@ -127,7 +127,7 @@
                         ['id' => 'memberships', 'label' => 'Memberships'],
                     ] as $tab)
                         <button @click="tab = '{{ $tab['id'] }}'"
-                                :class="tab === '{{ $tab['id'] }}' ? 'border-diu-primary text-diu-primary font-bold bg-white/40 rounded-t-lg' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-white/10'"
+                                :class="tab === '{{ $tab['id'] }}' ? 'border-diu-primary text-diu-primary font-bold bg-white rounded-t-lg' : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'"
                                 class="px-4 py-3 text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-2 border-b-2 -mb-px cursor-pointer">
                             {{ $tab['label'] }}
                         </button>

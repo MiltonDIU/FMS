@@ -5,7 +5,7 @@
         Academic Degrees &amp; Background
     </h3>
     @if($teacher->educations->isEmpty())
-        <div class="p-4 rounded-xl border border-white/60 bg-white/30 backdrop-blur-xs">
+        <div class="p-4 rounded-xl border border-slate-200 ">
             <p class="text-xs text-slate-500 font-medium">No academic degrees have been added yet.</p>
         </div>
     @else
@@ -31,7 +31,7 @@
                     }
                     $resultString = implode(' | ', $resultParts);
                 @endphp
-                <div class="p-4 rounded-xl border border-white/60 bg-white/30 backdrop-blur-xs ring-1 ring-slate-900/5">
+                <div class="p-4 rounded-xl border border-slate-200  ring-1 ring-slate-900/5">
                     <span class="bg-diu-primary/10 text-diu-primary text-[9px] font-sans font-black uppercase px-2 py-0.5 rounded-xs">Year: {{ $edu->passing_year ?? 'N/A' }}</span>
                     <h4 class="text-sm font-bold text-slate-800 mt-2 font-display">{{ $degreeTitle }}</h4>
                     <p class="text-xs text-slate-600 mt-0.5 font-medium">{{ $institution }}</p>

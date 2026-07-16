@@ -9,7 +9,7 @@
     @else
         <div class="space-y-2">
             @foreach($teacher->memberships as $mem)
-                <div class="p-3 bg-white/30 backdrop-blur-xs rounded-xl border border-white/60 flex items-center gap-2.5 text-xs text-slate-700 font-sans font-medium ring-1 ring-slate-900/5">
+                <div class="p-3  rounded-xl border border-slate-200 flex items-center gap-2.5 text-xs text-slate-700 font-sans font-medium ring-1 ring-slate-900/5">
                     <div class="w-2 h-2 rounded-full bg-diu-primary shrink-0"></div>
                     {{ optional($mem->membershipOrganization)->name }}{{ $mem->position ? ' — ' . $mem->position : '' }}{{ $mem->membership_id ? ' (ID: ' . $mem->membership_id . ')' : '' }}
                 </div>

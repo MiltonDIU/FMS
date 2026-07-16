@@ -31,27 +31,30 @@
         <span class="text-diu-primary truncate max-w-xs">Publication Details</span>
     </div>
 
-    <div class="bg-white/40 backdrop-blur-md rounded-2xl border border-white/60 shadow-xs overflow-hidden font-sans">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden font-sans">
 
-        <!-- Upper header -->
-        <div class="bg-gradient-to-r from-diu-primary to-diu-primary-dark p-6 md:p-8 text-white relative">
+        <!-- Cover / Hero header banner (matches profile page) -->
+        <div class="relative h-48 bg-gradient-to-r from-diu-primary-dark via-diu-primary to-diu-accent/80 p-6 md:p-8 flex items-end border-b border-slate-200/60">
             <a href="{{ $teacherUrl }}"
-               class="bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all mb-4 backdrop-blur-xs inline-flex">
+               class="absolute top-4 left-4 bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all backdrop-blur-xs">
                 <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
                 Back to Profile
             </a>
+            <div class="absolute right-6 top-6 text-white/10 font-display font-extrabold text-7xl select-none hidden sm:block">DIU</div>
 
-            <span class="bg-diu-accent text-white text-[10px] font-sans font-bold uppercase px-2.5 py-0.5 rounded-sm tracking-wide">
-                {{ optional($publication->type)->name ?? 'Research' }} Publication
-            </span>
-            <h2 class="text-lg md:text-xl font-display font-bold text-white tracking-tight mt-3 leading-snug">{{ $publication->title }}</h2>
-            <p class="text-xs text-white/85 mt-2 font-medium">Authors: {{ $authors }}</p>
+            <div class="relative z-10 w-full">
+                <span class="bg-diu-accent text-white text-[10px] font-sans font-bold uppercase px-2.5 py-0.5 rounded-sm tracking-wide shadow-xs border border-diu-accent/20">
+                    {{ optional($publication->type)->name ?? 'Research' }} Publication
+                </span>
+                <h2 class="text-lg md:text-xl font-display font-bold text-white tracking-tight mt-3 leading-snug max-w-3xl">{{ $publication->title }}</h2>
+                <p class="text-xs text-white/85 mt-2 font-medium">Authors: {{ $authors }}</p>
+            </div>
         </div>
 
         <div class="p-6 md:p-8 space-y-8">
 
             <!-- Core Metadata Block -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-white/30 backdrop-blur-xs rounded-xl border border-white/60 text-xs ring-1 ring-slate-900/5">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100 text-xs ring-1 ring-slate-900/5">
                 @if($venue)
                     <div>
                         <p class="text-[10px] text-slate-400 font-bold uppercase">Journal / Conference</p>
@@ -104,7 +107,7 @@
 
             <!-- Dynamic Citation Generator Widget -->
             <div x-data="{ copied: null, doCopy(ref, key) { const el = $refs[ref]; if(!el) return; navigator.clipboard.writeText(el.innerText); copied = key; setTimeout(() => copied = null, 2000); } }"
-                 class="bg-white/30 backdrop-blur-xs rounded-xl border border-white/60 p-5 ring-1 ring-slate-900/5">
+                 class="bg-white rounded-xl border border-slate-200 p-5 ring-1 ring-slate-900/5">
                 <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4 flex items-center gap-1.5">
                     <svg class="w-4 h-4 text-diu-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 9 5 10 5 10zM18 21c-3 0-7-1-7-8V5c0-1.25.757-2.017 2-2h3c1.25 0 2 .75 2 1.972V11c0 9-5 10-5 10z"/></svg>
                     Scholarly Citation Generator
@@ -124,7 +127,7 @@
                                 </template>
                             </button>
                         </div>
-                        <p x-ref="apa" class="p-3 bg-white/50 border border-white/80 rounded-lg text-xs text-slate-700 font-sans select-all leading-relaxed">{{ $citations['apa'] }}</p>
+                        <p x-ref="apa" class="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 font-sans select-all leading-relaxed">{{ $citations['apa'] }}</p>
                     </div>
 
                     <!-- IEEE -->
@@ -140,7 +143,7 @@
                                 </template>
                             </button>
                         </div>
-                        <p x-ref="ieee" class="p-3 bg-white/50 border border-white/80 rounded-lg text-xs text-slate-700 font-sans select-all leading-relaxed">{{ $citations['ieee'] }}</p>
+                        <p x-ref="ieee" class="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 font-sans select-all leading-relaxed">{{ $citations['ieee'] }}</p>
                     </div>
 
                     <!-- BibTeX -->
@@ -162,7 +165,7 @@
             </div>
 
             <!-- Contributing Academic Member info -->
-            <div class="p-4 bg-white/30 border border-white/60 rounded-xl flex items-center justify-between ring-1 ring-slate-900/5">
+            <div class="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between ring-1 ring-slate-900/5">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-full overflow-hidden bg-slate-200 shrink-0">
                         @if($teacher->photo)

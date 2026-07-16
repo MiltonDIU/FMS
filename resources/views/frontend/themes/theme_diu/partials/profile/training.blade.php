@@ -9,7 +9,7 @@
     @else
         <div class="space-y-3">
             @foreach($teacher->trainingExperiences as $trn)
-                <div class="p-4 rounded-xl border border-white/60 bg-white/30 backdrop-blur-xs flex gap-3 ring-1 ring-slate-900/5">
+                <div class="p-4 rounded-xl border border-slate-200  flex gap-3 ring-1 ring-slate-900/5">
                     <div class="bg-diu-accent/15 text-diu-accent p-2 rounded-lg shrink-0 h-9 w-9 flex items-center justify-center">
                         <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
                     </div>

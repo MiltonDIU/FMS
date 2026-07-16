@@ -29,21 +29,21 @@
 
             {{-- Glowing accent circles --}}
             <div class="absolute top-0 right-0 w-[480px] h-[480px] -translate-y-1/3 translate-x-1/4 rounded-full pointer-events-none"
-                 style="background: radial-gradient(circle, rgba(37,99,235,0.25) 0%, transparent 70%);"></div>
+                 style="background: radial-gradient(circle, rgba(0,114,188,0.28) 0%, transparent 70%);"></div>
             <div class="absolute bottom-0 left-0 w-64 h-64 translate-y-1/3 -translate-x-1/4 rounded-full pointer-events-none"
-                 style="background: radial-gradient(circle, rgba(245,158,11,0.18) 0%, transparent 70%);"></div>
+                 style="background: radial-gradient(circle, rgba(3,78,162,0.22) 0%, transparent 70%);"></div>
 
-            {{-- Thin amber top-border line --}}
+            {{-- Thin brand top-border line --}}
             <div class="absolute top-0 left-0 right-0 h-0.5"
-                 style="background: linear-gradient(90deg, transparent, #f59e0b 30%, #fbbf24 60%, transparent);"></div>
+                 style="background: linear-gradient(90deg, transparent, #0072bc 30%, #034ea2 60%, transparent);"></div>
 
             {{-- Content --}}
             <div class="relative z-10 w-full px-8 py-14 md:px-16 md:py-16" style="padding: 10px">
 
                 {{-- Eyebrow --}}
                 <div class="inline-flex items-center gap-2 mb-6">
-                    <span class="block w-5 h-0.5 bg-amber-400 rounded-full"></span>
-                    <span class="text-amber-400 text-[11px] uppercase font-extrabold tracking-[0.2em]">Official Faculty Portal · DIU</span>
+                    <span class="block w-5 h-0.5 bg-diu-accent rounded-full"></span>
+                    <span class="text-diu-accent text-[11px] uppercase font-extrabold tracking-[0.2em]">Official Faculty Portal · DIU</span>
                 </div>
 
                 <h1 class="text-white font-display font-extrabold text-3xl md:text-[2.5rem] leading-tight tracking-tight mb-5 max-w-2xl">
@@ -58,10 +58,7 @@
                 {{-- CTA + stats row --}}
                 <div class="flex flex-wrap items-center gap-5">
                     <a href="#faculties"
-                       style="background-color: #f59e0b; color: #111827;"
-                       onmouseover="this.style.backgroundColor='#fbbf24';"
-                       onmouseout="this.style.backgroundColor='#f59e0b';"
-                       class="inline-flex items-center gap-2 font-bold text-sm px-5 py-2.5 rounded-xl shadow-lg transition-all hover:-translate-y-0.5 duration-200">
+                       class="inline-flex items-center gap-2 font-bold text-sm px-5 py-2.5 rounded-xl shadow-lg transition-all hover:-translate-y-0.5 duration-200 bg-diu-primary hover:bg-diu-primary-hover text-white">
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>
                         Browse Faculties
                     </a>
@@ -106,14 +103,14 @@
                         $visibleDepts = $allDepts->take(4);
                         $hiddenDepts  = $allDepts->skip(4);
 
-                        // Each faculty card header gets a slightly different shade
+                        // Each faculty card header gets a slightly different DIU brand shade
                         $headerGrads = [
-                            'linear-gradient(135deg, #021b40 0%, #0e3d75 100%)',
-                            'linear-gradient(135deg, #03224e 0%, #1d4ed8 100%)',
-                            'linear-gradient(135deg, #071e3d 0%, #0369a1 100%)',
-                            'linear-gradient(135deg, #0c1f3d 0%, #1e40af 100%)',
-                            'linear-gradient(135deg, #0a1930 0%, #0284c7 100%)',
-                            'linear-gradient(135deg, #172554 0%, #2563eb 100%)',
+                            'linear-gradient(135deg, #002652 0%, #034ea2 100%)',
+                            'linear-gradient(135deg, #011d3c 0%, #0e3d75 100%)',
+                            'linear-gradient(135deg, #021b40 0%, #0072bc 100%)',
+                            'linear-gradient(135deg, #002652 0%, #0861a7 100%)',
+                            'linear-gradient(135deg, #011d3c 0%, #034ea2 100%)',
+                            'linear-gradient(135deg, #021b40 0%, #0072bc 100%)',
                         ];
                         $grad = $headerGrads[$loop->index % count($headerGrads)];
                     @endphp
@@ -135,7 +132,7 @@
 
                             {{-- Code badge --}}
                             <div class="absolute top-3 right-3 text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-md"
-                                 style="background: rgba(245,158,11,0.9); color: #111827;">
+                                 style="background: rgba(3,78,162,0.92); color: #ffffff;">
                                 {{ $faculty->code ?? $faculty->short_name }}
                             </div>
 
@@ -170,9 +167,7 @@
                                                 ]);
                                             @endphp
                                             <a href="{{ $deptUrl }}" title="{{ $dept->name }}"
-                                               style="color:#1e40af; background:#eff6ff; border:1px solid #bfdbfe; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; padding:2px 8px; border-radius:5px; transition:all .15s;"
-                                               onmouseover="this.style.background='#1e40af'; this.style.color='#fff'; this.style.borderColor='#1e40af';"
-                                               onmouseout="this.style.background='#eff6ff'; this.style.color='#1e40af'; this.style.borderColor='#bfdbfe';">
+                                               class="inline-flex items-center text-diu-primary bg-diu-primary/10 border border-diu-primary/20 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md transition-colors duration-150 hover:bg-diu-primary hover:text-white hover:border-diu-primary">
                                                 {{ $dept->code }}
                                             </a>
                                         @endforeach
@@ -189,9 +184,7 @@
                                                             ]);
                                                         @endphp
                                                         <a href="{{ $deptUrl }}" title="{{ $dept->name }}"
-                                                           style="color:#1e40af; background:#eff6ff; border:1px solid #bfdbfe; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; padding:2px 8px; border-radius:5px; transition:all .15s;"
-                                                           onmouseover="this.style.background='#1e40af'; this.style.color='#fff'; this.style.borderColor='#1e40af';"
-                                                           onmouseout="this.style.background='#eff6ff'; this.style.color='#1e40af'; this.style.borderColor='#bfdbfe';">
+                                                           class="inline-flex items-center text-diu-primary bg-diu-primary/10 border border-diu-primary/20 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md transition-colors duration-150 hover:bg-diu-primary hover:text-white hover:border-diu-primary">
                                                             {{ $dept->code }}
                                                         </a>
                                                     @endforeach
@@ -199,9 +192,7 @@
                                             </template>
 
                                             <button @click="expanded = !expanded"
-                                                    style="color:#64748b; background:#f8fafc; border:1px solid #e2e8f0; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; padding:2px 8px; border-radius:5px; cursor:pointer; transition:all .15s;"
-                                                    onmouseover="this.style.background='#f1f5f9'; this.style.borderColor='#cbd5e1';"
-                                                    onmouseout="this.style.background='#f8fafc'; this.style.borderColor='#e2e8f0';">
+                                                    class="inline-flex items-center text-slate-500 bg-slate-100 border border-slate-200 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md cursor-pointer transition-colors duration-150 hover:bg-slate-200 hover:text-slate-700">
                                                 <span x-show="!expanded">+{{ $hiddenDepts->count() }} More</span>
                                                 <span x-show="expanded" style="display:none;">Show less</span>
                                             </button>
