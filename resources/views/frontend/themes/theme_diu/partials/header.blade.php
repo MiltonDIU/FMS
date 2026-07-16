@@ -45,8 +45,8 @@
                     </span>
                 </div>
 
-                <a href="{{ url('/admin/login') }}" class="bg-diu-primary hover:bg-diu-primary-hover text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-sm border border-diu-primary/25 active:scale-95">
-                    <svg class="w-3.5 h-3.5 text-diu-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <a href="{{ url('/admin/login') }}" class="bg-diu-primary hover:bg-diu-primary-hover text-[color:var(--diu-on-primary)] text-xs font-bold px-4 py-2.5 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-sm border border-diu-primary/25 active:scale-95">
+                    <svg class="w-3.5 h-3.5 text-diu-accent shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                     <span>Teacher Login</span>
                 </a>
             </div>

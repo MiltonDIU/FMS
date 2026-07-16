@@ -25,12 +25,12 @@
 
 /* theme_diu custom styles (owned by theme_diu, editable independently) */
 body {
-    background-color: #f4f8fc;
+    background-color: color-mix(in srgb, var(--color-diu-primary-light) 6%, #ffffff);
     background-image:
-        radial-gradient(at 0% 0%, rgba(0, 114, 188, 0.06) 0px, transparent 50%),
-        radial-gradient(at 100% 0%, rgba(0, 169, 207, 0.04) 0px, transparent 50%),
-        radial-gradient(at 50% 100%, rgba(0, 114, 188, 0.02) 0px, transparent 50%),
-        linear-gradient(to bottom right, #f5f9fc, #edf3f8);
+        radial-gradient(at 0% 0%, color-mix(in srgb, var(--color-diu-accent) 6%, transparent) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, color-mix(in srgb, var(--color-diu-accent-light) 4%, transparent) 0px, transparent 50%),
+        radial-gradient(at 50% 100%, color-mix(in srgb, var(--color-diu-primary) 2%, transparent) 0px, transparent 50%),
+        linear-gradient(to bottom right, color-mix(in srgb, var(--color-diu-primary-light) 5%, #ffffff), color-mix(in srgb, var(--color-diu-primary) 4%, #f0f4f8));
     background-attachment: fixed;
     min-height: 100vh;
 }

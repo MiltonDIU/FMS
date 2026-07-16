@@ -6,6 +6,8 @@
         'resources/views/frontend/themes/theme_default/assets/css/theme.css',
         'resources/views/frontend/themes/theme_default/assets/js/theme.js',
     ])
+
+    <style>{{ \App\Helpers\ColorPalette::cssRootBlock() }}</style>
 </head>
 <body class="bg-transparent min-h-screen flex flex-col font-sans text-slate-800 antialiased">
 

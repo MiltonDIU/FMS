@@ -11,6 +11,8 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
+use Filament\Forms\Components\ColorPicker;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Support\Icons\Heroicon;
@@ -81,7 +83,9 @@ class SystemSettings extends Page
             'frontend_driver' => 'blade',
             'nextjs_url' => '',
             'active_theme' => 'theme_default',
-        ], $settings));
+            'diu_color_palette' => 'diu',
+            'diu_primary_color' => null,
+        ] + array_fill_keys(\App\Helpers\ColorPalette::OVERRIDE_KEYS, null), $settings));
     }
 
     public function form(Schema $schema): Schema
@@ -179,7 +183,7 @@ class SystemSettings extends Page
                             ->icon('heroicon-o-globe-alt')
                             ->schema([
                                 Section::make('Frontend Configuration')
-                                    ->description('Choose how the public teacher portal is served')
+                                    ->description('Choose how the public teacher portal is served. The "Reset Colors to Default" button restores the original DIU theme colors and clears all manual overrides below.')
                                     ->schema([
                                         \Filament\Forms\Components\Select::make('frontend_driver')
                                             ->label('Frontend Driver')
@@ -202,8 +206,44 @@ class SystemSettings extends Page
                                             ->options(fn () => static::getAvailableThemes())
                                             ->default('theme_default')
                                             ->required(),
+                                        \Filament\Forms\Components\Select::make('diu_color_palette')
+                                            ->label('Color Palette')
+                                            ->options(\App\Helpers\ColorPalette::presetOptions())
+                                            ->default('diu')
+                                            ->required()
+                                            ->helperText('Auto-generates the full color scheme from a single base color.'),
+                                        \Filament\Forms\Components\ColorPicker::make('diu_primary_color')
+                                            ->label('Custom Primary Color (optional)')
+                                            ->hex()
+                                            ->default(null)
+                                            ->helperText('Overrides the palette base color if set. Leave empty to use the selected palette.'),
                                     ]),
+
+                                \Filament\Schemas\Components\Actions::make([
+                                    \Filament\Actions\Action::make('reset_colors')
+                                        ->label('Reset Colors to Default')
+                                        ->icon('heroicon-o-arrow-path')
+                                        ->color('gray')
+                                        ->requiresConfirmation()
+                                        ->action('resetColors'),
+                                ]),
+
+                                \Filament\Schemas\Components\Section::make('Manual Color Overrides')
+                                    ->description('Fine-tune individual colors. Each is used in specific places across the site — see the hint under each picker. Overrides are layered on top of the generated palette, so they persist until you clear them or hit Reset.')
+                                    ->collapsed()
+                                    ->schema(
+                                        collect(\App\Helpers\ColorPalette::colorFields())
+                                            ->map(function ($f) {
+                                                return \Filament\Forms\Components\ColorPicker::make($f['key'])
+                                                    ->label($f['label'])
+                                                    ->hex()
+                                                    ->default(null)
+                                                    ->helperText($f['usage']);
+                                            })
+                                            ->all()
+                                    ),
                             ]),
+
                         Tab::make('Data Migration')
                             ->icon('heroicon-o-arrow-path')
                             ->visible(fn() => env('SHOW_DATA_MIGRATION_TAB', false))
@@ -299,9 +339,34 @@ class SystemSettings extends Page
             Setting::set($key, $value);
         }
 
+        // Clear cached color settings so the frontend reflects changes at once.
+        if (array_intersect(array_keys($data), array_merge(
+            ['diu_color_palette', 'diu_primary_color'],
+            \App\Helpers\ColorPalette::OVERRIDE_KEYS
+        ))) {
+            \App\Helpers\ColorPalette::forgetCache();
+        }
+
         Notification::make()
             ->success()
             ->title('Settings saved successfully')
+            ->send();
+    }
+
+    public function resetColors(): void
+    {
+        \App\Helpers\ColorPalette::resetToDefaults();
+
+        // Re-fill the form so the UI reflects the restored defaults.
+        $this->form->fill(array_merge(
+            $this->form->getState(),
+            ['diu_color_palette' => 'diu', 'diu_primary_color' => null]
+            + array_fill_keys(\App\Helpers\ColorPalette::OVERRIDE_KEYS, null)
+        ));
+
+        Notification::make()
+            ->success()
+            ->title('Colors reset to DIU defaults')
             ->send();
     }
 

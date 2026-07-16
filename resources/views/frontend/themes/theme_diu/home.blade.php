@@ -20,7 +20,7 @@
              HERO — DIU main site inspired: full-bleed dark navy panel
         ══════════════════════════════════════════════════════════ --}}
         <section class="relative overflow-hidden rounded-3xl mb-10 min-h-[280px] flex items-end"
-                 style="background: linear-gradient(160deg, #021430 0%, #032652 40%, #0e3d75 75%, #155fa0 100%);">
+                 style="background: linear-gradient(160deg, var(--color-diu-primary-dark) 0%, var(--color-diu-primary) 40%, var(--color-diu-primary-light) 75%, var(--color-diu-accent-light) 100%);">
 
             {{-- Fine dot-mesh texture --}}
             <div class="absolute inset-0 pointer-events-none opacity-[0.18]"
@@ -29,13 +29,13 @@
 
             {{-- Glowing accent circles --}}
             <div class="absolute top-0 right-0 w-[480px] h-[480px] -translate-y-1/3 translate-x-1/4 rounded-full pointer-events-none"
-                 style="background: radial-gradient(circle, rgba(0,114,188,0.28) 0%, transparent 70%);"></div>
+                 style="background: radial-gradient(circle, color-mix(in srgb, var(--color-diu-accent) 28%, transparent) 0%, transparent 70%);"></div>
             <div class="absolute bottom-0 left-0 w-64 h-64 translate-y-1/3 -translate-x-1/4 rounded-full pointer-events-none"
-                 style="background: radial-gradient(circle, rgba(3,78,162,0.22) 0%, transparent 70%);"></div>
+                 style="background: radial-gradient(circle, color-mix(in srgb, var(--color-diu-primary) 22%, transparent) 0%, transparent 70%);"></div>
 
             {{-- Thin brand top-border line --}}
             <div class="absolute top-0 left-0 right-0 h-0.5"
-                 style="background: linear-gradient(90deg, transparent, #0072bc 30%, #034ea2 60%, transparent);"></div>
+                 style="background: linear-gradient(90deg, transparent, var(--color-diu-accent) 30%, var(--color-diu-primary) 60%, transparent);"></div>
 
             {{-- Content --}}
             <div class="relative z-10 w-full px-8 py-14 md:px-16 md:py-16" style="padding: 10px">
@@ -105,12 +105,12 @@
 
                         // Each faculty card header gets a slightly different DIU brand shade
                         $headerGrads = [
-                            'linear-gradient(135deg, #002652 0%, #034ea2 100%)',
-                            'linear-gradient(135deg, #011d3c 0%, #0e3d75 100%)',
-                            'linear-gradient(135deg, #021b40 0%, #0072bc 100%)',
-                            'linear-gradient(135deg, #002652 0%, #0861a7 100%)',
-                            'linear-gradient(135deg, #011d3c 0%, #034ea2 100%)',
-                            'linear-gradient(135deg, #021b40 0%, #0072bc 100%)',
+                            'linear-gradient(135deg, var(--color-diu-primary-dark) 0%, var(--color-diu-primary) 100%)',
+                            'linear-gradient(135deg, color-mix(in srgb, var(--color-diu-primary-dark) 70%, black) 0%, var(--color-diu-primary-light) 100%)',
+                            'linear-gradient(135deg, color-mix(in srgb, var(--color-diu-primary-dark) 80%, black) 0%, var(--color-diu-accent) 100%)',
+                            'linear-gradient(135deg, var(--color-diu-primary-dark) 0%, color-mix(in srgb, var(--color-diu-primary-light) 80%, black) 100%)',
+                            'linear-gradient(135deg, color-mix(in srgb, var(--color-diu-primary-dark) 70%, black) 0%, var(--color-diu-primary) 100%)',
+                            'linear-gradient(135deg, color-mix(in srgb, var(--color-diu-primary-dark) 80%, black) 0%, var(--color-diu-accent) 100%)',
                         ];
                         $grad = $headerGrads[$loop->index % count($headerGrads)];
                     @endphp
@@ -132,7 +132,7 @@
 
                             {{-- Code badge --}}
                             <div class="absolute top-3 right-3 text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-md"
-                                 style="background: rgba(3,78,162,0.92); color: #ffffff;">
+                                 style="background: color-mix(in srgb, var(--color-diu-primary) 92%, black); color: #ffffff;">
                                 {{ $faculty->code ?? $faculty->short_name }}
                             </div>
 

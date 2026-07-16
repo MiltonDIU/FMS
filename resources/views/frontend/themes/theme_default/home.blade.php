@@ -20,7 +20,7 @@
              HERO — DIU main site inspired: full-bleed dark navy panel
         ══════════════════════════════════════════════════════════ --}}
         <section class="relative overflow-hidden rounded-3xl mb-10 min-h-[280px] flex items-end"
-                 style="background: linear-gradient(160deg, #021430 0%, #032652 40%, #0e3d75 75%, #155fa0 100%);">
+                 style="background: linear-gradient(160deg, var(--color-diu-primary-dark) 0%, var(--color-diu-primary) 40%, var(--color-diu-primary-light) 75%, var(--color-diu-accent-light) 100%);">
 
             {{-- Fine dot-mesh texture --}}
             <div class="absolute inset-0 pointer-events-none opacity-[0.18]"
@@ -29,13 +29,13 @@
 
             {{-- Glowing accent circles --}}
             <div class="absolute top-0 right-0 w-[480px] h-[480px] -translate-y-1/3 translate-x-1/4 rounded-full pointer-events-none"
-                 style="background: radial-gradient(circle, rgba(37,99,235,0.25) 0%, transparent 70%);"></div>
+                 style="background: radial-gradient(circle, color-mix(in srgb, var(--color-diu-accent) 25%, transparent) 0%, transparent 70%);"></div>
             <div class="absolute bottom-0 left-0 w-64 h-64 translate-y-1/3 -translate-x-1/4 rounded-full pointer-events-none"
-                 style="background: radial-gradient(circle, rgba(245,158,11,0.18) 0%, transparent 70%);"></div>
+                 style="background: radial-gradient(circle, color-mix(in srgb, var(--color-diu-primary) 18%, transparent) 0%, transparent 70%);"></div>
 
-            {{-- Thin amber top-border line --}}
+            {{-- Thin brand top-border line --}}
             <div class="absolute top-0 left-0 right-0 h-0.5"
-                 style="background: linear-gradient(90deg, transparent, #f59e0b 30%, #fbbf24 60%, transparent);"></div>
+                 style="background: linear-gradient(90deg, transparent, var(--color-diu-accent) 30%, var(--color-diu-primary) 60%, transparent);"></div>
 
             {{-- Content --}}
             <div class="relative z-10 w-full px-8 py-14 md:px-16 md:py-16" style="padding: 10px">
@@ -108,12 +108,12 @@
 
                         // Each faculty card header gets a slightly different shade
                         $headerGrads = [
-                            'linear-gradient(135deg, #021b40 0%, #0e3d75 100%)',
-                            'linear-gradient(135deg, #03224e 0%, #1d4ed8 100%)',
-                            'linear-gradient(135deg, #071e3d 0%, #0369a1 100%)',
-                            'linear-gradient(135deg, #0c1f3d 0%, #1e40af 100%)',
-                            'linear-gradient(135deg, #0a1930 0%, #0284c7 100%)',
-                            'linear-gradient(135deg, #172554 0%, #2563eb 100%)',
+                            'linear-gradient(135deg, var(--color-diu-primary-dark) 0%, var(--color-diu-primary) 100%)',
+                            'linear-gradient(135deg, color-mix(in srgb, var(--color-diu-primary-dark) 80%, black) 0%, color-mix(in srgb, var(--color-diu-primary) 80%, #1d4ed8) 100%)',
+                            'linear-gradient(135deg, color-mix(in srgb, var(--color-diu-primary-dark) 75%, black) 0%, var(--color-diu-primary-light) 100%)',
+                            'linear-gradient(135deg, color-mix(in srgb, var(--color-diu-primary-dark) 85%, black) 0%, color-mix(in srgb, var(--color-diu-primary) 85%, #1e40af) 100%)',
+                            'linear-gradient(135deg, color-mix(in srgb, var(--color-diu-primary-dark) 78%, black) 0%, var(--color-diu-accent) 100%)',
+                            'linear-gradient(135deg, color-mix(in srgb, var(--color-diu-primary-dark) 90%, black) 0%, var(--color-diu-accent-light) 100%)',
                         ];
                         $grad = $headerGrads[$loop->index % count($headerGrads)];
                     @endphp
