@@ -12,6 +12,8 @@ export default defineConfig({
                 'resources/views/frontend/themes/theme_diu/assets/js/theme.js',
                 'resources/views/frontend/themes/theme_default/assets/css/theme.css',
                 'resources/views/frontend/themes/theme_default/assets/js/theme.js',
+                'resources/views/frontend/themes/theme_modern/assets/css/theme.css',
+                'resources/views/frontend/themes/theme_modern/assets/js/theme.js',
             ],
             refresh: true,
         }),

@@ -1,0 +1,228 @@
+@import 'tailwindcss';
+
+/* ─── Modern theme: Bento Grid + Subtle Glassmorphism + Minimalism ───
+   Drives dark mode from the `.dark` class on <html> (set by App\Helpers\Appearance
+   + the header switch), instead of Tailwind v4's default media strategy. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@source '../../../../../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../../../../../storage/framework/views/*.php';
+@source '../../../../../../**/*.blade.php';
+@source '../../../../../../**/*.js';
+
+/* Safelist: classes injected dynamically inside Blade {{ }} ternary strings
+   (active sidebar states) that Tailwind's scanner cannot see. */
+@source inline("bg-[#EDF6FF] text-slate-900 text-slate-700 border-diu-primary border-diu-accent border-transparent hover:bg-[#EDF6FF] bg-diu-primary/10 bg-slate-100 border-gray-100 border-white/60 bg-white/40 bg-white/70 ring-2 ring-diu-primary bg-white border-slate-200 text-gray-900 text-gray-800 text-gray-500 text-gray-300 text-slate-400 text-slate-600 text-slate-500 hover:text-diu-primary hover:bg-white hover:bg-white/30 hover:text-slate-600 hover:text-slate-700 focus:bg-white focus:ring-diu-primary focus:border-diu-primary");
+
+@theme {
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+    --color-diu-primary-dark: #002652;
+    --color-diu-primary: #034ea2;
+    --color-diu-primary-light: #0072bc;
+    --color-diu-primary-hover: #023b7a;
+    --color-diu-secondary-dark: #002652;
+    --color-diu-secondary: #034ea2;
+    --color-diu-secondary-light: #0072bc;
+    --color-diu-accent: #0072bc;
+    --color-diu-accent-light: #4dc3e6;
+    --color-diu-accent-hover: #005fa3;
+}
+
+/*
+ * Semantic surface tokens (modern neutral palette with on-brand navy in dark).
+ * Light theme maps them to a clean near-white/slate system; `.dark` remaps
+ * them to a deep charcoal-navy surface so the whole portal flips.
+ */
+:root {
+    /* Live height of the sticky header (set by theme.js). Fallback covers the
+       first paint before JS measures it, so sticky panels never hide behind
+       the header. */
+    --header-h: 150px;
+    --surface-page: #f6f7f9;
+    --surface-card: #ffffff;
+    --surface-card-border: #eceef1;
+    --surface-subtle: #f3f4f6;
+    --surface-subtle-border: #eef0f3;
+    --surface-hover: #f1f3f6;
+    --surface-active: #eef6ff;
+    --surface-active-border: var(--color-diu-primary);
+    --text-strong: #0b1120;
+    --text-base: #41474f;
+    --text-muted: #7b828c;
+    --text-faint: #a3aab5;
+    --border-strong: #d4d8de;
+    --border-soft: #eceef1;
+    --border-faint: #f1f3f6;
+    --glass-bg: rgba(255, 255, 255, 0.72);
+    --glass-border: rgba(255, 255, 255, 0.6);
+    --glass-panel-bg: rgba(255, 255, 255, 0.55);
+    --glass-panel-border: rgba(255, 255, 255, 0.7);
+    --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 4px 16px rgba(16, 24, 40, 0.06);
+    --shadow-card-hover: 0 2px 6px rgba(16, 24, 40, 0.06), 0 12px 32px rgba(16, 24, 40, 0.10);
+}
+
+.dark {
+    --surface-page: #0a0f1a;
+    --surface-card: #121a2b;
+    --surface-card-border: #212c42;
+    --surface-subtle: #0f1727;
+    --surface-subtle-border: #1b2438;
+    --surface-hover: #16203400;
+    --surface-active: color-mix(in srgb, var(--color-diu-primary) 28%, #0a0f1a);
+    --surface-active-border: var(--color-diu-accent-light);
+    --text-strong: #eef1f6;
+    --text-base: #b3bbc8;
+    --text-muted: #8b93a3;
+    --text-faint: #626b7e;
+    --border-strong: #2b3650;
+    --border-soft: #212c42;
+    --border-faint: #1b2438;
+    --glass-bg: rgba(18, 26, 43, 0.68);
+    --glass-border: rgba(77, 195, 230, 0.16);
+    --glass-panel-bg: rgba(18, 26, 43, 0.5);
+    --glass-panel-border: rgba(77, 195, 230, 0.2);
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.4), 0 16px 40px rgba(0, 0, 0, 0.45);
+    color-scheme: dark;
+}
+
+/* Reusable modern component classes (used across theme_modern views). */
+.card {
+    background-color: var(--surface-card);
+    border: 1px solid var(--border-soft);
+    border-radius: 1rem;
+    box-shadow: var(--shadow-card);
+}
+.card-hover {
+    transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+}
+.card-hover:hover {
+    box-shadow: var(--shadow-card-hover);
+    border-color: color-mix(in srgb, var(--color-diu-primary) 35%, var(--border-soft));
+    transform: translateY(-2px);
+}
+
+.bg-white,
+.bg-white\/40,
+.bg-white\/50,
+.bg-white\/60,
+.bg-white\/70,
+.bg-white\/80 { background-color: var(--surface-card); }
+
+.bg-slate-50 { background-color: var(--surface-subtle); }
+.bg-slate-100 { background-color: var(--surface-hover); }
+.bg-slate-200 { background-color: var(--surface-subtle); }
+.bg-slate-300 { background-color: var(--surface-hover); }
+.bg-gray-50 { background-color: var(--surface-subtle); }
+
+.bg-slate-900 { background-color: var(--surface-card); }
+.bg-slate-950 { background-color: #070b14; }
+
+.border-slate-100 { border-color: var(--border-faint); }
+.border-slate-200,
+.border-slate-200\/60 { border-color: var(--border-soft); }
+.border-slate-300 { border-color: var(--border-strong); }
+.border-slate-800 { border-color: var(--border-strong); }
+.border-gray-100 { border-color: var(--border-faint); }
+.border-gray-200 { border-color: var(--border-soft); }
+
+.text-slate-900 { color: var(--text-strong); }
+.text-slate-800 { color: var(--text-strong); }
+.text-slate-700 { color: var(--text-base); }
+.text-slate-600 { color: var(--text-base); }
+.text-slate-500 { color: var(--text-muted); }
+.text-slate-400 { color: var(--text-faint); }
+.text-slate-300 { color: var(--text-faint); }
+.text-slate-200 { color: var(--text-base); }
+.text-gray-900 { color: var(--text-strong); }
+.text-gray-800 { color: var(--text-strong); }
+.text-gray-700 { color: var(--text-base); }
+.text-gray-600 { color: var(--text-base); }
+.text-gray-500 { color: var(--text-muted); }
+.text-gray-400 { color: var(--text-faint); }
+.text-gray-300 { color: var(--text-faint); }
+
+/* Status colors keep hue but deepen slightly in dark mode for legibility. */
+.dark .text-amber-700 { color: #fcd34d; }
+.dark .text-blue-700 { color: #93c5fd; }
+.dark .text-emerald-700 { color: #6ee7b7; }
+.dark .text-indigo-700 { color: #a5b4fc; }
+.dark .border-amber-200 { border-color: #785a11; }
+.dark .border-emerald-100 { border-color: #14532d; }
+.dark .border-indigo-100 { border-color: #3730a3; }
+.dark .bg-amber-50 { background-color: #3a2c06; }
+.dark .bg-emerald-50 { background-color: #052e1c; }
+.dark .bg-indigo-50 { background-color: #1e1b4b; }
+
+/* Inline hardcoded slate text used across cards. */
+[style*="color:#64748b"],
+[style*="color: #64748b"],
+[style*="color:#475569"],
+[style*="color: #475569"],
+[style*="color:#94a3b8"],
+[style*="color: #94a3b8"],
+[style*="color:#58595B"],
+[style*="color: #58595B"] { color: var(--text-muted) !important; }
+[style*="color:#475569"],
+[style*="color: #475569"] { color: var(--text-base) !important; }
+[style*="color:#94a3b8"],
+[style*="color: #94a3b8"] { color: var(--text-faint) !important; }
+[style*="color:#58595B"],
+[style*="color: #58595B"] { color: var(--text-base) !important; }
+
+/* theme_modern custom styles (owned by theme_modern, editable independently) */
+body {
+    background-color: var(--surface-page);
+    background-image:
+        radial-gradient(at 0% 0%, color-mix(in srgb, var(--color-diu-accent-light) 7%, transparent) 0px, transparent 45%),
+        radial-gradient(at 100% 0%, color-mix(in srgb, var(--color-diu-primary) 6%, transparent) 0px, transparent 45%),
+        radial-gradient(at 50% 100%, color-mix(in srgb, var(--color-diu-accent) 4%, transparent) 0px, transparent 50%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    color: var(--text-base);
+    -webkit-font-smoothing: antialiased;
+}
+
+.glass-header {
+    background: var(--glass-bg);
+    backdrop-filter: blur(14px) saturate(150%);
+    -webkit-backdrop-filter: blur(14px) saturate(150%);
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.glass-panel {
+    background: var(--glass-panel-bg);
+    backdrop-filter: blur(14px) saturate(150%);
+    -webkit-backdrop-filter: blur(14px) saturate(150%);
+    border: 1px solid var(--glass-panel-border);
+}
+
+header.sticky {
+    background-color: var(--surface-card);
+    border-bottom-color: var(--border-soft);
+}
+
+/* Custom slim scrollbar for scroll regions (publication feed, etc.). */
+.scroll-slim {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+}
+.scroll-slim::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+.scroll-slim::-webkit-scrollbar-thumb {
+    background-color: var(--border-strong);
+    border-radius: 9999px;
+}
+.scroll-slim::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+[x-cloak] {
+    display: none !important;
+}
