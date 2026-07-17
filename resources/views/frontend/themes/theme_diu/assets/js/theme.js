@@ -4,20 +4,28 @@ import '../../../../../../js/bootstrap';
 // Starting a second Alpine instance here conflicts with Livewire's bundled
 // Alpine and breaks wire:model binding (the instant search).
 
-// ─── Dark mode toggle ───────────────────────────────────────────────
-// Single source of truth is localStorage["appearance-mode"].
-// The Appearance preload script already applies it before paint on a full
-// page load; this module keeps it in sync across Livewire wire:navigate
-// morphs (which do NOT re-run the preload) and handles the header toggle.
+// ─── Dark mode toggle ──────────────────────────────────────────────
+// Single source of truth mirrors the Appearance preload script:
+//   stored visitor choice  ->  admin default  ->  OS preference (when "system")
+// This module keeps <html> in sync across Livewire wire:navigate morphs
+// (which do NOT re-run the preload) and handles the header toggle.
 (function () {
     var STORAGE_KEY = 'appearance-mode';
 
-    function storedMode() {
-        var v = null;
+    // Resolves the mode to apply, exactly like Appearance::preloadScript().
+    function resolveMode() {
+        var stored = null;
         try {
-            v = localStorage.getItem(STORAGE_KEY);
+            stored = localStorage.getItem(STORAGE_KEY);
         } catch (e) {}
-        return (v === 'light' || v === 'dark') ? v : null;
+        if (stored === 'light' || stored === 'dark') {
+            return stored;
+        }
+        // No stored choice: follow the OS preference (mirrors admin "system" mode).
+        var prefersDark = window.matchMedia
+            ? window.matchMedia('(prefers-color-scheme: dark)').matches
+            : false;
+        return prefersDark ? 'dark' : 'light';
     }
 
     function apply(mode) {
@@ -27,21 +35,12 @@ import '../../../../../../js/bootstrap';
         root.style.colorScheme = isDark ? 'dark' : 'light';
     }
 
-    // Keep the visual mode consistent with the stored choice. Falls back to the
-    // class already on <html> (set by the preload script) when nothing stored.
-    function syncFromStorage() {
-        var mode = storedMode();
-        if (! mode) {
-            return;
-        }
-        apply(mode);
+    function sync() {
+        apply(resolveMode());
     }
 
     function toggle() {
-        var current = storedMode();
-        if (! current) {
-            current = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-        }
+        var current = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
         var next = current === 'dark' ? 'light' : 'dark';
         try {
             localStorage.setItem(STORAGE_KEY, next);
@@ -55,11 +54,21 @@ import '../../../../../../js/bootstrap';
     }
 
     // Livewire SPA navigation (wire:navigate) morphs the DOM without a full
-    // reload, so re-apply the stored mode after each navigation to avoid the
-    // page drifting into the wrong light/dark state.
-    document.addEventListener('livewire:navigated', syncFromStorage);
-    document.addEventListener('livewire:load', syncFromStorage);
+    // reload, so re-apply the resolved mode after each navigation. This is what
+    // prevents the mode from getting stuck between pages (a refresh "fixes" it
+    // only because the preload script re-runs on a full load).
+    document.addEventListener('livewire:navigated', sync);
+    document.addEventListener('livewire:load', sync);
+    if (window.matchMedia) {
+        var mq = window.matchMedia('(prefers-color-scheme: dark)');
+        var handler = function () { sync(); };
+        if (mq.addEventListener) {
+            mq.addEventListener('change', handler);
+        } else if (mq.addListener) {
+            mq.addListener(handler);
+        }
+    }
 
     // Initial sync in case the preload script was skipped/overwritten.
-    syncFromStorage();
+    sync();
 })();

@@ -7,6 +7,14 @@
             <span class="hidden sm:inline text-white/80">Email: info@daffodilvarsity.edu.bd</span>
         </div>
         <div class="flex items-center gap-3">
+            <button type="button" id="appearance-toggle"
+                    class="group inline-flex items-center justify-center w-7 h-7 rounded-lg border border-white/25 text-white/90 hover:text-white hover:bg-white/15 transition-colors"
+                    aria-label="Toggle dark mode" title="Toggle light / dark mode">
+                {{-- Sun (shown in dark mode) --}}
+                <svg class="w-4 h-4 hidden dark:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+                {{-- Moon (shown in light mode) --}}
+                <svg class="w-4 h-4 block dark:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+            </button>
             <a href="https://daffodilvarsity.edu.bd" target="_blank" rel="noopener noreferrer" class="hover:text-diu-accent-light transition-colors flex items-center gap-1.5 font-semibold">
                 Main Site
                 <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
