@@ -1,5 +1,16 @@
 @import 'tailwindcss';
 
+/* Safelist: classes injected dynamically inside Blade {{ }} ternary strings
+   (e.g. the department/teacher search sidebar active states). Tailwind's scanner
+   cannot see classes hidden inside PHP expressions, so without this they are not
+   generated and the elements render unstyled (appearing "stuck" on the dark
+   body background). Listing them here forces generation. */
+@source inline("bg-[#EDF6FF] text-slate-900 text-slate-700 border-diu-primary border-diu-accent border-transparent hover:bg-[#EDF6FF] bg-diu-primary/10 bg-slate-100 border-gray-100 border-white/60 bg-white/40 bg-white/70 ring-2 ring-diu-primary bg-white border-slate-200 text-gray-900 text-gray-800 text-gray-500 text-gray-300 text-slate-400 text-slate-600 text-slate-500 hover:text-diu-primary hover:bg-white hover:bg-white/30 hover:text-slate-600 hover:text-slate-700 focus:bg-white focus:ring-diu-primary focus:border-diu-primary");
+
+/* Drive dark mode from the `.dark` class on <html> (toggled by App\Helpers\Appearance
+   + the header switch), instead of Tailwind v4's default prefers-color-scheme media. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @source '../../../../../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../../../../../storage/framework/views/*.php';
 @source '../../../../../../**/*.blade.php';
@@ -23,30 +34,134 @@
     --color-diu-accent-hover: #005fa3;
 }
 
+/*
+ * Semantic surface tokens.
+ * Light theme maps them to the original white/slate palette; `.dark` remaps them
+ * to a deep, on-brand navy surface so the whole portal flips without touching
+ * every `bg-white` / `text-slate-*` utility in the markup.
+ */
+:root {
+    --surface-page: #f0f4f8;
+    --surface-card: #ffffff;
+    --surface-card-border: #e2e8f0;
+    --surface-subtle: #f8fafc;
+    --surface-subtle-border: #f1f5f9;
+    --surface-hover: #f1f5f9;
+    --surface-active: #EDF6FF;        /* sidebar active highlight */
+    --surface-active-border: var(--color-diu-primary);
+    --text-strong: #0f172a;          /* slate-900 */
+    --text-base: #334155;             /* slate-700 */
+    --text-muted: #64748b;            /* slate-500 */
+    --text-faint: #94a3b8;           /* slate-400 */
+    --border-strong: #cbd5e1;        /* slate-300 */
+    --border-soft: #e2e8f0;          /* slate-200 */
+    --border-faint: #f1f5f9;         /* slate-100 */
+    --glass-bg: rgba(255, 255, 255, 0.75);
+    --glass-border: rgba(255, 255, 255, 0.4);
+    --glass-panel-bg: rgba(255, 255, 255, 0.45);
+    --glass-panel-border: rgba(255, 255, 255, 0.6);
+}
+
+.dark {
+    --surface-page: #0a1424;
+    --surface-card: #0f1d33;
+    --surface-card-border: #1e2f4d;
+    --surface-subtle: #14233d;
+    --surface-subtle-border: #1b2c49;
+    --surface-hover: #182943;
+    --surface-active: color-mix(in srgb, var(--color-diu-primary) 32%, #0a1424);
+    --surface-active-border: var(--color-diu-accent-light);
+    --text-strong: #e2e8f0;
+    --text-base: #cbd5e1;
+    --text-muted: #94a3b8;
+    --text-faint: #64748b;
+    --border-strong: #2a3f63;
+    --border-soft: #1e2f4d;
+    --border-faint: #16263f;
+    --glass-bg: rgba(15, 29, 51, 0.72);
+    --glass-border: rgba(76, 195, 230, 0.18);
+    --glass-panel-bg: rgba(15, 29, 51, 0.5);
+    --glass-panel-border: rgba(76, 195, 230, 0.22);
+    color-scheme: dark;
+}
+
+/*
+ * Remap the common light-surface utilities to the semantic tokens. Under `.dark`
+ * these utilities automatically resolve to the dark palette, so existing markup
+ * (including inline `style="color:#64748b"`) is covered centrally.
+ */
+@utility bg-surface-page { background-color: var(--surface-page); }
+@utility bg-surface-card { background-color: var(--surface-card); }
+@utility bg-surface-subtle { background-color: var(--surface-subtle); }
+@utility bg-surface-hover { background-color: var(--surface-hover); }
+
+.bg-white,
+.bg-white\/40,
+.bg-white\/70 { background-color: var(--surface-card); }
+
+.bg-slate-50 { background-color: var(--surface-subtle); }
+.bg-slate-100 { background-color: var(--surface-hover); }
+.bg-\[\#EDF6FF\] { background-color: var(--surface-active) !important; }
+
+.border-slate-100 { border-color: var(--border-faint); }
+.border-slate-200 { border-color: var(--border-soft); }
+.border-slate-300 { border-color: var(--border-strong); }
+.border-\[\#A7A9AC\] { border-color: var(--border-strong) !important; }
+
+.text-slate-900 { color: var(--text-strong); }
+.text-slate-800 { color: var(--text-strong); }
+.text-slate-700 { color: var(--text-base); }
+.text-slate-600 { color: var(--text-base); }
+.text-slate-500 { color: var(--text-muted); }
+.text-slate-400 { color: var(--text-faint); }
+.text-\[\#58595B\] { color: var(--text-base) !important; }
+.text-gray-900 { color: var(--text-strong); }
+.text-gray-800 { color: var(--text-strong); }
+.text-gray-700 { color: var(--text-base); }
+.text-gray-500 { color: var(--text-muted); }
+.text-gray-400 { color: var(--text-faint); }
+
+/* Inline hardcoded slate text used across cards */
+[style*="color:#64748b"],
+[style*="color: #64748b"] { color: var(--text-muted) !important; }
+[style*="color:#475569"],
+[style*="color: #475569"] { color: var(--text-base) !important; }
+[style*="color:#94a3b8"],
+[style*="color: #94a3b8"] { color: var(--text-faint) !important; }
+[style*="color:#58595B"],
+[style*="color: #58595B"] { color: var(--text-base) !important; }
+
 /* theme_diu custom styles (owned by theme_diu, editable independently) */
 body {
-    background-color: color-mix(in srgb, var(--color-diu-primary-light) 6%, #ffffff);
+    background-color: var(--surface-page);
     background-image:
         radial-gradient(at 0% 0%, color-mix(in srgb, var(--color-diu-accent) 6%, transparent) 0px, transparent 50%),
         radial-gradient(at 100% 0%, color-mix(in srgb, var(--color-diu-accent-light) 4%, transparent) 0px, transparent 50%),
         radial-gradient(at 50% 100%, color-mix(in srgb, var(--color-diu-primary) 2%, transparent) 0px, transparent 50%),
-        linear-gradient(to bottom right, color-mix(in srgb, var(--color-diu-primary-light) 5%, #ffffff), color-mix(in srgb, var(--color-diu-primary) 4%, #f0f4f8));
+        linear-gradient(to bottom right, color-mix(in srgb, var(--color-diu-primary-light) 5%, var(--surface-page)), color-mix(in srgb, var(--color-diu-primary) 4%, var(--surface-page)));
     background-attachment: fixed;
     min-height: 100vh;
+    color: var(--text-base);
 }
 
 .glass-header {
-    background: rgba(255, 255, 255, 0.75);
+    background: var(--glass-bg);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+    border-bottom: 1px solid var(--glass-border);
 }
 
 .glass-panel {
-    background: rgba(255, 255, 255, 0.45);
+    background: var(--glass-panel-bg);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.6);
+    border: 1px solid var(--glass-panel-border);
+}
+
+/* Header bar sits on a white surface in light mode; follow the dark palette. */
+header.sticky {
+    background-color: var(--surface-card);
+    border-bottom-color: var(--border-soft);
 }
 
 [x-cloak] {

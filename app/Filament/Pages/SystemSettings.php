@@ -116,6 +116,7 @@ class SystemSettings extends Page
             'diu_primary_color' => null,
             'global_custom_fonts' => [],
             'theme_color_mode' => $mode,
+            'appearance_mode' => 'light',
         ] + array_fill_keys(\App\Helpers\ColorPalette::OVERRIDE_KEYS, null), $settings));
     }
 
@@ -274,6 +275,17 @@ class SystemSettings extends Page
                                             ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                                 self::updateOverridesLive($state, $set, $get);
                                             }),
+                                        \Filament\Forms\Components\Radio::make('appearance_mode')
+                                            ->label('Appearance Mode (Light / Dark / System)')
+                                            ->options([
+                                                'light' => 'Light',
+                                                'dark' => 'Dark',
+                                                'system' => 'System (follow OS preference)',
+                                            ])
+                                            ->default('light')
+                                            ->live()
+                                            ->columnSpanFull()
+                                            ->helperText('Controls the portal light/dark appearance. Frontend visitors can override this using the toggle in the header; their choice is remembered locally.'),
                                         \Filament\Forms\Components\Select::make('diu_color_palette')
                                             ->label('Color Palette')
                                             ->options(\App\Helpers\ColorPalette::presetOptions())
@@ -587,12 +599,15 @@ class SystemSettings extends Page
         if (isset($data['diu_primary_color'])) {
             Setting::set('diu_primary_color', $data['diu_primary_color']);
         }
+        if (isset($data['appearance_mode'])) {
+            Setting::set('appearance_mode', $data['appearance_mode']);
+        }
 
         // Clear color cache immediately so ColorPalette::resolve() reads the newly saved base color
         \App\Helpers\ColorPalette::forgetCache();
 
         foreach ($data as $key => $value) {
-            if (in_array($key, ['theme_color_mode', 'diu_color_palette', 'diu_primary_color'], true)) {
+            if (in_array($key, ['theme_color_mode', 'diu_color_palette', 'diu_primary_color', 'appearance_mode'], true)) {
                 continue;
             }
 

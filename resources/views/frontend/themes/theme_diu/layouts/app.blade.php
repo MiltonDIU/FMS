@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="{{ \App\Helpers\Appearance::htmlClass() }}">
 <head>
+    <script>{!! \App\Helpers\Appearance::preloadScript() !!}</script>
     @include('frontend.themes.theme_diu.partials.head')
     @vite([
         'resources/views/frontend/themes/theme_diu/assets/css/theme.css',
