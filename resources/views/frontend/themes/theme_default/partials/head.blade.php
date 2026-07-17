@@ -2,6 +2,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="@yield('meta_description', \App\Helpers\Branding::get('meta_description'))">
 <title>@yield('title', 'Faculty Directory' . \App\Helpers\Branding::get('meta_title_suffix'))</title>
+@yield('seo')
 
 <!-- Fonts: Inter (sans), Space Grotesk (display), JetBrains Mono (mono) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">

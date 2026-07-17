@@ -57,6 +57,13 @@ class TeacherStatsOverview extends BaseWidget
                 ->chart($chartData);
         }
 
+        // Total profile views stat
+        $totalViews = Teacher::where('is_active', true)->sum('views_count');
+        $stats[] = Stat::make('Total Profile Views', number_format($totalViews))
+            ->description('Across all active profiles')
+            ->descriptionIcon('heroicon-m-eye')
+            ->color('info');
+
         return $stats;
     }
 

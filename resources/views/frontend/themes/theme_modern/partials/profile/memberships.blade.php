@@ -11,7 +11,23 @@
             @foreach($teacher->memberships as $mem)
                 <div class="p-3 rounded-2xl border border-slate-200 flex items-center gap-2.5 text-xs text-slate-700 font-sans font-medium ring-1 ring-slate-900/5">
                     <div class="w-2 h-2 rounded-full bg-diu-primary shrink-0"></div>
-                    {{ optional($mem->membershipOrganization)->name }}{{ $mem->position ? ' — ' . $mem->position : '' }}{{ $mem->membership_id ? ' (ID: ' . $mem->membership_id . ')' : '' }}
+                    <div class="min-w-0">
+                        <span class="font-semibold text-slate-800">{{ optional($mem->membershipType)->name ?? 'Membership' }}</span>
+                        @if($mem->membershipOrganization?->name)
+                            <span class="text-slate-500">&middot; {{ $mem->membershipOrganization->name }}</span>
+                        @endif
+                        @if($mem->position)
+                            <span class="text-slate-500">&middot; {{ $mem->position }}</span>
+                        @endif
+                        @if($mem->start_date || $mem->end_date)
+                            <span class="text-slate-400 text-[10px]">
+                                &middot;
+                                {{ $mem->start_date?->format('Y') ?? '' }}
+                                &ndash;
+                                {{ $mem->end_date?->format('Y') ?? 'Present' }}
+                            </span>
+                        @endif
+                    </div>
                 </div>
             @endforeach
         </div>

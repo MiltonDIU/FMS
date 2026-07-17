@@ -21,5 +21,7 @@ Route::middleware(HandleFrontendDriverMiddleware::class)->group(function () {
     Route::get('/{faculty_short_name}/{department_code}', [DepartmentController::class, 'show'])->name('department.show');
     Route::get('/{faculty_short_name}/{department_code}/contact', [DepartmentController::class, 'contact'])->name('department.contact');
     Route::get('/{faculty_short_name}/{department_code}/{teacher_webpage}', [TeacherController::class, 'show'])->name('teacher.show');
+    Route::get('/{faculty_short_name}/{department_code}/{teacher_webpage}/vcard', [TeacherController::class, 'vcard'])->name('teacher.vcard');
+    Route::get('/{faculty_short_name}/{department_code}/{teacher_webpage}/cv', [TeacherController::class, 'cv'])->name('teacher.cv');
     Route::get('/{faculty_short_name}/{department_code}/{teacher_webpage}/publication/{publication_slug}', [PublicationController::class, 'show'])->name('publication.show');
 });
