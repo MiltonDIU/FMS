@@ -73,6 +73,12 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ])
+            ->userMenuItems([
+                \Filament\Navigation\MenuItem::make()
+                    ->label('View Site')
+                    ->url(url('/'), shouldOpenInNewTab: true)
+                    ->icon('heroicon-o-globe-alt'),
+            ])
             ->plugins([
                 \BezhanSalleh\FilamentShield\FilamentShieldPlugin::make(),
                 FilamentApexChartsPlugin::make(),

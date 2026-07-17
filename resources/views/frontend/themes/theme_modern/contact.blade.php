@@ -11,8 +11,8 @@
             : route('home');
 
         $deptName    = $sections['department']['department_name'] ?? $department->name;
-        $facultyName = $sections['department']['faculty_name'] ?? ($faculty->name ?? 'Daffodil International University');
-        $deptAddress = $sections['department']['address'] ?? ($sections['department']['location'] ?? null);
+        $facultyName = $sections['department']['faculty_name'] ?? ($faculty->name ?? \App\Helpers\Branding::get('site_name'));
+        $deptAddress = $sections['department']['address'] ?? ($sections['department']['location'] ?? \App\Helpers\Branding::get('address_full'));
         $deptEmail   = $sections['department']['email'] ?? null;
         $deptPhone   = $sections['department']['phone'] ?? ($sections['department']['mobile'] ?? null);
 
@@ -56,7 +56,7 @@
                 <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
                 Back to Department
             </a>
-            <div class="absolute right-6 top-5 text-white/10 font-display font-extrabold text-7xl select-none hidden sm:block">DIU</div>
+            <div class="absolute right-6 top-5 text-white/10 font-display font-extrabold text-7xl select-none hidden sm:block">{{ \App\Helpers\Branding::get('short_name') }}</div>
 
             <div class="relative z-10 w-full px-6 pb-6 md:px-8 md:pb-8">
                 <span class="bg-diu-accent text-white text-[10px] font-sans font-bold uppercase px-2.5 py-0.5 rounded-sm tracking-wide shadow-xs border border-diu-accent/20">
@@ -119,7 +119,7 @@
                     <div class="min-w-0">
                         <p class="text-[10px] text-slate-400 font-bold uppercase">Location</p>
                         <p class="text-xs font-semibold text-slate-700 leading-snug">
-                            {{ $deptAddress ?? 'Daffodil Smart City, Ashulia, Dhaka' }}
+                            {{ $deptAddress ?? \App\Helpers\Branding::get('address_full') }}
                         </p>
                     </div>
                 </div>

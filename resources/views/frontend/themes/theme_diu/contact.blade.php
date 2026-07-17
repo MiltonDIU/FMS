@@ -34,7 +34,7 @@
                 <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
                 Back to Department
             </a>
-            <div class="absolute right-6 top-6 text-white/10 font-display font-extrabold text-7xl select-none hidden sm:block">DIU</div>
+            <div class="absolute right-6 top-6 text-white/10 font-display font-extrabold text-7xl select-none hidden sm:block">{{ \App\Helpers\Branding::get('short_name') }}</div>
 
             <div class="relative z-10 w-full">
                 <span class="bg-diu-accent text-white text-[10px] font-sans font-bold uppercase px-2.5 py-0.5 rounded-sm tracking-wide shadow-xs border border-diu-accent/20">
@@ -44,7 +44,7 @@
                     {{ $sections['department']['department_name'] ?? $department->name }}
                 </h2>
                 <p class="text-xs text-white/85 mt-1.5 font-medium">
-                    {{ $sections['department']['faculty_name'] ?? ($faculty->name ?? 'Daffodil International University') }}
+                    {{ $sections['department']['faculty_name'] ?? ($faculty->name ?? \App\Helpers\Branding::get('site_name')) }}
                 </p>
             </div>
         </div>

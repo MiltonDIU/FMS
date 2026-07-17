@@ -1,7 +1,7 @@
 @extends('frontend.themes.theme_diu.layouts.app')
 
-@section('title', 'Faculty Directory — Daffodil International University')
-@section('meta_description', 'Explore academic credentials, research profiles, and connect with faculty members of Daffodil International University.')
+@section('title', 'Faculty Directory' . \App\Helpers\Branding::get('meta_title_suffix'))
+@section('meta_description', \App\Helpers\Branding::get('meta_description'))
 
 @section('content')
 
@@ -43,7 +43,7 @@
                 {{-- Eyebrow --}}
                 <div class="inline-flex items-center gap-2 mb-6">
                     <span class="block w-5 h-0.5 bg-diu-accent rounded-full"></span>
-                    <span class="text-diu-accent text-[11px] uppercase font-extrabold tracking-[0.2em]">Official Faculty Portal · DIU</span>
+                    <span class="text-diu-accent text-[11px] uppercase font-extrabold tracking-[0.2em]">Official Faculty Portal · {{ \App\Helpers\Branding::get('short_name') }}</span>
                 </div>
 
                 <h1 class="text-white font-display font-extrabold text-3xl md:text-[2.5rem] leading-tight tracking-tight mb-5 max-w-2xl">
@@ -52,7 +52,7 @@
                 </h1>
 
                 <p class="text-white/75 text-sm leading-relaxed max-w-xl mb-10" style="padding-left: 2px; color: white">
-                    Browse academic profiles, research interests, publications, and credentials of faculty members across every department of Daffodil International University.
+                    Browse academic profiles, research interests, publications, and credentials of faculty members across every department of {{ \App\Helpers\Branding::get('site_name') }}.
                 </p>
 
                 {{-- CTA + stats row --}}
@@ -149,7 +149,7 @@
 
                             {{-- Description --}}
                             <p class="text-xs leading-relaxed line-clamp-2" style="color: #64748b;">
-                                {{ $faculty->description ?? 'Academic faculty of Daffodil International University offering quality education across multiple disciplines.' }}
+                                {{ $faculty->description ?? 'Academic faculty of ' . \App\Helpers\Branding::get('site_name') . ' offering quality education across multiple disciplines.' }}
                             </p>
 
                             {{-- Departments --}}

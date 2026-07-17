@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             FMSSeeder::class,
             SettingsSeeder::class,
+            BrandingSettingsSeeder::class,
             CountrySeeder::class,
             FacultySeeder::class,
             DepartmentSeeder::class,

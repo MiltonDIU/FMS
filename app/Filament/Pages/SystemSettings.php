@@ -82,6 +82,14 @@ class SystemSettings extends Page
             }
         }
 
+        // Decode the JSON-encoded branding social links into an array for the repeater.
+        if (isset($settings['branding_social_links'])) {
+            $decoded = json_decode($settings['branding_social_links'], true);
+            $settings['branding_social_links'] = is_array($decoded) ? $decoded : [];
+        } else {
+            $settings['branding_social_links'] = [];
+        }
+
         // Show the auto-generated (palette) value in each override field so
         // the admin can see the color currently in use. An empty stored
         // override means "use the palette", so we surface the generated value
@@ -326,6 +334,180 @@ class SystemSettings extends Page
                                                 ->helperText($f['usage'] . ' (Auto default: ' . ($default ?? 'n/a') . ')');
                                         })
                                         ->all())),
+                            ]),
+
+                        Tab::make('Branding & Site Identity')
+                            ->icon('heroicon-o-sparkles')
+                            ->schema([
+                                Section::make('Branding')
+                                    ->description('University name, logo, tagline and badge shown in the header across all themes.')
+                                    ->collapsible()
+                                    ->collapsed()
+                                    ->columns(2)
+                                    ->schema([
+                                        \Filament\Forms\Components\TextInput::make('branding_site_name')
+                                            ->label('Site / University Name')
+                                            ->required(),
+                                        \Filament\Forms\Components\TextInput::make('branding_site_short_name')
+                                            ->label('Wordmark (Short Name)')
+                                            ->helperText('e.g. DAFFODIL — shown in the header next to the logo.'),
+                                        \Filament\Forms\Components\TextInput::make('branding_short_name')
+                                            ->label('Organization Short Name')
+                                            ->helperText('e.g. DIU — used as the watermark on profile, publication and contact banners.')
+                                            ->required(),
+                                        \Filament\Forms\Components\TextInput::make('branding_badge_text')
+                                            ->label('Badge Text')
+                                            ->helperText('e.g. Directory'),
+                                        \Filament\Forms\Components\TextInput::make('branding_tagline')
+                                            ->label('Tagline'),
+                                        \Filament\Forms\Components\Radio::make('branding_logo_mode')
+                                            ->label('Logo Mode')
+                                            ->options([
+                                                'text' => 'Text Monogram (letter in colored box)',
+                                                'image' => 'Uploaded Image Logo',
+                                            ])
+                                            ->default('text')
+                                            ->live()
+                                            ->columnSpanFull()
+                                            ->helperText('Choose whether the header shows the text monogram or an uploaded logo image.'),
+                                        \Filament\Forms\Components\FileUpload::make('branding_logo_image')
+                                            ->label('Logo Image')
+                                            ->disk('public')
+                                            ->directory('branding')
+                                            ->image()
+                                            ->imageEditor()
+                                            ->maxSize(2048)
+                                            ->visible(fn ($get) => $get('branding_logo_mode') === 'image')
+                                            ->helperText('Recommended: transparent PNG or SVG, square-ish aspect.'),
+                                        \Filament\Forms\Components\TextInput::make('branding_monogram')
+                                            ->label('Monogram Letter')
+                                            ->maxLength(2)
+                                            ->visible(fn ($get) => $get('branding_logo_mode') === 'text')
+                                            ->helperText('Single letter shown in the logo box (e.g. D).'),
+                                    ]),
+
+                                Section::make('Location & Address')
+                                    ->description('Campus address shown in the header, footer and contact page.')
+                                    ->collapsible()
+                                    ->collapsed()
+                                    ->columns(1)
+                                    ->schema([
+                                        \Filament\Forms\Components\TextInput::make('branding_address_header')
+                                            ->label('Header Address (micro-bar)'),
+                                        \Filament\Forms\Components\TextInput::make('branding_address_footer')
+                                            ->label('Footer Address'),
+                                        \Filament\Forms\Components\TextInput::make('branding_address_full')
+                                            ->label('Full Address (contact fallback)'),
+                                    ]),
+
+                                Section::make('Contact & External Links')
+                                    ->description('Public contact email, phone and external site links.')
+                                    ->collapsible()
+                                    ->collapsed()
+                                    ->columns(2)
+                                    ->schema([
+                                        \Filament\Forms\Components\TextInput::make('branding_email')
+                                            ->label('Contact Email')
+                                            ->email(),
+                                        \Filament\Forms\Components\TextInput::make('branding_phone')
+                                            ->label('Contact Phone'),
+                                        \Filament\Forms\Components\TextInput::make('branding_main_site_url')
+                                            ->label('Main Site URL')
+                                            ->url(),
+                                        \Filament\Forms\Components\TextInput::make('branding_main_site_label')
+                                            ->label('Main Site Label'),
+                                        \Filament\Forms\Components\TextInput::make('branding_login_label')
+                                            ->label('Login Button Label')
+                                            ->helperText('The /admin/login link label in the header.'),
+                                    ]),
+
+                                Section::make('Header Labels')
+                                    ->description('Text used in the header badges and statistics bar.')
+                                    ->collapsible()
+                                    ->collapsed()
+                                    ->columns(2)
+                                    ->schema([
+                                        \Filament\Forms\Components\TextInput::make('branding_portal_label')
+                                            ->label('Portal Badge Label'),
+                                        \Filament\Forms\Components\TextInput::make('branding_portal_sublabel')
+                                            ->label('Portal Badge Sub-label'),
+                                        \Filament\Forms\Components\TextInput::make('branding_scholars_label')
+                                            ->label('Scholars Count Label'),
+                                        \Filament\Forms\Components\TextInput::make('branding_stat_faculties_label')
+                                            ->label('Stat: Faculties Label'),
+                                        \Filament\Forms\Components\TextInput::make('branding_stat_departments_label')
+                                            ->label('Stat: Departments Label'),
+                                        \Filament\Forms\Components\TextInput::make('branding_stat_profiles_label')
+                                            ->label('Stat: Profiles Label'),
+                                    ]),
+
+                                Section::make('Footer')
+                                    ->description('Footer name, descriptor, copyright and accreditation text.')
+                                    ->collapsible()
+                                    ->collapsed()
+                                    ->columns(1)
+                                    ->schema([
+                                        \Filament\Forms\Components\TextInput::make('branding_footer_name')
+                                            ->label('Footer University Name'),
+                                        \Filament\Forms\Components\TextInput::make('branding_footer_descriptor')
+                                            ->label('Footer Descriptor'),
+                                        \Filament\Forms\Components\TextInput::make('branding_footer_copyright')
+                                            ->label('Copyright Holder')
+                                            ->helperText('Shown after the year, e.g. © 2026 <this>.'),
+                                        \Filament\Forms\Components\TextInput::make('branding_footer_accreditation')
+                                            ->label('Accreditation Line'),
+                                    ]),
+
+                                Section::make('Meta / SEO')
+                                    ->description('Default page title suffix and meta description.')
+                                    ->collapsible()
+                                    ->collapsed()
+                                    ->columns(1)
+                                    ->schema([
+                                        \Filament\Forms\Components\TextInput::make('branding_meta_title_suffix')
+                                            ->label('Title Suffix')
+                                            ->helperText('Appended to page titles, e.g. " - Faculty Directory".'),
+                                        \Filament\Forms\Components\Textarea::make('branding_meta_description')
+                                            ->label('Default Meta Description')
+                                            ->rows(2),
+                                    ]),
+
+                                Section::make('Social Media Links')
+                                    ->description('Links shown as icons in the footer. Drag to reorder.')
+                                    ->collapsible()
+                                    ->collapsed()
+                                    ->columns(1)
+                                    ->schema([
+                                        \Filament\Forms\Components\Repeater::make('branding_social_links')
+                                            ->label('Social Links')
+                                            ->schema([
+                                                \Filament\Forms\Components\Select::make('platform')
+                                                    ->label('Platform')
+                                                    ->options([
+                                                        'facebook' => 'Facebook',
+                                                        'linkedin' => 'LinkedIn',
+                                                        'instagram' => 'Instagram',
+                                                        'youtube' => 'YouTube',
+                                                        'twitter' => 'X (Twitter)',
+                                                        'github' => 'GitHub',
+                                                        'google scholar' => 'Google Scholar',
+                                                        'researchgate' => 'ResearchGate',
+                                                        'website' => 'Website',
+                                                    ])
+                                                    ->required()
+                                                    ->searchable(),
+                                                \Filament\Forms\Components\TextInput::make('url')
+                                                    ->label('URL')
+                                                    ->url()
+                                                    ->required()
+                                                    ->placeholder('https://...'),
+                                            ])
+                                            ->columns(2)
+                                            ->default([])
+                                            ->collapsible()
+                                            ->itemLabel(fn (array $state): ?string => $state['platform'] ?? null)
+                                            ->createItemButtonLabel('Add Social Link'),
+                                    ]),
                             ]),
 
                         Tab::make('Data Migration')
@@ -583,6 +765,15 @@ class SystemSettings extends Page
 
                 $data['global_custom_fonts'][$index] = $font;
             }
+        }
+
+        // Normalize the branding logo upload (FileUpload returns an array).
+        if (isset($data['branding_logo_image'])) {
+            $logo = $data['branding_logo_image'];
+            if (is_array($logo)) {
+                $logo = empty($logo) ? null : reset($logo);
+            }
+            $data['branding_logo_image'] = is_string($logo) ? $logo : null;
         }
 
         // Hardcode frontend driver settings to always use Blade monolith

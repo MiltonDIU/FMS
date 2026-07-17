@@ -31,7 +31,7 @@
                 <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
                 Back to list
             </a>
-            <div class="absolute right-6 top-6 text-white/10 font-display font-extrabold text-7xl select-none hidden sm:block">DIU</div>
+            <div class="absolute right-6 top-6 text-white/10 font-display font-extrabold text-7xl select-none hidden sm:block">{{ \App\Helpers\Branding::get('short_name') }}</div>
         </div>
 
         <!-- Main Info Frame -->
@@ -70,7 +70,7 @@
                             {{ $teacher->first_name }} {{ $teacher->middle_name }} {{ $teacher->last_name }}
                         </h2>
                         <p class="text-xs text-slate-500 font-sans font-medium mt-1">
-                            {{ optional($teacher->department)->name ?? 'General' }} • <span class="text-slate-400">{{ $faculty->name ?? 'DIU' }}</span>
+                            {{ optional($teacher->department)->name ?? 'General' }} • <span class="text-slate-400">{{ $faculty->name ?? \App\Helpers\Branding::get('short_name') }}</span>
                         </p>
                     </div>
                 </div>
