@@ -16,6 +16,11 @@
         $deptEmail   = $sections['department']['email'] ?? null;
         $deptPhone   = $sections['department']['phone'] ?? ($sections['department']['mobile'] ?? null);
 
+        // Institutional contact from the "Contact & External Links" system
+        // settings — common across every page, independent of the department API.
+        $orgEmail = \App\Helpers\Branding::get('email');
+        $orgPhone = \App\Helpers\Branding::get('phone');
+
         $totalContacts = collect($blocks)->sum(fn ($b) => count($sections[$b['key']] ?? []));
     @endphp
 
@@ -87,10 +92,15 @@
                     </div>
                     <div class="min-w-0">
                         <p class="text-[10px] text-slate-400 font-bold uppercase">Email</p>
-                        @if($deptEmail)
+                        @if($orgEmail)
+                            <a href="mailto:{{ $orgEmail }}" class="text-xs font-semibold text-slate-700 hover:text-diu-primary transition-colors truncate block font-mono">{{ $orgEmail }}</a>
+                        @elseif($deptEmail)
                             <a href="mailto:{{ $deptEmail }}" class="text-xs font-semibold text-slate-700 hover:text-diu-primary transition-colors truncate block font-mono">{{ $deptEmail }}</a>
                         @else
                             <p class="text-xs font-semibold text-slate-400">Not available</p>
+                        @endif
+                        @if($deptEmail && $orgEmail && $deptEmail !== $orgEmail)
+                            <a href="mailto:{{ $deptEmail }}" class="text-[10px] text-slate-400 hover:text-diu-primary transition-colors truncate block mt-0.5">{{ $deptEmail }}</a>
                         @endif
                     </div>
                 </div>
@@ -101,10 +111,15 @@
                     </div>
                     <div class="min-w-0">
                         <p class="text-[10px] text-slate-400 font-bold uppercase">Phone</p>
-                        @if($deptPhone)
+                        @if($orgPhone)
+                            <a href="tel:{{ $orgPhone }}" class="text-xs font-semibold text-slate-700 hover:text-diu-primary transition-colors">{{ $orgPhone }}</a>
+                        @elseif($deptPhone)
                             <a href="tel:{{ $deptPhone }}" class="text-xs font-semibold text-slate-700 hover:text-diu-primary transition-colors">{{ $deptPhone }}</a>
                         @else
                             <p class="text-xs font-semibold text-slate-400">Not available</p>
+                        @endif
+                        @if($deptPhone && $orgPhone && $deptPhone !== $orgPhone)
+                            <a href="tel:{{ $deptPhone }}" class="text-[10px] text-slate-400 hover:text-diu-primary transition-colors block mt-0.5">{{ $deptPhone }}</a>
                         @endif
                     </div>
                 </div>

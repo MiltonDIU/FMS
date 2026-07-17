@@ -226,3 +226,23 @@ header.sticky {
 [x-cloak] {
     display: none !important;
 }
+
+/* ─── Palette-driven remaps for hardcoded sidebar colors ───
+   The sidebar uses fixed light-theme hex values (#EDF6FF highlight, #58595B
+   headings, #A7A9AC dividers). These are remapped to semantic tokens so the
+   whole UI follows the admin-selected palette + dark mode, exactly like the
+   diu / default themes already do. Without these, dark mode kept the light
+   hex values, leaving the selected item as white-on-white. */
+.bg-\[\#EDF6FF\] { background-color: var(--surface-active) !important; }
+.text-\[\#58595B\] { color: var(--text-base) !important; }
+.border-\[\#A7A9AC\] { border-color: var(--border-strong) !important; }
+
+/* In dark mode the active (selected) menu item uses a clearly visible brand
+   fill (follows the admin palette) with strong light text, and hover gets a
+   lighter surface, so selection is obvious instead of white-on-white.
+   These sit on top of the palette token via !important. */
+.dark .bg-\[\#EDF6FF\] {
+    background-color: color-mix(in srgb, var(--color-diu-primary) 42%, var(--surface-card)) !important;
+}
+.dark .text-\[\#58595B\] { color: var(--text-base) !important; }
+.dark .border-\[\#A7A9AC\] { border-color: var(--border-strong) !important; }

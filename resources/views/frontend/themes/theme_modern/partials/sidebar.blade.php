@@ -13,7 +13,7 @@
 @endphp
 
 <aside class="lg:col-span-1">
-    <div class="{{ $sticky ? 'lg:sticky lg:top-28' : '' }} space-y-6">
+        <div class="{{ $sticky ? 'lg:sticky lg:top-28' : '' }} space-y-6">
 
         <!-- Academic Faculties -->
         <section class="rounded-2xl" aria-labelledby="sb-faculties">
