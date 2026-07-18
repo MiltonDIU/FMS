@@ -368,6 +368,22 @@ class SystemSettings extends Page
                                             ->values()
                                             ->all()
                                     ),
+
+                                \Filament\Schemas\Components\Section::make('CV / PDF Watermark')
+                                    ->description('Optionally print a faint watermark across every page of the downloaded CV / PDF (e.g. the institution name). Turn it off to export a clean CV.')
+                                    ->columns(2)
+                                    ->schema([
+                                        \Filament\Forms\Components\Toggle::make(\App\Helpers\CvSections::WATERMARK_ENABLED_KEY)
+                                            ->label('Enable Watermark on CV / PDF')
+                                            ->default(false)
+                                            ->live()
+                                            ->helperText('When on, the watermark text is printed (faintly) on every page.'),
+                                        \Filament\Forms\Components\TextInput::make(\App\Helpers\CvSections::WATERMARK_TEXT_KEY)
+                                            ->label('Watermark Text')
+                                            ->default('DIU')
+                                            ->maxLength(40)
+                                            ->helperText('Defaults to the branding watermark text if left empty.'),
+                                    ]),
                             ]),
 
                         Tab::make('Branding & Site Identity')

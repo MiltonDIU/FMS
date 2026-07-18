@@ -48,4 +48,30 @@ class CvSections
     {
         return (bool) filter_var(Setting::get(self::settingKey($section), true), FILTER_VALIDATE_BOOLEAN);
     }
+
+    public const WATERMARK_ENABLED_KEY = 'cv_watermark_enabled';
+
+    public const WATERMARK_TEXT_KEY = 'cv_watermark_text';
+
+    /**
+     * Whether a watermark should be printed on the downloaded CV / PDF.
+     */
+    public static function watermarkEnabled(): bool
+    {
+        return (bool) filter_var(Setting::get(self::WATERMARK_ENABLED_KEY, false), FILTER_VALIDATE_BOOLEAN);
+    }
+
+    /**
+     * Watermark text (falls back to the branding watermark text, then "DIU").
+     */
+    public static function watermarkText(): string
+    {
+        $text = (string) Setting::get(self::WATERMARK_TEXT_KEY, '');
+
+        if (trim($text) === '') {
+            $text = (string) \App\Helpers\Branding::get('watermark_text');
+        }
+
+        return trim($text) !== '' ? $text : 'DIU';
+    }
 }

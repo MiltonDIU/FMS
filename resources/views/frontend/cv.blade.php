@@ -100,10 +100,33 @@
             page-break-inside: avoid;
             break-inside: avoid;
         }
+
+        /* Faint diagonal watermark printed on every page when enabled.
+           position: fixed makes DomPDF repeat it on each page. */
+        .watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            transform-origin: center center;
+            font-size: 90px;
+            font-weight: 800;
+            letter-spacing: 6px;
+            color: rgba(3, 78, 162, 0.07);
+            white-space: nowrap;
+            pointer-events: none;
+            user-select: none;
+            z-index: 0;
+        }
+        .page > *:not(.watermark) { position: relative; z-index: 1; }
     </style>
 </head>
 <body>
 <div class="page">
+
+    @if(\App\Helpers\CvSections::watermarkEnabled())
+        <div class="watermark">{{ \App\Helpers\CvSections::watermarkText() }}</div>
+    @endif
 
     <div class="header">
         @if(\App\Helpers\CvSections::enabled('basic_info'))
