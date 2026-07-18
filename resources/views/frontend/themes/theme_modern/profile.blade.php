@@ -50,7 +50,7 @@
                     <div class="px-5 pb-5 -mt-12 relative z-10">
                         <div class="w-24 h-24 rounded-3xl overflow-hidden border-4 border-white shadow-lg bg-slate-100 shrink-0 relative z-10">
 
-                           {{ $teacher->photo }}
+
 
                             @if($teacher->photo)
                                 <img src="https://faculty.daffodilvarsity.edu.bd/images/teacher/{{ $teacher->photo }}" alt="{{ $teacher->first_name }}" class="w-full h-full object-cover" />
