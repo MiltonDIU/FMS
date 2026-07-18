@@ -45,53 +45,81 @@ class PublicationsTable
                 TextColumn::make('authors_list')
                     ->label('Authors')
                     ->state(function ($record) {
-                        return $record->teachers->sortBy(function ($teacher) {
-                            $role = $teacher->pivot->author_role;
-                            $order = $teacher->pivot->sort_order;
+                        $pivots = \DB::table('publication_authors')
+                            ->where('publication_id', $record->id)
+                            ->get();
 
-                            // Priority: First (1), Corresponding (2), Co-Author (3)
+                        $teacherIds = $pivots->where('authorable_type', \App\Models\Teacher::class)->pluck('authorable_id');
+                        $authorIds = $pivots->where('authorable_type', \App\Models\Author::class)->pluck('authorable_id');
+
+                        $teachers = \App\Models\Teacher::whereIn('id', $teacherIds)->get()->keyBy('id');
+                        $authors = \App\Models\Author::whereIn('id', $authorIds)->get()->keyBy('id');
+
+                        return $pivots->map(function ($pivot) use ($teachers, $authors) {
+                            $name = 'Unknown';
+                            $details = '';
+
+                            if ($pivot->authorable_type === \App\Models\Teacher::class) {
+                                $model = $teachers->get($pivot->authorable_id);
+                                if ($model) {
+                                    $name = trim("{$model->first_name} {$model->middle_name} {$model->last_name}");
+                                    $details = "ID: {$model->employee_id}";
+                                    if ($model->phone) {
+                                        $details .= " | PH: {$model->phone}";
+                                    }
+                                }
+                            } elseif ($pivot->authorable_type === \App\Models\Author::class) {
+                                $model = $authors->get($pivot->authorable_id);
+                                if ($model) {
+                                    $name = $model->name;
+                                    $details = "Email: {$model->email}";
+                                }
+                            }
+
+                            $role = $pivot->author_role;
+                            $order = $pivot->sort_order;
+
                             $rolePriority = match ($role) {
                                 'first' => 1,
                                 'corresponding' => 2,
                                 default => 3,
                             };
 
-                            return sprintf('%d-%04d', $rolePriority, $order);
-                        })->map(function ($teacher) {
-                            $roleLabel = match ($teacher->pivot->author_role) {
+                            $roleLabel = match ($role) {
                                 'first' => 'First Author',
                                 'corresponding' => 'Corresponding',
                                 'co_author' => 'Co-Author',
-                                default => ucfirst($teacher->pivot->author_role),
+                                default => ucfirst($role),
                             };
 
-                            // Highlight First Author
-                            $style = $teacher->pivot->author_role === 'first' ? 'font-weight: bold;' : '';
+                            $style = $role === 'first' ? 'font-weight: bold;' : '';
 
-                            $fullName = trim("{$teacher->first_name} {$teacher->middle_name} {$teacher->last_name}");
-                            $details = "ID: {$teacher->employee_id}";
-                            if ($teacher->phone) {
-                                $details .= " | PH: {$teacher->phone}";
-                            }
-
-                            return "
-                                <div style='margin-bottom: 4px;'>
-                                    <span style='{$style}'>{$fullName}</span>
-                                    <span class='text-gray-500 text-xs'>({$roleLabel})</span>
-                                    <div class='text-xs text-gray-400'>{$details}</div>
-                                </div>
-                            ";
-                        })->implode('');
+                            return [
+                                'priority' => sprintf('%d-%04d', $rolePriority, $order),
+                                'html' => "
+                                    <div style='margin-bottom: 4px;'>
+                                        <span style='{$style}'>{$name}</span>
+                                        <span class='text-gray-500 text-xs'>({$roleLabel})</span>
+                                        <div class='text-xs text-gray-400'>{$details}</div>
+                                    </div>
+                                "
+                            ];
+                        })->sortBy('priority')->pluck('html')->implode('');
                     })
                     ->html()
                     ->searchable(query: function (\Illuminate\Database\Eloquent\Builder $query, string $search): \Illuminate\Database\Eloquent\Builder {
-                         return $query->whereHas('teachers', function ($q) use ($search) {
-                            $q->where('first_name', 'like', "%{$search}%")
-                                ->orWhere('middle_name', 'like', "%{$search}%")
-                                ->orWhere('last_name', 'like', "%{$search}%")
-                                ->orWhere('employee_id', 'like', "%{$search}%")
-                                ->orWhere('phone', 'like', "%{$search}%");
-                        });
+                         return $query->where(function ($q) use ($search) {
+                             $q->whereHas('teachers', function ($sq) use ($search) {
+                                 $sq->where('first_name', 'like', "%{$search}%")
+                                    ->orWhere('middle_name', 'like', "%{$search}%")
+                                    ->orWhere('last_name', 'like', "%{$search}%")
+                                    ->orWhere('employee_id', 'like', "%{$search}%")
+                                    ->orWhere('phone', 'like', "%{$search}%");
+                             })->orWhereHas('externalAuthors', function ($sq) use ($search) {
+                                 $sq->where('name', 'like', "%{$search}%")
+                                    ->orWhere('email', 'like', "%{$search}%");
+                             });
+                         });
                     }),
                 TextColumn::make('type.name')
                     ->label('Type')
@@ -252,17 +280,43 @@ class PublicationsTable
                     ->color('success')
                     ->visible(fn($record) => !$record->hasIncentive())
                     ->mountUsing(function ($form, $record) {
-                        $authors = $record->teachers
-                            ->sortBy('pivot.sort_order')
-                            ->map(fn($t) => [
-                                'teacher_id' => $t->id,
-                                'teacher_name' => $t->full_name,
-                                'author_role' => $t->pivot->author_role,
+                        $pivots = \DB::table('publication_authors')
+                            ->where('publication_id', $record->id)
+                            ->get();
+
+                        $teacherIds = $pivots->where('authorable_type', \App\Models\Teacher::class)->pluck('authorable_id');
+                        $authorIds = $pivots->where('authorable_type', \App\Models\Author::class)->pluck('authorable_id');
+
+                        $teachers = \App\Models\Teacher::whereIn('id', $teacherIds)->get()->keyBy('id');
+                        $authors = \App\Models\Author::whereIn('id', $authorIds)->get()->keyBy('id');
+
+                        $authorList = $pivots->map(function ($pivot) use ($teachers, $authors) {
+                            $name = 'Unknown';
+                            if ($pivot->authorable_type === \App\Models\Teacher::class) {
+                                $model = $teachers->get($pivot->authorable_id);
+                                $name = $model ? trim("{$model->first_name} {$model->middle_name} {$model->last_name}") : 'Unknown';
+                            } elseif ($pivot->authorable_type === \App\Models\Author::class) {
+                                $model = $authors->get($pivot->authorable_id);
+                                $name = $model ? $model->name : 'Unknown';
+                            }
+
+                            $rolePriority = match ($pivot->author_role) {
+                                'first' => 1,
+                                'corresponding' => 2,
+                                default => 3,
+                            };
+
+                            return [
+                                'id' => $pivot->id,
+                                'author_name' => $name,
+                                'author_role' => $pivot->author_role,
                                 'incentive_amount' => 0,
-                            ])->toArray();
+                                'priority' => sprintf('%d-%04d', $rolePriority, $pivot->sort_order),
+                            ];
+                        })->sortBy('priority')->values()->toArray();
 
                         $form->fill([
-                            'author_incentives' => $authors,
+                            'author_incentives' => $authorList,
                             'total_amount' => 0,
                             'status' => 'pending',
                         ]);
@@ -274,8 +328,8 @@ class PublicationsTable
                                 Repeater::make('author_incentives')
                                     ->label('')
                                     ->schema([
-                                        \Filament\Forms\Components\Hidden::make('teacher_id'),
-                                        TextInput::make('teacher_name')
+                                        \Filament\Forms\Components\Hidden::make('id'),
+                                        TextInput::make('author_name')
                                             ->label('Author')
                                             ->disabled()
                                             ->dehydrated(false),
@@ -333,11 +387,9 @@ class PublicationsTable
                             ])->columns(2),
                     ])
                     ->action(function ($record, array $data) {
-                        // Validate total matches sum
                         $sum = collect($data['author_incentives'])->sum('incentive_amount');
-                        $total = (float) $data['total_amount'];
-
-                        if (bccomp((string) $total, (string) $sum, 2) !== 0) {
+                        $total = (float) ($data['total_amount'] ?? 0);
+                        if (round((float) $total, 2) !== round((float) $sum, 2)) {
                             Notification::make()
                                 ->title('Validation Error')
                                 ->body("Total (৳{$total}) must equal sum of authors (৳{$sum})")
@@ -356,10 +408,11 @@ class PublicationsTable
 
                         // Update author incentive amounts in pivot
                         foreach ($data['author_incentives'] as $author) {
-                            $record->teachers()->updateExistingPivot(
-                                $author['teacher_id'],
-                                ['incentive_amount' => $author['incentive_amount']]
-                            );
+                            if (!empty($author['id'])) {
+                                \DB::table('publication_authors')
+                                    ->where('id', $author['id'])
+                                    ->update(['incentive_amount' => $author['incentive_amount']]);
+                            }
                         }
 
                         Notification::make()

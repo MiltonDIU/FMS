@@ -40,16 +40,44 @@ class PublicationIncentiveForm
                             ->live()
                             ->afterStateUpdated(function ($state, Set $set) {
                                 if ($state) {
-                                    $publication = Publication::with('teachers')->find($state);
+                                    $publication = Publication::find($state);
                                     if ($publication) {
-                                        $authors = $publication->teachers
-                                            ->sortBy('pivot.sort_order')
-                                            ->map(fn($t) => [
-                                                'teacher_id' => $t->id,
-                                                'author_role' => $t->pivot->author_role,
-                                                'incentive_amount' => $t->pivot->incentive_amount ?? 0,
-                                            ])->toArray();
-                                        $set('author_incentives', $authors);
+                                        $pivots = \DB::table('publication_authors')
+                                            ->where('publication_id', $publication->id)
+                                            ->get();
+
+                                        $teacherIds = $pivots->where('authorable_type', \App\Models\Teacher::class)->pluck('authorable_id');
+                                        $authorIds = $pivots->where('authorable_type', \App\Models\Author::class)->pluck('authorable_id');
+
+                                        $teachers = \App\Models\Teacher::whereIn('id', $teacherIds)->get()->keyBy('id');
+                                        $authors = \App\Models\Author::whereIn('id', $authorIds)->get()->keyBy('id');
+
+                                        $authorsData = $pivots->map(function ($pivot) use ($teachers, $authors) {
+                                            $name = 'Unknown';
+                                            if ($pivot->authorable_type === \App\Models\Teacher::class) {
+                                                $model = $teachers->get($pivot->authorable_id);
+                                                $name = $model ? trim("{$model->first_name} {$model->middle_name} {$model->last_name}") : 'Unknown';
+                                            } elseif ($pivot->authorable_type === \App\Models\Author::class) {
+                                                $model = $authors->get($pivot->authorable_id);
+                                                $name = $model ? $model->name : 'Unknown';
+                                            }
+
+                                            $rolePriority = match ($pivot->author_role) {
+                                                'first' => 1,
+                                                'corresponding' => 2,
+                                                default => 3,
+                                            };
+
+                                            return [
+                                                'id' => $pivot->id,
+                                                'author_name' => $name,
+                                                'author_role' => $pivot->author_role,
+                                                'incentive_amount' => $pivot->incentive_amount ?? 0,
+                                                'priority' => sprintf('%d-%04d', $rolePriority, $pivot->sort_order),
+                                            ];
+                                        })->sortBy('priority')->values()->toArray();
+
+                                        $set('author_incentives', $authorsData);
                                     }
                                 }
                             })
@@ -105,12 +133,12 @@ class PublicationIncentiveForm
                         Repeater::make('author_incentives')
                             ->label('')
                             ->schema([
-                                Select::make('teacher_id')
+                                \Filament\Forms\Components\Hidden::make('id'),
+                                TextInput::make('author_name')
                                     ->label('Author')
-                                    ->options(Teacher::all()->mapWithKeys(fn($t) => [$t->id => $t->full_name]))
                                     ->disabled()
                                     ->columnSpan(4)
-                                    ->dehydrated(true),
+                                    ->dehydrated(false),
                                 Select::make('author_role')
                                     ->label('Role')
                                     ->options([

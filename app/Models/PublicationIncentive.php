@@ -137,15 +137,11 @@ class PublicationIncentive extends Model
         return $this->hasMany(IncentiveLog::class)->orderByDesc('created_at');
     }
 
-    /**
-     * Calculate sum of author incentive amounts.
-     */
     public function getAuthorsIncentiveSumAttribute(): float
     {
-        return $this->publication
-            ->teachers()
-            ->get()
-            ->sum(fn($teacher) => (float) $teacher->pivot->incentive_amount ?? 0);
+        return (float) \DB::table('publication_authors')
+            ->where('publication_id', $this->publication_id)
+            ->sum('incentive_amount');
     }
 
     /**
@@ -153,6 +149,6 @@ class PublicationIncentive extends Model
      */
     public function validateTotalMatchesAuthors(): bool
     {
-        return bccomp((string) $this->total_amount, (string) $this->authors_incentive_sum, 2) === 0;
+        return round((float) $this->total_amount, 2) === round((float) $this->authors_incentive_sum, 2);
     }
 }

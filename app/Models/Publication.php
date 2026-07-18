@@ -75,6 +75,14 @@ class Publication extends Model
             ->withTimestamps();
     }
 
+    public function externalAuthors()
+    {
+        return $this->morphedByMany(Author::class, 'authorable', 'publication_authors')
+            ->withPivot(['author_role', 'sort_order', 'incentive_amount'])
+            ->withTimestamps();
+    }
+
+
     /**
      * Get the publication incentive.
      */

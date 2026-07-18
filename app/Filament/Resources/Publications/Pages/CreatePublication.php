@@ -24,18 +24,59 @@ class CreatePublication extends CreateRecord
     protected function afterCreate(): void
     {
         $record = $this->getRecord();
+        
+        $parseKey = function ($key) {
+            if (!$key) return [null, null];
+            if (str_contains($key, ':')) {
+                return explode(':', $key, 2);
+            }
+            return [\App\Models\Teacher::class, $key];
+        };
 
         if ($this->authorData['first']) {
-            $record->teachers()->attach($this->authorData['first'], ['author_role' => 'first', 'sort_order' => 0]);
+            [$model, $id] = $parseKey($this->authorData['first']);
+            if ($model && $id) {
+                \DB::table('publication_authors')->insert([
+                    'publication_id' => $record->id,
+                    'authorable_type' => $model,
+                    'authorable_id' => $id,
+                    'author_role' => 'first',
+                    'sort_order' => 0,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
         }
 
         if ($this->authorData['corresponding']) {
-            $record->teachers()->attach($this->authorData['corresponding'], ['author_role' => 'corresponding', 'sort_order' => 0]);
+            [$model, $id] = $parseKey($this->authorData['corresponding']);
+            if ($model && $id) {
+                \DB::table('publication_authors')->insert([
+                    'publication_id' => $record->id,
+                    'authorable_type' => $model,
+                    'authorable_id' => $id,
+                    'author_role' => 'corresponding',
+                    'sort_order' => 0,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
         }
 
         if (!empty($this->authorData['co_authors'])) {
-            foreach ($this->authorData['co_authors'] as $index => $teacherId) {
-                $record->teachers()->attach($teacherId, ['author_role' => 'co_author', 'sort_order' => $index + 1]);
+            foreach ($this->authorData['co_authors'] as $index => $morphedKey) {
+                [$model, $id] = $parseKey($morphedKey);
+                if ($model && $id) {
+                    \DB::table('publication_authors')->insert([
+                        'publication_id' => $record->id,
+                        'authorable_type' => $model,
+                        'authorable_id' => $id,
+                        'author_role' => 'co_author',
+                        'sort_order' => $index + 1,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
             }
         }
     }

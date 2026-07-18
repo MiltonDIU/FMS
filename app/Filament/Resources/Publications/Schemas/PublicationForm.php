@@ -86,25 +86,51 @@ class PublicationForm
                     ->schema([
                         Select::make('first_author_id')
                             ->label('First Author')
-                            ->options(\App\Models\Teacher::all()->pluck('full_name', 'id')) // Simplified for now, should be searchable
+                            ->options(fn () => static::getAuthorOptions())
                             ->searchable()
                             ->preload()
-                            ->afterStateHydrated(fn ($component, $record) => $record ? $component->state($record->teachers()->wherePivot('author_role', 'first')->first()?->id) : null),
+                            ->afterStateHydrated(function ($component, $record) {
+                                if (!$record) return null;
+                                $pivot = \DB::table('publication_authors')
+                                    ->where('publication_id', $record->id)
+                                    ->where('author_role', 'first')
+                                    ->first();
+                                if ($pivot) {
+                                    $component->state($pivot->authorable_type . ':' . $pivot->authorable_id);
+                                }
+                            }),
 
                         Select::make('corresponding_author_id')
                             ->label('Corresponding Author')
-                             ->options(\App\Models\Teacher::all()->pluck('full_name', 'id'))
+                            ->options(fn () => static::getAuthorOptions())
                             ->searchable()
                             ->preload()
-                            ->afterStateHydrated(fn ($component, $record) => $record ? $component->state($record->teachers()->wherePivot('author_role', 'corresponding')->first()?->id) : null),
+                            ->afterStateHydrated(function ($component, $record) {
+                                if (!$record) return null;
+                                $pivot = \DB::table('publication_authors')
+                                    ->where('publication_id', $record->id)
+                                    ->where('author_role', 'corresponding')
+                                    ->first();
+                                if ($pivot) {
+                                    $component->state($pivot->authorable_type . ':' . $pivot->authorable_id);
+                                }
+                            }),
 
                         Select::make('co_author_ids')
                             ->label('Co-Authors')
-                             ->options(\App\Models\Teacher::all()->pluck('full_name', 'id'))
+                            ->options(fn () => static::getAuthorOptions())
                             ->searchable()
                             ->preload()
                             ->multiple()
-                            ->afterStateHydrated(fn ($component, $record) => $record ? $component->state($record->teachers()->wherePivot('author_role', 'co_author')->orderByPivot('sort_order')->pluck('teachers.id')->toArray()) : null),
+                            ->afterStateHydrated(function ($component, $record) {
+                                if (!$record) return null;
+                                $pivots = \DB::table('publication_authors')
+                                    ->where('publication_id', $record->id)
+                                    ->where('author_role', 'co_author')
+                                    ->orderBy('sort_order')
+                                    ->get();
+                                $component->state($pivots->map(fn ($pivot) => $pivot->authorable_type . ':' . $pivot->authorable_id)->toArray());
+                            }),
                     ])->columns(3),
 
 
@@ -127,5 +153,19 @@ class PublicationForm
                     ])->columns(4),
                     ]),
             ]);
+    }
+
+    protected static function getAuthorOptions(): array
+    {
+        $teachers = \App\Models\Teacher::where('is_archived', false)
+            ->get()
+            ->mapWithKeys(fn ($t) => ["App\\Models\\Teacher:{$t->id}" => "{$t->full_name} (Teacher)"]);
+
+        $authors = \App\Models\Author::where('is_active', true)
+            ->with('authorType')
+            ->get()
+            ->mapWithKeys(fn ($a) => ["App\\Models\\Author:{$a->id}" => "{$a->name} ({$a->authorType->name})"]);
+
+        return $teachers->merge($authors)->toArray();
     }
 }

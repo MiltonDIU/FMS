@@ -18,7 +18,7 @@ class CreatePublicationIncentive extends CreateRecord
         $authorsSum = collect($data['author_incentives'] ?? [])->sum('incentive_amount');
         $total = (float) ($data['total_amount'] ?? 0);
 
-        if (bccomp((string) $total, (string) $authorsSum, 2) !== 0) {
+        if (round((float) $total, 2) !== round((float) $authorsSum, 2)) {
             Notification::make()
                 ->title('Validation Error')
                 ->body("Total amount (৳{$total}) must equal sum of author incentives (৳{$authorsSum})")
@@ -39,14 +39,13 @@ class CreatePublicationIncentive extends CreateRecord
 
     protected function afterCreate(): void
     {
-        $publication = $this->record->publication;
-
         // Update each author's incentive_amount in pivot table
         foreach ($this->authorIncentives as $author) {
-            $publication->teachers()->updateExistingPivot(
-                $author['teacher_id'],
-                ['incentive_amount' => $author['incentive_amount']]
-            );
+            if (!empty($author['id'])) {
+                \DB::table('publication_authors')
+                    ->where('id', $author['id'])
+                    ->update(['incentive_amount' => $author['incentive_amount']]);
+            }
         }
     }
 

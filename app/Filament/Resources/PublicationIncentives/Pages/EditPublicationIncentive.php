@@ -22,14 +22,42 @@ class EditPublicationIncentive extends EditRecord
     {
         // Load author incentives from pivot table
         $publication = $this->record->publication;
+        if ($publication) {
+            $pivots = \DB::table('publication_authors')
+                ->where('publication_id', $publication->id)
+                ->get();
 
-        $data['author_incentives'] = $publication->teachers
-            ->sortBy('pivot.sort_order')
-            ->map(fn($t) => [
-                'teacher_id' => $t->id,
-                'author_role' => $t->pivot->author_role,
-                'incentive_amount' => $t->pivot->incentive_amount ?? 0,
-            ])->toArray();
+            $teacherIds = $pivots->where('authorable_type', \App\Models\Teacher::class)->pluck('authorable_id');
+            $authorIds = $pivots->where('authorable_type', \App\Models\Author::class)->pluck('authorable_id');
+
+            $teachers = \App\Models\Teacher::whereIn('id', $teacherIds)->get()->keyBy('id');
+            $authors = \App\Models\Author::whereIn('id', $authorIds)->get()->keyBy('id');
+
+            $data['author_incentives'] = $pivots->map(function ($pivot) use ($teachers, $authors) {
+                $name = 'Unknown';
+                if ($pivot->authorable_type === \App\Models\Teacher::class) {
+                    $model = $teachers->get($pivot->authorable_id);
+                    $name = $model ? trim("{$model->first_name} {$model->middle_name} {$model->last_name}") : 'Unknown';
+                } elseif ($pivot->authorable_type === \App\Models\Author::class) {
+                    $model = $authors->get($pivot->authorable_id);
+                    $name = $model ? $model->name : 'Unknown';
+                }
+
+                $rolePriority = match ($pivot->author_role) {
+                    'first' => 1,
+                    'corresponding' => 2,
+                    default => 3,
+                };
+
+                return [
+                    'id' => $pivot->id,
+                    'author_name' => $name,
+                    'author_role' => $pivot->author_role,
+                    'incentive_amount' => $pivot->incentive_amount ?? 0,
+                    'priority' => sprintf('%d-%04d', $rolePriority, $pivot->sort_order),
+                ];
+            })->sortBy('priority')->values()->toArray();
+        }
 
         return $data;
     }
@@ -42,7 +70,7 @@ class EditPublicationIncentive extends EditRecord
         $authorsSum = collect($data['author_incentives'] ?? [])->sum('incentive_amount');
         $total = (float) ($data['total_amount'] ?? 0);
 
-        if (bccomp((string) $total, (string) $authorsSum, 2) !== 0) {
+        if (round((float) $total, 2) !== round((float) $authorsSum, 2)) {
             Notification::make()
                 ->title('Validation Error')
                 ->body("Total amount (৳{$total}) must equal sum of author incentives (৳{$authorsSum})")
@@ -95,14 +123,13 @@ class EditPublicationIncentive extends EditRecord
 
     protected function afterSave(): void
     {
-        $publication = $this->record->publication;
-
         // Update each author's incentive_amount in pivot table
         foreach ($this->authorIncentives as $author) {
-            $publication->teachers()->updateExistingPivot(
-                $author['teacher_id'],
-                ['incentive_amount' => $author['incentive_amount']]
-            );
+            if (!empty($author['id'])) {
+                \DB::table('publication_authors')
+                    ->where('id', $author['id'])
+                    ->update(['incentive_amount' => $author['incentive_amount']]);
+            }
         }
     }
 
