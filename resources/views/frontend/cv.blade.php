@@ -88,6 +88,16 @@
             padding: 2px 9px; margin: 0 5px 5px 0;
             font-size: 9.5px;
         }
+        .chips a {
+            display: inline-block;
+            background: #eef2ff; color: #034ea2;
+            border: 1px solid #c7d2fe;
+            border-radius: 10px;
+            padding: 2px 9px; margin: 0 5px 5px 0;
+            font-size: 9.5px;
+            text-decoration: none;
+        }
+        .chips a:hover { background: #e0e7ff; }
 
         .side-block { page-break-inside: auto; break-inside: auto; }
         .side-block + .side-block { margin-top: 4px; }
@@ -307,7 +317,11 @@
                     <h2>Links</h2>
                     <div class="chips">
                         @foreach($teacher->socialLinks as $link)
-                            <span>{{ $link->platform?->name ?? 'Link' }}</span>
+                            @if($link->url)
+                                <a href="{{ $link->url }}" style="text-decoration:none; color:inherit;">{{ $link->platform?->name ?? 'Link' }}</a>
+                            @else
+                                <span>{{ $link->platform?->name ?? 'Link' }}</span>
+                            @endif
                         @endforeach
                     </div>
                 </div>
