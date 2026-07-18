@@ -211,7 +211,7 @@
                     <h2>Teaching Areas</h2>
                     <div class="chips">
                         @foreach($teacher->teachingAreas as $area)
-                            <span>{{ $area->name ?? $area->course_title ?? 'Area' }}</span>
+                            <span>{{ $area->area ?? 'Area' }}</span>
                         @endforeach
                     </div>
                 </div>
