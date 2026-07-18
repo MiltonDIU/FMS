@@ -336,6 +336,40 @@ class SystemSettings extends Page
                                         ->all())),
                             ]),
 
+                        Tab::make('Profile Downloads')
+                            ->icon('heroicon-o-arrow-down-tray')
+                            ->schema([
+                                \Filament\Schemas\Components\Section::make('Profile Download Options')
+                                    ->description('Control whether visitors can download a teacher\'s contact (vCard) and CV (PDF) from public profile pages. When a toggle is off, the button is hidden and the download route is blocked.')
+                                    ->columns(2)
+                                    ->schema([
+                                        \Filament\Forms\Components\Toggle::make('profile_enable_vcard')
+                                            ->label('Enable vCard (Save Contact) Download')
+                                            ->default(true)
+                                            ->helperText('When on, a "Save Contact" button appears on public profiles.'),
+                                        \Filament\Forms\Components\Toggle::make('profile_enable_cv')
+                                            ->label('Enable CV / PDF Download')
+                                            ->default(true)
+                                            ->helperText('When on, a "Download CV" button appears on public profiles.'),
+                                    ]),
+
+                                \Filament\Schemas\Components\Section::make('CV / PDF Content')
+                                    ->description('Choose exactly which sections are included in the downloaded CV / PDF. All sections are enabled by default. Unchecked sections are omitted entirely — e.g. turn off "Basic Info" to hide the name/email/contact header, or "Skills" / "Education" to drop them from the file.')
+                                    ->columns(2)
+                                    ->schema(
+                                        collect(\App\Helpers\CvSections::SECTIONS)
+                                            ->map(function ($label, $key) {
+                                                return \Filament\Forms\Components\Toggle::make(
+                                                    \App\Helpers\CvSections::settingKey($key)
+                                                )
+                                                    ->label($label)
+                                                    ->default(true);
+                                            })
+                                            ->values()
+                                            ->all()
+                                    ),
+                            ]),
+
                         Tab::make('Branding & Site Identity')
                             ->icon('heroicon-o-sparkles')
                             ->schema([
@@ -616,19 +650,19 @@ class SystemSettings extends Page
                 ->schema([
                     \Filament\Forms\Components\Select::make(\App\Helpers\FontManager::settingKey($slug, 'font_sans'))
                         ->label('Body / Sans Font')
-                        ->options(fn () => \App\Helpers\FontManager::optionsForSelect($slug))
+                        ->options(fn () => static::fontOptionsWithCurrent($slug, 'font_sans'))
                         ->default(\App\Helpers\FontManager::DEFAULTS['sans'])
                         ->searchable()
                         ->helperText('Used for body text (font-sans).'),
                     \Filament\Forms\Components\Select::make(\App\Helpers\FontManager::settingKey($slug, 'font_display'))
                         ->label('Display / Heading Font')
-                        ->options(fn () => \App\Helpers\FontManager::optionsForSelect($slug))
+                        ->options(fn () => static::fontOptionsWithCurrent($slug, 'font_display'))
                         ->default(\App\Helpers\FontManager::DEFAULTS['display'])
                         ->searchable()
                         ->helperText('Used for headings (font-display).'),
                     \Filament\Forms\Components\Select::make(\App\Helpers\FontManager::settingKey($slug, 'font_mono'))
                         ->label('Mono / Code Font')
-                        ->options(fn () => \App\Helpers\FontManager::optionsForSelect($slug))
+                        ->options(fn () => static::fontOptionsWithCurrent($slug, 'font_mono'))
                         ->default(\App\Helpers\FontManager::DEFAULTS['mono'])
                         ->searchable()
                         ->helperText('Used for code/mono text (font-mono).'),
@@ -693,6 +727,41 @@ class SystemSettings extends Page
                         ->columnSpanFull(),
                 ]);
         })->values()->all();
+    }
+
+    /**
+     * Font options for a role select, ensuring the currently stored value
+     * remains a valid option even if it references a custom font that is no
+     * longer present. Without this, saving the form unchanged would fail
+     * validation with "The selected ... is invalid".
+     *
+     * @return array<string,string>
+     */
+    protected static function fontOptionsWithCurrent(string $slug, string $role): array
+    {
+        $options = \App\Helpers\FontManager::optionsForSelect($slug);
+
+        $current = \App\Models\Setting::get(\App\Helpers\FontManager::settingKey($slug, "font_{$role}"));
+
+        if ($current === null || isset($options[$current])) {
+            return $options;
+        }
+
+        if (str_starts_with((string) $current, 'custom:')) {
+            $id = substr($current, strlen('custom:'));
+            foreach (\App\Helpers\FontManager::customFonts($slug) as $font) {
+                if (($font['id'] ?? null) === $id) {
+                    $options[$current] = '★ ' . ($font['name'] ?? $font['id']) . ' (Custom)';
+                    return $options;
+                }
+            }
+            // Orphaned custom font: keep the stored id selectable so the value
+            // round-trips instead of failing validation.
+            $options[$current] = '★ Custom Font (Missing)';
+            return $options;
+        }
+
+        return $options;
     }
 
     protected static function updateOverridesLive($state, callable $set, callable $get): void

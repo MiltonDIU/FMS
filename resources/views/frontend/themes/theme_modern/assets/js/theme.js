@@ -28,6 +28,9 @@ import '../../../../../../js/bootstrap';
         var stored = null;
         try { stored = localStorage.getItem(STORAGE_KEY); } catch (e) {}
         if (stored === 'light' || stored === 'dark') return stored;
+        var adminDefault = window.__APPEARANCE_DEFAULT__ || 'system';
+        if (adminDefault === 'dark') return 'dark';
+        if (adminDefault === 'light') return 'light';
         return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
             ? 'dark' : 'light';
     }

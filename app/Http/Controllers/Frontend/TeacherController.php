@@ -7,6 +7,7 @@ use App\Models\Faculty;
 use App\Models\Department;
 use App\Models\Setting;
 use App\Models\Teacher;
+use App\Helpers\ProfileDownload;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Response as ResponseFacade;
 use Illuminate\Support\Facades\Route as RouteFacade;
@@ -111,6 +112,8 @@ class TeacherController extends Controller
      */
     public function vcard(string $faculty_short_name, string $department_code, string $teacher_webpage): Response
     {
+        abort_unless(ProfileDownload::vcardEnabled(), 404);
+
         $teacher = $this->resolveTeacher($faculty_short_name, $department_code, $teacher_webpage);
         $faculty = $teacher->department?->faculty;
         $department = $teacher->department;
@@ -172,6 +175,8 @@ class TeacherController extends Controller
      */
     public function cv(string $faculty_short_name, string $department_code, string $teacher_webpage)
     {
+        abort_unless(ProfileDownload::cvEnabled(), 404);
+
         $teacher = $this->resolveTeacher($faculty_short_name, $department_code, $teacher_webpage, [
             'designation', 'department', 'department.faculty',
             'educations.degreeLevel', 'educations.degreeType', 'educations.resultType',

@@ -73,6 +73,12 @@ class Appearance
         $js = <<<'JS'
 (function () {
     var storageKey = 'appearance-mode';
+    // Admin-configured default mode (light | dark | system), shared with the
+    // front-end theme.js so its fallback matches the server-rendered default
+    // instead of only the OS preference. Without this, a visitor with no stored
+    // choice would see the preload apply `dark` and then theme.js immediately
+    // flip it back to the OS preference (a flash of the wrong theme).
+    window.__APPEARANCE_DEFAULT__ = '__DEFAULT__';
     var stored = null;
     try { stored = localStorage.getItem(storageKey); } catch (e) {}
     var mode = stored;

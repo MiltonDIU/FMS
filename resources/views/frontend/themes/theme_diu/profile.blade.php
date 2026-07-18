@@ -154,16 +154,20 @@
             </div>
 
             <div class="flex flex-wrap gap-2">
+                @if(\App\Helpers\ProfileDownload::vcardEnabled())
                 <a href="{{ route('teacher.vcard', ['faculty_short_name' => $faculty->short_name, 'department_code' => $department->code, 'teacher_webpage' => $teacher->webpage]) }}"
                    class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-diu-primary border border-diu-primary/30 hover:bg-diu-primary hover:text-white transition-colors px-3 py-1.5 rounded-lg">
                     <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                     Save Contact
                 </a>
+                @endif
+                @if(\App\Helpers\ProfileDownload::cvEnabled())
                 <a href="{{ route('teacher.cv', ['faculty_short_name' => $faculty->short_name, 'department_code' => $department->code, 'teacher_webpage' => $teacher->webpage]) }}"
                    class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-white bg-diu-primary hover:bg-diu-primary-hover transition-colors px-3 py-1.5 rounded-lg">
                     <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
                     Download CV
                 </a>
+                @endif
             </div>
 
     </div>

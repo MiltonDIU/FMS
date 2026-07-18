@@ -22,6 +22,8 @@
             border-bottom: 3px solid #034ea2;
             padding-bottom: 16px;
             margin-bottom: 18px;
+            page-break-inside: avoid;
+            break-inside: avoid;
         }
         .photo {
             width: 78px; height: 78px;
@@ -50,6 +52,11 @@
         .col-main { flex: 1 1 64%; min-width: 0; }
         .col-side { flex: 1 1 36%; min-width: 0; }
 
+        /* Keep a whole section (heading + its content) together so a heading
+           never gets orphaned at the bottom of a page with its body on the
+           next page. */
+        .section { page-break-inside: avoid; break-inside: avoid; }
+        /* Never leave a heading dangling at the page bottom. */
         h2 {
             font-size: 11px;
             text-transform: uppercase;
@@ -58,17 +65,19 @@
             border-bottom: 1px solid #e5e7eb;
             padding-bottom: 4px;
             margin: 16px 0 9px;
+            page-break-after: avoid;
+            break-after: avoid;
         }
         .col-side h2:first-child { margin-top: 0; }
         p.summary { color: #374151; text-align: justify; }
 
-        .item { margin-bottom: 10px; page-break-inside: avoid; }
+        .item { margin-bottom: 10px; page-break-inside: avoid; break-inside: avoid; }
         .item .row1 { font-weight: 600; color: #111827; }
         .item .row2 { color: #6b7280; font-style: italic; font-size: 9.5px; }
         .item .row3 { color: #374151; }
 
         ol.pubs { margin: 0; padding-left: 17px; }
-        ol.pubs li { margin-bottom: 5px; color: #374151; page-break-inside: avoid; }
+        ol.pubs li { margin-bottom: 5px; color: #374151; page-break-inside: avoid; break-inside: avoid; }
         ol.pubs em { color: #111827; }
 
         .chips span {
@@ -80,7 +89,7 @@
             font-size: 9.5px;
         }
 
-        .side-block { page-break-inside: avoid; }
+        .side-block { page-break-inside: auto; break-inside: auto; }
         .side-block + .side-block { margin-top: 4px; }
 
         .footer {
@@ -88,6 +97,8 @@
             border-top: 1px solid #e5e7eb;
             font-size: 8.5px; color: #9ca3af;
             text-align: center;
+            page-break-inside: avoid;
+            break-inside: avoid;
         }
     </style>
 </head>
@@ -95,65 +106,71 @@
 <div class="page">
 
     <div class="header">
-        @if($teacher->photo)
-            <img class="photo" src="{{ str_starts_with($teacher->photo, 'http') ? $teacher->photo : public_path('storage/'.$teacher->photo) }}">
-        @else
-            <div class="photo-fallback">{{ strtoupper(substr($teacher->first_name ?? '?', 0, 1)) }}</div>
-        @endif
-        <div>
-            <div class="name">{{ $teacher->full_name }}</div>
-            @if($teacher->designation?->name)
-                <div class="title">{{ $teacher->designation->name }}</div>
+        @if(\App\Helpers\CvSections::enabled('basic_info'))
+            @if($teacher->photo)
+                <img class="photo" src="{{ str_starts_with($teacher->photo, 'http') ? $teacher->photo : public_path('storage/'.$teacher->photo) }}">
+            @else
+                <div class="photo-fallback">{{ strtoupper(substr($teacher->first_name ?? '?', 0, 1)) }}</div>
             @endif
-            @if($teacher->department?->faculty?->name || $teacher->department?->name)
-                <div class="org">
-                    {{ $teacher->department?->faculty?->name ?? $brand['site_name'] }}
-                    @if($teacher->department?->name) &middot; {{ $teacher->department->name }} @endif
+            <div>
+                <div class="name">{{ $teacher->full_name }}</div>
+                @if($teacher->designation?->name)
+                    <div class="title">{{ $teacher->designation->name }}</div>
+                @endif
+                @if($teacher->department?->faculty?->name || $teacher->department?->name)
+                    <div class="org">
+                        {{ $teacher->department?->faculty?->name ?? $brand['site_name'] }}
+                        @if($teacher->department?->name) &middot; {{ $teacher->department->name }} @endif
+                    </div>
+                @endif
+                <div class="contact">
+                    @if($teacher->user?->email || $teacher->secondary_email)
+                        <span>&#9993; {{ $teacher->user?->email ?? $teacher->secondary_email }}</span>
+                    @endif
+                    @if($teacher->phone || $teacher->personal_phone)
+                        <span>&#9742; {{ $teacher->phone ?? $teacher->personal_phone }}</span>
+                    @endif
+                    @if($teacher->office_room)
+                        <span>Room: {{ $teacher->office_room }}</span>
+                    @endif
                 </div>
-            @endif
-            <div class="contact">
-                @if($teacher->user?->email || $teacher->secondary_email)
-                    <span>&#9993; {{ $teacher->user?->email ?? $teacher->secondary_email }}</span>
-                @endif
-                @if($teacher->phone || $teacher->personal_phone)
-                    <span>&#9742; {{ $teacher->phone ?? $teacher->personal_phone }}</span>
-                @endif
-                @if($teacher->office_room)
-                    <span>Room: {{ $teacher->office_room }}</span>
-                @endif
             </div>
-        </div>
+        @endif
     </div>
 
     <div class="cols">
         {{-- MAIN COLUMN --}}
         <div class="col-main">
 
-            @if($teacher->bio || $teacher->research_interest)
-                <h2>Profile</h2>
-                @if($teacher->bio)<p class="summary">{{ strip_tags($teacher->bio) }}</p>@endif
-                @if($teacher->research_interest)
-                    <p class="summary" style="margin-top:6px;"><strong>Research Interests:</strong> {{ $teacher->research_interest }}</p>
-                @endif
+            @if(\App\Helpers\CvSections::enabled('profile') && ($teacher->bio || $teacher->research_interest))
+                <div class="section">
+                    <h2>Profile</h2>
+                    @if($teacher->bio)<p class="summary">{{ strip_tags($teacher->bio) }}</p>@endif
+                    @if($teacher->research_interest)
+                        <p class="summary" style="margin-top:6px;"><strong>Research Interests:</strong> {{ $teacher->research_interest }}</p>
+                    @endif
+                </div>
             @endif
 
-            @if($teacher->jobExperiences->isNotEmpty())
-                <h2>Experience</h2>
-                @foreach($teacher->jobExperiences as $exp)
-                    <div class="item">
-                        <div class="row1">{{ $exp->designation ?? 'Role' }}@if($exp->organization) — {{ $exp->organization }}@endif</div>
-                        @if($exp->start_date || $exp->end_date)
-                            <div class="row2">
-                                {{ $exp->start_date?->format('M Y') ?? '' }}
-                                &ndash;
-                                {{ $exp->end_date?->format('M Y') ?? 'Present' }}
-                            </div>
-                        @endif
-                    </div>
-                @endforeach
+            @if(\App\Helpers\CvSections::enabled('experience') && $teacher->jobExperiences->isNotEmpty())
+                <div class="section">
+                    <h2>Experience</h2>
+                    @foreach($teacher->jobExperiences as $exp)
+                        <div class="item">
+                            <div class="row1">{{ $exp->designation ?? 'Role' }}@if($exp->organization) — {{ $exp->organization }}@endif</div>
+                            @if($exp->start_date || $exp->end_date)
+                                <div class="row2">
+                                    {{ $exp->start_date?->format('M Y') ?? '' }}
+                                    &ndash;
+                                    {{ $exp->end_date?->format('M Y') ?? 'Present' }}
+                                </div>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
             @endif
 
-            @if($teacher->publications->isNotEmpty())
+            @if(\App\Helpers\CvSections::enabled('publications') && $teacher->publications->isNotEmpty())
                 <h2>Publications ({{ $teacher->publications->count() }})</h2>
                 <ol class="pubs">
                     @foreach($teacher->publications->take(40) as $pub)
@@ -166,12 +183,14 @@
                 </ol>
             @endif
 
-            @if($teacher->teachingAreas->isNotEmpty())
-                <h2>Teaching Areas</h2>
-                <div class="chips">
-                    @foreach($teacher->teachingAreas as $area)
-                        <span>{{ $area->name ?? $area->course_title ?? 'Area' }}</span>
-                    @endforeach
+            @if(\App\Helpers\CvSections::enabled('teaching_areas') && $teacher->teachingAreas->isNotEmpty())
+                <div class="section">
+                    <h2>Teaching Areas</h2>
+                    <div class="chips">
+                        @foreach($teacher->teachingAreas as $area)
+                            <span>{{ $area->name ?? $area->course_title ?? 'Area' }}</span>
+                        @endforeach
+                    </div>
                 </div>
             @endif
 
@@ -180,7 +199,7 @@
         {{-- SIDE COLUMN --}}
         <div class="col-side">
 
-            @if($teacher->educations->isNotEmpty())
+            @if(\App\Helpers\CvSections::enabled('education') && $teacher->educations->isNotEmpty())
                 <div class="side-block">
                     <h2>Education</h2>
                     @foreach($teacher->educations as $edu)
@@ -195,7 +214,7 @@
                 </div>
             @endif
 
-            @if($teacher->skills->isNotEmpty())
+            @if(\App\Helpers\CvSections::enabled('skills') && $teacher->skills->isNotEmpty())
                 <div class="side-block">
                     <h2>Skills</h2>
                     <div class="chips">
@@ -206,7 +225,7 @@
                 </div>
             @endif
 
-            @if($teacher->memberships->isNotEmpty())
+            @if(\App\Helpers\CvSections::enabled('memberships') && $teacher->memberships->isNotEmpty())
                 <div class="side-block">
                     <h2>Memberships</h2>
                     @foreach($teacher->memberships as $mem)
@@ -234,7 +253,7 @@
                 </div>
             @endif
 
-            @if($teacher->awards->isNotEmpty())
+            @if(\App\Helpers\CvSections::enabled('awards') && $teacher->awards->isNotEmpty())
                 <div class="side-block">
                     <h2>Awards & Honors</h2>
                     @foreach($teacher->awards as $award)
@@ -248,7 +267,7 @@
                 </div>
             @endif
 
-            @if($teacher->certifications->isNotEmpty())
+            @if(\App\Helpers\CvSections::enabled('certifications') && $teacher->certifications->isNotEmpty())
                 <div class="side-block">
                     <h2>Certifications</h2>
                     @foreach($teacher->certifications as $cert)
@@ -260,7 +279,7 @@
                 </div>
             @endif
 
-            @if($teacher->socialLinks->isNotEmpty())
+            @if(\App\Helpers\CvSections::enabled('links') && $teacher->socialLinks->isNotEmpty())
                 <div class="side-block">
                     <h2>Links</h2>
                     <div class="chips">
