@@ -45,6 +45,7 @@ class DatabaseSeeder extends Seeder
             ApprovalPermissionsSeeder::class,
             NotificationRoutingSeeder::class,
             RoleSevenPermissionSeeder::class,
+            BrandingSettingsSeeder::class,
 //            AdministrativeRoleUserSeeder::class,
         ]);
     }
