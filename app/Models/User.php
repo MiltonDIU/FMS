@@ -82,6 +82,17 @@ class User extends Authenticatable implements FilamentUser
     }
 
     /**
+     * Get a non-empty display name for Filament.
+     */
+    public function getFilamentName(): string
+    {
+        return $this->name
+            ?: $this->teacher?->full_name
+            ?: $this->email
+            ?: 'User';
+    }
+
+    /**
      * Determine if the user can access the Filament panel.
      */
     public function canAccessPanel(Panel $panel): bool

@@ -29,17 +29,19 @@ class TeacherObserver
 
         // Only create user if user_id is not set
         if (empty($teacher->user_id)) {
-            // Build name from teacher fields
-            $fullName = trim("{$teacher->first_name} {$teacher->middle_name} {$teacher->last_name}");
-            
             // Get email from session (set by CreateTeacher page)
             $email = session('teacher_creation_email');
+
+            // Build name from teacher fields, with safe fallback for incomplete imports.
+            $fullName = $this->resolveTeacherDisplayName($teacher, $email);
             
             // For seeder, fallback to secondary_email or generate
             if (empty($email) && app()->runningInConsole()) {
                 $email = $teacher->secondary_email 
                     ?? strtolower(Str::slug($fullName, '.')) . '@diu.edu.bd';
             }
+
+            $fullName = $this->resolveTeacherDisplayName($teacher, $email);
             
             if (empty($email)) {
                 throw new \Exception('Email address is required for creating teacher account.');
@@ -224,8 +226,23 @@ class TeacherObserver
     public function updated(Teacher $teacher): void
     {
         if ($teacher->isDirty(['first_name', 'middle_name', 'last_name']) && $teacher->user) {
-            $fullName = trim("{$teacher->first_name} {$teacher->middle_name} {$teacher->last_name}");
-            $teacher->user->update(['name' => $fullName]);
+            $teacher->user->update([
+                'name' => $this->resolveTeacherDisplayName($teacher, $teacher->user->email),
+            ]);
         }
+    }
+
+    private function resolveTeacherDisplayName(Teacher $teacher, ?string $email = null): string
+    {
+        $name = collect([$teacher->first_name, $teacher->middle_name, $teacher->last_name])
+            ->filter(fn ($part) => filled($part))
+            ->implode(' ');
+
+        return $name
+            ?: $teacher->user?->name
+            ?: $email
+            ?: $teacher->secondary_email
+            ?: $teacher->employee_id
+            ?: 'Teacher';
     }
 }

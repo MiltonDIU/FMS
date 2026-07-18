@@ -383,24 +383,37 @@
         }
     </style>
 
+    @php
+        $teacher = $teacher ?? null;
+        $user = auth()->user();
+        $displayName = $teacher?->full_name ?: $user?->name ?: $user?->email ?: 'Teacher';
+        $photo = $teacher?->photo;
+        $avatarUrl = $photo
+            ? (\Illuminate\Support\Str::startsWith($photo, ['http://', 'https://', '/'])
+                ? $photo
+                : 'https://faculty.daffodilvarsity.edu.bd/images/teacher/' . ltrim($photo, '/'))
+            : null;
+        $initial = strtoupper(substr($displayName, 0, 1));
+    @endphp
+
     <div class="teacher-dashboard-overview-container">
         @if($teacher)
             {{-- Header --}}
             <div class="profile-header">
                 {{-- Avatar --}}
                 <div class="profile-avatar-wrapper">
-                    @if($teacher->photo)
-                        <img src="{{ filament()->getUserAvatarUrl($teacher) }}" alt="{{ $teacher->full_name }}" class="profile-avatar">
+                    @if($avatarUrl)
+                        <img src="{{ $avatarUrl }}" alt="{{ $displayName }}" class="profile-avatar">
                     @else
                         <div class="profile-avatar-initial">
-                            <span>{{ substr($teacher->first_name, 0, 1) }}</span>
+                            <span>{{ $initial }}</span>
                         </div>
                     @endif
                 </div>
 
                 {{-- Info --}}
                 <div class="profile-info">
-                    <h1 class="profile-name">{{ $teacher->full_name }}</h1>
+                    <h1 class="profile-name">{{ $displayName }}</h1>
                     <div class="profile-designation">
                         {{ $teacher->designation->name ?? 'Faculty Member' }} • {{ $teacher->department->name ?? 'Department' }}
                     </div>
@@ -497,7 +510,7 @@
 
                     <div class="info-group">
                         <div class="info-label">CONTACT</div>
-                        <div class="info-value">📧 {{ $teacher->email ?? $teacher->user->email ?? 'N/A' }}</div>
+                        <div class="info-value">📧 {{ $teacher->secondary_email ?? $teacher->user?->email ?? 'N/A' }}</div>
                         <div class="info-value">📞 {{ $teacher->phone ?? 'N/A' }}</div>
                     </div>
 

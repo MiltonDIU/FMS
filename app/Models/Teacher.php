@@ -93,7 +93,15 @@ class Teacher extends Model implements HasMedia
      */
     public function getFullNameAttribute(): string
     {
-        return trim("{$this->first_name} {$this->middle_name} {$this->last_name}");
+        $name = collect([$this->first_name, $this->middle_name, $this->last_name])
+            ->filter(fn ($part) => filled($part))
+            ->implode(' ');
+
+        return $name
+            ?: $this->user?->name
+            ?: $this->user?->email
+            ?: $this->employee_id
+            ?: 'Teacher';
     }
 
     /**
