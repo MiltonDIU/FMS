@@ -77,6 +77,20 @@ return [
             'engine' => null,
         ],
 
+        'api_only_db' => [
+            'driver' => env('API_ONLY_DB_CONNECTION', 'mysql'),
+            'host' => env('API_ONLY_DB_HOST', '127.0.0.1'),
+            'port' => env('API_ONLY_DB_PORT', '3306'),
+            'database' => env('API_ONLY_DB_DATABASE', 'project_fms_api_only'),
+            'username' => env('API_ONLY_DB_USERNAME', 'diu'),
+            'password' => env('API_ONLY_DB_PASSWORD', 'Diu@654321'),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'strict' => false,
+            'engine' => null,
+        ],
+
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),

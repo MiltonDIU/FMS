@@ -614,9 +614,12 @@ class TeacherForm
                                             $requiresApproval = \App\Models\ApprovalSetting::requiresApproval('publication');
                                             $status = $requiresApproval ? 'pending' : 'approved';
 
+                                            $deptId = $item['department_id'] ?? $record->department_id;
+                                            $facultyId = $item['faculty_id'] ?? ($deptId ? \App\Models\Department::find($deptId)?->faculty_id : $record->department?->faculty_id);
+
                                             $data = [
-                                                'faculty_id' => $item['faculty_id'] ?? null,
-                                                'department_id' => $item['department_id'] ?? null,
+                                                'faculty_id' => $facultyId,
+                                                'department_id' => $deptId,
                                                 'publication_type_id' => $item['publication_type_id'],
                                                 'publication_linkage_id' => $item['publication_linkage_id'],
                                                 'publication_quartile_id' => $item['publication_quartile_id'] ?? null,
@@ -990,14 +993,49 @@ class TeacherForm
 
                                         $sortOrder = 0;
                                         foreach ($state ?? [] as $item) {
+                                            $attachment = $item['attachment'] ?? null;
+                                            if (is_array($attachment)) {
+                                                $attachment = reset($attachment) ?: null;
+                                            }
+
+                                            $title = $item['title'] ?? 'Award';
+                                            if (is_array($title)) {
+                                                $title = reset($title) ?: 'Award';
+                                            }
+
+                                            $awardingBody = $item['awarding_body'] ?? null;
+                                            if (is_array($awardingBody)) {
+                                                $awardingBody = reset($awardingBody) ?: null;
+                                            }
+
+                                            $remarks = $item['remarks'] ?? null;
+                                            if (is_array($remarks)) {
+                                                $remarks = json_encode($remarks);
+                                            }
+
+                                            $type = $item['type'] ?? 'award';
+                                            if (is_array($type)) {
+                                                $type = 'award';
+                                            }
+
+                                            $date = $item['date'] ?? null;
+                                            if (is_array($date)) {
+                                                $date = null;
+                                            }
+
+                                            $year = $item['year'] ?? null;
+                                            if (is_array($year)) {
+                                                $year = null;
+                                            }
+
                                             $data = [
-                                                'title' => $item['title'],
-                                                'awarding_body' => $item['awarding_body'] ?? null,
-                                                'type' => $item['type'] ?? 'award',
-                                                'date' => $item['date'] ?? null,
-                                                'year' => $item['year'] ?? null,
-                                                'remarks' => $item['remarks'] ?? null,
-                                                'attachment' => $item['attachment'] ?? null,
+                                                'title' => $title,
+                                                'awarding_body' => $awardingBody,
+                                                'type' => $type,
+                                                'date' => $date,
+                                                'year' => $year,
+                                                'remarks' => $remarks,
+                                                'attachment' => $attachment,
                                                 'sort_order' => $sortOrder++,
                                             ];
                                             if (isset($item['id'])) {
@@ -1461,7 +1499,8 @@ class TeacherForm
                                         ->disabled($isOwnProfile)
                                         ->dehydrated(! $isOwnProfile),
                                     TextInput::make('sort_order')->numeric()
-                                        ->default(fn () => (\App\Models\Teacher::max('sort_order') ?? 0) + 1)
+                                        ->default(fn () => (\App\Models\Teacher::max('sort_order') ?? \App\Models\Teacher::count()) + 1)
+                                        ->required()
                                         ->disabled($isOwnProfile)
                                         ->dehydrated(! $isOwnProfile),
                                 ]),

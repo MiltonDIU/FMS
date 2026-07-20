@@ -24,6 +24,10 @@ class CreateTeacher extends CreateRecord
         // Remove email from data as it's not a Teacher column
         unset($data['email']);
 
+        if (empty($data['sort_order'])) {
+            $data['sort_order'] = (\App\Models\Teacher::max('sort_order') ?? \App\Models\Teacher::count()) + 1;
+        }
+
         return $data;
     }
 
@@ -36,42 +40,52 @@ class CreateTeacher extends CreateRecord
     }
 
     /**
-     * Handle auto-fill from legacy teacher search
+     * Handle auto-fill & full relational import from teacher search
      */
     #[On('fillTeacherData')]
     public function fillTeacherData(array $teacher): void
     {
-        \Log::info('Received teacher data for auto-fill:', $teacher);
-
         /** @var \App\Services\IntegrationService $integrationService */
         $integrationService = app(\App\Services\IntegrationService::class);
 
-        // Apply integration mapping transformation on raw legacy data
-        $mappedData = $integrationService->transform($teacher, 'legacy_teacher_search');
+        $mappingSlug = \App\Models\Setting::get('teacher_integration_mapping', 'erp_teacher_profile');
 
-        \Log::info('Mapped data from IntegrationService:', $mappedData);
+        // 1. Fetch full preview payload if search item only passed brief details
+        $rawPayload = $teacher;
+        $searchKey = $teacher['employee_id'] ?? $teacher['employeeID'] ?? $teacher['webpage'] ?? $teacher['email'] ?? $teacher['name'] ?? null;
 
-        // Flatten the nested structure (e.g., ['Teacher' => ['field' => 'value']] to ['field' => 'value'])
-        $formData = [];
-        foreach ($mappedData as $key => $value) {
-            if (is_array($value)) {
-                // If it's a nested array (model-based), merge it
-                $formData = array_merge($formData, $value);
-            } else {
-                // If it's a flat field, add it directly
-                $formData[$key] = $value;
+        if ($searchKey) {
+            $controller = app(\App\Http\Controllers\Api\V1\FrontendApiController::class);
+            $req = \Illuminate\Http\Request::create('/api/v1/teachers/preview', 'GET', [
+                'q' => $searchKey,
+                'employee_id' => $searchKey,
+                'webpage' => $searchKey,
+            ]);
+            $res = $controller->previewTeacherImport($req);
+            $resData = json_decode($res->getContent(), true);
+
+            if (!empty($resData['raw_payload'])) {
+                $rawPayload = $resData['raw_payload'];
             }
         }
 
-        \Log::info('Final form data to fill:', $formData);
+        // 2. Transform raw payload to mapped structure
+        $overview = $integrationService->transform((array) $rawPayload, $mappingSlug);
 
-        // Fill the form with flattened mapped data
+        // 3. Assemble & resolve complete form data with all lookup relationships for tab repeaters
+        $formData = \App\Helpers\FormPayloadResolver::resolveForForm($overview);
+
+        // 4. Fill Filament form
         $this->form->fill($formData);
 
-        // Show notification
+        $eduCount = count($formData['educations']);
+        $skillCount = count($formData['skills']);
+        $jobCount = count($formData['jobExperiences']);
+        $pubCount = count($formData['publications']);
+
         \Filament\Notifications\Notification::make()
-            ->title('Teacher Data Loaded')
-            ->body('Legacy teacher data has been auto-filled. Please review and complete required fields.')
+            ->title('All Profile Fields Auto-Filled!')
+            ->body("Form inputs and all tab repeaters populated from API ({$eduCount} Educations, {$skillCount} Skills, {$jobCount} Job Experiences, {$pubCount} Publications). Please review tabs and click Create.")
             ->success()
             ->send();
     }

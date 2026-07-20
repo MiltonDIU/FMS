@@ -21,13 +21,18 @@ Route::prefix('v1')
         Route::get('/departments/{dept}/teachers', 'departmentTeachers');
         Route::get('/departments/{dept}/teachers/{webpage}', 'teacherProfile');
         Route::get('/teachers/count', 'teachersCount');
-
+        Route::get('/teachers', 'searchTeachers');
+        Route::get('/teachers/search', 'searchTeachers');
+        Route::get('/teachers/preview', 'previewTeacherImport');
+        Route::post('/teachers/import', 'confirmTeacherImport');
+        Route::get('/profile/{webpage}', 'profileByWebpage');
     });
 
 
-
-
-
+Route::get('/teachers/search', [FrontendApiController::class, 'searchTeachers']);
+Route::get('/teachers/preview', [FrontendApiController::class, 'previewTeacherImport']);
+Route::post('/teachers/import', [FrontendApiController::class, 'confirmTeacherImport']);
+Route::get('/profile/{webpage}', [FrontendApiController::class, 'profileByWebpage']);
 Route::get('/teacher/search', [TeacherApiController::class, 'search']);
 
 Route::get('/v1/settings', [PublicSettingsController::class, 'index']);

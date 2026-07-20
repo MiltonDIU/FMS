@@ -254,11 +254,9 @@ class IntegrationMappingForm
 
                         Select::make('target_model')
                             ->label('Target Model')
-                            ->options([
-                                'User' => 'User',
-                                'Teacher' => 'Teacher',
-                            ])
+                            ->options(IntegrationMapping::getSupportedModels())
                             ->required()
+                            ->searchable()
                             ->live()
                             ->afterStateUpdated(fn (Set $set) => $set('target_field', null)),
 

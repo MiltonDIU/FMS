@@ -46,6 +46,7 @@ class DatabaseSeeder extends Seeder
             NotificationRoutingSeeder::class,
             RoleSevenPermissionSeeder::class,
             BrandingSettingsSeeder::class,
+            //IntegrationMappingSeeder::class,
 //            AdministrativeRoleUserSeeder::class,
         ]);
     }

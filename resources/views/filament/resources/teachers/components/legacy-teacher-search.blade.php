@@ -16,7 +16,10 @@
                 this.loading = true;
                 this.updatePosition();
                 try {
-                    const response = await fetch(`/api/teacher/search?q=${encodeURIComponent(this.query)}`);
+                    let response = await fetch(`/api/v1/teachers/search?q=${encodeURIComponent(this.query)}`);
+                    if (!response.ok) {
+                        response = await fetch(`/api/teacher/search?q=${encodeURIComponent(this.query)}`);
+                    }
                     const data = await response.json();
 
                     if (data.success) {
@@ -66,7 +69,7 @@
                     x-model="query"
                     @input.debounce.500ms="search()"
                     @focus="if(query.length >= 2) { showResults = true; updatePosition(); }"
-                    placeholder="Search legacy database (name, employee ID, email)..."
+                    placeholder="Search teacher database / API (name, employee ID, email)..."
                     class="fi-input block w-full border-none py-2.5 text-base text-gray-950 transition duration-75 placeholder:text-gray-400 focus:ring-0 sm:text-sm bg-white ps-4 pe-4 rounded-lg"
                 />
             </div>
@@ -94,37 +97,38 @@
                                 <tr class="text-left text-[11px] font-bold text-gray-400 uppercase tracking-wider" style="border-bottom: 3px solid darkgray;">
                                     <th class="px-6 py-4 border-b w-[30%]">Name</th>
                                     <th class="px-6 py-4 border-b w-[20%]">Emp ID</th>
-                                    <th class="px-6 py-4 border-b w-[35%]">Email Address</th>
-                                    <th class="px-6 py-4 border-b w-[15%] text-center">Action</th>
+                                    <th class="px-6 py-4 border-b w-[30%]">Email Address</th>
+                                    <th class="px-6 py-4 border-b w-[20%] text-center">Action</th>
                                 </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-50 bg-white">
-                                <template x-for="teacher in results" :key="teacher.employeeID || teacher.id">
+                                <template x-for="teacher in results" :key="teacher.employee_id || teacher.employeeID || teacher.id">
                                     <tr
                                         class="group hover:bg-primary-50/30 transition-colors duration-150 cursor-pointer"
-                                        @click="if(!teacher.exists_locally) autoFill(teacher)"
-                                        style="text-align: center;
-  line-height: 30px;
-  border-bottom: 1px solid darkgray;"
+                                        @click="autoFill(teacher)"
+                                        style="text-align: center; line-height: 30px; border-bottom: 1px solid darkgray;"
                                     >
                                         <td class="px-6 py-5">
                                             <div class="flex flex-col gap-1">
-                                                <span class="text-sm font-bold text-gray-900 group-hover:text-primary-600 transition-colors" x-text="teacher.name"></span>
+                                                <span class="text-sm font-bold text-gray-900 group-hover:text-primary-600 transition-colors" x-text="teacher.full_name || teacher.name"></span>
                                                 <template x-if="teacher.exists_locally">
-                                                    <span class="inline-flex items-center w-fit px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-green-100 text-green-700 ring-1 ring-inset ring-green-600/20">Added</span>
+                                                    <span class="inline-flex items-center w-fit px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-amber-100 text-amber-700 ring-1 ring-inset ring-amber-600/20">Exists Locally (Will Merge)</span>
+                                                </template>
+                                                <template x-if="!teacher.exists_locally">
+                                                    <span class="inline-flex items-center w-fit px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-green-100 text-green-700 ring-1 ring-inset ring-green-600/20">New Profile</span>
                                                 </template>
                                             </div>
                                         </td>
-                                        <td class="px-6 py-5 text-sm font-medium text-gray-600 font-mono tracking-tight" x-text="teacher.employeeID || 'N/A'"></td>
-                                        <td class="px-6 py-5 text-sm text-gray-500 truncate" x-text="teacher.email || '—'" :title="teacher.email"></td>
+                                        <td class="px-6 py-5 text-sm font-medium text-gray-600 font-mono tracking-tight" x-text="teacher.employee_id || teacher.employeeID || 'N/A'"></td>
+                                        <td class="px-6 py-5 text-sm text-gray-500 truncate" x-text="teacher.email || teacher.secondary_email || '—'" :title="teacher.email"></td>
                                         <td class="px-6 py-5 text-center">
                                             <button
                                                 type="button"
-                                                x-show="!teacher.exists_locally"
                                                 @click.stop="autoFill(teacher)"
-                                                class="inline-flex items-center px-4 py-1.5 bg-primary-600 text-white text-[11px] font-bold rounded-lg hover:bg-primary-700 shadow-sm transition-all active:scale-95"
+                                                :class="teacher.exists_locally ? 'bg-amber-600 hover:bg-amber-700' : 'bg-primary-600 hover:bg-primary-700'"
+                                                class="inline-flex items-center px-3 py-1.5 text-white text-[11px] font-bold rounded-lg shadow-sm transition-all active:scale-95"
                                             >
-                                                Fill Data
+                                                <span x-text="teacher.exists_locally ? '🔄 Merge Profile' : '➕ Import & Fill'"></span>
                                             </button>
                                         </td>
                                     </tr>

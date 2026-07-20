@@ -128,6 +128,27 @@ class SettingsSeeder extends Seeder
                 'is_public' => false,
                 'sort_order' => 17,
             ],
+            // Teacher Integration Settings
+            [
+                'group' => 'teacher_integration',
+                'key' => 'teacher_integration_api_url',
+                'value' => 'http://localhost:8000/api/v1/teachers/preview',
+                'type' => 'string',
+                'label' => 'Teacher Integration API URL',
+                'description' => 'API endpoint URL for searching and previewing teacher profiles',
+                'is_public' => false,
+                'sort_order' => 20,
+            ],
+            [
+                'group' => 'teacher_integration',
+                'key' => 'teacher_integration_mapping',
+                'value' => 'erp_teacher_profile',
+                'type' => 'string',
+                'label' => 'Teacher Integration Mapping Slug',
+                'description' => 'Mapping configuration slug used for transforming teacher JSON',
+                'is_public' => false,
+                'sort_order' => 21,
+            ],
         ];
 
         foreach ($settings as $setting) {

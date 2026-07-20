@@ -59,6 +59,16 @@ class SystemSettings extends Page
 
     public ?array $data = [];
 
+    public ?array $preview_overview = null;
+
+    public ?array $preview_raw_payload = null;
+
+    public bool $preview_exists_locally = false;
+
+    public ?string $preview_teacher_name = null;
+
+    public ?int $preview_teacher_id = null;
+
     public function mount(): void
     {
         $settings = Setting::all()->pluck('value', 'key')->toArray();
@@ -117,6 +127,8 @@ class SystemSettings extends Page
             'import_dry_run' => false,
             'import_skip_existing' => true,
             'teacher_login_mode' => 'individual',
+            'teacher_integration_api_url' => 'http://localhost:8000/api/v1/teachers/preview',
+            'teacher_integration_mapping' => 'erp_teacher_profile',
             'frontend_driver' => 'blade',
             'nextjs_url' => '',
             'active_theme' => 'theme_default',
@@ -135,6 +147,25 @@ class SystemSettings extends Page
             ->components([
                 Tabs::make('Settings')
                     ->tabs([
+                        Tab::make('Teacher API Integration')
+                            ->icon('heroicon-o-cloud-arrow-down')
+                            ->schema([
+                                Section::make('API & Integration Setup')
+                                    ->description('Configure external ERP / API URL and mapping rules for searching and importing teachers')
+                                    ->columns(3)
+                                    ->schema([
+                                        TextInput::make('teacher_integration_api_url')
+                                            ->label('API Endpoint URL')
+                                            ->placeholder('http://localhost:8000/api/v1/teachers/preview')
+                                            ->default('http://localhost:8000/api/v1/teachers/preview')
+                                            ->columnSpan(2),
+                                        Select::make('teacher_integration_mapping')
+                                            ->label('Mapping Rule')
+                                            ->options(fn () => \App\Models\IntegrationMapping::pluck('name', 'slug')->toArray())
+                                            ->default('erp_teacher_profile')
+                                            ->required(),
+                                    ]),
+                            ]),
                         Tab::make('Teacher Settings')
                             ->icon('heroicon-o-academic-cap')
                             ->schema([
@@ -967,6 +998,89 @@ class SystemSettings extends Page
             ->title('Master Import Job Dispatched!')
             ->body('The import process has been queued in the background. You can monitor it in Telescope under the Jobs tab.')
             ->send();
+    }
+
+    public function searchTeacherApi(): void
+    {
+        $query = trim($this->data['teacher_search_query'] ?? '');
+
+        if (empty($query)) {
+            Notification::make()->title('Please enter a search query or Employee ID.')->warning()->send();
+            return;
+        }
+
+        $apiUrl = $this->data['teacher_integration_api_url'] ?? 'http://localhost:8000/api/v1/teachers/preview';
+        $mappingSlug = $this->data['teacher_integration_mapping'] ?? 'erp_teacher_profile';
+
+        try {
+            $controller = app(\App\Http\Controllers\Api\V1\FrontendApiController::class);
+            $request = \Illuminate\Http\Request::create($apiUrl, 'GET', ['q' => $query, 'employee_id' => $query, 'webpage' => $query]);
+            $response = $controller->previewTeacherImport($request);
+
+            $resData = json_decode($response->getContent(), true);
+
+            if (empty($resData) || !($resData['success'] ?? false)) {
+                Notification::make()->title('No teacher found matching query: ' . $query)->danger()->send();
+                return;
+            }
+
+            $this->preview_overview = $resData['overview'] ?? [];
+            $this->preview_raw_payload = $resData['raw_payload'] ?? [];
+            $this->preview_exists_locally = (bool) ($resData['exists_locally'] ?? false);
+            $this->preview_teacher_id = $resData['teacher_id'] ?? null;
+
+            $tData = $this->preview_overview['Teacher'] ?? [];
+            $uData = $this->preview_overview['User'] ?? [];
+            $this->preview_teacher_name = trim(($tData['first_name'] ?? '') . ' ' . ($tData['last_name'] ?? '')) ?: ($uData['name'] ?? 'Teacher');
+
+            Notification::make()
+                ->title('Teacher Overview Generated')
+                ->body(($this->preview_exists_locally ? 'Teacher ALREADY EXISTS locally. Clicking button below will MERGE/UPDATE.' : 'New Teacher profile ready for import.'))
+                ->success()
+                ->send();
+
+        } catch (\Exception $e) {
+            Notification::make()->title('Error searching teacher: ' . $e->getMessage())->danger()->send();
+        }
+    }
+
+    public function importOrMergeTeacherFromSettings(): void
+    {
+        if (empty($this->preview_raw_payload)) {
+            Notification::make()->title('No teacher preview data to import.')->warning()->send();
+            return;
+        }
+
+        $mappingSlug = $this->data['teacher_integration_mapping'] ?? 'erp_teacher_profile';
+
+        try {
+            $service = app(\App\Services\IntegrationService::class);
+            $teacher = $service->importOrUpdateTeacher((array) $this->preview_raw_payload, $mappingSlug);
+
+            if ($teacher) {
+                $actionWord = $this->preview_exists_locally ? 'Merged & Updated' : 'Imported & Added';
+                Notification::make()
+                    ->title("Teacher Profile {$actionWord}!")
+                    ->body("Teacher {$teacher->full_name} (Employee ID: {$teacher->employee_id}) has been saved to the database.")
+                    ->success()
+                    ->send();
+
+                $this->resetTeacherPreview();
+            } else {
+                Notification::make()->title('Failed to import teacher.')->danger()->send();
+            }
+        } catch (\Exception $e) {
+            Notification::make()->title('Import Error: ' . $e->getMessage())->danger()->send();
+        }
+    }
+
+    public function resetTeacherPreview(): void
+    {
+        $this->preview_overview = null;
+        $this->preview_raw_payload = null;
+        $this->preview_exists_locally = false;
+        $this->preview_teacher_name = null;
+        $this->preview_teacher_id = null;
     }
 
     public function getFormActions(): array

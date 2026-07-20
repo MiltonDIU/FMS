@@ -14,6 +14,11 @@ Route::prefix('admin/integration-mappings')->group(function () {
     Route::post('/model-fields', [IntegrationMappingController::class, 'getModelFields']);
 });
 
+// Profile & Import API direct endpoints
+Route::get('/profile/{webpage}', [\App\Http\Controllers\Api\V1\FrontendApiController::class, 'profileByWebpage']);
+Route::get('/teachers/preview', [\App\Http\Controllers\Api\V1\FrontendApiController::class, 'previewTeacherImport']);
+Route::post('/teachers/import', [\App\Http\Controllers\Api\V1\FrontendApiController::class, 'confirmTeacherImport']);
+
 // Public nested frontend routes protected by Frontend Driver Middleware (placed at the bottom)
 Route::middleware(HandleFrontendDriverMiddleware::class)->group(function () {
     Route::get('/', [HomeController::class, 'index'])->name('home');

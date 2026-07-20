@@ -22,6 +22,28 @@ class IntegrationMapping extends Model
     ];
 
     /**
+     * List of supported models for mapping.
+     */
+    public static function getSupportedModels(): array
+    {
+        return [
+            'User' => 'User',
+            'Teacher' => 'Teacher Profile',
+            'Education' => 'Educations (Relation)',
+            'TrainingExperience' => 'Training Experiences (Relation)',
+            'Publication' => 'Publications (Relation)',
+            'Certification' => 'Certifications (Relation)',
+            'Skill' => 'Skills (Relation)',
+            'TeachingArea' => 'Teaching Areas (Relation)',
+            'Membership' => 'Memberships (Relation)',
+            'Award' => 'Awards (Relation)',
+            'JobExperience' => 'Job Experiences (Relation)',
+            'SocialLink' => 'Social Links (Relation)',
+            'ResearchProject' => 'Research Projects (Relation)',
+        ];
+    }
+
+    /**
      * Get fillable fields for a given model name.
      */
     public static function getModelFillableFields(string $modelName): array
