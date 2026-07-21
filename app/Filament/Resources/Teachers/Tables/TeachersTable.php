@@ -2,33 +2,43 @@
 
 namespace App\Filament\Resources\Teachers\Tables;
 
+use App\Models\Teacher;
+use App\Services\ProfileGapEvaluator;
 use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
+use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Enums\FiltersLayout;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Filters\TrashedFilter;
-use Filament\Tables\Filters\Filter;
 use Filament\Forms\Components\Select;
-
-use App\Models\Teacher;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
 
 class TeachersTable
 {
     public static function configure(Table $table): Table
     {
         return $table
-            //->modifyQueryUsing(fn (Builder $query) => $query->where('is_archived', false))
+            ->selectCurrentPageOnly()
+            ->modifyQueryUsing(fn (Builder $query) => $query->with([
+                'department',
+                'departments',
+                'designation',
+                'employmentStatus',
+                'jobType',
+            ]))
             ->columns([
                 TextColumn::make('employee_id')
                     ->label('ID')
@@ -85,6 +95,29 @@ class TeachersTable
                         'rejected' => 'danger',
                         default => 'gray',
                     }),
+                TextColumn::make('profile_score')
+                    ->label('Profile Score')
+                    ->sortable()
+                    ->badge()
+                    ->color(fn (?int $state): string => match (true) {
+                        is_null($state)  => 'gray',
+                        $state >= 80     => 'success',
+                        $state >= 50     => 'info',
+                        default          => 'danger',
+                    })
+                    ->formatStateUsing(fn (?int $state): string => is_null($state) ? '—' : $state . '%')
+                    ->tooltip(fn (Teacher $record): string =>
+                        $record->profile_score_synced_at
+                            ? 'Last synced: ' . $record->profile_score_synced_at->diffForHumans()
+                            : 'Not yet synced'
+                    )
+                    ->placeholder('Not Synced'),
+                TextColumn::make('profile_score_synced_at')
+                    ->label('Score Synced')
+                    ->since()
+                    ->sortable()
+                    ->placeholder('Never')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('verification_status')
                     ->label('Verification')
                     ->badge()
@@ -265,17 +298,48 @@ class TeachersTable
             ->recordActions([
                 EditAction::make(),
                 ViewAction::make(),
-                \Filament\Actions\Action::make('send_verification_email')
-                    ->label('Send Link')
+                Action::make('send_individual_email')
+                    ->label('Send Email')
                     ->icon('heroicon-o-envelope')
                     ->color('info')
-                    ->requiresConfirmation()
-                    ->modalHeading('Send Profile Verification Link')
-                    ->modalDescription(fn (Teacher $record) => "Send profile verification link email to {$record->full_name}?")
-                    ->action(function (Teacher $record) {
-                        \App\Jobs\SendTeacherVerificationEmailJob::dispatch($record);
-                        \Filament\Notifications\Notification::make()
-                            ->title('Verification email dispatched!')
+                    ->modalHeading(fn (Teacher $record) => "Send Email to {$record->full_name}")
+                    ->modalDescription(fn (Teacher $record) => "Select a saved template or customize the email content for {$record->full_name}.")
+                    ->form([
+                        Select::make('template_id')
+                            ->label('Select Email Template')
+                            ->placeholder('Choose a template to load default subject & body...')
+                            ->options(fn () => \App\Models\EmailTemplate::query()->where('is_active', true)->pluck('name', 'id')->toArray())
+                            ->default(fn () => \App\Models\EmailTemplate::where('key', 'profile_verification_request')->value('id'))
+                            ->searchable()
+                            ->live()
+                            ->afterStateUpdated(function ($state, \Filament\Schemas\Components\Utilities\Set $set) {
+                                if ($state) {
+                                    $template = \App\Models\EmailTemplate::find($state);
+                                    if ($template) {
+                                        $set('subject', $template->subject);
+                                        $set('body', $template->body);
+                                    }
+                                }
+                            }),
+
+                        \Filament\Forms\Components\TextInput::make('subject')
+                            ->label('Email Subject Line')
+                            ->required()
+                            ->maxLength(255)
+                            ->default(fn () => \App\Models\EmailTemplate::where('key', 'profile_verification_request')->value('subject') ?? 'Action Required: Please Review & Confirm Your Profile Data'),
+
+                        \Filament\Forms\Components\Textarea::make('body')
+                            ->label('Email Body / Message')
+                            ->required()
+                            ->rows(7)
+                            ->default(fn () => \App\Models\EmailTemplate::where('key', 'profile_verification_request')->value('body') ?? '')
+                            ->helperText('Available placeholders: {teacher_name}, {employee_id}, {department}, {designation}, {profile_score}, {verification_link}'),
+                    ])
+                    ->action(function (Teacher $record, array $data) {
+                        \App\Jobs\SendCustomTemplatedEmailJob::dispatch($record, $data['subject'], $data['body']);
+
+                        Notification::make()
+                            ->title("Email queued for {$record->full_name}!")
                             ->success()
                             ->send();
                     }),
@@ -284,6 +348,53 @@ class TeachersTable
                     ->icon('heroicon-o-presentation-chart-line')
                     ->url(fn (Teacher $record) => \App\Filament\Pages\TeacherDashboard::getUrl(['teacher' => $record->id]))
                     ->openUrlInNewTab(false),
+
+                // ── Sync Profile Score Action ─────────────────────────────
+                \Filament\Actions\Action::make('syncProfileScore')
+                    ->label('Sync Score')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('success')
+                    ->tooltip('Recalculate and save profile completion score')
+                    ->requiresConfirmation(false)
+                    ->action(function (Teacher $record) {
+                        try {
+                            // Load all relations needed by ProfileGapEvaluator
+                            $record->load([
+                                'educations.degreeType.level',
+                                'educations.educationalInstitution',
+                                'publications',
+                                'jobExperiences',
+                                'trainingExperiences',
+                                'awards',
+                                'skills',
+                                'teachingAreas',
+                                'memberships',
+                                'socialLinks',
+                            ]);
+
+                            $evaluator = new ProfileGapEvaluator();
+                            $report    = $evaluator->evaluate($record);
+                            $score     = $report['completion_percentage'];
+
+                            $record->updateQuietly([
+                                'profile_score'           => $score,
+                                'profile_score_synced_at' => Carbon::now(),
+                            ]);
+
+                            Notification::make()
+                                ->success()
+                                ->title('Score synced!')
+                                ->body("{$record->full_name}: {$score}% profile completion")
+                                ->send();
+                        } catch (\Throwable $e) {
+                            Notification::make()
+                                ->danger()
+                                ->title('Sync failed')
+                                ->body($e->getMessage())
+                                ->send();
+                        }
+                    }),
+                // ─────────────────────────────────────────────────────────
                 \Filament\Actions\Action::make('syncFromOldDb')
                     ->label('Sync Old Data')
                     ->icon('heroicon-o-arrow-path')
@@ -338,6 +449,124 @@ class TeachersTable
             ->recordUrl(null)
             ->toolbarActions([
                 BulkActionGroup::make([
+                    BulkAction::make('send_email_to_selected')
+                        ->label('Send Email to Selected')
+                        ->icon('heroicon-o-paper-airplane')
+                        ->color('success')
+                        ->modalHeading('Send Email to Selected Teachers')
+                        ->modalDescription('Select a saved email template or write custom content to send to selected teachers.')
+                        ->form([
+                            Select::make('template_id')
+                                ->label('Select Email Template')
+                                ->placeholder('Choose a template to load default subject & body...')
+                                ->options(fn () => \App\Models\EmailTemplate::query()->where('is_active', true)->pluck('name', 'id')->toArray())
+                                ->default(fn () => \App\Models\EmailTemplate::where('key', 'profile_verification_request')->value('id'))
+                                ->searchable()
+                                ->live()
+                                ->afterStateUpdated(function ($state, \Filament\Schemas\Components\Utilities\Set $set) {
+                                    if ($state) {
+                                        $template = \App\Models\EmailTemplate::find($state);
+                                        if ($template) {
+                                            $set('subject', $template->subject);
+                                            $set('body', $template->body);
+                                        }
+                                    }
+                                }),
+
+                            \Filament\Forms\Components\TextInput::make('subject')
+                                ->label('Email Subject Line')
+                                ->required()
+                                ->maxLength(255)
+                                ->default(fn () => \App\Models\EmailTemplate::where('key', 'profile_verification_request')->value('subject') ?? 'Action Required: Please Review & Confirm Your Profile Data'),
+
+                            \Filament\Forms\Components\Textarea::make('body')
+                                ->label('Email Body / Message')
+                                ->required()
+                                ->rows(7)
+                                ->default(fn () => \App\Models\EmailTemplate::where('key', 'profile_verification_request')->value('body') ?? '')
+                                ->helperText('Available placeholders: {teacher_name}, {employee_id}, {department}, {designation}, {profile_score}, {verification_link}'),
+                        ])
+                        ->action(function (\Illuminate\Database\Eloquent\Collection $records, array $data) {
+                            $subject = $data['subject'];
+                            $body    = $data['body'];
+                            $count   = $records->count();
+
+                            foreach ($records as $teacher) {
+                                \App\Jobs\SendCustomTemplatedEmailJob::dispatch($teacher, $subject, $body);
+                            }
+
+                            Notification::make()
+                                ->title("Email queued for {$count} selected teachers!")
+                                ->success()
+                                ->send();
+                        }),
+                    BulkAction::make('sync_selected_profile_scores')
+                        ->label('Sync Selected Scores')
+                        ->icon('heroicon-o-calculator')
+                        ->color('info')
+                        ->requiresConfirmation()
+                        ->modalHeading('Sync Profile Scores for Selected Teachers')
+                        ->modalDescription('Recalculate and save profile completion scores for the selected teachers.')
+                        ->action(function (\Illuminate\Database\Eloquent\Collection $records) {
+                            $evaluator = new ProfileGapEvaluator();
+                            $processed = 0;
+
+                            $records->load([
+                                'educations.degreeType.level',
+                                'educations.educationalInstitution',
+                                'publications',
+                                'jobExperiences',
+                                'trainingExperiences',
+                                'awards',
+                                'skills',
+                                'teachingAreas',
+                                'memberships',
+                                'socialLinks',
+                            ]);
+
+                            $now = Carbon::now()->toDateTimeString();
+                            $updates = [];
+
+                            foreach ($records as $teacher) {
+                                $report = $evaluator->evaluate($teacher);
+                                $score  = $report['completion_percentage'];
+
+                                $updates[] = [
+                                    'id'                      => $teacher->id,
+                                    'profile_score'           => $score,
+                                    'profile_score_synced_at' => $now,
+                                ];
+                                $processed++;
+                            }
+
+                            if (!empty($updates)) {
+                                $ids = array_column($updates, 'id');
+                                $scoreCase  = 'CASE id ';
+                                $syncedCase = 'CASE id ';
+
+                                foreach ($updates as $u) {
+                                    $scoreCase  .= "WHEN {$u['id']} THEN {$u['profile_score']} ";
+                                    $syncedCase .= "WHEN {$u['id']} THEN '{$u['profile_score_synced_at']}' ";
+                                }
+
+                                $scoreCase  .= 'END';
+                                $syncedCase .= 'END';
+                                $idList = implode(',', $ids);
+
+                                \Illuminate\Support\Facades\DB::statement("
+                                    UPDATE teachers
+                                    SET profile_score = {$scoreCase},
+                                        profile_score_synced_at = {$syncedCase}
+                                    WHERE id IN ({$idList})
+                                ");
+                            }
+
+                            Notification::make()
+                                ->success()
+                                ->title('Profile Scores Updated!')
+                                ->body("Recalculated profile scores for {$processed} selected teachers.")
+                                ->send();
+                        }),
                     DeleteBulkAction::make(),
                     ForceDeleteBulkAction::make(),
                     RestoreBulkAction::make(),

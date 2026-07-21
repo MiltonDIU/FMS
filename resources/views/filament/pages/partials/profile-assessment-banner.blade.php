@@ -212,10 +212,29 @@
             <div style="flex:1;min-width:0">
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
                     <h2 style="font-size:20px;font-weight:800;color:#0F172A;margin:0;letter-spacing:-.02em">{{ $teacherName }}</h2>
-                    <span class="gap-badge-verified">
-                        <svg style="width:10px;height:10px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4"/></svg>
-                        Verified Faculty
-                    </span>
+                    @php
+                        $vStatus = $teacher?->verification_status ?? 'unverified';
+                    @endphp
+
+                    @if($vStatus === 'verified')
+                        <span class="gap-badge-verified" style="background:#ECFDF5;color:#047857;border-color:#A7F3D0">
+                            <svg style="width:10px;height:10px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4"/></svg>
+                            Verified Faculty
+                        </span>
+                    @elseif($vStatus === 'pending_verification')
+                        <span class="gap-badge-verified" style="background:#FFFBEB;color:#B45309;border-color:#FDE68A">
+                            <svg style="width:10px;height:10px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            Verification Pending
+                        </span>
+                    @elseif($vStatus === 'correction_requested')
+                        <span class="gap-badge-verified" style="background:#FFF1F2;color:#E11D48;border-color:#FECDD3">
+                            ⚠️ Correction Requested
+                        </span>
+                    @else
+                        <span class="gap-badge-verified" style="background:#F8FAFC;color:#64748B;border-color:#E2E8F0">
+                            Unverified Profile
+                        </span>
+                    @endif
                 </div>
                 @if($designationDept && $designationDept !== ' of ')
                     <p style="font-size:13px;color:#64748B;margin:4px 0 0">{{ $designationDept }}</p>

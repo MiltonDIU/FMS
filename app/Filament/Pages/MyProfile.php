@@ -27,7 +27,7 @@ class MyProfile extends Page
     {
         // Allow access if user has 'teacher' role OR has specific permission
         // This handles cases where a user might have multiple roles
-        return  auth()->user()->can('View:MyProfile') & auth()->user()?->hasRole('teacher') ?? false;
+        return  auth()->user()->can('View:MyProfile') && auth()->user()?->hasRole('teacher') ?? false;
     }
 
     public ?array $data = [];
@@ -123,7 +123,7 @@ class MyProfile extends Page
                     ->first(function ($c) {
                         return method_exists($c, 'getName') && $c->getName() === 'photo';
                     });
-                
+
                 if ($photoComponent) {
                     $photoComponent->saveRelationships();
                     \Log::info('MyProfile: Saved photo relationships');
@@ -155,10 +155,13 @@ class MyProfile extends Page
             // 2. Version creation if approval needed
             $service->handleUpdateFromForm($teacher, $data);
 
+            // Mark verification status as verified
+            $teacher->markAsVerified();
+
             Notification::make()
                 ->success()
                 ->title(__('Profile update submitted successfully'))
-                ->body(__('Your changes have been submitted for approval.'))
+                ->body(__('Your changes have been saved and profile data is confirmed.'))
                 ->send();
 
         } catch (Halt $exception) {
@@ -178,12 +181,45 @@ class MyProfile extends Page
         }
     }
 
+    public function confirmVerification(): void
+    {
+        $teacher = auth()->user()?->teacher;
+
+        if ($teacher) {
+            $teacher->markAsVerified();
+
+            Notification::make()
+                ->success()
+                ->title(__('Profile Confirmed & Verified!'))
+                ->body(__('Thank you for confirming your profile data accuracy.'))
+                ->send();
+
+            // Refresh Livewire component state
+            $this->mount();
+        }
+    }
+
     public function getFormActions(): array
     {
-        return [
+        $teacher = auth()->user()?->teacher;
+
+        $actions = [
             Action::make('save')
                 ->label(__('Save Changes'))
                 ->submit('save'),
         ];
+
+        if ($teacher && $teacher->verification_status !== 'verified') {
+            $actions[] = Action::make('confirmVerification')
+                ->label(__('Confirm Profile Data Accuracy'))
+                ->icon('heroicon-o-check-badge')
+                ->color('success')
+                ->requiresConfirmation()
+                ->modalHeading(__('Confirm Profile Data Accuracy'))
+                ->modalDescription(__('Are you sure all your profile information is correct and up-to-date?'))
+                ->action(fn () => $this->confirmVerification());
+        }
+
+        return $actions;
     }
 }

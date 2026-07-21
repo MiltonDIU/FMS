@@ -397,20 +397,25 @@
             opacity: 0.5;
         }
 
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+        .gap-score-ring-sm { position: relative; width: 52px; height: 52px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+        .gap-score-ring-sm svg { position: absolute; top: 0; left: 0; transform: rotate(-90deg); }
+        .gap-score-ring-sm-label { font-size: 11px; font-weight: 800; color: #1E293B; position: relative; z-index: 1; }
+        .dark .gap-score-ring-sm-label { color: #f9fafb; }
 
-        .animate-slide-up {
-            animation: slideUp 0.5s ease-out;
+        .profile-score-bar { height: 6px; border-radius: 3px; background: #E2E8F0; overflow: hidden; margin-top: 4px; }
+        .profile-score-bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+
+        .score-pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; border: 1px solid; }
+        .score-pill-green  { background: #ECFDF5; border-color: #A7F3D0; color: #047857; }
+        .score-pill-blue   { background: #EEF2FF; border-color: #E0E7FF; color: #4338CA; }
+        .score-pill-red    { background: #FFF1F2; border-color: #FECDD3; color: #E11D48; }
+        .score-pill-gray   { background: #F8FAFC; border-color: #E2E8F0; color: #64748B; }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
         }
+        .animate-slide-up { animation: slideUp 0.5s ease-out; }
 
         /* Dark Mode Styles */
         .dark .teacher-overview-container {
@@ -761,10 +766,44 @@
             </div>
             </div>
 
-            <!-- Top Performers -->
             <div class="content-section">
                 <h3 class="section-title">🌟 Top Performers</h3>
                 <div class="top-performers-grid">
+                    {{-- Top Profile Scorers (from cached DB column) --}}
+                    <div class="performer-card" style="border:2px solid #E0E7FF">
+                        <div class="performer-title" style="color:#4338CA">
+                            🎯 Top Profile Scores
+                            <span style="font-size:10px;font-weight:500;color:#94A3B8;margin-left:auto">from DB cache</span>
+                        </div>
+                        <div class="performer-list">
+                            @forelse($topProfileScorers as $i => $performer)
+                                @php
+                                    $sc = $performer['score'];
+                                    $ringClr = $sc >= 80 ? '#10B981' : ($sc >= 50 ? '#4F46E5' : '#EF4444');
+                                    $pillCls = $sc >= 80 ? 'score-pill-green' : ($sc >= 50 ? 'score-pill-blue' : 'score-pill-red');
+                                    $dasharray = $sc . ', 100';
+                                @endphp
+                                <div class="performer-item" style="gap:10px">
+                                    {{-- Mini ring --}}
+                                    <div class="gap-score-ring-sm">
+                                        <svg width="40" height="40" viewBox="0 0 36 36">
+                                            <path stroke="#E2E8F0" stroke-width="4" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                                            <path stroke="{{ $ringClr }}" stroke-dasharray="{{ $dasharray }}" stroke-width="4" stroke-linecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                                        </svg>
+                                        <span class="gap-score-ring-sm-label">{{ $sc }}%</span>
+                                    </div>
+                                    <div style="flex:1;min-width:0">
+                                        <div class="performer-name" style="font-size:13px">{{ $performer['name'] }}</div>
+                                        <div style="font-size:10px;color:#94A3B8">{{ $performer['rank'] }}</div>
+                                    </div>
+                                    <span class="score-pill {{ $pillCls }}">{{ $sc }}%</span>
+                                </div>
+                            @empty
+                                <div class="text-center text-gray-400 py-4">No score data yet — run sync</div>
+                            @endforelse
+                        </div>
+                    </div>
+
                     <div class="performer-card">
                         <div class="performer-title">📚 Top Publishers</div>
                         <div class="performer-list">
@@ -795,11 +834,24 @@
                 </div>
             </div>
 
-            <!-- Teacher List -->
+            <!-- Teacher Rankings -->
             <div class="content-section">
-                <h3 class="section-title">📋 Teacher Rankings</h3>
+                <h3 class="section-title">
+                    📋 Teacher Rankings
+                    @if($sortBy === 'profile_score')
+                        <span style="font-size:11px;font-weight:500;color:#4338CA;background:#EEF2FF;padding:2px 10px;border-radius:20px;border:1px solid #E0E7FF;margin-left:8px">🎯 Sorted by Profile Score (cached)</span>
+                    @endif
+                </h3>
 
                 @forelse($teacherStats as $index => $teacher)
+                    @php
+                        $sc = $teacher->profile_score ?? null;
+                        $ringClr  = is_null($sc) ? '#94A3B8' : ($sc >= 80 ? '#10B981' : ($sc >= 50 ? '#4F46E5' : '#EF4444'));
+                        $pillCls  = is_null($sc) ? 'score-pill-gray'  : ($sc >= 80 ? 'score-pill-green' : ($sc >= 50 ? 'score-pill-blue' : 'score-pill-red'));
+                        $dashArr  = is_null($sc) ? '0, 100' : ($sc . ', 100');
+                        $scLabel  = is_null($sc) ? 'N/A' : $sc . '%';
+                        $barWidth = $sc ?? 0;
+                    @endphp
                     <div class="teacher-card animate-slide-up" style="animation-delay: {{ $index * 0.05 }}s">
                         <div class="teacher-rank {{ $index < 3 ? 'rank-' . ($index + 1) : 'rank-other' }}">
                             {{ $index + 1 }}
@@ -814,7 +866,11 @@
                                 @endif
                             </div>
                             <div class="teacher-info">
-                                <div class="teacher-name">{{ $teacher->full_name }}</div>
+                                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                                    <div class="teacher-name">{{ $teacher->full_name }}</div>
+                                    {{-- Profile score pill on ALL cards --}}
+                                    <span class="score-pill {{ $pillCls }}">🎯 {{ $scLabel }}</span>
+                                </div>
                                 <div class="teacher-meta">
                                     @if($teacher->employee_id)
                                         <span class="meta-badge">🆔 {{ $teacher->employee_id }}</span>
@@ -828,12 +884,31 @@
                                     @if($teacher->joining_date)
                                         <span class="meta-badge">📅 Joined {{ $teacher->joining_date->format('M d, Y') }}</span>
                                     @endif
-                                    @if($teacher->employment_status)
-                                        <span class="meta-badge" style="text-transform: capitalize;">🏢 {{ str_replace('_', ' ', $teacher->employment_status) }}</span>
-                                    @endif
                                 </div>
                             </div>
+
+                            {{-- Profile score ring (right side) --}}
+                            <div class="gap-score-ring-sm" style="margin-left:auto;margin-right:40px">
+                                <svg width="52" height="52" viewBox="0 0 36 36">
+                                    <path stroke="#E2E8F0" stroke-width="3.5" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                                    <path stroke="{{ $ringClr }}" stroke-dasharray="{{ $dashArr }}" stroke-width="3.5" stroke-linecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                                </svg>
+                                <span class="gap-score-ring-sm-label">{{ $scLabel }}</span>
+                            </div>
                         </div>
+
+                        {{-- Profile score progress bar (only when sorted by profile_score) --}}
+                        @if($sortBy === 'profile_score' && !is_null($sc))
+                            <div style="padding: 0 0 6px 0">
+                                <div style="display:flex;justify-content:space-between;font-size:10px;color:#94A3B8;margin-bottom:3px">
+                                    <span>Profile Completion</span>
+                                    <span style="font-weight:700;color:{{ $ringClr }}">{{ $sc }}%</span>
+                                </div>
+                                <div class="profile-score-bar">
+                                    <div class="profile-score-bar-fill" style="width:{{ $barWidth }}%;background:{{ $ringClr }}"></div>
+                                </div>
+                            </div>
+                        @endif
 
                         <div class="teacher-stats-row">
                             <div class="stat-item">
@@ -869,11 +944,6 @@
                             <div class="stat-item">
                                 <div class="stat-item-value">{{ $teacher->teaching_areas_count }}</div>
                                 <div class="stat-item-label">Teaching Areas</div>
-                            </div>
-
-                            <div class="stat-item">
-                                <div class="stat-item-value">{{ $teacher->active_administrative_roles_count }}</div>
-                                <div class="stat-item-label">Admin Roles</div>
                             </div>
                         </div>
                     </div>

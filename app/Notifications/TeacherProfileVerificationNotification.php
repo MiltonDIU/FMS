@@ -24,12 +24,16 @@ class TeacherProfileVerificationNotification extends Notification implements Sho
 
     public function toMail($notifiable): MailMessage
     {
-        // Generate temporary signed URL valid for 14 days
-        $verificationUrl = URL::temporarySignedRoute(
-            'teacher.profile.verify',
-            now()->addDays(14),
-            ['teacher' => $this->teacher->id, 'token' => $this->teacher->verification_token]
-        );
+        // Generate temporary signed URL valid for 14 days (or fallback URL if route not defined)
+        if (\Illuminate\Support\Facades\Route::has('teacher.profile.verify')) {
+            $verificationUrl = URL::temporarySignedRoute(
+                'teacher.profile.verify',
+                now()->addDays(14),
+                ['teacher' => $this->teacher->id, 'token' => $this->teacher->verification_token]
+            );
+        } else {
+            $verificationUrl = url("/admin/my-profile?token={$this->teacher->verification_token}");
+        }
 
         return (new MailMessage)
             ->subject('Action Required: Please Review & Confirm Your Profile Data')

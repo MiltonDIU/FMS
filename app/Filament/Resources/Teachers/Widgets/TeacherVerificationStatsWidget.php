@@ -13,7 +13,10 @@ class TeacherVerificationStatsWidget extends BaseWidget
         $totalTeachers = Teacher::count();
         $verifiedCount = Teacher::where('verification_status', 'verified')->count();
         $pendingCount = Teacher::where('verification_status', 'pending_verification')->count();
-        $unverifiedCount = Teacher::whereIn('verification_status', ['unverified', 'correction_requested'])->orWhereNull('verification_status')->count();
+        $unverifiedCount = Teacher::where(function ($q) {
+            $q->whereIn('verification_status', ['unverified', 'correction_requested'])
+              ->orWhereNull('verification_status');
+        })->count();
 
         return [
             Stat::make('Total Teachers', $totalTeachers)

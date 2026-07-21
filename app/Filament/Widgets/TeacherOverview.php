@@ -132,6 +132,10 @@ class TeacherOverview extends Widget
             ->when($this->sortBy === 'experience', function ($query) {
                 return $query->orderBy('joining_date', $this->sortDirection === 'desc' ? 'asc' : 'desc');
             })
+            ->when($this->sortBy === 'profile_score', function ($query) {
+                return $query->orderBy('profile_score', $this->sortDirection)
+                             ->addSelect('teachers.profile_score', 'teachers.profile_score_synced_at');
+            })
             ->limit($this->limit)
             ->get();
 
@@ -149,19 +153,21 @@ class TeacherOverview extends Widget
         $topAwardWinners = $this->getTopPerformers('awards', 5);
 
         return [
-            'teacherStats' => $teacherStats,
-            'summary' => $summary,
-            'statusStats' => $statusStats,
-            'reportedDegreeStats' => $reportedDegreeStats,
-            'topPublishers' => $topPublishers,
-            'topAwardWinners' => $topAwardWinners,
-            'faculties' => $this->getFaculties(),
-            'departments' => $this->getDepartments(),
-            'genders' => $this->getGenders(),
-            'designations' => $this->getDesignations(),
+            'teacherStats'       => $teacherStats,
+            'summary'            => $summary,
+            'statusStats'        => $statusStats,
+            'reportedDegreeStats'=> $reportedDegreeStats,
+            'topPublishers'      => $topPublishers,
+            'topAwardWinners'    => $topAwardWinners,
+            'topProfileScorers'  => $this->getTopProfileScorers(5),
+            'faculties'          => $this->getFaculties(),
+            'departments'        => $this->getDepartments(),
+            'genders'            => $this->getGenders(),
+            'designations'       => $this->getDesignations(),
             'employmentStatuses' => $this->getEmploymentStatuses(),
-            'jobTypes' => $this->getJobTypes(),
-            'sortOptions' => $this->getSortOptions(),
+            'jobTypes'           => $this->getJobTypes(),
+            'sortOptions'        => $this->getSortOptions(),
+            'sortBy'             => $this->sortBy,
         ];
     }
 
@@ -396,12 +402,46 @@ class TeacherOverview extends Widget
             ->get()
             ->map(function ($teacher) use ($countColumn) {
                 return [
-                    'name' => $teacher->full_name,
+                    'name'  => $teacher->full_name,
                     'count' => $teacher->$countColumn,
                     'photo' => $teacher->photo,
-                    'rank' => $teacher->designation->name ?? '',
+                    'rank'  => $teacher->designation->name ?? '',
                 ];
             })
+            ->toArray();
+    }
+
+    /**
+     * Get top N teachers ranked by cached profile_score (read from DB — no calculation).
+     */
+    protected function getTopProfileScorers(int $limit): array
+    {
+        $query = Teacher::query()->active();
+        $this->applyScoping($query);
+        $this->applyFilters($query);
+
+        return $query
+            ->select([
+                'teachers.id',
+                'teachers.first_name',
+                'teachers.last_name',
+                'teachers.photo',
+                'teachers.profile_score',
+                'teachers.profile_score_synced_at',
+                'teachers.designation_id',
+            ])
+            ->with('designation')
+            ->whereNotNull('profile_score')
+            ->orderByDesc('profile_score')
+            ->limit($limit)
+            ->get()
+            ->map(fn ($t) => [
+                'name'      => $t->full_name,
+                'score'     => $t->profile_score ?? 0,
+                'photo'     => $t->photo,
+                'rank'      => $t->designation->name ?? '',
+                'synced_at' => $t->profile_score_synced_at?->diffForHumans() ?? 'Never',
+            ])
             ->toArray();
     }
 
@@ -493,10 +533,11 @@ class TeacherOverview extends Widget
     protected function getSortOptions(): array
     {
         return [
-            'publications' => 'Publications',
-            'awards' => 'Awards',
-            'certifications' => 'Certifications',
-            'experience' => 'Experience (Joining Date)',
+            'profile_score' => '🎯 Profile Score',
+            'publications'  => '📚 Publications',
+            'awards'        => '🏆 Awards',
+            'certifications'=> '📜 Certifications',
+            'experience'    => '📅 Experience (Joining Date)',
         ];
     }
 

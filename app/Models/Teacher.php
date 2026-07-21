@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Notifications\Notifiable;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -17,7 +18,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 #[ObservedBy([TeacherObserver::class])]
 class Teacher extends Model implements HasMedia
 {
-    use HasFactory, SoftDeletes, InteractsWithMedia;
+    use HasFactory, SoftDeletes, InteractsWithMedia, Notifiable;
 
     protected $fillable = [
         'user_id',
@@ -56,6 +57,8 @@ class Teacher extends Model implements HasMedia
         'job_type_id',
         'is_archived',
         'sort_order',
+        'profile_score',
+        'profile_score_synced_at',
     ];
 
     protected $casts = [
@@ -65,8 +68,18 @@ class Teacher extends Model implements HasMedia
         'is_public' => 'boolean',
         'is_active' => 'boolean',
         'login_allowed' => 'boolean',
-        'is_archived' => 'boolean',
+        'is_archived'              => 'boolean',
+        'profile_score'            => 'integer',
+        'profile_score_synced_at'  => 'datetime',
     ];
+
+    /**
+     * Route notifications for the mail channel.
+     */
+    public function routeNotificationForMail($notification = null): ?string
+    {
+        return $this->email ?? $this->user?->email;
+    }
 
     /**
      * Check if teacher profile is verified.
@@ -81,10 +94,14 @@ class Teacher extends Model implements HasMedia
      */
     public function markAsVerified(): void
     {
+        \App\Services\TeacherVersionService::$ignoreObserver = true;
+
         $this->update([
             'verification_status' => 'verified',
             'verified_at'         => now(),
         ]);
+
+        \App\Services\TeacherVersionService::$ignoreObserver = false;
     }
 
     /**

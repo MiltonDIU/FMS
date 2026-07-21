@@ -34,9 +34,11 @@
     <form wire:submit="save" class="space-y-6">
         {{ $this->form }}
 
-        <x-filament::actions
-            :actions="$this->getFormActions()"
-        />
+        <div style="margin-top: 2rem !important; padding-top: 1.5rem !important; border-top: 1px solid #e5e7eb;" class="dark:border-gray-800">
+            <x-filament::actions
+                :actions="$this->getFormActions()"
+            />
+        </div>
     </form>
 
     <script>

@@ -33,7 +33,7 @@ class ImportTeachers extends Page implements HasForms
     {
         // Allow access if user has 'teacher' role OR has specific permission
         // This handles cases where a user might have multiple roles
-        return  auth()->user()->can('View:ImportTeachers')   & auth()->user()?->hasRole('super_admin') ?? false;
+        return  auth()->user()->can('View:ImportTeachers')   && auth()->user()?->hasRole('super_admin') ?? false;
     }
 
 
