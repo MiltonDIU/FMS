@@ -85,6 +85,21 @@ class TeachersTable
                         'rejected' => 'danger',
                         default => 'gray',
                     }),
+                TextColumn::make('verification_status')
+                    ->label('Verification')
+                    ->badge()
+                    ->color(fn (?string $state): string => match ($state) {
+                        'verified' => 'success',
+                        'pending_verification' => 'warning',
+                        'correction_requested' => 'danger',
+                        default => 'gray',
+                    })
+                    ->formatStateUsing(fn (?string $state): string => match ($state) {
+                        'verified' => 'Verified',
+                        'pending_verification' => 'Pending',
+                        'correction_requested' => 'Needs Correction',
+                        default => 'Unverified',
+                    }),
                 IconColumn::make('is_active')
                     ->boolean()
                     ->label('Active'),
@@ -224,6 +239,14 @@ class TeachersTable
                         'approved' => 'Approved',
                         'rejected' => 'Rejected',
                     ]),
+                SelectFilter::make('verification_status')
+                    ->label('Verification Status')
+                    ->options([
+                        'unverified'           => 'Unverified',
+                        'pending_verification' => 'Pending Verification',
+                        'verified'             => 'Verified',
+                        'correction_requested' => 'Correction Requested',
+                    ]),
                 TernaryFilter::make('is_archived')
                     ->label('Archived')
                     ->placeholder('Active Teachers')
@@ -242,6 +265,20 @@ class TeachersTable
             ->recordActions([
                 EditAction::make(),
                 ViewAction::make(),
+                \Filament\Actions\Action::make('send_verification_email')
+                    ->label('Send Link')
+                    ->icon('heroicon-o-envelope')
+                    ->color('info')
+                    ->requiresConfirmation()
+                    ->modalHeading('Send Profile Verification Link')
+                    ->modalDescription(fn (Teacher $record) => "Send profile verification link email to {$record->full_name}?")
+                    ->action(function (Teacher $record) {
+                        \App\Jobs\SendTeacherVerificationEmailJob::dispatch($record);
+                        \Filament\Notifications\Notification::make()
+                            ->title('Verification email dispatched!')
+                            ->success()
+                            ->send();
+                    }),
                 \Filament\Actions\Action::make('dashboard')
                     ->label('Dashboard')
                     ->icon('heroicon-o-presentation-chart-line')

@@ -120,6 +120,34 @@ class SystemSettings extends Page
         }
 
         $this->form->fill(array_merge([
+            'profile_mandatory_weight' => 80,
+            'profile_optional_weight' => 20,
+            'profile_enable_relative_benchmark' => false,
+            'profile_pub_tier1_count' => 3,
+            'profile_pub_tier2_count' => 5,
+            'profile_pub_tier3_count' => 10,
+            'profile_award_tier1_count' => 1,
+            'profile_award_tier2_count' => 2,
+            'profile_award_tier3_count' => 3,
+            'profile_training_tier1_count' => 1,
+            'profile_training_tier2_count' => 2,
+            'profile_training_tier3_count' => 3,
+            'profile_min_skills' => 3,
+            'profile_min_teaching_areas' => 2,
+            'profile_min_social_links' => 2,
+            'weight_basic' => 8,
+            'weight_contact' => 8,
+            'weight_personal' => 6,
+            'weight_academic_info' => 5,
+            'weight_education' => 18,
+            'weight_publication' => 15,
+            'weight_experience' => 12,
+            'weight_training' => 7,
+            'weight_award' => 5,
+            'weight_skill' => 6,
+            'weight_teaching' => 5,
+            'weight_membership' => 3,
+            'weight_social' => 2,
             'export_limit' => 0,
             'export_provider' => 'auto',
             'export_overwrite' => false,
@@ -192,6 +220,230 @@ class SystemSettings extends Page
                                                 'disable_all' => 'Disable All Teacher Logins',
                                             ])
                                             ->default('individual')
+                                            ->required(),
+                                    ]),
+                            ]),
+                        Tab::make('Profile Integrity & Thresholds')
+                            ->icon('heroicon-o-shield-check')
+                            ->schema([
+                                Section::make('Scoring Weights')
+                                    ->description('Configure percentage weights allocated to Mandatory vs Optional profile fields')
+                                    ->columns(2)
+                                    ->schema([
+                                        TextInput::make('profile_mandatory_weight')
+                                            ->label('Mandatory Fields Weight (%)')
+                                            ->numeric()
+                                            ->default(80)
+                                            ->minValue(50)
+                                            ->maxValue(100)
+                                            ->suffix('%')
+                                            ->required()
+                                            ->helperText('Weight allocated to essential fields (e.g. Employee ID, Phone, Education)'),
+                                        TextInput::make('profile_optional_weight')
+                                            ->label('Optional Fields Weight (%)')
+                                            ->numeric()
+                                            ->default(20)
+                                            ->minValue(0)
+                                            ->maxValue(50)
+                                            ->suffix('%')
+                                            ->required()
+                                            ->helperText('Weight allocated to enrichment fields (e.g. Photo, Bio, Social Links)'),
+                                    ]),
+
+                                Section::make('Relative Peer Benchmark (Dynamic Scoring)')
+                                    ->description('Enable dynamic peer-benchmarked evaluation based on top performing faculty members')
+                                    ->schema([
+                                        Toggle::make('profile_enable_relative_benchmark')
+                                            ->label('Enable Relative Peer Benchmark')
+                                            ->default(false)
+                                            ->helperText('When enabled, scores for Publications, Awards, and Training Experience scale dynamically against the highest performing faculty member in the system.'),
+                                    ]),
+
+                                Section::make('Publications Tiered Scoring (Absolute Mode)')
+                                    ->description('Configure entry count milestones for 50%, 80%, and 100% publication credit (used when Relative Benchmark is OFF)')
+                                    ->columns(3)
+                                    ->schema([
+                                        TextInput::make('profile_pub_tier1_count')
+                                            ->label('Tier 1 Threshold (50% Credit)')
+                                            ->numeric()
+                                            ->default(3)
+                                            ->minValue(1)
+                                            ->required()
+                                            ->helperText('Number of publications for 50% credit'),
+                                        TextInput::make('profile_pub_tier2_count')
+                                            ->label('Tier 2 Threshold (80% Credit)')
+                                            ->numeric()
+                                            ->default(5)
+                                            ->minValue(1)
+                                            ->required()
+                                            ->helperText('Number of publications for 80% credit'),
+                                        TextInput::make('profile_pub_tier3_count')
+                                            ->label('Tier 3 Threshold (100% Credit)')
+                                            ->numeric()
+                                            ->default(10)
+                                            ->minValue(1)
+                                            ->required()
+                                            ->helperText('Number of publications for 100% credit'),
+                                    ]),
+
+                                Section::make('Awards & Honors Tiered Scoring')
+                                    ->description('Configure entry count milestones for 50%, 80%, and 100% awards credit')
+                                    ->columns(3)
+                                    ->schema([
+                                        TextInput::make('profile_award_tier1_count')
+                                            ->label('Tier 1 Threshold (50% Credit)')
+                                            ->numeric()
+                                            ->default(1)
+                                            ->minValue(1)
+                                            ->required(),
+                                        TextInput::make('profile_award_tier2_count')
+                                            ->label('Tier 2 Threshold (80% Credit)')
+                                            ->numeric()
+                                            ->default(2)
+                                            ->minValue(1)
+                                            ->required(),
+                                        TextInput::make('profile_award_tier3_count')
+                                            ->label('Tier 3 Threshold (100% Credit)')
+                                            ->numeric()
+                                            ->default(3)
+                                            ->minValue(1)
+                                            ->required(),
+                                    ]),
+
+                                Section::make('Training Experience Tiered Scoring')
+                                    ->description('Configure entry count milestones for 50%, 80%, and 100% training credit')
+                                    ->columns(3)
+                                    ->schema([
+                                        TextInput::make('profile_training_tier1_count')
+                                            ->label('Tier 1 Threshold (50% Credit)')
+                                            ->numeric()
+                                            ->default(1)
+                                            ->minValue(1)
+                                            ->required(),
+                                        TextInput::make('profile_training_tier2_count')
+                                            ->label('Tier 2 Threshold (80% Credit)')
+                                            ->numeric()
+                                            ->default(2)
+                                            ->minValue(1)
+                                            ->required(),
+                                        TextInput::make('profile_training_tier3_count')
+                                            ->label('Tier 3 Threshold (100% Credit)')
+                                            ->numeric()
+                                            ->default(3)
+                                            ->minValue(1)
+                                            ->required(),
+                                    ]),
+
+                                Section::make('Standard Section Thresholds')
+                                    ->description('Specify minimum entry counts required for 100% section credit in standard fields')
+                                    ->columns(3)
+                                    ->schema([
+                                        TextInput::make('profile_min_skills')
+                                            ->label('Minimum Skills Count')
+                                            ->numeric()
+                                            ->default(3)
+                                            ->minValue(1)
+                                            ->required()
+                                            ->helperText('Number of skills required for 100% skills credit'),
+                                        TextInput::make('profile_min_teaching_areas')
+                                            ->label('Minimum Teaching Areas Count')
+                                            ->numeric()
+                                            ->default(2)
+                                            ->minValue(1)
+                                            ->required()
+                                            ->helperText('Number of teaching areas / courses required for 100% credit'),
+                                        TextInput::make('profile_min_social_links')
+                                            ->label('Minimum Social / Academic Links Count')
+                                            ->numeric()
+                                            ->default(2)
+                                            ->minValue(1)
+                                            ->required()
+                                            ->helperText('Number of links (e.g. Google Scholar, LinkedIn) required for 100% credit'),
+                                    ]),
+
+                                Section::make('Section Score Weights (13 Profile Tabs)')
+                                    ->description('Customize percentage weights allocated to each profile section (Default sum = 100%). System automatically normalizes the total ratio.')
+                                    ->collapsible()
+                                    ->collapsed()
+                                    ->columns(3)
+                                    ->schema([
+                                        TextInput::make('weight_basic')
+                                            ->label('Basic Info Weight')
+                                            ->numeric()
+                                            ->default(8)
+                                            ->suffix('%')
+                                            ->required(),
+                                        TextInput::make('weight_contact')
+                                            ->label('Contact Info Weight')
+                                            ->numeric()
+                                            ->default(8)
+                                            ->suffix('%')
+                                            ->required(),
+                                        TextInput::make('weight_personal')
+                                            ->label('Personal Details Weight')
+                                            ->numeric()
+                                            ->default(6)
+                                            ->suffix('%')
+                                            ->required(),
+                                        TextInput::make('weight_academic_info')
+                                            ->label('Academic Info (Research) Weight')
+                                            ->numeric()
+                                            ->default(5)
+                                            ->suffix('%')
+                                            ->required(),
+                                        TextInput::make('weight_education')
+                                            ->label('Academic Qualification Weight')
+                                            ->numeric()
+                                            ->default(18)
+                                            ->suffix('%')
+                                            ->required(),
+                                        TextInput::make('weight_publication')
+                                            ->label('Publications Weight')
+                                            ->numeric()
+                                            ->default(15)
+                                            ->suffix('%')
+                                            ->required(),
+                                        TextInput::make('weight_experience')
+                                            ->label('Job Experience Weight')
+                                            ->numeric()
+                                            ->default(12)
+                                            ->suffix('%')
+                                            ->required(),
+                                        TextInput::make('weight_training')
+                                            ->label('Training Experience Weight')
+                                            ->numeric()
+                                            ->default(7)
+                                            ->suffix('%')
+                                            ->required(),
+                                        TextInput::make('weight_award')
+                                            ->label('Awards & Honors Weight')
+                                            ->numeric()
+                                            ->default(5)
+                                            ->suffix('%')
+                                            ->required(),
+                                        TextInput::make('weight_skill')
+                                            ->label('Skills & Expertise Weight')
+                                            ->numeric()
+                                            ->default(6)
+                                            ->suffix('%')
+                                            ->required(),
+                                        TextInput::make('weight_teaching')
+                                            ->label('Teaching Areas Weight')
+                                            ->numeric()
+                                            ->default(5)
+                                            ->suffix('%')
+                                            ->required(),
+                                        TextInput::make('weight_membership')
+                                            ->label('Memberships Weight')
+                                            ->numeric()
+                                            ->default(3)
+                                            ->suffix('%')
+                                            ->required(),
+                                        TextInput::make('weight_social')
+                                            ->label('Social Links Weight')
+                                            ->numeric()
+                                            ->default(2)
+                                            ->suffix('%')
                                             ->required(),
                                     ]),
                             ]),

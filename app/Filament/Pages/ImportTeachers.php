@@ -29,6 +29,14 @@ class ImportTeachers extends Page implements HasForms
     protected static ?string $title = 'Import Teachers (Bulk)';
     protected  string $view = 'filament.pages.import-teachers';
 
+    public static function canAccess(): bool
+    {
+        // Allow access if user has 'teacher' role OR has specific permission
+        // This handles cases where a user might have multiple roles
+        return  auth()->user()->can('View:ImportTeachers')   & auth()->user()?->hasRole('super_admin') ?? false;
+    }
+
+
     public ?array $data = [];
 
     public function mount(): void

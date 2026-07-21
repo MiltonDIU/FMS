@@ -46,6 +46,9 @@ class Teacher extends Model implements HasMedia
         'bio',
         'research_interest',
         'profile_status',
+        'verification_status',
+        'verification_token',
+        'verified_at',
         'is_public',
         'is_active',
         'login_allowed',
@@ -58,11 +61,31 @@ class Teacher extends Model implements HasMedia
     protected $casts = [
         'date_of_birth' => 'date',
         'joining_date' => 'date',
+        'verified_at' => 'datetime',
         'is_public' => 'boolean',
         'is_active' => 'boolean',
         'login_allowed' => 'boolean',
         'is_archived' => 'boolean',
     ];
+
+    /**
+     * Check if teacher profile is verified.
+     */
+    public function isVerified(): bool
+    {
+        return $this->verification_status === 'verified';
+    }
+
+    /**
+     * Mark profile as verified.
+     */
+    public function markAsVerified(): void
+    {
+        $this->update([
+            'verification_status' => 'verified',
+            'verified_at'         => now(),
+        ]);
+    }
 
     /**
      * Set the teacher's employee ID, automatically trimming any spaces.

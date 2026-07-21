@@ -31,12 +31,16 @@ class MyProfile extends Page
     }
 
     public ?array $data = [];
+    public array $gapReport = [];
 
     public function mount(): void
     {
-        $teacher = auth()->user()->teacher;
+        $teacher = auth()->user()?->teacher;
 
         if ($teacher) {
+            $evaluator = new \App\Services\ProfileGapEvaluator();
+            $this->gapReport = $evaluator->evaluate($teacher);
+
             $formData = $teacher->load([
                 'educations',
                 'publications.teachers',
