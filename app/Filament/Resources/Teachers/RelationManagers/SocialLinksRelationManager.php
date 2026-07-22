@@ -34,8 +34,8 @@ class SocialLinksRelationManager extends RelationManager
                         $username = $get('username');
                         if ($state && $username) {
                             $platform = \App\Models\SocialMediaPlatform::find($state);
-                            if ($platform && $platform->base_url) {
-                                $set('url', rtrim($platform->base_url, '/') . '/' . ltrim($username, '/'));
+                            if ($platform) {
+                                $set('url', $platform->buildUrl($username));
                             }
                         }
                     })
@@ -64,8 +64,8 @@ class SocialLinksRelationManager extends RelationManager
                         $platformId = $get('social_media_platform_id');
                         if ($platformId && $state) {
                             $platform = \App\Models\SocialMediaPlatform::find($platformId);
-                            if ($platform && $platform->base_url) {
-                                $set('url', rtrim($platform->base_url, '/') . '/' . ltrim($state, '/'));
+                            if ($platform) {
+                                $set('url', $platform->buildUrl($state));
                             }
                         }
                     }),

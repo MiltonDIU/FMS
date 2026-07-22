@@ -181,6 +181,20 @@ class MyProfile extends Page
         }
     }
 
+    public function confirmVerificationAction(): Action
+    {
+        return Action::make('confirmVerification')
+            ->label(__('Confirm Profile Data Accuracy'))
+            ->icon('heroicon-o-check-badge')
+            ->color('success')
+            ->requiresConfirmation()
+            ->modalHeading(__('Confirm Profile Data Accuracy & Public Readiness'))
+            ->modalDescription(__('Are you sure that all your profile information (Education, Publications, Experience, Skills, etc.) is accurate, up-to-date, and ready for public display on the faculty portal?'))
+            ->modalSubmitActionLabel(__('Yes, Everything is Correct & Ready to Go Public'))
+            ->modalCancelActionLabel(__('Cancel'))
+            ->action(fn () => $this->confirmVerification());
+    }
+
     public function confirmVerification(): void
     {
         $teacher = auth()->user()?->teacher;
@@ -191,7 +205,7 @@ class MyProfile extends Page
             Notification::make()
                 ->success()
                 ->title(__('Profile Confirmed & Verified!'))
-                ->body(__('Thank you for confirming your profile data accuracy.'))
+                ->body(__('Your profile information has been verified and is now ready for public display.'))
                 ->send();
 
             // Refresh Livewire component state
@@ -210,14 +224,7 @@ class MyProfile extends Page
         ];
 
         if ($teacher && $teacher->verification_status !== 'verified') {
-            $actions[] = Action::make('confirmVerification')
-                ->label(__('Confirm Profile Data Accuracy'))
-                ->icon('heroicon-o-check-badge')
-                ->color('success')
-                ->requiresConfirmation()
-                ->modalHeading(__('Confirm Profile Data Accuracy'))
-                ->modalDescription(__('Are you sure all your profile information is correct and up-to-date?'))
-                ->action(fn () => $this->confirmVerification());
+            $actions[] = $this->confirmVerificationAction();
         }
 
         return $actions;

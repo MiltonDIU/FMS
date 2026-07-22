@@ -144,7 +144,22 @@ class PublicationForm
                 \Filament\Schemas\Components\Section::make('Status & Flags')
                     ->schema([
                         Toggle::make('student_involvement'),
-                        Toggle::make('is_featured'),
+                        Toggle::make('is_featured')
+                            ->disabled(function () {
+                                $user = auth()->user();
+                                if (!$user) return true;
+                                if ($user->hasRole(['super_admin', 'admin', 'registrar', 'dean', 'head', 'research_team'])) return false;
+                                if ($user->administrativeRoles()->where('administrative_role_user.is_active', true)->exists()) return false;
+                                return $user->hasRole('teacher') || $user->isTeacher();
+                            })
+                            ->helperText(function () {
+                                $user = auth()->user();
+                                if (!$user) return null;
+                                $isTeacherOnly = ($user->hasRole('teacher') || $user->isTeacher()) 
+                                    && !$user->hasRole(['super_admin', 'admin', 'registrar', 'dean', 'head', 'research_team'])
+                                    && !$user->administrativeRoles()->where('administrative_role_user.is_active', true)->exists();
+                                return $isTeacherOnly ? 'Featured status can only be set by administrators or role managers.' : null;
+                            }),
                         Select::make('status')
                             ->options(['draft' => 'Draft', 'pending' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected'])
                             ->default('draft')

@@ -692,7 +692,7 @@ class TeacherSeeder extends Seeder
 
         foreach ($selectedPlatforms as $index => $platform) {
             $username = strtolower($teacher->first_name . $teacher->last_name);
-            $url = $platform->base_url ? $platform->base_url . $username : 'https://example.com/' . $username;
+            $url = $platform->buildUrl($username) ?? ('https://example.com/' . $username);
 
             SocialLink::create([
                 'teacher_id' => $teacher->id,

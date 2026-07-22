@@ -36,8 +36,19 @@ class UsersTable
                     ->sortable()
                     ->searchable(),
                 TextColumn::make('roles.name')
+                    ->label('Roles')
                     ->badge()
-                    ->separator(','),
+                    ->separator(', ')
+                    ->sortable(query: function (\Illuminate\Database\Eloquent\Builder $query, string $direction): \Illuminate\Database\Eloquent\Builder {
+                        return $query->orderBy(
+                            \Spatie\Permission\Models\Role::select('roles.name')
+                                ->join('model_has_roles', 'roles.id', '=', 'model_has_roles.role_id')
+                                ->whereColumn('model_has_roles.model_id', 'users.id')
+                                ->where('model_has_roles.model_type', \App\Models\User::class)
+                                ->limit(1),
+                            $direction
+                        );
+                    }),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

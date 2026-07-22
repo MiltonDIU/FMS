@@ -587,10 +587,25 @@ class TeacherForm
                                                         TextInput::make('citescore')->numeric(),
                                                         TextInput::make('impact_factor')->numeric(),
                                                     ])->columns(3)->collapsible(),
-                                                \Filament\Schemas\Components\Section::make('Status & Flags')
+                                                 \Filament\Schemas\Components\Section::make('Status & Flags')
                                                     ->schema([
                                                         Toggle::make('student_involvement'),
-                                                        Toggle::make('is_featured'),
+                                                        Toggle::make('is_featured')
+                                                            ->disabled(function () {
+                                                                $user = auth()->user();
+                                                                if (!$user) return true;
+                                                                if ($user->hasRole(['super_admin', 'admin', 'registrar', 'dean', 'head', 'research_team'])) return false;
+                                                                if ($user->administrativeRoles()->where('administrative_role_user.is_active', true)->exists()) return false;
+                                                                return $user->hasRole('teacher') || $user->isTeacher();
+                                                            })
+                                                            ->helperText(function () {
+                                                                $user = auth()->user();
+                                                                if (!$user) return null;
+                                                                $isTeacherOnly = ($user->hasRole('teacher') || $user->isTeacher()) 
+                                                                    && !$user->hasRole(['super_admin', 'admin', 'registrar', 'dean', 'head', 'research_team'])
+                                                                    && !$user->administrativeRoles()->where('administrative_role_user.is_active', true)->exists();
+                                                                return $isTeacherOnly ? 'Featured status can only be set by administrators or role managers.' : null;
+                                                            }),
                                                         // Status is set automatically based on approval settings
                                                     ])->columns(2)->collapsible(),
                                             ])
@@ -617,6 +632,17 @@ class TeacherForm
                                             $deptId = $item['department_id'] ?? $record->department_id;
                                             $facultyId = $item['faculty_id'] ?? ($deptId ? \App\Models\Department::find($deptId)?->faculty_id : $record->department?->faculty_id);
 
+                                            $user = auth()->user();
+                                            $canManageFeatured = $user && (
+                                                $user->hasRole(['super_admin', 'admin', 'registrar', 'dean', 'head', 'research_team']) ||
+                                                $user->administrativeRoles()->where('administrative_role_user.is_active', true)->exists()
+                                            );
+
+                                            $publication = isset($item['id']) ? \App\Models\Publication::find($item['id']) : null;
+                                            $isFeatured = $canManageFeatured
+                                                ? ($item['is_featured'] ?? false)
+                                                : ($publication ? $publication->is_featured : false);
+
                                             $data = [
                                                 'faculty_id' => $facultyId,
                                                 'department_id' => $deptId,
@@ -637,7 +663,7 @@ class TeacherForm
                                                 'citescore' => $item['citescore'] ?? null,
                                                 'impact_factor' => $item['impact_factor'] ?? null,
                                                 'student_involvement' => $item['student_involvement'] ?? false,
-                                                'is_featured' => $item['is_featured'] ?? false,
+                                                'is_featured' => $isFeatured,
                                                 // 'status' => $item['status'], // Field removed, handled below
                                                 'sort_order' => $sortOrder++,
                                             ];
@@ -1283,8 +1309,8 @@ class TeacherForm
                                                 $username = $get('username');
                                                 if ($state && $username) {
                                                     $platform = \App\Models\SocialMediaPlatform::find($state);
-                                                    if ($platform && $platform->base_url) {
-                                                        $set('url', rtrim($platform->base_url, '/') . '/' . ltrim($username, '/'));
+                                                    if ($platform) {
+                                                        $set('url', $platform->buildUrl($username));
                                                     }
                                                 }
                                             })
@@ -1311,8 +1337,8 @@ class TeacherForm
                                                 $platformId = $get('social_media_platform_id');
                                                 if ($platformId && $state) {
                                                     $platform = \App\Models\SocialMediaPlatform::find($platformId);
-                                                    if ($platform && $platform->base_url) {
-                                                        $set('url', rtrim($platform->base_url, '/') . '/' . ltrim($state, '/'));
+                                                    if ($platform) {
+                                                        $set('url', $platform->buildUrl($state));
                                                     }
                                                 }
                                             }),

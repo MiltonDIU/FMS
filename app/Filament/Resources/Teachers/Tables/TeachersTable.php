@@ -38,6 +38,8 @@ class TeachersTable
                 'designation',
                 'employmentStatus',
                 'jobType',
+                'user.roles',
+                'user.administrativeRoles',
             ]))
             ->columns([
                 TextColumn::make('employee_id')
@@ -53,6 +55,41 @@ class TeachersTable
                     ->label('Name')
                     ->searchable(['first_name', 'middle_name', 'last_name'])
                     ->sortable(),
+                TextColumn::make('user.roles.name')
+                    ->label('System Roles')
+                    ->badge()
+                    ->color('info')
+                    ->separator(', ')
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query->orderBy(
+                            \App\Models\User::select('roles.name')
+                                ->join('model_has_roles', 'users.id', '=', 'model_has_roles.model_id')
+                                ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
+                                ->whereColumn('users.id', 'teachers.user_id')
+                                ->where('model_has_roles.model_type', \App\Models\User::class)
+                                ->limit(1),
+                            $direction
+                        );
+                    })
+                    ->toggleable(),
+                TextColumn::make('user.administrativeRoles.name')
+                    ->label('Admin Roles')
+                    ->badge()
+                    ->color('warning')
+                    ->separator(', ')
+                    ->limitList(3)
+                    ->expandableLimitedList()
+                    ->placeholder('None')
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query->orderBy(
+                            \App\Models\AdministrativeRole::select('administrative_roles.name')
+                                ->join('administrative_role_user', 'administrative_roles.id', '=', 'administrative_role_user.administrative_role_id')
+                                ->whereColumn('administrative_role_user.user_id', 'teachers.user_id')
+                                ->limit(1),
+                            $direction
+                        );
+                    })
+                    ->toggleable(),
                 TextColumn::make('department.name')
                     ->label('Department')
                     ->searchable()

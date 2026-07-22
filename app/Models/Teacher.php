@@ -99,6 +99,7 @@ class Teacher extends Model implements HasMedia
         $this->update([
             'verification_status' => 'verified',
             'verified_at'         => now(),
+            'is_public'           => true,
         ]);
 
         \App\Services\TeacherVersionService::$ignoreObserver = false;
