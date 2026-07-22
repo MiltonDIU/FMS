@@ -237,6 +237,41 @@ class PublicationsTable
                     ])
                     ->multiple(),
 
+                \Filament\Tables\Filters\SelectFilter::make('publication_type_id')
+                    ->label('Publication Type')
+                    ->relationship('type', 'name')
+                    ->multiple()
+                    ->preload()
+                    ->searchable(),
+
+                \Filament\Tables\Filters\SelectFilter::make('publication_linkage_id')
+                    ->label('Publication Linkage')
+                    ->relationship('linkage', 'name')
+                    ->multiple()
+                    ->preload()
+                    ->searchable(),
+
+                \Filament\Tables\Filters\SelectFilter::make('publication_quartile_id')
+                    ->label('Publication Quartile')
+                    ->relationship('quartile', 'name')
+                    ->multiple()
+                    ->preload()
+                    ->searchable(),
+
+                \Filament\Tables\Filters\SelectFilter::make('grant_type_id')
+                    ->label('Grant Type')
+                    ->relationship('grant', 'name')
+                    ->multiple()
+                    ->preload()
+                    ->searchable(),
+
+                \Filament\Tables\Filters\SelectFilter::make('research_collaboration_id')
+                    ->label('Research Collaboration')
+                    ->relationship('collaboration', 'name')
+                    ->multiple()
+                    ->preload()
+                    ->searchable(),
+
                 // Incentive Status Filter
                 \Filament\Tables\Filters\SelectFilter::make('incentive_status')
                     ->label('Incentive Status')
