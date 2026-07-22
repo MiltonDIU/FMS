@@ -193,6 +193,10 @@ class ImportOldTeachersCommand extends Command
 
     private function createTeacherProfile(User $user, array $record): Teacher
     {
+        if (!$user->hasRole('teacher')) {
+            $user->assignRole('teacher');
+        }
+
         $p           = $record['teacher_profile'];
         $departments = $record['departments'] ?? [];
 
