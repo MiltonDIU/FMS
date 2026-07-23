@@ -58,20 +58,70 @@ class DepartmentTeachersTable
                     ->sortable()
                     ->toggleable(),
 
-                TextColumn::make('teacher.user.administrativeRoles.name')
+                TextColumn::make('admin_roles')
                     ->label('Admin Role')
-                    ->placeholder('—')
                     ->badge()
                     ->color('warning')
+                    ->placeholder('—')
                     ->state(function ($record) {
                         $user = $record->teacher?->user;
                         if (!$user) return null;
-                        
-                        return $user->administrativeRoles()
+
+                        $loggedInUser = auth()->user();
+                        if ($loggedInUser) {
+                            $loggedInAdminRole = $loggedInUser->administrativeRoles()
+                                ->wherePivot('is_active', true)
+                                ->whereNull('administrative_role_user.end_date')
+                                ->first();
+
+                            if ($loggedInAdminRole && $loggedInAdminRole->pivot) {
+                                if ($loggedInAdminRole->pivot->department_id) {
+                                    $scopedDeptId = $loggedInAdminRole->pivot->department_id;
+                                    $roles = $user->administrativeRoles()
+                                        ->wherePivot('is_active', true)
+                                        ->wherePivot('department_id', $scopedDeptId)
+                                        ->whereNull('administrative_role_user.end_date')
+                                        ->get();
+
+                                    return $roles->pluck('name')->toArray();
+                                } elseif ($loggedInAdminRole->pivot->faculty_id) {
+                                    $scopedFacId = $loggedInAdminRole->pivot->faculty_id;
+                                    $scopedDeptIds = \App\Models\Department::where('faculty_id', $scopedFacId)->pluck('id')->toArray();
+
+                                    $roles = $user->administrativeRoles()
+                                        ->wherePivot('is_active', true)
+                                        ->whereNull('administrative_role_user.end_date')
+                                        ->where(function ($q) use ($scopedFacId, $scopedDeptIds) {
+                                            $q->where('administrative_role_user.faculty_id', $scopedFacId)
+                                              ->orWhereIn('administrative_role_user.department_id', $scopedDeptIds);
+                                        })
+                                        ->get();
+
+                                    return $roles->pluck('name')->toArray();
+                                }
+                            }
+                        }
+
+                        $allRoles = $user->administrativeRoles()
                             ->wherePivot('is_active', true)
                             ->whereNull('administrative_role_user.end_date')
-                            ->pluck('administrative_roles.name')
-                            ->toArray();
+                            ->get();
+
+                        if ($allRoles->isEmpty()) {
+                            return null;
+                        }
+
+                        return $allRoles->map(function ($ar) {
+                            $scopeStr = '';
+                            if ($ar->pivot->department_id) {
+                                $deptName = \App\Models\Department::find($ar->pivot->department_id)?->name;
+                                $scopeStr = $deptName ? " ({$deptName})" : '';
+                            } elseif ($ar->pivot->faculty_id) {
+                                $facName = \App\Models\Faculty::find($ar->pivot->faculty_id)?->name;
+                                $scopeStr = $facName ? " ({$facName})" : '';
+                            }
+                            return $ar->name . $scopeStr;
+                        })->toArray();
                     })
                     ->toggleable(),
                 TextColumn::make('department.name')
@@ -189,6 +239,25 @@ class DepartmentTeachersTable
                                 $data['department_id'] ?? null,
                                 fn (Builder $query, $id) => $query->where('department_id', $id)
                             );
+                    })
+                    ->indicateUsing(function (array $data): array {
+                        $indicators = [];
+
+                        if (!empty($data['faculty_id'])) {
+                            $faculty = Faculty::find($data['faculty_id']);
+                            if ($faculty) {
+                                $indicators['faculty_id'] = 'Faculty: ' . $faculty->name;
+                            }
+                        }
+
+                        if (!empty($data['department_id'])) {
+                            $department = Department::find($data['department_id']);
+                            if ($department) {
+                                $indicators['department_id'] = 'Department: ' . $department->name;
+                            }
+                        }
+
+                        return $indicators;
                     }),
 
                 SelectFilter::make('administrative_role')

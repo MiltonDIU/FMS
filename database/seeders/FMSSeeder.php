@@ -20,7 +20,9 @@ class FMSSeeder extends Seeder
             'registrar',
             'teacher',
             'dean',
+            'associate_dean',   // Associate Dean, Dean officer (faculty scope, secondary)
             'head',
+            'associate_head',   // Associate Head, Head Officer (department scope, secondary)
             'research_team',
         ];
 

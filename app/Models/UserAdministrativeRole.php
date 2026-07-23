@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Observers\UserAdministrativeRoleObserver;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,6 +13,11 @@ class UserAdministrativeRole extends Model
     use HasFactory, SoftDeletes;
 
     protected $table = 'administrative_role_user';
+
+    protected static function booted(): void
+    {
+        static::observe(UserAdministrativeRoleObserver::class);
+    }
 
     protected $fillable = [
         'user_id',

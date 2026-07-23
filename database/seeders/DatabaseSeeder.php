@@ -39,7 +39,7 @@ class DatabaseSeeder extends Seeder
             DegreeTypeSeeder::class,
             MembershipTypeSeeder::class,
             MembershipOrganizationSeeder::class,
-//            TeacherSeeder::class,
+            TeacherSeeder::class,
             TeacherPermissionSeeder::class,
             ApprovalSettingsSeeder::class,
             ApprovalPermissionsSeeder::class,
@@ -47,8 +47,9 @@ class DatabaseSeeder extends Seeder
             RoleSevenPermissionSeeder::class,
             BrandingSettingsSeeder::class,
             IntegrationMappingSeeder::class,
-//            AdministrativeRoleUserSeeder::class,
+            AdministrativeRoleUserSeeder::class,
             EmailTemplateSeeder::class,
+            RolePermissionsSeeder::class,
         ]);
     }
 }

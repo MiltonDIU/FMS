@@ -51,7 +51,7 @@ class TeacherSeeder extends Seeder
         // Set to 0 so no fake teacher data is generated on db:seed / migrate:fresh --seed
         // The specific demo teacher (teacher@fms.diu.edu.bd) is still created below.
         // ============================================
-        $numberOfTeachers = 0; // <-- Keep at 0 in production
+        $numberOfTeachers = 100; // <-- Keep at 0 in production
         // ============================================
 
         $this->faker = Faker::create('en_US');

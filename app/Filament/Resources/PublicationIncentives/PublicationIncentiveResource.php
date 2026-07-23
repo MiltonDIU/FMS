@@ -56,6 +56,72 @@ class PublicationIncentiveResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with(['publication.teachers']);
+        $query = parent::getEloquentQuery()->with(['publication.teachers']);
+
+        if (auth()->check()) {
+            /** @var \App\Models\User $user */
+            $user = auth()->user();
+
+            if ($user->hasRole(['super_admin', 'admin', 'research_team'])) {
+                return $query;
+            }
+
+            if ($user->hasRole('teacher') && ! ($user->hasRole('dean') || $user->hasRole('head'))) {
+                if ($user->teacher) {
+                    $teacherId = $user->teacher->id;
+                    $query->whereHas('publication.teachers', function ($q) use ($teacherId) {
+                        $q->where('teachers.id', $teacherId);
+                    });
+                } else {
+                    $query->whereRaw('1 = 0');
+                }
+                return $query;
+            }
+
+            // Check user's administrative role bindings (Dean, Head, etc.)
+            $adminRole = $user->administrativeRoles()
+                ->wherePivot("is_active", true)
+                ->whereNull("administrative_role_user.end_date")
+                ->first();
+
+            if ($adminRole && $adminRole->pivot) {
+                // Department-scoped user (e.g. Head)
+                if ($adminRole->pivot->department_id) {
+                    $deptId = $adminRole->pivot->department_id;
+                    $query->whereHas('publication', function ($pq) use ($deptId) {
+                        $pq->where(function ($q) use ($deptId) {
+                            $q->where('department_id', $deptId)
+                              ->orWhereHas('teachers', function ($tq) use ($deptId) {
+                                  $tq->where('teachers.department_id', $deptId)
+                                     ->orWhereHas('departments', function ($dq) use ($deptId) {
+                                         $dq->where('departments.id', $deptId);
+                                      });
+                              });
+                        });
+                    });
+                }
+                // Faculty-scoped user (e.g. Dean)
+                elseif ($adminRole->pivot->faculty_id) {
+                    $facId = $adminRole->pivot->faculty_id;
+                    $query->whereHas('publication', function ($pq) use ($facId) {
+                        $pq->where(function ($q) use ($facId) {
+                            $q->where('faculty_id', $facId)
+                              ->orWhereHas('department', function ($dq) use ($facId) {
+                                  $dq->where('faculty_id', $facId);
+                              })
+                              ->orWhereHas('teachers', function ($tq) use ($facId) {
+                                  $tq->whereHas('department', function ($dq) use ($facId) {
+                                       $dq->where('faculty_id', $facId);
+                                  })->orWhereHas('departments', function ($dq) use ($facId) {
+                                       $dq->where('faculty_id', $facId);
+                                  });
+                              });
+                        });
+                    });
+                }
+            }
+        }
+
+        return $query;
     }
 }

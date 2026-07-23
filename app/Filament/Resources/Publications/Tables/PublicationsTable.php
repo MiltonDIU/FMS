@@ -37,6 +37,16 @@ class PublicationsTable
 {
     public static function configure(Table $table): Table
     {
+        $user = auth()->user();
+        $adminRole = null;
+
+        if ($user && ! $user->hasRole('super_admin')) {
+            $adminRole = $user->administrativeRoles()
+                ->wherePivot('is_active', true)
+                ->whereNull('administrative_role_user.end_date')
+                ->first();
+        }
+
         return $table
             ->columns([
                 TextColumn::make('title')
@@ -175,29 +185,97 @@ class PublicationsTable
                     ->form([
                         \Filament\Forms\Components\Select::make('faculty_id')
                             ->label('Faculty')
-                            ->options(\App\Models\Faculty::pluck('name', 'id'))
+                            ->options(function () use ($adminRole) {
+                                $query = \App\Models\Faculty::query();
+                                if ($adminRole && $adminRole->pivot) {
+                                     if ($adminRole->pivot->faculty_id) {
+                                         $query->where('id', $adminRole->pivot->faculty_id);
+                                     } elseif ($adminRole->pivot->department_id) {
+                                         $department = \App\Models\Department::find($adminRole->pivot->department_id);
+                                         if ($department) {
+                                              $query->where('id', $department->faculty_id);
+                                         }
+                                     }
+                                }
+                                return $query->pluck('name', 'id');
+                            })
                             ->live()
                             ->afterStateUpdated(fn (Set $set) => $set('department_id', null)),
+
                         \Filament\Forms\Components\Select::make('department_id')
                             ->label('Department')
-                            ->options(fn (Get $get) =>
-                                $get('faculty_id')
-                                    ? \App\Models\Department::where('faculty_id', $get('faculty_id'))->pluck('name', 'id')
-                                    : \App\Models\Department::pluck('name', 'id')
-                            )
+                            ->options(function (Get $get) use ($adminRole) {
+                                $query = \App\Models\Department::query();
+
+                                // User Scoping
+                                if ($adminRole && $adminRole->pivot) {
+                                    if ($adminRole->pivot->department_id) {
+                                        $query->where('id', $adminRole->pivot->department_id);
+                                        return $query->pluck('name', 'id');
+                                    } elseif ($adminRole->pivot->faculty_id) {
+                                        $query->where('faculty_id', $adminRole->pivot->faculty_id);
+                                    }
+                                }
+
+                                // Dependency Logic
+                                $selectedFacultyId = $get('faculty_id');
+                                if ($selectedFacultyId) {
+                                    $query->where('faculty_id', $selectedFacultyId);
+                                }
+
+                                return $query->pluck('name', 'id');
+                            })
                             ->searchable()
                             ->preload(),
                     ])
-                    ->query(function (Builder $query, array $data) {
+                    ->query(function (Builder $query, array $data): Builder {
+                        $user = auth()->user();
+                        $adminRole = null;
+
+                        if ($user && ! $user->hasRole('super_admin')) {
+                            $adminRole = $user->administrativeRoles()
+                                ->wherePivot('is_active', true)
+                                ->whereNull('administrative_role_user.end_date')
+                                ->first();
+                        }
+
+                        // Enforce scoped-admin restrictions (the selection alone is not trusted)
+                        if ($adminRole && $adminRole->pivot) {
+                            if ($adminRole->pivot->department_id) {
+                                $data['department_id'] = $adminRole->pivot->department_id;
+                            } elseif ($adminRole->pivot->faculty_id) {
+                                $data['faculty_id'] = $adminRole->pivot->faculty_id;
+                            }
+                        }
+
                         return $query
                             ->when(
-                                $data['faculty_id'],
+                                $data['faculty_id'] ?? null,
                                 fn (Builder $query, $id) => $query->whereHas('department', fn ($q) => $q->where('faculty_id', $id))
                             )
                             ->when(
-                                $data['department_id'],
+                                $data['department_id'] ?? null,
                                 fn (Builder $query, $id) => $query->where('department_id', $id)
                             );
+                    })
+                    ->indicateUsing(function (array $data): array {
+                        $indicators = [];
+
+                        if (!empty($data['faculty_id'])) {
+                            $faculty = \App\Models\Faculty::find($data['faculty_id']);
+                            if ($faculty) {
+                                $indicators['faculty_id'] = 'Faculty: ' . $faculty->name;
+                            }
+                        }
+
+                        if (!empty($data['department_id'])) {
+                            $department = \App\Models\Department::find($data['department_id']);
+                            if ($department) {
+                                $indicators['department_id'] = 'Department: ' . $department->name;
+                            }
+                        }
+
+                        return $indicators;
                     }),
                 Filter::make('publication_date_range')
                     ->form([
