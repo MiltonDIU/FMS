@@ -75,6 +75,9 @@ class MyProfile extends Page
             // Add user email for display
             $formData['email'] = auth()->user()->email;
 
+            // Unset scalar photo field so SpatieMediaLibraryFileUpload loads avatar media directly from model
+            unset($formData['photo']);
+
             $this->form->fill($formData);
         }
     }
@@ -127,6 +130,16 @@ class MyProfile extends Page
                 if ($photoComponent) {
                     $photoComponent->saveRelationships();
                     \Log::info('MyProfile: Saved photo relationships');
+                }
+            }
+
+            // Sync avatar media URL to database photo column
+            $teacher->refresh();
+            if ($teacher->hasMedia('avatar')) {
+                $avatarUrl = $teacher->getFirstMediaUrl('avatar');
+                if ($avatarUrl) {
+                    \App\Services\TeacherVersionService::$ignoreObserver = true;
+                    $teacher->updateQuietly(['photo' => $avatarUrl]);
                 }
             }
 

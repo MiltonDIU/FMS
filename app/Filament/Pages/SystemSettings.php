@@ -7,6 +7,7 @@ use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
@@ -123,6 +124,10 @@ class SystemSettings extends Page
             'profile_mandatory_weight' => 80,
             'profile_optional_weight' => 20,
             'profile_enable_relative_benchmark' => false,
+            'profile_benchmark_base_percent' => 30,
+            'profile_pub_benchmark_multiplier' => 7,
+            'profile_award_benchmark_multiplier' => 2,
+            'profile_training_benchmark_multiplier' => 2,
             'profile_pub_tier1_count' => 3,
             'profile_pub_tier2_count' => 5,
             'profile_pub_tier3_count' => 10,
@@ -250,14 +255,49 @@ class SystemSettings extends Page
                                             ->helperText('Weight allocated to enrichment fields (e.g. Photo, Bio, Social Links)'),
                                     ]),
 
-                                Section::make('Relative Peer Benchmark (Dynamic Scoring)')
-                                    ->description('Enable dynamic peer-benchmarked evaluation based on top performing faculty members')
-                                    ->schema([
-                                        Toggle::make('profile_enable_relative_benchmark')
-                                            ->label('Enable Relative Peer Benchmark')
-                                            ->default(false)
-                                            ->helperText('When enabled, scores for Publications, Awards, and Training Experience scale dynamically against the highest performing faculty member in the system.'),
-                                    ]),
+                                 Section::make('Relative Peer Benchmark (Dynamic Scoring)')
+                                     ->description('Enable dynamic peer-benchmarked evaluation based on top performing faculty members')
+                                     ->schema([
+                                         Toggle::make('profile_enable_relative_benchmark')
+                                             ->label('Enable Relative Peer Benchmark')
+                                             ->default(false)
+                                             ->reactive()
+                                             ->helperText('When enabled, scores for Publications, Awards, and Training Experience scale dynamically against the highest performing faculty member in the system.'),
+                                         Grid::make(4)
+                                             ->schema([
+                                                 TextInput::make('profile_benchmark_base_percent')
+                                                     ->label('Base Floor Score (%)')
+                                                     ->numeric()
+                                                     ->default(30)
+                                                     ->minValue(0)
+                                                     ->maxValue(100)
+                                                     ->suffix('%')
+                                                     ->required()
+                                                     ->helperText('Percentage of the section score awarded automatically when at least 1 record is entered.'),
+                                                 TextInput::make('profile_pub_benchmark_multiplier')
+                                                     ->label('Publications Multiplier')
+                                                     ->numeric()
+                                                     ->default(7)
+                                                     ->minValue(1)
+                                                     ->required()
+                                                     ->helperText('Benchmark target multiplier for Publications (e.g. Multiplier * Designation Level).'),
+                                                 TextInput::make('profile_award_benchmark_multiplier')
+                                                     ->label('Awards Multiplier')
+                                                     ->numeric()
+                                                     ->default(2)
+                                                     ->minValue(1)
+                                                     ->required()
+                                                     ->helperText('Benchmark target multiplier for Awards & Honors.'),
+                                                 TextInput::make('profile_training_benchmark_multiplier')
+                                                     ->label('Training Multiplier')
+                                                     ->numeric()
+                                                     ->default(2)
+                                                     ->minValue(1)
+                                                     ->required()
+                                                     ->helperText('Benchmark target multiplier for Training Experience.'),
+                                             ])
+                                             ->visible(fn (callable $get) => (bool) $get('profile_enable_relative_benchmark')),
+                                     ]),
 
                                 Section::make('Publications Tiered Scoring (Absolute Mode)')
                                     ->description('Configure entry count milestones for 50%, 80%, and 100% publication credit (used when Relative Benchmark is OFF)')

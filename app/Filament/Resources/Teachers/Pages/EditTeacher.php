@@ -75,6 +75,26 @@ class EditTeacher extends EditRecord
             // We can check if a pending status version was just created?
             // Or roughly check recent versions.
             
+            if (isset($data['photo'])) {
+                $photoComponent = collect($this->form->getFlatComponents())
+                    ->first(function ($c) {
+                        return method_exists($c, 'getName') && $c->getName() === 'photo';
+                    });
+
+                if ($photoComponent) {
+                    $photoComponent->saveRelationships();
+                }
+            }
+
+            $this->record->refresh();
+            if ($this->record->hasMedia('avatar')) {
+                $avatarUrl = $this->record->getFirstMediaUrl('avatar');
+                if ($avatarUrl) {
+                    \App\Services\TeacherVersionService::$ignoreObserver = true;
+                    $this->record->updateQuietly(['photo' => $avatarUrl]);
+                }
+            }
+
             // Simple generic notification
             \Filament\Notifications\Notification::make()
                 ->success()
@@ -107,6 +127,9 @@ class EditTeacher extends EditRecord
         if ($this->record->user) {
             $data['email'] = $this->record->user->email;
         }
+
+        // Unset photo so SpatieMediaLibraryFileUpload component can load media directly from model
+        unset($data['photo']);
         
         return $data;
     }

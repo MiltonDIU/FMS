@@ -69,37 +69,77 @@ class ProfileGapEvaluator
         // Track ratio achieved (0.0 to 1.0) for each section
         $sectionRatios = [];
 
-        // Peer Benchmark max values if relative benchmark is enabled
-        $maxPubsBenchmark = 10;
-        $maxAwardBenchmark = 3;
-        $maxTrainingBenchmark = 3;
+        $pubMultiplier = (int) Setting::get('profile_pub_benchmark_multiplier', 7);
+        $awardMultiplier = (int) Setting::get('profile_award_benchmark_multiplier', 2);
+        $trainingMultiplier = (int) Setting::get('profile_training_benchmark_multiplier', 2);
+        $basePercent = (float) (Setting::get('profile_benchmark_base_percent', 30) / 100.0);
 
-        if ($isRelativeBenchmark) {
-            $maxPubsBenchmark = Cache::remember('max_teacher_pubs_count', 1800, function () {
+        // Get Teacher Designation and calculate designation level (1-5)
+        $designationId = $teacher->designation_id;
+        $designation = $teacher->designation;
+        $sortOrder = $designation?->sort_order ?? 5;
+        $nameLower = strtolower($designation?->name ?? '');
+        $level = 1;
+        if (str_contains($nameLower, 'professor')) {
+            if (str_contains($nameLower, 'assistant')) {
+                $level = 3;
+            } elseif (str_contains($nameLower, 'associate')) {
+                $level = 4;
+            } else {
+                $level = 5;
+            }
+        } elseif (str_contains($nameLower, 'senior lecturer')) {
+            $level = 2;
+        } elseif (str_contains($nameLower, 'lecturer')) {
+            $level = 1;
+        } else {
+            $level = max(1, 6 - $sortOrder);
+        }
+
+        $pubBenchmarkLimit = $level * $pubMultiplier;
+        $awardBenchmarkLimit = $level * $awardMultiplier;
+        $trainingBenchmarkLimit = $level * $trainingMultiplier;
+
+        // Peer Benchmark max values if relative benchmark is enabled (designation-specific)
+        $maxPubsBenchmark = $pubBenchmarkLimit;
+        $maxAwardBenchmark = $awardBenchmarkLimit;
+        $maxTrainingBenchmark = $trainingBenchmarkLimit;
+
+        if ($isRelativeBenchmark && $designationId) {
+            $maxPubsBenchmark = Cache::remember("max_teacher_pubs_count_designation_{$designationId}", 1800, function () use ($designationId) {
                 return \Illuminate\Support\Facades\DB::table('publication_authors')
-                    ->where('authorable_type', \App\Models\Teacher::class)
+                    ->join('teachers', 'publication_authors.authorable_id', '=', 'teachers.id')
+                    ->where('publication_authors.authorable_type', \App\Models\Teacher::class)
+                    ->where('teachers.designation_id', $designationId)
+                    ->whereNull('teachers.deleted_at')
                     ->selectRaw('count(*) as aggregate')
-                    ->groupBy('authorable_id')
+                    ->groupBy('publication_authors.authorable_id')
                     ->orderByDesc('aggregate')
-                    ->first()?->aggregate ?? 10;
+                    ->first()?->aggregate ?? 0;
             });
 
-            $maxAwardBenchmark = Cache::remember('max_teacher_awards_count', 1800, function () {
+            $maxAwardBenchmark = Cache::remember("max_teacher_awards_count_designation_{$designationId}", 1800, function () use ($designationId) {
                 return \Illuminate\Support\Facades\DB::table('awards')
-                    ->whereNull('deleted_at')
+                    ->join('teachers', 'awards.teacher_id', '=', 'teachers.id')
+                    ->whereNull('awards.deleted_at')
+                    ->where('teachers.designation_id', $designationId)
+                    ->whereNull('teachers.deleted_at')
                     ->selectRaw('count(*) as aggregate')
-                    ->groupBy('teacher_id')
+                    ->groupBy('awards.teacher_id')
                     ->orderByDesc('aggregate')
-                    ->first()?->aggregate ?? 3;
+                    ->first()?->aggregate ?? 0;
             });
 
-            $maxTrainingBenchmark = Cache::remember('max_teacher_trainings_count', 1800, function () {
+            $maxTrainingBenchmark = Cache::remember("max_teacher_trainings_count_designation_{$designationId}", 1800, function () use ($designationId) {
                 return \Illuminate\Support\Facades\DB::table('training_experiences')
-                    ->whereNull('deleted_at')
+                    ->join('teachers', 'training_experiences.teacher_id', '=', 'teachers.id')
+                    ->whereNull('training_experiences.deleted_at')
+                    ->where('teachers.designation_id', $designationId)
+                    ->whereNull('teachers.deleted_at')
                     ->selectRaw('count(*) as aggregate')
-                    ->groupBy('teacher_id')
+                    ->groupBy('training_experiences.teacher_id')
                     ->orderByDesc('aggregate')
-                    ->first()?->aggregate ?? 3;
+                    ->first()?->aggregate ?? 0;
             });
         }
 
@@ -232,6 +272,8 @@ class ProfileGapEvaluator
             $pubCount,
             $isRelativeBenchmark,
             $maxPubsBenchmark,
+            $pubBenchmarkLimit,
+            $basePercent,
             $pubTier1,
             $pubTier2,
             $pubTier3,
@@ -282,6 +324,8 @@ class ProfileGapEvaluator
             $trCount,
             $isRelativeBenchmark,
             $maxTrainingBenchmark,
+            $trainingBenchmarkLimit,
+            $basePercent,
             $trainingTier1,
             $trainingTier2,
             $trainingTier3,
@@ -301,6 +345,8 @@ class ProfileGapEvaluator
             $awardCount,
             $isRelativeBenchmark,
             $maxAwardBenchmark,
+            $awardBenchmarkLimit,
+            $basePercent,
             $awardTier1,
             $awardTier2,
             $awardTier3,
@@ -438,6 +484,8 @@ class ProfileGapEvaluator
         int $actualCount,
         bool $isRelativeEnabled,
         int $maxBenchmark,
+        int $designationBenchmarkLimit,
+        float $basePercent,
         int $tier1Count,
         int $tier2Count,
         int $tier3Count,
@@ -445,21 +493,28 @@ class ProfileGapEvaluator
     ): array {
         if ($isRelativeEnabled) {
             // Dynamic Relative Peer Benchmark Mode
-            $targetBenchmark = max($maxBenchmark, $tier3Count);
+            // Target benchmark is the maximum of designation benchmark limit and highest performing peer
+            $targetBenchmark = max($designationBenchmarkLimit, $maxBenchmark);
+            
             if ($actualCount === 0) {
                 return [
                     'ratio' => 0.0,
                     'label' => "No {$unitLabel} recorded (Peer benchmark top: {$targetBenchmark})",
                 ];
             }
+            
             if ($actualCount >= $targetBenchmark) {
                 return [
                     'ratio' => 1.0,
                     'label' => "{$unitLabel} ({$actualCount} recorded - Top Peer Benchmark)",
                 ];
             }
-            $ratio = min(1.0, $actualCount / $targetBenchmark);
+            
+            // At least 1 entry gives basePercent (e.g., 30%) base score. The rest scales up to 100% (1.0).
+            $remainingPercent = 1.0 - $basePercent;
+            $ratio = $basePercent + $remainingPercent * (($actualCount - 1) / max(1, $targetBenchmark - 1));
             $ratioPercent = (int) round($ratio * 100);
+            
             return [
                 'ratio' => $ratio,
                 'label' => "{$actualCount} {$unitLabel} recorded ({$ratioPercent}% of top peer benchmark: {$targetBenchmark})",

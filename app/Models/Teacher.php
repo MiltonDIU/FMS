@@ -114,6 +114,24 @@ class Teacher extends Model implements HasMedia
     }
 
     /**
+     * Accessor for photo attribute.
+     * Returns photo column value if set, or fallback to Spatie media library URL for avatar.
+     */
+    public function getPhotoAttribute($value): ?string
+    {
+        if (!empty($value)) {
+            return $value;
+        }
+
+        if ($this->exists) {
+            $mediaUrl = $this->getFirstMediaUrl('avatar');
+            return !empty($mediaUrl) ? $mediaUrl : null;
+        }
+
+        return null;
+    }
+
+    /**
      * Scope: Only active (non-archived) teachers.
      */
     public function scopeActive($query)
@@ -377,13 +395,16 @@ class Teacher extends Model implements HasMedia
     public function registerMediaCollections(): void
     {
         $this->addMediaCollection('avatar')
+            ->useDisk('public')
             ->singleFile()
             ->useFallbackUrl('/images/default-avatar.png')
             ->useFallbackPath(public_path('/images/default-avatar.png'));
 
-        $this->addMediaCollection('documents');
+        $this->addMediaCollection('documents')
+            ->useDisk('public');
 
-        $this->addMediaCollection('certificates');
+        $this->addMediaCollection('certificates')
+            ->useDisk('public');
     }
 
     /**

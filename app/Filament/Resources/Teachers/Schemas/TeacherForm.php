@@ -34,6 +34,7 @@ class TeacherForm
                                 Grid::make(3)->schema([
                                     SpatieMediaLibraryFileUpload::make('photo')
                                         ->collection('avatar')
+                                        ->disk('public')
                                         ->avatar()
                                         ->circleCropper()
                                         ->columnSpanFull()
@@ -1379,6 +1380,7 @@ class TeacherForm
                                     ->schema([
                                         SpatieMediaLibraryFileUpload::make('documents')
                                             ->collection('documents')
+                                            ->disk('public')
                                             ->multiple()
                                             ->downloadable(),
                                     ])->collapsed(),
