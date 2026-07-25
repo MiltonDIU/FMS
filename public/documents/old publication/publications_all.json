@@ -1,0 +1,562 @@
+[
+    {
+        "csv_id": 7029,
+        "db_publication_id": null,
+        "title": "Accent Classification Across Continents: A Deep Learning Approach",
+        "journal_name": "Emerging Science Journal #",
+        "journal_link": "https://www.ijournalse.org/index.php/ESJ/article/view/2909",
+        "q_index": "Q1",
+        "citescore": "7.1",
+        "publication_year": "2026",
+        "faculty_id": 5,
+        "department_id": 27,
+        "faculty_short": "FSIT",
+        "department_short": "SWE",
+        "abstract": "This study focuses on a deep learning based accent classification across continents and greatly enhances speech recognition systems by identifying the accents of Asia, Europe, North America, Africa, and Oceania. The Convolutional Neural Network (CNN) was trained on the Mozilla Common Voice dataset, which comprises the features extracted - Mel-Frequency Cepstral Coefficients, Delta, Delta-Delta, Chroma Frequency, and spectral features- and trained to classify accents. Multiple convolutional and dense layers for accent classification were combined with dropout and batch normalization layers to avoid overfitting during training. Out of the total validation data, 82% accuracy has been achieved. The Asian and European accents were classified with greater accuracy since their datasets were larger, whereas African and Oceanian accents were more misclassified due to limited representation and the greater diversity of languages. In contrast to the past research, which focused only on country-based accent classification, this work introduced a feature based deep learning approach of continent-based accent classification along the way. The recognition of this accent variation, in turn, helps integrate and improve various aspects of speech recognition systems and makes their application more inclusive for voice assistants and language learning tools with diverse linguistic patterns. The future work will concentrate on extending the dataset to the seven continents while enhancing classification accuracy via better feature engineering and model tuning.",
+        "award_money_csv": "Already Paid (APC)",
+        "calculated_total_incentive": 30000,
+        "db_incentive": {
+            "total_amount": 0,
+            "status": "pending",
+            "created_by": 5,
+            "created_at": "2026-07-25 11:36:55",
+            "updated_at": "2026-07-25 11:36:55"
+        },
+        "authors": [
+            {
+                "name": "Md. Fahad Hossain",
+                "role": "First Author",
+                "teacher_id": 1650,
+                "employee_id": "710004038",
+                "email": "fahadhossain.swe@diu.edu.bd",
+                "is_diu_faculty": true,
+                "is_visiting_faculty": false,
+                "incentive_amount": 15000
+            },
+            {
+                "name": "Anzir Rahman Khan",
+                "role": "Co-author",
+                "teacher_id": 1155,
+                "employee_id": "710002733",
+                "email": "saidur.jmc@diu.edu.bd",
+                "is_diu_faculty": true,
+                "is_visiting_faculty": false,
+                "incentive_amount": 7500
+            },
+            {
+                "name": "Md. Sadekur Rahman",
+                "role": "Co-author",
+                "teacher_id": 403,
+                "employee_id": "710001051",
+                "email": "sadekur.cse@daffodilvarsity.edu.bd",
+                "is_diu_faculty": true,
+                "is_visiting_faculty": false,
+                "incentive_amount": 7500
+            }
+        ]
+    },
+    {
+        "csv_id": 7519,
+        "db_publication_id": null,
+        "title": "Accounting Ethics in the Digital Age: Challenges and Opportunities",
+        "journal_name": "Studies in Big Data #",
+        "journal_link": "https://sciprofiles.com/publication/view/e6148cdc1fc10a9f0b1885859c3edb93",
+        "q_index": "Q1",
+        "citescore": "2.4",
+        "publication_year": "2026",
+        "faculty_id": 1,
+        "department_id": null,
+        "faculty_short": "FBE",
+        "department_short": "BA",
+        "abstract": "<br>",
+        "award_money_csv": "10000",
+        "calculated_total_incentive": 10000,
+        "db_incentive": {
+            "total_amount": 0,
+            "status": "pending",
+            "created_by": 5,
+            "created_at": "2026-07-25 11:36:55",
+            "updated_at": "2026-07-25 11:36:55"
+        },
+        "authors": [
+            {
+                "name": "Md. Fahad Hossain",
+                "role": "First Author",
+                "teacher_id": 1650,
+                "employee_id": "710004038",
+                "email": "fahadhossain.swe@diu.edu.bd",
+                "is_diu_faculty": true,
+                "is_visiting_faculty": true,
+                "incentive_amount": 10000
+            },
+            {
+                "name": "Sook Fern Yeo",
+                "role": "Co-author",
+                "teacher_id": null,
+                "employee_id": null,
+                "email": null,
+                "is_diu_faculty": false,
+                "is_visiting_faculty": false,
+                "incentive_amount": 0
+            }
+        ]
+    },
+    {
+        "csv_id": 7868,
+        "db_publication_id": null,
+        "title": "Accumulation of Heavy Metals in Gallus gallus domesticus in Six Different Areas of Bangladesh and Histo-Pathological Evidence in the Brain",
+        "journal_name": "Journal of Food Protection #",
+        "journal_link": "https://pubmed.ncbi.nlm.nih.gov/42276447/",
+        "q_index": "Q2",
+        "citescore": "5.4",
+        "publication_year": "2026",
+        "faculty_id": 3,
+        "department_id": 17,
+        "faculty_short": "FHLS",
+        "department_short": "NFE",
+        "abstract": "This study quantified concentrations of eight heavy metals-arsenic (As), chromium (Cr), nickel (Ni), copper (Cu), zinc (Zn), lead (Pb), cadmium (Cd), and mercury (Hg)-in brain, liver, heart, and muscle tissues of domesticated chicken (Gallus gallus domesticus) collected from six environmentally contrasting sites across Dhaka, the coastal zone (Cox's Bazar), and Gaibandha, Bangladesh. A total of 50 samples were analyzed using atomic absorption spectrometry. The Dhaka region exhibited the highest contamination, with Pb reaching 8,344 \u00b5g/kg and Ni up to 26,300 \u00b5g/kg. Chromium was elevated across all regions, while Zn peaked at 23,826 \u00b5g/kg in brain tissue from Dhaka. Arsenic and Hg were detected exclusively in Dhaka. Regionally, Dhaka accounted for 78.8% of the total metal burden, followed by the coastal zone (13.9%) and Gaibandha (7.3%). Human health risk assessment indicated that all target hazard quotient values were below unity; however, Pb, Zn, and Ni suggested potential chronic exposure risks. Carcinogenic risk exceeded the acceptable threshold (1 \u00d7 10-4) for Ni across all regions and for Cr in Dhaka and the coastal zone. Positive Matrix Factorization identified three dominant sources (R2 = 0.80): industrial/tannery effluent (Cr-dominated), environmental pollution (Zn-Ni), and feed-related inputs (Zn-Cu). Histopathological analysis revealed severe neuropathological alterations in Dhaka samples, including gliosis, spongiosis, and neuronal necrosis. A strong positive correlation between Pb concentration and neuronal degeneration (r = 0.83, p < 0.01) was observed. These findings demonstrate significant ecological and food safety risks and emphasize the need for stricter regulation of industrial discharge and poultry feed management.",
+        "award_money_csv": "20000",
+        "calculated_total_incentive": 20000,
+        "db_incentive": {
+            "total_amount": 0,
+            "status": "pending",
+            "created_by": 5,
+            "created_at": "2026-07-25 11:36:55",
+            "updated_at": "2026-07-25 11:36:55"
+        },
+        "authors": [
+            {
+                "name": "Tasrina Rabia Choudhury",
+                "role": "First Author",
+                "teacher_id": null,
+                "employee_id": null,
+                "email": null,
+                "is_diu_faculty": false,
+                "is_visiting_faculty": true,
+                "incentive_amount": 20000
+            }
+        ]
+    },
+    {
+        "csv_id": 6935,
+        "db_publication_id": null,
+        "title": "A clinical dataset on type-2 diabetes including demographic, anthropometric, and biochemical parameters from Bangladesh",
+        "journal_name": "Data in Brief #",
+        "journal_link": "https://www.sciencedirect.com/science/article/pii/S2352340926000107",
+        "q_index": "Q1",
+        "citescore": "2.6",
+        "publication_year": "2026",
+        "faculty_id": 5,
+        "department_id": 26,
+        "faculty_short": "FSIT",
+        "department_short": "CSE",
+        "abstract": "Type-2 diabetes is a major public health concern in Bangladesh, and this dataset provides 1065 curated patient records with demographic, anthropometric, and clinical variables relevant to its assessment. The data were collected during routine clinical visits and recorded by trained staff, with checks to ensure accuracy and completeness. It includes basic details like age, pregnancy count, body mass index, and skin-fold thickness; vital signs such as blood pressure; lab results related to blood sugar (fasting glucose and insulin); the Diabetes Pedigree Function; and a simple yes/no label for Type-2 diabetes. A few values are missing for diastolic blood pressure and skin-fold thickness, so users should handle these carefully. Since the data are cross-sectional and come from patients seeking care, there are more diabetic cases (840) than non-diabetic cases (225). The dataset is intended for reuse in method development (for example, machine-learning classifier training, feature-selection benchmarking, and oversampling/imputation research), for context-specific epidemiologic description and model validation in South Asian clinical settings, and as a teaching resource for reproducible biomedical-data workflows.",
+        "award_money_csv": "20000",
+        "calculated_total_incentive": 20000,
+        "db_incentive": {
+            "total_amount": 0,
+            "status": "pending",
+            "created_by": 5,
+            "created_at": "2026-07-25 11:36:55",
+            "updated_at": "2026-07-25 11:36:55"
+        },
+        "authors": [
+            {
+                "name": "Md. Younus Bhuiyan",
+                "role": "First Author",
+                "teacher_id": null,
+                "employee_id": null,
+                "email": null,
+                "is_diu_faculty": false,
+                "is_visiting_faculty": false,
+                "incentive_amount": 15000
+            },
+            {
+                "name": "Afjal H. Sarower",
+                "role": "Co-author",
+                "teacher_id": 1140,
+                "employee_id": "710002635",
+                "email": "afjal.cse@diu.edu.bd",
+                "is_diu_faculty": true,
+                "is_visiting_faculty": false,
+                "incentive_amount": 15000
+            }
+        ]
+    },
+    {
+        "csv_id": 5545,
+        "db_publication_id": null,
+        "title": "ACO-GA-Based Optimization to Enhance Global Path Planning for Autonomous Navigation in Grid Environments",
+        "journal_name": "IEEE Transactions on Evolutionary Computation #",
+        "journal_link": "https://www.scopus.com/record/display.uri?eid=2-s2.0-85218748670&doi=10.1109%2fTEVC.2025.3543401&origin=inward&txGid=8d4f65d82b9ca4b97c97153e86265563",
+        "q_index": "Q1",
+        "citescore": "23.5",
+        "publication_year": "2026",
+        "faculty_id": 5,
+        "department_id": 26,
+        "faculty_short": "FSIT",
+        "department_short": "CSE",
+        "abstract": "Exploring path planning techniques for autonomous vehicles to find the safest and quickest routes is fascinating. Among these techniques, generating grid-based maps is notable for simplifying the path planning process, especially in complex environments. This study introduces a novel optimization approach, the modified ant colony optimization and genetic algorithm (MACOGA), which is tailored for path planning in grid environments. MACOGA combines ant colony optimization (ACO) with genetic algorithm (GA) to efficiently navigate grid spaces. First, ACO identifies potential routes within a grid map, and GA optimizes them to find the optimal route. A key feature of MACOGA is its probabilistic prediction mechanism, which improves node selection by integrating the heuristic factors and probabilistic calculations of feasible potential paths, which significantly increases the likelihood of generating feasible initial paths and attains higher success rates in various environmental tests. The enhanced GA in the MACOGA incorporates ACO's pheromones and heuristic factors, and introduces adaptive probability crossover and mutation operations. Additionally, a path reconnection operation ensures favorable length and smoothness. To evaluate MACOGA's effectiveness, six planar models of varying sizes and complexities were studied. Results show MACOGA's superiority in path length and execution time, achieving the shortest path and planning time in several environments. The shortest path can be optimized to yield an improvement of up to 6%. Regarding runtime, even in the complex scenarios, it executes in just 0.3 seconds, outperforming other comparative algorithms. Furthermore, the success rate can reach 100% in relatively complex environments",
+        "award_money_csv": "Already Paid",
+        "calculated_total_incentive": 50000,
+        "db_incentive": {
+            "total_amount": 0,
+            "status": "pending",
+            "created_by": 5,
+            "created_at": "2026-07-25 11:36:55",
+            "updated_at": "2026-07-25 11:36:55"
+        },
+        "authors": [
+            {
+                "name": "Md. Younus Bhuiyan",
+                "role": "First Author",
+                "teacher_id": null,
+                "employee_id": null,
+                "email": null,
+                "is_diu_faculty": false,
+                "is_visiting_faculty": true,
+                "incentive_amount": 50000
+            },
+            {
+                "name": "Wan Rahiman",
+                "role": "Co-author",
+                "teacher_id": null,
+                "employee_id": null,
+                "email": null,
+                "is_diu_faculty": false,
+                "is_visiting_faculty": false,
+                "incentive_amount": 0
+            }
+        ]
+    },
+    {
+        "csv_id": 7533,
+        "db_publication_id": null,
+        "title": "A Compact Spin-Coated Graphene UWB Antenna for Breast Tumor Detection",
+        "journal_name": "Advanced Engineering Materials #",
+        "journal_link": "https://advanced.onlinelibrary.wiley.com/doi/10.1002/adem.202502295",
+        "q_index": "Q2",
+        "citescore": "5.7",
+        "publication_year": "2026",
+        "faculty_id": 5,
+        "department_id": 26,
+        "faculty_short": "FSIT",
+        "department_short": "CSE",
+        "abstract": "This work proposes a circular-ring patch antenna using graphene as a patch material for breast tumor detection. Graphene's high dielectric conductivity enhances the antenna's bandwidth, making it suitable for medical applications. The antenna utilizes a Rogers substrate with overall dimensions of 30\u2009\u00d7\u200930\u2009\u00d7\u20090.7\u2009mm. The ground plane is composed of copper, while the radiating patch is fabricated using graphene. The antenna is designed and simulated using CST Microwave Studio. Initially, the antenna is evaluated in free space, followed by tests on a normal breast phantom, a tumor-affected breast, and a cancerous breast using specific tissue properties to assess performance. In free space, the designed antenna exhibits an S1,1 parameter of \u221243.17\u2009dB. Measurements within different breast tissue conditions show S1,1 value of \u221227.22\u2009dB for normal breast tissue, \u221224.14\u2009dB for a benign breast tumor, and \u221237.87\u2009dB for a malignant breast tumor. Operating at 5.472, 7.416, 8.456, and 7.48\u2009GHz, the antenna exhibits ultra-wideband (UWB) characteristics, ensuring high data transmission accuracy. The proposed antenna offers several advantages, including compact size, enhanced bandwidth, high sensitivity to tissue variations, low radiation exposure, and cost-effective implementation, making it a promising tool for early breast cancer screening, particularly in rural areas where access to advanced imaging technologies is limited.",
+        "award_money_csv": "15000",
+        "calculated_total_incentive": 15000,
+        "db_incentive": {
+            "total_amount": 0,
+            "status": "pending",
+            "created_by": 5,
+            "created_at": "2026-07-25 11:36:55",
+            "updated_at": "2026-07-25 11:36:55"
+        },
+        "authors": [
+            {
+                "name": "Md. Younus Bhuiyan",
+                "role": "First Author",
+                "teacher_id": null,
+                "employee_id": null,
+                "email": null,
+                "is_diu_faculty": false,
+                "is_visiting_faculty": false,
+                "incentive_amount": 12500
+            },
+            {
+                "name": "Raja Tariqul Hasan Tusher",
+                "role": "Co-author",
+                "teacher_id": 562,
+                "employee_id": "710001287",
+                "email": "tusher.cse@diu.edu.bd",
+                "is_diu_faculty": true,
+                "is_visiting_faculty": false,
+                "incentive_amount": 12500
+            }
+        ]
+    },
+    {
+        "csv_id": 7724,
+        "db_publication_id": null,
+        "title": "A Comparative Analysis of Deep Ensemble Learning for Enhanced Multi Class Skin Disease Classification",
+        "journal_name": "2026 IEEE 2nd International Conference on Quantum Photonics, Artificial Intelligence and Networking, QPAIN 2026 @",
+        "journal_link": "https://ieeexplore.ieee.org/document/11545700?denied=",
+        "q_index": "",
+        "citescore": "",
+        "publication_year": "2026",
+        "faculty_id": 5,
+        "department_id": 26,
+        "faculty_short": "FSIT",
+        "department_short": "CSE",
+        "abstract": "Making accurate diagnoses concerning skin diseases is difficult because of the subjective visual inspections that medical professionals conduct to diagnose them. Though many deep learning models for diagnosing skin diseases exist, many research works still report poor classification results for several skin diseases simultaneously. To overcome this limitation, this paper proposes to study an ensemble learning approach by combining several powerful models for improved results through accurate diagnoses. Six of the most powerful models, DenseNet121, VGG16, ResNet18, ResNet50, ViT-B/16, and EfficientNetB3, will first be tested independently for establishing baselines. On the basis of these baselines, two approaches to ensemble learning would be developed. In the first case, the soft voting combination of ViT-B/16 and ResNet50 reports 87.86 % accuracy, with precision of 88.02 % and 87.86 % recall, which is a relative improvement of 2.43 % over the best-performing individual model. In the second case, the integration of the best three models, including ViT-B/16, ResNet50, and DenseNet121, reports 88.11 % accuracy, reflecting a relative improvement of 3.40 %. From these results, it is clear that combining different models is beneficial for improved classification outcomes by considering diverse representations. This method presents a resilient avenue for automated multiclass skin disease recognition.",
+        "award_money_csv": "0",
+        "calculated_total_incentive": 15000,
+        "db_incentive": {
+            "total_amount": 0,
+            "status": "pending",
+            "created_by": 5,
+            "created_at": "2026-07-25 11:36:55",
+            "updated_at": "2026-07-25 11:36:55"
+        },
+        "authors": [
+            {
+                "name": "Md Parvez Kabir",
+                "role": "First Author",
+                "teacher_id": null,
+                "employee_id": null,
+                "email": null,
+                "is_diu_faculty": false,
+                "is_visiting_faculty": false,
+                "incentive_amount": 7500
+            },
+            {
+                "name": "Jhion Adbar Opi",
+                "role": "Co-author",
+                "teacher_id": null,
+                "employee_id": null,
+                "email": null,
+                "is_diu_faculty": false,
+                "is_visiting_faculty": false,
+                "incentive_amount": 1500
+            },
+            {
+                "name": "Md Assaduzzaman",
+                "role": "Co-author",
+                "teacher_id": 1116,
+                "employee_id": "710002642",
+                "email": "assaduzzaman.cse@diu.edu.bd",
+                "is_diu_faculty": true,
+                "is_visiting_faculty": false,
+                "incentive_amount": 1500
+            },
+            {
+                "name": "Md Awal Hadi",
+                "role": "Co-author",
+                "teacher_id": null,
+                "employee_id": null,
+                "email": null,
+                "is_diu_faculty": false,
+                "is_visiting_faculty": false,
+                "incentive_amount": 1500
+            },
+            {
+                "name": "Md Tamim Hasan",
+                "role": "Co-author",
+                "teacher_id": null,
+                "employee_id": null,
+                "email": null,
+                "is_diu_faculty": false,
+                "is_visiting_faculty": false,
+                "incentive_amount": 1500
+            },
+            {
+                "name": "Sazzadul Islam",
+                "role": "Co-author",
+                "teacher_id": null,
+                "employee_id": null,
+                "email": null,
+                "is_diu_faculty": false,
+                "is_visiting_faculty": false,
+                "incentive_amount": 1500
+            }
+        ]
+    },
+    {
+        "csv_id": 7103,
+        "db_publication_id": null,
+        "title": "A comparative analysis of radiation shielding character in engineered bricks blended with CaO, Al2O3, and Fe2O3 additives: thermal stability and Phy-X simulation insights into attenuation characteristics",
+        "journal_name": "Radiation Physics and Chemistry #",
+        "journal_link": "https://www.sciencedirect.com/science/article/abs/pii/S0969806X26000848",
+        "q_index": "Q2",
+        "citescore": "5.6",
+        "publication_year": "2026",
+        "faculty_id": null,
+        "department_id": null,
+        "faculty_short": "FGS",
+        "department_short": "",
+        "abstract": "This study employed Phy-X software to investigate the radiation protection efficacy of different bricks fabricated from a mixture of clay, CaO (calcium oxide), Al2O3\u00a0(aluminum oxide), and Fe2O3\u00a0(iron oxide). As the oxide additives substituted clay, an increased in the density of the fabricated samples was noticed, with\u00a0CL5Fe\u00a0showcasing the superior value of 2.40\u00a0g/cm3. An improved linear attenuation coefficient (LAC) was also noticed, with\u00a0CL5Fe\u00a0demonstrating the greatest LAC value of 0.154\u00a0cm\u22121\u00a0at 0.6\u00a0MeV, which could be associated to its superior density due to presence of Fe2O3. The 0.6\u00a0MeV energy was chosen as a representative 137Cs value within the Compton-dominant region. Shielding performance was further evaluated from 0.0459 to 1.46\u00a0MeV, covering photoelectric-to-Compton-dominated interactions.\u00a0CL5Fe\u00a0also outsmarted other samples in terms of thermal stability and structural integrity, making it the best choice for gamma radiation protection. Future studies should evaluate shielding performance across 1.47\u201315\u00a0MeV to assess material suitability for medical imaging, radiotherapy, and nuclear radiation environments.",
+        "award_money_csv": "20000",
+        "calculated_total_incentive": 20000,
+        "db_incentive": {
+            "total_amount": 0,
+            "status": "pending",
+            "created_by": 5,
+            "created_at": "2026-07-25 11:36:55",
+            "updated_at": "2026-07-25 11:36:55"
+        },
+        "authors": [
+            {
+                "name": "Md Parvez Kabir",
+                "role": "First Author",
+                "teacher_id": null,
+                "employee_id": null,
+                "email": null,
+                "is_diu_faculty": false,
+                "is_visiting_faculty": true,
+                "incentive_amount": 20000
+            },
+            {
+                "name": "Atef Mohamed El-Taher",
+                "role": "Co-author",
+                "teacher_id": null,
+                "employee_id": null,
+                "email": null,
+                "is_diu_faculty": false,
+                "is_visiting_faculty": false,
+                "incentive_amount": 0
+            }
+        ]
+    },
+    {
+        "csv_id": 7737,
+        "db_publication_id": null,
+        "title": "A Comparative Analysis of Transfer Learning Models for Osteoporosis Identification on X-ray Images",
+        "journal_name": "2026 IEEE 2nd International Conference on Quantum Photonics, Artificial Intelligence and Networking, QPAIN 2026 @",
+        "journal_link": "https://www.scopus.com/pages/publications/105042911388?origin=resultslist",
+        "q_index": "",
+        "citescore": "",
+        "publication_year": "2026",
+        "faculty_id": 5,
+        "department_id": 26,
+        "faculty_short": "FSIT",
+        "department_short": "CSE",
+        "abstract": "<br>",
+        "award_money_csv": "0",
+        "calculated_total_incentive": 15000,
+        "db_incentive": {
+            "total_amount": 0,
+            "status": "pending",
+            "created_by": 5,
+            "created_at": "2026-07-25 11:36:55",
+            "updated_at": "2026-07-25 11:36:55"
+        },
+        "authors": [
+            {
+                "name": "Syed Shahriar Ahmed",
+                "role": "First Author",
+                "teacher_id": null,
+                "employee_id": null,
+                "email": null,
+                "is_diu_faculty": false,
+                "is_visiting_faculty": false,
+                "incentive_amount": 7500
+            },
+            {
+                "name": "Md Safaet Zahangir",
+                "role": "Co-author",
+                "teacher_id": null,
+                "employee_id": null,
+                "email": null,
+                "is_diu_faculty": false,
+                "is_visiting_faculty": false,
+                "incentive_amount": 2500
+            },
+            {
+                "name": "Shah Md. Tanvir Siddiqee",
+                "role": "Co-author",
+                "teacher_id": 477,
+                "employee_id": "710001514",
+                "email": "tanvir.cse@diu.edu.bd",
+                "is_diu_faculty": true,
+                "is_visiting_faculty": false,
+                "incentive_amount": 2500
+            },
+            {
+                "name": "Sonjoy Prosad Shaha",
+                "role": "Co-author",
+                "teacher_id": null,
+                "employee_id": null,
+                "email": null,
+                "is_diu_faculty": false,
+                "is_visiting_faculty": false,
+                "incentive_amount": 2500
+            }
+        ]
+    },
+    {
+        "csv_id": 7787,
+        "db_publication_id": null,
+        "title": "A Comparative Evaluation of Lightweight and Explainable Models for Automated Skin Lesion Segmentation",
+        "journal_name": "2026 IEEE 2nd International Conference on Quantum Photonics, Artificial Intelligence and Networking, QPAIN 2026 @",
+        "journal_link": "https://ieeexplore.ieee.org/document/11546426",
+        "q_index": "",
+        "citescore": "",
+        "publication_year": "2026",
+        "faculty_id": 5,
+        "department_id": 26,
+        "faculty_short": "FSIT",
+        "department_short": "CSE",
+        "abstract": "Precise skin lesion localization of dermoscopic images is vital in the early detection of melanoma and digital dermatology processes. This paper is a full assessment of three light and interpretable deep learning architectures, namely U-Net, a modified convolutional neural network (CNN), and a transformer-based SegFormer, on the HAM10000-ISIC2018 dataset. The preprocessing, enhancement, and augmentation conditions were the same in all the models to succeed the fairness and repeatability. It included Grad-CAM and attention-rollout explainability methods to visualize areas of focus in models and choose to make them more clinical interpretable. Dice score, precision, and validation accuracy quantitatively show that both U-Net and SegFormer attained the highest Dice score 93.05%, and the custom CNN, next in terms of architectural complexity, has attained a competitive Dice score of 88.22%. SegFormer was the most precise 95.51% and effective, which means that it is very suitable in resource-limited or mobile diagnostic settings. [NEW] We validated model robustness against common dermatological artifacts (hair, ruler marks, gel bubbles) and compared performance with recent state-of-the-art architectures including TransUNet and Swin-UNet. The experimental results show that light and understandable segmentation models can be used to reach clinically significant performance and can be used as a reliable element in future computer-aided dermatology systems and diagnostic piping.",
+        "award_money_csv": "0",
+        "calculated_total_incentive": 15000,
+        "db_incentive": {
+            "total_amount": 0,
+            "status": "pending",
+            "created_by": 5,
+            "created_at": "2026-07-25 11:36:56",
+            "updated_at": "2026-07-25 11:36:56"
+        },
+        "authors": [
+            {
+                "name": "Abu Kausar",
+                "role": "First Author",
+                "teacher_id": null,
+                "employee_id": null,
+                "email": null,
+                "is_diu_faculty": false,
+                "is_visiting_faculty": false,
+                "incentive_amount": 7500
+            },
+            {
+                "name": "Abu Shahed Shah Md Nazmul Arefin",
+                "role": "Co-author",
+                "teacher_id": null,
+                "employee_id": null,
+                "email": null,
+                "is_diu_faculty": false,
+                "is_visiting_faculty": false,
+                "incentive_amount": 1500
+            },
+            {
+                "name": "Kazi Jahid Hasan",
+                "role": "Co-author",
+                "teacher_id": 1219,
+                "employee_id": "710002762",
+                "email": "jahid.mct@diu.edu.bd",
+                "is_diu_faculty": true,
+                "is_visiting_faculty": false,
+                "incentive_amount": 1500
+            },
+            {
+                "name": "Kishon Kumar Pashi",
+                "role": "Co-author",
+                "teacher_id": null,
+                "employee_id": null,
+                "email": null,
+                "is_diu_faculty": false,
+                "is_visiting_faculty": false,
+                "incentive_amount": 1500
+            },
+            {
+                "name": "Maysha Mahjabin Mimi",
+                "role": "Co-author",
+                "teacher_id": null,
+                "employee_id": null,
+                "email": null,
+                "is_diu_faculty": false,
+                "is_visiting_faculty": false,
+                "incentive_amount": 1500
+            },
+            {
+                "name": "Md. Salah Uddin",
+                "role": "Co-author",
+                "teacher_id": 1013,
+                "employee_id": "710002987",
+                "email": "salah.mct@diu.edu.bd",
+                "is_diu_faculty": true,
+                "is_visiting_faculty": false,
+                "incentive_amount": 1500
+            }
+        ]
+    }
+]

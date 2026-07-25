@@ -25,6 +25,11 @@ class AuthorTypesTable
                 TextColumn::make('name')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('authors_count')
+                    ->counts('authors')
+                    ->label('Total Authors')
+                    ->badge()
+                    ->sortable(),
                 IconColumn::make('is_active')
                     ->boolean()
                     ->sortable(),

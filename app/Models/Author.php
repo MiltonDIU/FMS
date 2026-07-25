@@ -26,4 +26,11 @@ class Author extends Model
     {
         return $this->belongsTo(AuthorType::class);
     }
+
+    public function publications()
+    {
+        return $this->morphToMany(Publication::class, 'authorable', 'publication_authors')
+            ->withPivot(['author_role', 'sort_order', 'incentive_amount'])
+            ->withTimestamps();
+    }
 }

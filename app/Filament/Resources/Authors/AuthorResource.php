@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Authors;
 use App\Filament\Resources\Authors\Pages;
 use App\Filament\Resources\Authors\Schemas\AuthorForm;
 use App\Filament\Resources\Authors\Tables\AuthorsTable;
+use App\Filament\Resources\Authors\RelationManagers;
 use App\Models\Author;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -41,6 +42,13 @@ class AuthorResource extends Resource
             'index' => Pages\ListAuthors::route('/'),
             'create' => Pages\CreateAuthor::route('/create'),
             'edit' => Pages\EditAuthor::route('/{record}/edit'),
+        ];
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            RelationManagers\PublicationsRelationManager::class,
         ];
     }
 }

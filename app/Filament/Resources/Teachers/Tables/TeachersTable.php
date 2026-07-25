@@ -55,23 +55,6 @@ class TeachersTable
                     ->label('Name')
                     ->searchable(['first_name', 'middle_name', 'last_name'])
                     ->sortable(),
-                TextColumn::make('user.roles.name')
-                    ->label('System Roles')
-                    ->badge()
-                    ->color('info')
-                    ->separator(', ')
-                    ->sortable(query: function (Builder $query, string $direction): Builder {
-                        return $query->orderBy(
-                            \App\Models\User::select('roles.name')
-                                ->join('model_has_roles', 'users.id', '=', 'model_has_roles.model_id')
-                                ->join('roles', 'model_has_roles.role_id', '=', 'roles.id')
-                                ->whereColumn('users.id', 'teachers.user_id')
-                                ->where('model_has_roles.model_type', \App\Models\User::class)
-                                ->limit(1),
-                            $direction
-                        );
-                    })
-                    ->toggleable(),
                 TextColumn::make('admin_roles')
                     ->label('Admin Roles')
                     ->badge()
@@ -147,6 +130,12 @@ class TeachersTable
                     ->label('Assign Dept.')
                     ->badge()
                     ->color('success'),
+                TextColumn::make('publications_count')
+                    ->counts('publications')
+                    ->label('Total Publications')
+                    ->badge()
+                    ->color('info')
+                    ->sortable(),
                 TextColumn::make('departments.short_name')
                     ->label('Department List')
                     ->badge()

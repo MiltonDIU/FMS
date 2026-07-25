@@ -21,6 +21,7 @@ class PublicationIncentive extends Model
         'approved_at',
         'paid_at',
         'remarks',
+        'created_by',
     ];
 
     protected $casts = [
@@ -34,6 +35,13 @@ class PublicationIncentive extends Model
      */
     protected static function booted(): void
     {
+        // Set created_by automatically
+        static::creating(function (PublicationIncentive $incentive) {
+            if (Auth::check() && empty($incentive->created_by)) {
+                $incentive->created_by = Auth::id();
+            }
+        });
+
         // Log creation
         static::created(function (PublicationIncentive $incentive) {
             // Get author incentive breakdown
@@ -111,6 +119,14 @@ class PublicationIncentive extends Model
     public function publication(): BelongsTo
     {
         return $this->belongsTo(Publication::class);
+    }
+
+    /**
+     * Get the user who created this incentive.
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     /**

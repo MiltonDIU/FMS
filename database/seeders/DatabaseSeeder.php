@@ -39,7 +39,7 @@ class DatabaseSeeder extends Seeder
             DegreeTypeSeeder::class,
             MembershipTypeSeeder::class,
             MembershipOrganizationSeeder::class,
-            TeacherSeeder::class,
+            //TeacherSeeder::class,
             TeacherPermissionSeeder::class,
             ApprovalSettingsSeeder::class,
             ApprovalPermissionsSeeder::class,

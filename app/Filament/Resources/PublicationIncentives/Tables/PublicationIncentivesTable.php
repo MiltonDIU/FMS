@@ -50,6 +50,9 @@ class PublicationIncentivesTable
                 TextColumn::make('authors_count')
                     ->label('Authors')
                     ->state(fn($record) => $record->publication->teachers()->count()),
+                TextColumn::make('creator.name')
+                    ->label('Created By')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('approver.name')
                     ->label('Approved By')
                     ->toggleable(isToggledHiddenByDefault: true),
