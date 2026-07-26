@@ -211,7 +211,9 @@ class MapPublicationsCommand extends Command
                 if ($first_author === "'=" || $first_author === "0" || $first_author === "=") {
                     $first_author = $last_first_author;
                 } else {
-                    $last_first_author = $first_author;
+                    if ($first_author !== '') {
+                        $last_first_author = $first_author;
+                    }
                 }
                 
                 $co_authors_list = [];
