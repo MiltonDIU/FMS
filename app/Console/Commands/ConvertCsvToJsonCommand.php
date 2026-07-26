@@ -71,7 +71,7 @@ class ConvertCsvToJsonCommand extends Command
 
                 $grouped_rows[] = [
                     'id' => (int) $id_val,
-                    'title' => trim($row[$col_map['Title']] ?? ''),
+                    'title' => $this->cleanHtml($row[$col_map['Title']] ?? '', false),
                     'first_author' => $first_author,
                     'corresponding_author' => trim($row[$col_map['Corresponding Author']] ?? ''),
                     'co_authors' => $co_authors_list,
@@ -79,7 +79,7 @@ class ConvertCsvToJsonCommand extends Command
                     'faculty' => trim($row[$col_map['Faculty']] ?? ''),
                     'email' => trim($row[$col_map['Email']] ?? ''),
                     'publication_year' => trim($row[$col_map['Publication Year']] ?? ''),
-                    'abstract' => trim($row[$col_map['Abstract']] ?? ''),
+                    'abstract' => $this->cleanHtml($row[$col_map['Abstract']] ?? '', true),
                     'award_money' => trim($row[$col_map['Award Money']] ?? ''),
                     'citescore' => trim($row[$col_map['CiteScore']] ?? ''),
                     'journal_link' => trim($row[$col_map['Conference / Journal Link']] ?? ''),
@@ -118,5 +118,19 @@ class ConvertCsvToJsonCommand extends Command
         $this->line("Output JSON: $outputPath");
 
         return 0;
+    }
+
+    /**
+     * Helper to clean HTML tags from text fields
+     */
+    private function cleanHtml($text, $allowBr = true)
+    {
+        if (empty($text)) return '';
+        $allowed = $allowBr ? '<br>' : '';
+        $cleaned = strip_tags($text, $allowed);
+        if ($allowBr) {
+            $cleaned = preg_replace('/<br\s*\/?>/i', '<br>', $cleaned);
+        }
+        return trim($cleaned);
     }
 }
