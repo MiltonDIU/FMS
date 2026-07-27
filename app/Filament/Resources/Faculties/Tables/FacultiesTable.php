@@ -51,6 +51,11 @@ class FacultiesTable
                     ->counts('teachers')
                     ->badge()
                     ->color('success'),
+                TextColumn::make('publications_count')
+                    ->label('Publications')
+                    ->counts('publications')
+                    ->badge()
+                    ->color('warning'),
                 IconColumn::make('is_active')
                     ->label('Active')
                     ->boolean()

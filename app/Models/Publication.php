@@ -48,6 +48,8 @@ class Publication extends Model
         'status',
         'is_featured',
         'sort_order',
+        'come_from_old_site',
+        'come_from_pd',
     ];
 
     public function faculty(): BelongsTo

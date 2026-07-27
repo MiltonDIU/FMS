@@ -50,6 +50,7 @@ class DatabaseSeeder extends Seeder
             AdministrativeRoleUserSeeder::class,
             EmailTemplateSeeder::class,
             RolePermissionsSeeder::class,
+            AuthorTypeSeeder::class,
         ]);
     }
 }

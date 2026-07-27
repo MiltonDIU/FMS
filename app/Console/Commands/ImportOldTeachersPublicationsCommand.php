@@ -210,6 +210,8 @@ class ImportOldTeachersPublicationsCommand extends Command
                              'impact_factor'           => $pub['impact_factor'] ?? null,
                              'keywords'                => $pub['keywords'] ?? null,
                              'abstract'                => $pub['abstract'] ?? null,
+                             'come_from_pd'            => 0,
+                             'come_from_old_site'      => 1,
                          ]);
                          $pubId = $newPub->id;
                          $pubCreated++;

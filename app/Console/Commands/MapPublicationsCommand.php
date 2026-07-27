@@ -307,6 +307,10 @@ class MapPublicationsCommand extends Command
             $fac_short_lower = strtolower($pub['faculty_short']);
             $dept_short_lower = strtolower($pub['department_short']);
             
+            if ($dept_short_lower === 'ba') {
+                $dept_short_lower = 'bba';
+            }
+            
             $faculty_id = $faculty_map[$fac_short_lower] ?? null;
             $department_id = $dept_map[$fac_short_lower][$dept_short_lower] ?? ($dept_map['direct'][$dept_short_lower] ?? null);
 

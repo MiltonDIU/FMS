@@ -41,13 +41,13 @@ class ImportAllOldTeachersDataCommand extends Command
 
         $commands = [
             'import:old-teachers',
-            'import:old-teachers-educations',
-            'import:old-teachers-job-experiences',
-            'import:old-teachers-memberships',
-            'import:old-teachers-awards',
+//            'import:old-teachers-educations',
+//            'import:old-teachers-job-experiences',
+//            'import:old-teachers-memberships',
+//            'import:old-teachers-awards',
             'import:old-teachers-publications',
-            'import:old-teachers-teaching-areas',
-            'import:training-experiences',
+//            'import:old-teachers-teaching-areas',
+//            'import:training-experiences',
         ];
 
         $this->info("🏁 Starting master import for all old teacher data...");
