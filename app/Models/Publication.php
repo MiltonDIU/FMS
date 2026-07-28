@@ -65,6 +65,8 @@ class Publication extends Model
     protected $casts = [
         'student_involvement' => 'boolean',
         'is_featured' => 'boolean',
+        'come_from_pd' => 'boolean',
+        'come_from_old_site' => 'boolean',
         'publication_date' => 'date',
         'citescore' => 'decimal:2',
         'impact_factor' => 'decimal:2',
