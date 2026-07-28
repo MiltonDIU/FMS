@@ -114,7 +114,7 @@ class PublicationResource extends Resource
                     $query->where(function ($q) use ($deptId) {
                         $q->where('department_id', $deptId)
                           ->orWhereHas('teachers', function ($tq) use ($deptId) {
-                              dtq->where('teachers.department_id', $deptId)
+                              $tq->where('teachers.department_id', $deptId)
                                  ->orWhereHas('departments', function ($dq) use ($deptId) {
                                      $dq->where('departments.id', $deptId);
                                   });
