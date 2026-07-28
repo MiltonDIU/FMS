@@ -9,8 +9,16 @@ use App\Models\Department;
 use App\Models\AdministrativeRole;
 use App\Models\UserAdministrativeRole;
 use Carbon\Carbon;
-use Spatie\Permission\Models\Role;
 
+/**
+ * Assigns exactly two administrative roles, to two known demo users:
+ *
+ *   dean@fms.diu.edu.bd → Dean            (faculty scope: FSIT)
+ *   head@fms.diu.edu.bd → Head of Dept.   (department scope: CSE)
+ *
+ * No other user / role / scope combination is seeded — Spatie roles
+ * (dean / head) are synced automatically by UserAdministrativeRoleObserver.
+ */
 class AdministrativeRoleUserSeeder extends Seeder
 {
     /**
@@ -18,143 +26,88 @@ class AdministrativeRoleUserSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1. Fetch Administrative Role IDs
-        $roles = AdministrativeRole::whereIn('name', [
-            'Dean', 'Associate Dean', 'Dean officer',
-            'Head of Department', 'Associate Head', 'Head Officer'
-        ])->pluck('id', 'name');
-
-        if ($roles->count() < 6) {
-             $this->command->warn("Some roles are missing in the database. Found: " . $roles->keys()->implode(', '));
-        }
-
-        $users = User::where('is_active', true)->inRandomOrder()->get();
-        if ($users->isEmpty()) {
-            $this->command->error("No active users found to assign roles.");
+        $faculty = Faculty::where('code', 'FSIT')->first();
+        if (! $faculty) {
+            $this->command->error("Faculty 'FSIT' not found. Run FacultySeeder first.");
             return;
         }
 
-        $userIterator = $users->getIterator();
-
-        $getNextUser = function() use ($users, &$userIterator) {
-            if (!$userIterator->valid()) {
-                $userIterator = $users->getIterator();
-            }
-            $user = $userIterator->current();
-            $userIterator->next();
-            return $user;
-        };
-
-        // 2. Assign Faculty Roles
-        $faculties = Faculty::all();
-        $this->command->info("Assigning roles to {$faculties->count()} faculties...");
-
-        foreach ($faculties as $faculty) {
-            if (isset($roles['Dean'])) {
-                $this->assignRole($getNextUser()->id, $roles['Dean'], facultyId: $faculty->id);
-            }
-            if (isset($roles['Associate Dean'])) {
-                $this->assignRole($getNextUser()->id, $roles['Associate Dean'], facultyId: $faculty->id);
-            }
-            if (isset($roles['Dean officer'])) {
-                $this->assignRole($getNextUser()->id, $roles['Dean officer'], facultyId: $faculty->id);
-            }
-        }
-
-        // 3. Assign Department Roles
-        $departments = Department::all();
-        $this->command->info("Assigning roles to {$departments->count()} departments...");
-
-        foreach ($departments as $department) {
-            if (isset($roles['Head of Department'])) {
-                $this->assignRole($getNextUser()->id, $roles['Head of Department'], departmentId: $department->id);
-            }
-            if (isset($roles['Associate Head'])) {
-                $this->assignRole($getNextUser()->id, $roles['Associate Head'], departmentId: $department->id);
-            }
-            if (isset($roles['Head Officer'])) {
-                $this->assignRole($getNextUser()->id, $roles['Head Officer'], departmentId: $department->id);
-            }
-        }
-
-        $this->command->info('✔ Spatie roles (dean/head) synced automatically via Observer.');
-    }
-
-    /**
-     * Assign an administrative role to a user.
-     * Uses Eloquent (not raw DB::insert) so the UserAdministrativeRoleObserver fires
-     * and Spatie roles are automatically synced.
-     */
-    private function assignRole(int $userId, int $roleId, ?int $facultyId = null, ?int $departmentId = null): void
-    {
-        // Skip if an active assignment already exists for this scope
-        $exists = UserAdministrativeRole::withTrashed()
-            ->where('administrative_role_id', $roleId)
-            ->where('faculty_id', $facultyId)
-            ->where('department_id', $departmentId)
-            ->where('is_active', true)
-            ->exists();
-
-        if ($exists) {
+        $department = Department::where('code', 'CSE')->first();
+        if (! $department) {
+            $this->command->error("Department 'CSE' not found. Run DepartmentSeeder first.");
             return;
         }
 
-        // Use Eloquent::create() so booted() observer fires automatically
-        UserAdministrativeRole::create([
-            'user_id'                => $userId,
-            'administrative_role_id' => $roleId,
-            'faculty_id'             => $facultyId,
-            'department_id'          => $departmentId,
-            'start_date'             => Carbon::now(),
-            'is_active'              => true,
-        ]);
+        $this->assign(
+            email:    'dean@fms.diu.edu.bd',
+            roleName: 'Dean',
+            scope:    ['faculty_id' => $faculty->id, 'department_id' => null],
+            label:    "Dean of {$faculty->short_name}"
+        );
 
-        // Explicit sync in case observer is not yet registered (e.g. first-time seeding)
-        $this->syncSpatieRole($userId, $roleId);
+        $this->assign(
+            email:    'head@fms.diu.edu.bd',
+            roleName: 'Head of Department',
+            scope:    ['faculty_id' => null, 'department_id' => $department->id],
+            label:    "Head of {$department->short_name}"
+        );
     }
 
     /**
-     * Sync Spatie role based on the administrative role's NAME.
+     * Assign one administrative role to one user for one scope.
      *
-     * Mapping:
-     *   Dean               → dean
-     *   Associate Dean     → associate_dean
-     *   Dean officer       → associate_dean
-     *   Head of Department → head
-     *   Associate Head     → associate_head
-     *   Head Officer       → associate_head
+     * Idempotent, and safe to re-run over data left by an earlier seed: any
+     * active assignment for the same role + scope held by a different user is
+     * retired first, so the outgoing holder loses the Spatie role via the
+     * observer instead of silently keeping it.
      */
-    private function syncSpatieRole(int $userId, int $adminRoleId): void
+    private function assign(string $email, string $roleName, array $scope, string $label): void
     {
-        $adminRole = AdministrativeRole::find($adminRoleId);
-        if (! $adminRole) {
-            return;
-        }
-
-        $roleMap = [
-            'dean'                => 'dean',
-            'associate dean'      => 'associate_dean',
-            'dean officer'        => 'associate_dean',
-            'head of department'  => 'head',
-            'associate head'      => 'associate_head',
-            'head officer'        => 'associate_head',
-        ];
-
-        $spatieRoleName = $roleMap[strtolower($adminRole->name)] ?? null;
-
-        if (! $spatieRoleName) {
-            return;
-        }
-
-        $user = User::find($userId);
+        $user = User::where('email', $email)->first();
         if (! $user) {
+            $this->command->error("User '{$email}' not found. Run FMSSeeder first.");
             return;
         }
 
-        $spatieRole = Role::firstOrCreate(['name' => $spatieRoleName, 'guard_name' => 'web']);
-
-        if (! $user->hasRole($spatieRoleName)) {
-            $user->assignRole($spatieRole);
+        $role = AdministrativeRole::where('name', $roleName)->first();
+        if (! $role) {
+            $this->command->error("Administrative role '{$roleName}' not found. Run AdministrativeRoleSeeder first.");
+            return;
         }
+
+        $scopeQuery = fn () => UserAdministrativeRole::query()
+            ->where('administrative_role_id', $role->id)
+            ->where('faculty_id', $scope['faculty_id'])
+            ->where('department_id', $scope['department_id']);
+
+        // Retire other holders of this exact role + scope. Saved one by one via
+        // Eloquent so UserAdministrativeRoleObserver fires and drops their
+        // Spatie role when nothing else justifies it.
+        $scopeQuery()
+            ->where('user_id', '!=', $user->id)
+            ->where('is_active', true)
+            ->get()
+            ->each(function (UserAdministrativeRole $stale) {
+                $stale->is_active = false;
+                $stale->end_date  = Carbon::now();
+                $stale->save();
+            });
+
+        // Eloquent (not raw DB) so the observer syncs the Spatie role.
+        $assignment = $scopeQuery()->where('user_id', $user->id)->first()
+            ?? new UserAdministrativeRole([
+                'user_id'                => $user->id,
+                'administrative_role_id' => $role->id,
+                'faculty_id'             => $scope['faculty_id'],
+                'department_id'          => $scope['department_id'],
+            ]);
+
+        $assignment->fill([
+            'start_date' => $assignment->start_date ?? Carbon::now(),
+            'end_date'   => null,
+            'is_active'  => true,
+        ])->save();
+
+        $this->command->info("✔ {$email} → {$label}");
     }
 }
