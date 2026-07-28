@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Publications\Pages;
 use App\Filament\Resources\Publications\PublicationResource;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
+use Filament\Pages\Concerns\ExposesTableToWidgets;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Support\Icons\Heroicon;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -16,7 +17,18 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ListPublications extends ListRecords
 {
+    // Passes the table's filter/search/sort state down to the header widgets,
+    // so PublicationSourceStatsWidget can mirror the active filters.
+    use ExposesTableToWidgets;
+
     protected static string $resource = PublicationResource::class;
+
+    protected function getHeaderWidgets(): array
+    {
+        return [
+            \App\Filament\Widgets\PublicationSourceStatsWidget::class,
+        ];
+    }
 
     protected function getHeaderActions(): array
     {

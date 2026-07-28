@@ -27,6 +27,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -176,6 +177,18 @@ class PublicationsTable
                         'approved' => 'success',
                         'rejected' => 'danger',
                     }),
+                TextColumn::make('teachers_count')
+                    ->label('Internal Teachers')
+                    ->counts('teachers')
+                    ->badge()
+                    ->color(fn (?int $state): string => $state > 0 ? 'success' : 'danger')
+                    ->formatStateUsing(fn (?int $state): string => $state > 0 ? (string) $state : 'None')
+                    ->sortable()
+                    ->toggleable(),
+                IconColumn::make('come_from_pd')
+                    ->label('From PD')
+                    ->boolean()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 IconColumn::make('is_featured')
                     ->boolean()
             ->toggleable(isToggledHiddenByDefault: true),
@@ -379,6 +392,32 @@ class PublicationsTable
                             }
                         });
                     }),
+
+                // Source Tracking Filters
+                TernaryFilter::make('come_from_pd')
+                    ->label('Come From PD')
+                    ->placeholder('All')
+                    ->trueLabel('Yes')
+                    ->falseLabel('No'),
+
+                TernaryFilter::make('come_from_old_site')
+                    ->label('Come From Old Site')
+                    ->placeholder('All')
+                    ->trueLabel('Yes')
+                    ->falseLabel('No'),
+
+                // Whether any internal teacher is linked via publication_authors.
+                // Pair with "Come From PD" to audit the import matching.
+                TernaryFilter::make('internal_teacher_attached')
+                    ->label('Internal Teacher Attached')
+                    ->placeholder('All')
+                    ->trueLabel('Yes — internal teacher linked')
+                    ->falseLabel('No — external authors only')
+                    ->queries(
+                        true: fn (Builder $query): Builder => $query->whereHas('teachers'),
+                        false: fn (Builder $query): Builder => $query->whereDoesntHave('teachers'),
+                        blank: fn (Builder $query): Builder => $query,
+                    ),
 
                 TrashedFilter::make(),
             ],layout: FiltersLayout::Modal)
