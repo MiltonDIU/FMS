@@ -25,6 +25,7 @@ use Filament\Forms\Components\Select;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class TeachersTable
 {
@@ -32,6 +33,17 @@ class TeachersTable
     {
         return $table
             ->selectCurrentPageOnly()
+            ->defaultSort(function (Builder $query, string $direction) {
+                return $query
+                    ->orderBy(
+                        DB::table('designations')
+                            ->whereColumn('designations.id', 'teachers.designation_id')
+                            ->select('designations.sort_order')
+                            ->limit(1),
+                        $direction
+                    )
+                    ->orderBy('teachers.sort_order', $direction);
+            }, 'asc')
             ->modifyQueryUsing(fn (Builder $query) => $query->with([
                 'department',
                 'departments',

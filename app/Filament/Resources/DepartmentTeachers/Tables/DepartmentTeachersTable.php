@@ -11,6 +11,7 @@ use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\TextInputColumn;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
@@ -20,8 +21,10 @@ use Filament\Forms\Set;
 use Filament\Forms\Components\Select;
 use Filament\Tables\Filters\Filter;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 use App\Models\Faculty;
 use App\Models\Department;
+use App\Models\DepartmentTeacher;
 
 class DepartmentTeachersTable
 {
@@ -38,7 +41,27 @@ class DepartmentTeachersTable
         }
 
         return $table
-            ->defaultSort('sort_order', 'asc')
+            ->defaultSort(function (Builder $query, string $direction, $livewire) {
+                $departmentId = $livewire?->getTableFilterState('faculty_department')['department_id'] ?? null;
+
+                // Filtered to one department: honour the manual per-department order.
+                if ($departmentId) {
+                    return $query->orderBy('sort_order', $direction);
+                }
+
+                // Unfiltered (global) list: rank by the teacher's designation first,
+                // falling back to the manual order as a tiebreaker.
+                return $query
+                    ->orderBy(
+                        DB::table('teachers')
+                            ->join('designations', 'designations.id', '=', 'teachers.designation_id')
+                            ->whereColumn('teachers.id', 'department_teacher.teacher_id')
+                            ->select('designations.sort_order')
+                            ->limit(1),
+                        $direction
+                    )
+                    ->orderBy('sort_order', $direction);
+            }, 'asc')
             ->reorderable('sort_order')
             ->columns([
                 TextColumn::make('teacher.employee_id')
@@ -149,9 +172,42 @@ class DepartmentTeachersTable
                     ->color(fn ($record) => $record->teacher?->employmentStatus?->color ?? 'gray')
                     ->toggleable(),
 
-                TextColumn::make('sort_order')
+                TextInputColumn::make('sort_order')
                     ->label('Sort Order')
-                    ->sortable(),
+                    ->type('number')
+                    ->rules(['required', 'integer', 'min:1'])
+                    ->sortable()
+                    ->extraAttributes(['class' => 'dt-sort-order-cell'])
+                    ->updateStateUsing(function ($record, $state) {
+                        $newPosition = max(1, (int) $state);
+                        $oldPosition = $record->sort_order;
+
+                        if ($newPosition === $oldPosition) {
+                            return $oldPosition;
+                        }
+
+                        DB::transaction(function () use ($record, $oldPosition, $newPosition) {
+                            $siblings = DepartmentTeacher::query()
+                                ->where('department_id', $record->department_id)
+                                ->where('id', '!=', $record->id);
+
+                            if ($newPosition > $oldPosition) {
+                                // Moved down the list: everyone in between shifts up by one.
+                                (clone $siblings)
+                                    ->whereBetween('sort_order', [$oldPosition + 1, $newPosition])
+                                    ->decrement('sort_order');
+                            } else {
+                                // Moved up the list: everyone in between shifts down by one.
+                                (clone $siblings)
+                                    ->whereBetween('sort_order', [$newPosition, $oldPosition - 1])
+                                    ->increment('sort_order');
+                            }
+
+                            $record->update(['sort_order' => $newPosition]);
+                        });
+
+                        return $newPosition;
+                    }),
 
                 TextColumn::make('assignedBy.name')
                     ->label('Assigned By')
