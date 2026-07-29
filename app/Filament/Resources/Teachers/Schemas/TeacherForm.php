@@ -25,10 +25,15 @@ class TeacherForm
         return $schema
             ->components([
                 Tabs::make('Teacher Profile')
+                    ->key('teacherProfileTabs')
+                    // Only the active tab's schema is rendered server-side, so the
+                    // heavy repeaters below don't slow the initial profile load.
+                    // Requires HasTeacherProfileTabs on the hosting page.
+                    ->livewireProperty('activeProfileTab')
                     ->vertical()
                     ->extraAttributes(['class' => 'responsive-vertical-tabs'])
                     ->tabs([
-                        Tab::make('Basic Info')
+                        'basic-info' => Tab::make('Basic Info')
                             ->icon('heroicon-o-user')
                             ->schema([
                                 Grid::make(3)->schema([
@@ -156,7 +161,7 @@ class TeacherForm
                                     ->columnSpanFull(),
                             ]),
 
-                        Tab::make('Contact Info')
+                        'contact-info' => Tab::make('Contact Info')
                             ->icon('heroicon-o-map-pin')
                             ->schema([
                                 Grid::make(3)->schema([
@@ -174,7 +179,7 @@ class TeacherForm
                                 ]),
                             ]),
 
-                        Tab::make('Personal Details')
+                        'personal-details' => Tab::make('Personal Details')
                             ->icon('heroicon-o-identification')
                             ->schema([
                                 Grid::make(3)->schema([
@@ -199,15 +204,16 @@ class TeacherForm
                                 ]),
                             ]),
 
-                        Tab::make('Academic Info')
+                        'academic-info' => Tab::make('Academic Info')
                             ->icon('heroicon-o-academic-cap')
                             ->schema([
                                 Textarea::make('research_interest')->rows(2)->columnSpanFull(),
                             ]),
 
-                        Tab::make('Educations')
+                        'educations' => Tab::make('Educations')
                             ->icon('heroicon-o-book-open')
                             ->badge(fn ($record) => $record?->educations()->count())
+                            ->deferBadge()
                             ->schema([
                                 Repeater::make('educations')
                                     ->relationship()
@@ -458,9 +464,10 @@ class TeacherForm
                                     }),
                             ]),
 
-                        Tab::make('Publications')
+                        'publications' => Tab::make('Publications')
                             ->icon('heroicon-o-document-text')
                             ->badge(fn ($record) => $record?->publications()->count())
+                            ->deferBadge()
                             ->schema([
                                 Repeater::make('publications')
                                     ->relationship()
@@ -730,9 +737,10 @@ class TeacherForm
                                     }),
                             ]),
 
-                        Tab::make('Job Experience')
+                        'job-experience' => Tab::make('Job Experience')
                             ->icon('heroicon-o-briefcase')
                             ->badge(fn ($record) => $record?->jobExperiences()->count())
+                            ->deferBadge()
                             ->schema([
                                 Repeater::make('jobExperiences')
                                     ->relationship()
@@ -873,9 +881,10 @@ class TeacherForm
                                     }),
                             ]),
 
-                        Tab::make('Training Experience')
+                        'training-experience' => Tab::make('Training Experience')
                             ->icon('heroicon-o-academic-cap')
                             ->badge(fn ($record) => $record?->trainingExperiences()->count())
+                            ->deferBadge()
                             ->schema([
                                 Repeater::make('trainingExperiences')
                                     ->relationship()
@@ -973,9 +982,10 @@ class TeacherForm
                                     }),
                             ]),
 
-                        Tab::make('Awards')
+                        'awards' => Tab::make('Awards')
                             ->icon('heroicon-o-trophy')
                             ->badge(fn ($record) => $record?->awards()->count())
+                            ->deferBadge()
                             ->schema([
                                 Repeater::make('awards')
                                     ->relationship()
@@ -1073,9 +1083,10 @@ class TeacherForm
                                         }
                                     }),
                             ]),
-                        Tab::make('Skills')
+                        'skills' => Tab::make('Skills')
                             ->icon('heroicon-o-sparkles')
                             ->badge(fn ($record) => $record?->skills()->count())
+                            ->deferBadge()
                             ->schema([
                                 Repeater::make('skills')
                                     ->relationship(
@@ -1131,9 +1142,10 @@ class TeacherForm
                                     }),
                             ]),
 
-                        Tab::make('Teaching Areas')
+                        'teaching-areas' => Tab::make('Teaching Areas')
                             ->icon('heroicon-o-presentation-chart-line')
                             ->badge(fn ($record) => $record?->teachingAreas()->count())
+                            ->deferBadge()
                             ->schema([
                                 Repeater::make('teachingAreas')
                                     ->relationship()
@@ -1172,9 +1184,10 @@ class TeacherForm
                                     }),
                             ]),
 
-                        Tab::make('Memberships')
+                        'memberships' => Tab::make('Memberships')
                             ->icon('heroicon-o-building-office-2')
                             ->badge(fn ($record) => $record?->memberships()->count())
+                            ->deferBadge()
                             ->schema([
                                 Repeater::make('memberships')
                                     ->relationship()
@@ -1289,9 +1302,10 @@ class TeacherForm
                                     }),
                             ]),
 
-                        Tab::make('Social Links')
+                        'social-links' => Tab::make('Social Links')
                             ->icon('heroicon-o-link')
                             ->badge(fn ($record) => $record?->socialLinks()->count())
+                            ->deferBadge()
                             ->schema([
                                 Repeater::make('socialLinks')
                                     ->relationship()
@@ -1373,7 +1387,7 @@ class TeacherForm
                                     }),
                             ]),
 
-                        Tab::make('Documents')
+                        'documents' => Tab::make('Documents')
                             ->icon('heroicon-o-document-duplicate')
                             ->schema([
                                 Section::make('Documents & Certificates')
@@ -1386,7 +1400,7 @@ class TeacherForm
                                     ])->collapsed(),
                             ]),
 
-                        Tab::make('Settings')
+                        'settings' => Tab::make('Settings')
                             ->icon('heroicon-o-cog-6-tooth')
                             ->schema([
                                 Grid::make(3)->schema([
