@@ -164,8 +164,15 @@ class PublicationForm
                             ->options(['draft' => 'Draft', 'pending' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected'])
                             ->default('draft')
                             ->required(),
+                        Select::make('created_by')
+                            ->label('Created By')
+                            ->relationship('creator', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->nullable()
+                            ->placeholder('System Generated'),
                        TextInput::make('sort_order')->numeric()->default(0),
-                    ])->columns(4),
+                    ])->columns(5),
                     ]),
             ]);
     }

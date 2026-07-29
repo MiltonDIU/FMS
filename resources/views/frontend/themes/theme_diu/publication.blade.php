@@ -92,6 +92,10 @@
                         <p class="text-xs font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md inline-block mt-1">{{ $publication->research_area }}</p>
                     </div>
                 @endif
+                <div>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase">Created By</p>
+                    <p class="font-semibold text-slate-800 mt-1 leading-tight">{{ $publication->created_by_name }}</p>
+                </div>
             </div>
 
             <!-- Abstract Section -->

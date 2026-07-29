@@ -60,7 +60,7 @@ class TeacherController extends Controller
                 'educations.degreeLevel',
                 'educations.degreeType',
                 'educations.resultType',
-                'publications',
+                'publications.creator',
                 'trainingExperiences',
                 'certifications',
                 'skills',

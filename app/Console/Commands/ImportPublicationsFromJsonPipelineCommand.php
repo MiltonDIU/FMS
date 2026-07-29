@@ -142,6 +142,7 @@ class ImportPublicationsFromJsonPipelineCommand extends Command
                     'sort_order' => isset($pub['sort_order']) ? (int)$pub['sort_order'] : 1,
                     'come_from_old_site' => $comeFromOldSite,
                     'come_from_pd' => $comeFromPd,
+                    'created_by' => $pub['created_by_id'] ?? $pub['created_by'] ?? null,
                 ];
 
                 if ($existingPub) {

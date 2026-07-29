@@ -47,27 +47,136 @@ class PublicationIncentivesTable
                         'paid' => 'success',
                         default => 'gray',
                     }),
-                TextColumn::make('authors_count')
+                TextColumn::make('authors_list')
                     ->label('Authors')
-                    ->state(fn($record) => $record->publication->teachers()->count()),
-                TextColumn::make('creator.name')
+                    ->state(function ($record) {
+                        if (! $record->publication) {
+                            return '—';
+                        }
+
+                        $pivots = \DB::table('publication_authors')
+                            ->where('publication_id', $record->publication_id)
+                            ->get();
+
+                        if ($pivots->isEmpty()) {
+                            return '—';
+                        }
+
+                        $teacherIds = $pivots->where('authorable_type', \App\Models\Teacher::class)->pluck('authorable_id');
+                        $authorIds = $pivots->where('authorable_type', \App\Models\Author::class)->pluck('authorable_id');
+
+                        $teachers = \App\Models\Teacher::whereIn('id', $teacherIds)->get()->keyBy('id');
+                        $authors = \App\Models\Author::whereIn('id', $authorIds)->get()->keyBy('id');
+
+                        return $pivots->map(function ($pivot) use ($teachers, $authors) {
+                            $name = 'Unknown';
+                            $details = '';
+
+                            if ($pivot->authorable_type === \App\Models\Teacher::class) {
+                                $model = $teachers->get($pivot->authorable_id);
+                                if ($model) {
+                                    $name = trim("{$model->first_name} {$model->middle_name} {$model->last_name}");
+                                    $details = "ID: {$model->employee_id}";
+                                    if ($model->phone) {
+                                        $details .= " | PH: {$model->phone}";
+                                    }
+                                }
+                            } elseif ($pivot->authorable_type === \App\Models\Author::class) {
+                                $model = $authors->get($pivot->authorable_id);
+                                if ($model) {
+                                    $name = $model->name;
+                                    $details = "Email: {$model->email}";
+                                }
+                            }
+
+                            $role = $pivot->author_role;
+                            $order = $pivot->sort_order;
+
+                            $rolePriority = match ($role) {
+                                'first' => 1,
+                                'corresponding' => 2,
+                                default => 3,
+                            };
+
+                            $roleLabel = match ($role) {
+                                'first' => 'First Author',
+                                'corresponding' => 'Corresponding',
+                                'co_author' => 'Co-Author',
+                                default => ucfirst($role),
+                            };
+
+                            $style = $role === 'first' ? 'font-weight: bold;' : '';
+
+                            $incentiveAmount = (float) ($pivot->incentive_amount ?? 0);
+                            $incentiveBadge = $incentiveAmount > 0 
+                                ? " <span style='font-weight: 600; color: #059669;'>(৳" . number_format($incentiveAmount, 2) . ")</span>" 
+                                : '';
+
+                            return [
+                                'priority' => sprintf('%d-%04d', $rolePriority, $order),
+                                'html' => "
+                                    <div style='margin-bottom: 4px;'>
+                                        <span style='{$style}'>{$name}</span>{$incentiveBadge}
+                                        <span class='text-gray-500 text-xs'>({$roleLabel})</span>
+                                        <div class='text-xs text-gray-400'>{$details}</div>
+                                    </div>
+                                "
+                            ];
+                        })->sortBy('priority')->pluck('html')->implode('');
+                    })
+                    ->html()
+                    ->searchable(query: function (\Illuminate\Database\Eloquent\Builder $query, string $search): \Illuminate\Database\Eloquent\Builder {
+                         return $query->whereHas('publication', function ($pq) use ($search) {
+                             $pq->whereHas('teachers', function ($sq) use ($search) {
+                                 $sq->where('first_name', 'like', "%{$search}%")
+                                    ->orWhere('middle_name', 'like', "%{$search}%")
+                                    ->orWhere('last_name', 'like', "%{$search}%")
+                                    ->orWhere('employee_id', 'like', "%{$search}%")
+                                    ->orWhere('phone', 'like', "%{$search}%");
+                             })->orWhereHas('externalAuthors', function ($sq) use ($search) {
+                                 $sq->where('name', 'like', "%{$search}%")
+                                    ->orWhere('email', 'like', "%{$search}%");
+                             });
+                         });
+                    }),
+                TextColumn::make('creator_name')
                     ->label('Created By')
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('approver.name')
+                    ->state(fn($record) => $record->creator?->name ?? 'System Generated')
+                    ->sortable(query: fn($query, $direction) => $query->orderBy('created_by', $direction))
+                    ->toggleable(),
+                TextColumn::make('approver_name')
                     ->label('Approved By')
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('approved_at')
-                    ->label('Approved At')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('paid_at')
-                    ->label('Paid At')
-                    ->dateTime()
-                    ->sortable()
+                    ->state(function ($record) {
+                        if ($record->approver) {
+                            return $record->approver->name;
+                        }
+                        return match ($record->status) {
+                            'approved', 'paid' => 'System Approved',
+                            'pending' => 'Pending Approval',
+                            default => '—',
+                        };
+                    })
+                    ->description(fn($record) => $record->approved_at ? $record->approved_at->format('M d, Y h:i A') : null)
+                    ->sortable(query: fn($query, $direction) => $query->orderBy('approved_by', $direction))
+                    ->toggleable(),
+                TextColumn::make('payer_name')
+                    ->label('Paid By')
+                    ->state(function ($record) {
+                        if ($record->payer) {
+                            return $record->payer->name;
+                        }
+                        return match ($record->status) {
+                            'paid' => 'System Paid',
+                            'approved' => 'Awaiting Payment',
+                            'pending' => 'Not Paid Yet',
+                            default => '—',
+                        };
+                    })
+                    ->description(fn($record) => $record->paid_at ? $record->paid_at->format('M d, Y h:i A') : null)
+                    ->sortable(query: fn($query, $direction) => $query->orderBy('paid_by', $direction))
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('created_at')
-                    ->label('Created')
+                    ->label('Created At')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -75,13 +184,43 @@ class PublicationIncentivesTable
             ->recordActions([
                 ViewAction::make()
                     ->mutateRecordDataUsing(function (array $data, \App\Models\PublicationIncentive $record): array {
-                        $data['author_incentives'] = $record->publication->teachers
-                            ->sortBy('pivot.sort_order')
-                            ->map(fn($t) => [
-                                'teacher_id' => $t->id,
-                                'author_role' => $t->pivot->author_role,
-                                'incentive_amount' => $t->pivot->incentive_amount ?? 0,
-                            ])->toArray();
+                        $publication = $record->publication;
+                        if ($publication) {
+                            $pivots = \DB::table('publication_authors')
+                                ->where('publication_id', $publication->id)
+                                ->get();
+
+                            $teacherIds = $pivots->where('authorable_type', \App\Models\Teacher::class)->pluck('authorable_id');
+                            $authorIds = $pivots->where('authorable_type', \App\Models\Author::class)->pluck('authorable_id');
+
+                            $teachers = \App\Models\Teacher::whereIn('id', $teacherIds)->get()->keyBy('id');
+                            $authors = \App\Models\Author::whereIn('id', $authorIds)->get()->keyBy('id');
+
+                            $data['author_incentives'] = $pivots->map(function ($pivot) use ($teachers, $authors) {
+                                $name = 'Unknown';
+                                if ($pivot->authorable_type === \App\Models\Teacher::class) {
+                                    $model = $teachers->get($pivot->authorable_id);
+                                    $name = $model ? trim("{$model->first_name} {$model->middle_name} {$model->last_name}") : 'Unknown';
+                                } elseif ($pivot->authorable_type === \App\Models\Author::class) {
+                                    $model = $authors->get($pivot->authorable_id);
+                                    $name = $model ? $model->name : 'Unknown';
+                                }
+
+                                $rolePriority = match ($pivot->author_role) {
+                                    'first' => 1,
+                                    'corresponding' => 2,
+                                    default => 3,
+                                };
+
+                                return [
+                                    'id' => $pivot->id,
+                                    'author_name' => $name,
+                                    'author_role' => $pivot->author_role,
+                                    'incentive_amount' => $pivot->incentive_amount ?? 0,
+                                    'priority' => sprintf('%d-%04d', $rolePriority, $pivot->sort_order),
+                                ];
+                            })->sortBy('priority')->values()->toArray();
+                        }
                         return $data;
                     }),
                 EditAction::make(),

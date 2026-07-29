@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 class Publication extends Model
@@ -20,6 +21,12 @@ class Publication extends Model
         static::saving(function (Publication $publication) {
             if (empty($publication->slug) || $publication->isDirty('title')) {
                 $publication->slug = Str::slug((string) $publication->title) ?: 'publication';
+            }
+        });
+
+        static::creating(function (Publication $publication) {
+            if (Auth::check() && empty($publication->created_by)) {
+                $publication->created_by = Auth::id();
             }
         });
     }
@@ -50,6 +57,7 @@ class Publication extends Model
         'sort_order',
         'come_from_old_site',
         'come_from_pd',
+        'created_by',
     ];
 
     public function faculty(): BelongsTo
@@ -126,6 +134,22 @@ class Publication extends Model
     public function collaboration(): BelongsTo
     {
         return $this->belongsTo(ResearchCollaboration::class, 'research_collaboration_id');
+    }
+
+    /**
+     * Get the user who created this publication.
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Get creator name or fallback.
+     */
+    public function getCreatedByNameAttribute(): string
+    {
+        return $this->creator?->name ?? 'System Generated';
     }
 
     /**

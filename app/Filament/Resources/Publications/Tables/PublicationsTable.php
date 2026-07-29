@@ -177,6 +177,11 @@ class PublicationsTable
                         'approved' => 'success',
                         'rejected' => 'danger',
                     }),
+                TextColumn::make('creator.name')
+                    ->label('Created By')
+                    ->default('System Generated')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('teachers_count')
                     ->label('Internal Teachers')
                     ->counts('teachers')
