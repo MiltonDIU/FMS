@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Teachers\Pages;
 
+use App\Filament\Concerns\HasWindowedRepeaters;
 use App\Filament\Resources\Teachers\TeacherResource;
 use App\Filament\Widgets\TeacherProfessionalInfoWidget;
 use App\Filament\Widgets\TeacherProfileCompletionWidget;
@@ -14,6 +15,8 @@ use Filament\Resources\Pages\ViewRecord;
 
 class ViewTeacher extends ViewRecord
 {
+    use HasWindowedRepeaters;
+
     protected static string $resource = TeacherResource::class;
 
     protected function getHeaderActions(): array

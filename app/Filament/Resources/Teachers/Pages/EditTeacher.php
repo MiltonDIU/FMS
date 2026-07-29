@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Teachers\Pages;
 
+use App\Filament\Concerns\HasWindowedRepeaters;
 use App\Filament\Resources\Teachers\TeacherResource;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
@@ -10,6 +11,8 @@ use Filament\Resources\Pages\EditRecord;
 
 class EditTeacher extends EditRecord
 {
+    use HasWindowedRepeaters;
+
     protected static string $resource = TeacherResource::class;
 
     protected function getHeaderActions(): array

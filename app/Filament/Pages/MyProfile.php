@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Concerns\HasWindowedRepeaters;
 use App\Filament\Resources\Teachers\Schemas\TeacherForm;
 use App\Models\Teacher;
 use Filament\Actions\Action;
@@ -15,6 +16,8 @@ use Filament\Support\Icons\Heroicon;
 
 class MyProfile extends Page
 {
+    use HasWindowedRepeaters;
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserCircle;
 
     protected string $view = 'filament.pages.my-profile';

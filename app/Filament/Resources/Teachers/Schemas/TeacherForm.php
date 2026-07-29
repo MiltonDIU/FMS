@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Teachers\Schemas;
 
+use Closure;
+use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
@@ -11,6 +13,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\Placeholder;
+use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
@@ -20,6 +23,104 @@ use Filament\Schemas\Schema;
 
 class TeacherForm
 {
+    /**
+     * How many rows each windowed repeater loads at a time — first page and every
+     * "Load more" click alike. Tune a repeater by changing its number here, or add
+     * a relation to the list to start windowing it.
+     *
+     * @var array<string, int>
+     */
+    protected const WINDOWS = [
+        'publications' => 10,
+        'trainingExperiences' => 10,
+        'teachingAreas' => 30,
+    ];
+
+    /**
+     * Per-request memo of relationship counts, so the "Load more" buttons don't
+     * re-count on every render.
+     *
+     * @var array<string, int>
+     */
+    protected static array $relationCounts = [];
+
+    protected static function windowSize(string $relation): int
+    {
+        return static::WINDOWS[$relation] ?? 10;
+    }
+
+    /**
+     * Loads a repeater's relationship only up to the page's current window, so a
+     * teacher with hundreds of publications doesn't render them all on page load.
+     * Pages opt in through App\Filament\Concerns\HasWindowedRepeaters.
+     */
+    protected static function window(string $relation, ?Closure $modifyQueryUsing = null): Closure
+    {
+        return function ($query, $livewire) use ($relation, $modifyQueryUsing) {
+            if ($modifyQueryUsing) {
+                $query = $modifyQueryUsing($query) ?? $query;
+            }
+
+            if (! method_exists($livewire, 'getRepeaterWindow')) {
+                return $query;
+            }
+
+            $limit = $livewire->getRepeaterWindow($relation, static::windowSize($relation));
+
+            return $limit > 0 ? $query->limit($limit) : $query;
+        };
+    }
+
+    /**
+     * The button that pulls in the rows the window left behind.
+     */
+    protected static function loadMore(string $relation, string $label): Actions
+    {
+        return Actions::make([
+            Action::make("loadMore_{$relation}")
+                ->label(fn ($record, $livewire): string => 'Load ' . static::remainingCount($record, $relation, $livewire) . ' more ' . $label)
+                ->icon('heroicon-m-chevron-down')
+                ->link()
+                ->visible(fn ($record, $livewire): bool => static::remainingCount($record, $relation, $livewire) > 0)
+                ->action(fn ($livewire) => $livewire->loadMoreRepeaterItems($relation, static::windowSize($relation))),
+        ])->alignCenter();
+    }
+
+    protected static function remainingCount($record, string $relation, $livewire): int
+    {
+        if (! $record?->exists || ! method_exists($livewire, 'getRepeaterWindow')) {
+            return 0;
+        }
+
+        $window = $livewire->getRepeaterWindow($relation, static::windowSize($relation));
+
+        if ($window <= 0) {
+            return 0;
+        }
+
+        $total = static::$relationCounts["{$record->getKey()}:{$relation}"] ??= $record->{$relation}()->count();
+
+        return max(0, $total - $window);
+    }
+
+    /**
+     * The rows the user actually removed: only ever rows that were loaded into
+     * the form. Rows still outside the window are left alone.
+     *
+     * @param  array<mixed>|null  $state
+     * @return array<int>
+     */
+    protected static function removedIds(Repeater $component, ?array $state): array
+    {
+        $loaded = $component->getCachedExistingRecords()
+            ->map(fn ($record) => $record->getKey())
+            ->all();
+
+        $kept = collect($state ?? [])->pluck('id')->filter()->all();
+
+        return array_values(array_diff($loaded, $kept));
+    }
+
     public static function configure(Schema $schema, bool $isOwnProfile = false): Schema
     {
         return $schema
@@ -463,7 +564,7 @@ class TeacherForm
                             ->badge(fn ($record) => $record?->publications()->count())
                             ->schema([
                                 Repeater::make('publications')
-                                    ->relationship()
+                                    ->relationship(modifyQueryUsing: static::window('publications'))
                                     ->itemLabel(fn (array $state): ?string => $state['title'] ?? null)
                                     ->schema([
                                         \Filament\Schemas\Components\Group::make()
@@ -602,7 +703,7 @@ class TeacherForm
                                                             ->helperText(function () {
                                                                 $user = auth()->user();
                                                                 if (!$user) return null;
-                                                                $isTeacherOnly = ($user->hasRole('teacher') || $user->isTeacher()) 
+                                                                $isTeacherOnly = ($user->hasRole('teacher') || $user->isTeacher())
                                                                     && !$user->hasRole(['super_admin', 'admin', 'registrar', 'dean', 'head', 'research_team'])
                                                                     && !$user->administrativeRoles()->where('administrative_role_user.is_active', true)->exists();
                                                                 return $isTeacherOnly ? 'Featured status can only be set by administrators or role managers.' : null;
@@ -620,9 +721,9 @@ class TeacherForm
                                     ->deletable(true)
                                     ->addable(true)
                                     ->saveRelationshipsUsing(function (Repeater $component, $state, $record) {
-                                        // Delete removed items - use table qualified ID for MorphToMany
-                                        $existingIds = collect($state)->pluck('id')->filter()->toArray();
-                                        $record->publications()->whereNotIn('publications.id', $existingIds)->delete();
+                                        // Delete removed items - only ever rows that were loaded into the
+                                        // form, so publications outside the window are left untouched.
+                                        $record->publications()->whereIn('publications.id', static::removedIds($component, $state))->delete();
 
                                         $sortOrder = 0;
                                         foreach ($state ?? [] as $item) {
@@ -728,6 +829,7 @@ class TeacherForm
                                             }
                                         }
                                     }),
+                                static::loadMore('publications', 'publications'),
                             ]),
 
                         Tab::make('Job Experience')
@@ -878,7 +980,7 @@ class TeacherForm
                             ->badge(fn ($record) => $record?->trainingExperiences()->count())
                             ->schema([
                                 Repeater::make('trainingExperiences')
-                                    ->relationship()
+                                    ->relationship(modifyQueryUsing: static::window('trainingExperiences'))
                                     ->itemLabel(fn (array $state): ?string => $state['title'] ?? null)
                                     ->schema([
                                         TextInput::make('title')->required(),
@@ -942,8 +1044,7 @@ class TeacherForm
                                     ->deletable(true)
                                     ->addable(true)
                                     ->saveRelationshipsUsing(function (Repeater $component, $state, $record) {
-                                        $existingIds = collect($state)->pluck('id')->filter()->toArray();
-                                        $record->trainingExperiences()->whereNotIn('id', $existingIds)->delete();
+                                        $record->trainingExperiences()->whereIn('id', static::removedIds($component, $state))->delete();
 
                                         $sortOrder = 0;
                                         foreach ($state ?? [] as $item) {
@@ -971,6 +1072,7 @@ class TeacherForm
                                             }
                                         }
                                     }),
+                                static::loadMore('trainingExperiences', 'trainings'),
                             ]),
 
                         Tab::make('Awards')
@@ -1136,7 +1238,7 @@ class TeacherForm
                             ->badge(fn ($record) => $record?->teachingAreas()->count())
                             ->schema([
                                 Repeater::make('teachingAreas')
-                                    ->relationship()
+                                    ->relationship(modifyQueryUsing: static::window('teachingAreas'))
                                     ->itemLabel(fn (array $state): ?string => $state['area'] ?? null)
                                     ->schema([
                                         TextInput::make('area')
@@ -1153,8 +1255,7 @@ class TeacherForm
                                     ->deletable(true)
                                     ->addable(true)
                                     ->saveRelationshipsUsing(function (Repeater $component, $state, $record) {
-                                        $existingIds = collect($state)->pluck('id')->filter()->toArray();
-                                        $record->teachingAreas()->whereNotIn('id', $existingIds)->delete();
+                                        $record->teachingAreas()->whereIn('id', static::removedIds($component, $state))->delete();
 
                                         $sortOrder = 0;
                                         foreach ($state ?? [] as $item) {
@@ -1170,6 +1271,7 @@ class TeacherForm
                                             }
                                         }
                                     }),
+                                static::loadMore('teachingAreas', 'teaching areas'),
                             ]),
 
                         Tab::make('Memberships')

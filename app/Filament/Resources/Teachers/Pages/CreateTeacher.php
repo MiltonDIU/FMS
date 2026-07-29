@@ -2,12 +2,15 @@
 
 namespace App\Filament\Resources\Teachers\Pages;
 
+use App\Filament\Concerns\HasWindowedRepeaters;
 use App\Filament\Resources\Teachers\TeacherResource;
 use Filament\Resources\Pages\CreateRecord;
 use Livewire\Attributes\On;
 
 class CreateTeacher extends CreateRecord
 {
+    use HasWindowedRepeaters;
+
     protected static string $resource = TeacherResource::class;
 
     /**
