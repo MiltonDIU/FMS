@@ -4,20 +4,33 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
-use Illuminate\Foundation\Auth\User as AuthUser;
 use App\Models\Teacher;
 use Illuminate\Auth\Access\HandlesAuthorization;
+use Illuminate\Foundation\Auth\User as AuthUser;
 
 class TeacherPolicy
 {
     use HandlesAuthorization;
-    
+
+    /**
+     * Perform pre-authorization checks.
+     * Super Admin role automatically bypasses all permission checks.
+     */
+    public function before(AuthUser $authUser, string $ability): ?bool
+    {
+        if ($authUser->hasRole('super_admin')) {
+            return true;
+        }
+
+        return null;
+    }
+
     public function viewAny(AuthUser $authUser): bool
     {
         return $authUser->can('ViewAny:Teacher');
     }
 
-    public function view(AuthUser $authUser, Teacher $teacher): bool
+    public function view(AuthUser $authUser, ?Teacher $teacher = null): bool
     {
         return $authUser->can('View:Teacher');
     }
@@ -27,22 +40,27 @@ class TeacherPolicy
         return $authUser->can('Create:Teacher');
     }
 
-    public function update(AuthUser $authUser, Teacher $teacher): bool
+    public function update(AuthUser $authUser, ?Teacher $teacher = null): bool
     {
         return $authUser->can('Update:Teacher');
     }
 
-    public function delete(AuthUser $authUser, Teacher $teacher): bool
+    public function delete(AuthUser $authUser, ?Teacher $teacher = null): bool
     {
         return $authUser->can('Delete:Teacher');
     }
 
-    public function restore(AuthUser $authUser, Teacher $teacher): bool
+    public function deleteAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('DeleteAny:Teacher');
+    }
+
+    public function restore(AuthUser $authUser, ?Teacher $teacher = null): bool
     {
         return $authUser->can('Restore:Teacher');
     }
 
-    public function forceDelete(AuthUser $authUser, Teacher $teacher): bool
+    public function forceDelete(AuthUser $authUser, ?Teacher $teacher = null): bool
     {
         return $authUser->can('ForceDelete:Teacher');
     }
@@ -57,7 +75,7 @@ class TeacherPolicy
         return $authUser->can('RestoreAny:Teacher');
     }
 
-    public function replicate(AuthUser $authUser, Teacher $teacher): bool
+    public function replicate(AuthUser $authUser, ?Teacher $teacher = null): bool
     {
         return $authUser->can('Replicate:Teacher');
     }
@@ -67,4 +85,41 @@ class TeacherPolicy
         return $authUser->can('Reorder:Teacher');
     }
 
+    /**
+     * Custom Policy Abilities for Teacher Resource actions (Strict 1-to-1 permission checks)
+     */
+    public function batchCalculateProfileScores(AuthUser $authUser): bool
+    {
+        return $authUser->can('BatchCalculateProfileScores:Teacher');
+    }
+
+    public function syncProfileScore(AuthUser $authUser, ?Teacher $teacher = null): bool
+    {
+        return $authUser->can('SyncProfileScore:Teacher');
+    }
+
+    public function bulkSendEmailToTeachers(AuthUser $authUser): bool
+    {
+        return $authUser->can('BulkSendEmailToTeachers:Teacher');
+    }
+
+    public function sendTeacherEmail(AuthUser $authUser, ?Teacher $teacher = null): bool
+    {
+        return $authUser->can('SendTeacherEmail:Teacher');
+    }
+
+    public function importErp(AuthUser $authUser, ?Teacher $teacher = null): bool
+    {
+        return $authUser->can('ImportErp:Teacher');
+    }
+
+    public function viewDashboard(AuthUser $authUser, ?Teacher $teacher = null): bool
+    {
+        return $authUser->can('ViewDashboard:Teacher');
+    }
+
+    public function toggleLoginAllowed(AuthUser $authUser, ?Teacher $teacher = null): bool
+    {
+        return $authUser->can('ToggleLoginAllowed:Teacher');
+    }
 }

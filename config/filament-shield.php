@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 return [
 
     /*
@@ -23,7 +21,7 @@ return [
             'pages' => true,
             'widgets' => true,
             'resources' => true,
-            'custom_permissions' => false,
+            'custom_permissions' => true,
         ],
     ],
 
@@ -172,6 +170,14 @@ return [
                 'update',
                 'delete',
             ],
+            \App\Filament\Resources\Teachers\TeacherResource::class => [
+                'viewAny',
+                'view',
+                'create',
+                'update',
+                'delete',
+                'deleteAny',
+            ],
         ],
         'exclude' => [
             //
@@ -228,7 +234,15 @@ return [
     |
     */
 
-    'custom_permissions' => [],
+    'custom_permissions' => [
+        'BatchCalculateProfileScores:Teacher',
+        'SyncProfileScore:Teacher',
+        'BulkSendEmailToTeachers:Teacher',
+        'SendTeacherEmail:Teacher',
+        'ImportErp:Teacher',
+        'ViewDashboard:Teacher',
+        'ToggleLoginAllowed:Teacher',
+    ],
 
     /*
     |--------------------------------------------------------------------------

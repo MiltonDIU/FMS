@@ -32,10 +32,66 @@ class TeacherResource extends Resource
             return false;
         }
 
-        if ($user->hasRole(['super_admin', 'admin', 'dean', 'head', 'registrar'])) {
+        if ($user->hasRole('super_admin')) {
             return true;
         }
 
+        return $user->can('ViewAny:Teacher');
+    }
+
+    public static function canCreate(): bool
+    {
+        $user = auth()->user();
+        if (!$user) return false;
+        if ($user->hasRole('super_admin')) return true;
+        return $user->can('Create:Teacher');
+    }
+
+    public static function canEdit($record): bool
+    {
+        $user = auth()->user();
+        if (!$user) return false;
+        if ($user->hasRole('super_admin')) return true;
+        return $user->can('Update:Teacher');
+    }
+
+    public static function canDelete($record): bool
+    {
+        $user = auth()->user();
+        if (!$user) return false;
+        if ($user->hasRole('super_admin')) return true;
+        return $user->can('Delete:Teacher');
+    }
+
+    public static function canForceDelete($record): bool
+    {
+        $user = auth()->user();
+        if (!$user) return false;
+        if ($user->hasRole('super_admin')) return true;
+        return $user->can('ForceDelete:Teacher');
+    }
+
+    public static function canRestore($record): bool
+    {
+        $user = auth()->user();
+        if (!$user) return false;
+        if ($user->hasRole('super_admin')) return true;
+        return $user->can('Restore:Teacher');
+    }
+
+    public static function canView($record): bool
+    {
+        $user = auth()->user();
+        if (!$user) return false;
+        if ($user->hasRole('super_admin')) return true;
+        return $user->can('View:Teacher');
+    }
+
+    public static function canViewAny(): bool
+    {
+        $user = auth()->user();
+        if (!$user) return false;
+        if ($user->hasRole('super_admin')) return true;
         return $user->can('ViewAny:Teacher');
     }
 
@@ -80,7 +136,7 @@ class TeacherResource extends Resource
             /** @var \App\Models\User $user */
             $user = auth()->user();
 
-            if ($user->hasRole(['super_admin', 'admin'])) {
+            if ($user->hasRole('super_admin')) {
                 return $query;
             }
 

@@ -225,7 +225,10 @@ class TeachersTable
                 \Filament\Tables\Columns\ToggleColumn::make('login_allowed')
                     ->label('Login Allowed')
                     ->disabled(function (Teacher $record) {
-                        // Check if teacher's employment status allows login
+                        $user = auth()->user();
+                        if ($user && !$user->can('toggleLoginAllowed', $record)) {
+                            return true;
+                        }
                         $status = $record->employmentStatus;
                         if ($status && !$status->allow_login) {
                             return true;
@@ -388,6 +391,7 @@ class TeachersTable
                     ->label('Send Email')
                     ->icon('heroicon-o-envelope')
                     ->color('info')
+                    ->visible(fn (Teacher $record): bool => auth()->user()?->can('sendTeacherEmail', $record) ?? false)
                     ->modalHeading(fn (Teacher $record) => "Send Email to {$record->full_name}")
                     ->modalDescription(fn (Teacher $record) => "Select a saved template or customize the email content for {$record->full_name}.")
                     ->form([
@@ -432,6 +436,7 @@ class TeachersTable
                 \Filament\Actions\Action::make('dashboard')
                     ->label('Dashboard')
                     ->icon('heroicon-o-presentation-chart-line')
+                    ->visible(fn (Teacher $record): bool => auth()->user()?->can('viewDashboard', $record) ?? false)
                     ->url(fn (Teacher $record) => \App\Filament\Pages\TeacherDashboard::getUrl(['teacher' => $record->id]))
                     ->openUrlInNewTab(false),
 
@@ -441,6 +446,7 @@ class TeachersTable
                     ->icon('heroicon-o-arrow-path')
                     ->color('success')
                     ->tooltip('Recalculate and save profile completion score')
+                    ->visible(fn (Teacher $record): bool => auth()->user()?->can('syncProfileScore', $record) ?? false)
                     ->requiresConfirmation(false)
                     ->action(function (Teacher $record) {
                         try {
@@ -485,6 +491,7 @@ class TeachersTable
                     ->label('Sync Old Data')
                     ->icon('heroicon-o-arrow-path')
                     ->color('warning')
+                    ->visible(fn (Teacher $record): bool => auth()->user()?->can('importErp', $record) ?? false)
                     ->modalHeading('Sync Teacher Data from Old DB')
                     ->modalDescription(fn (Teacher $record) => "Are you sure you want to sync data for {$record->full_name} (ID: {$record->employee_id}) from the old database?")
                     ->form(function (Teacher $record) {
@@ -539,6 +546,7 @@ class TeachersTable
                         ->label('Send Email to Selected')
                         ->icon('heroicon-o-paper-airplane')
                         ->color('success')
+                        ->visible(fn (): bool => auth()->user()?->can('bulkSendEmailToTeachers', Teacher::class) ?? false)
                         ->modalHeading('Send Email to Selected Teachers')
                         ->modalDescription('Select a saved email template or write custom content to send to selected teachers.')
                         ->form([
@@ -590,6 +598,7 @@ class TeachersTable
                         ->label('Sync Selected Scores')
                         ->icon('heroicon-o-calculator')
                         ->color('info')
+                        ->visible(fn (): bool => auth()->user()?->can('syncProfileScore', Teacher::class) ?? false)
                         ->requiresConfirmation()
                         ->modalHeading('Sync Profile Scores for Selected Teachers')
                         ->modalDescription('Recalculate and save profile completion scores for the selected teachers.')

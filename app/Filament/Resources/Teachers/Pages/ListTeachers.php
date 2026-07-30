@@ -4,7 +4,6 @@ namespace App\Filament\Resources\Teachers\Pages;
 
 use App\Filament\Resources\Teachers\TeacherResource;
 use App\Filament\Resources\Teachers\Widgets\TeacherVerificationStatsWidget;
-use App\Jobs\SendTeacherVerificationEmailJob;
 use App\Models\Teacher;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
@@ -29,6 +28,7 @@ class ListTeachers extends ListRecords
                 ->label('Batch Calculate Profile Scores')
                 ->icon('heroicon-o-calculator')
                 ->color('info')
+                ->visible(fn (): bool => auth()->user()?->can('batchCalculateProfileScores', Teacher::class) ?? false)
                 ->modalHeading('Batch Recalculate Teacher Profile Scores')
                 ->modalDescription('Calculate and save updated profile completion scores for selected teachers based on current criteria.')
                 ->form([
@@ -47,12 +47,10 @@ class ListTeachers extends ListRecords
                 ->action(function (array $data) {
                     $query = Teacher::query()->where('is_archived', false);
 
-                    // Employment Status filter
                     if (!empty($data['employment_status_id'])) {
                         $query->where('employment_status_id', $data['employment_status_id']);
                     }
 
-                    // Force resync check
                     if (empty($data['force_resync'])) {
                         $query->where(function ($q) {
                             $q->whereNull('profile_score_synced_at')
@@ -132,10 +130,12 @@ class ListTeachers extends ListRecords
                         ->body("Successfully recalculated and updated profile scores for {$processed} teachers.")
                         ->send();
                 }),
+
             Action::make('send_targeted_email')
                 ->label('Send Email to Teachers')
                 ->icon('heroicon-o-paper-airplane')
                 ->color('success')
+                ->visible(fn (): bool => auth()->user()?->can('bulkSendEmailToTeachers', Teacher::class) ?? false)
                 ->modalHeading('Send Targeted Email to Teachers')
                 ->modalDescription('Filter teachers by employment status, select a saved email template or write custom content, and send.')
                 ->form([
@@ -210,6 +210,7 @@ class ListTeachers extends ListRecords
                         ->success()
                         ->send();
                 }),
+
             CreateAction::make(),
         ];
     }
