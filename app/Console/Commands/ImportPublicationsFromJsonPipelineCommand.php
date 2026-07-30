@@ -134,7 +134,7 @@ class ImportPublicationsFromJsonPipelineCommand extends Command
                     'h_index' => $this->extractInt($pub['h_index'] ?? null),
                     'citescore' => $this->extractFloat($pub['citescore'] ?? null),
                     'impact_factor' => $this->extractFloat($pub['impact_factor'] ?? null),
-                    'student_involvement' => (bool)($pub['student_involvement'] ?? false),
+                    'student_involvement' => (strtolower(trim($pub['student_involvement'] ?? '')) === 'yes'),
                     'keywords' => $pub['keywords'] ?? null,
                     'abstract' => $pub['abstract'] ?? null,
                     'status' => $pub['status'] ?? 'approved',

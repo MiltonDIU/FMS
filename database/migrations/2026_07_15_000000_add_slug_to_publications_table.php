@@ -14,7 +14,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('publications', function (Blueprint $table) {
-            $table->string('slug')->nullable()->after('title')->index();
+            $table->text('slug')->nullable()->after('title')->index();
         });
 
         // Backfill slugs from existing titles (deduplicated per collision).
