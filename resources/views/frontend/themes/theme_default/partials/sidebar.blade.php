@@ -24,7 +24,7 @@
         <div class="space-y-1.5">
             @foreach($faculties as $fac)
                 @php $active = $currentFaculty && strtolower($fac->short_name ?? '') === strtolower($currentFaculty->short_name ?? ''); @endphp
-                <a href="{{ $fac->url }}"
+                <a href="{{ $fac->url }}" wire:navigate
                    class="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold font-sans tracking-tight transition-all flex items-center justify-between {{ $active ? 'bg-diu-primary/15 text-diu-primary shadow-xs' : 'hover:bg-white/40 text-slate-600 hover:text-slate-900' }}">
                     <span class="truncate">{{ $fac->name }}</span>
                     <span class="bg-white/60 text-slate-500 text-[9px] font-bold px-1.5 py-0.5 rounded-sm shrink-0 border border-white/60">{{ $fac->code }}</span>
@@ -48,7 +48,7 @@
                             ? route('department.show', ['faculty_short_name' => strtolower($currentFaculty->short_name), 'department_code' => strtolower($dept->code)])
                             : '#';
                     @endphp
-                    <a href="{{ $deptUrl }}"
+                    <a href="{{ $deptUrl }}" wire:navigate
                        class="w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center justify-between {{ $dActive ? 'bg-diu-accent/15 text-diu-accent font-bold shadow-xs' : 'hover:bg-white/40 text-slate-600 hover:text-slate-900' }}">
                         <span class="truncate">{{ $dept->name }}</span>
                         <svg class="w-3.5 h-3.5 shrink-0 ml-1 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
@@ -70,13 +70,13 @@
                         Administrative Roles
                     </h3>
                     <div class="space-y-1">
-                        <a href="{{ $hasBase ? route($baseRoute, $baseParams) : '#' }}"
+                        <a href="{{ $hasBase ? route($baseRoute, $baseParams) : '#' }}" wire:navigate
                            class="w-full text-left px-3 py-2 rounded-lg text-xs font-medium font-sans transition-all flex items-center gap-2 {{ (!request('admin')) ? 'bg-diu-accent/10 text-diu-accent font-bold border-l-2 border-diu-accent pl-2.5' : 'text-slate-500 hover:text-slate-800 hover:bg-white/30' }}">
                             <div class="w-1.5 h-1.5 rounded-full {{ (!request('admin')) ? 'bg-diu-accent' : 'bg-slate-300' }}"></div>
                             All Roles
                         </a>
                         @foreach($adminRoles as $role)
-                            <a href="{{ $hasBase ? route($baseRoute, $baseParams + ['admin' => $role->id]) : '#' }}"
+                            <a href="{{ $hasBase ? route($baseRoute, $baseParams + ['admin' => $role->id]) : '#' }}" wire:navigate
                                class="w-full text-left px-3 py-2 rounded-lg text-xs font-medium font-sans transition-all flex items-center gap-2 {{ (request('admin') == $role->id) ? 'bg-diu-accent/10 text-diu-accent font-bold border-l-2 border-diu-accent pl-2.5' : 'text-slate-500 hover:text-slate-800 hover:bg-white/30' }}">
                                 <div class="w-1.5 h-1.5 rounded-full bg-diu-accent"></div>
                                 {{ $role->name }}
@@ -96,13 +96,13 @@
                         Academic Designations
                     </h3>
                     <div class="space-y-1">
-                        <a href="{{ $hasBase ? route($baseRoute, $baseParams) : '#' }}"
+                        <a href="{{ $hasBase ? route($baseRoute, $baseParams) : '#' }}" wire:navigate
                            class="w-full text-left px-3 py-2 rounded-lg text-xs font-medium font-sans transition-all flex items-center gap-2 {{ (!request('designation')) ? 'bg-diu-primary/10 text-diu-primary font-bold border-l-2 border-diu-primary pl-2.5' : 'text-slate-500 hover:text-slate-800 hover:bg-white/30' }}">
                             <div class="w-1.5 h-1.5 rounded-full {{ (!request('designation')) ? 'bg-diu-primary' : 'bg-slate-300' }}"></div>
                             All Designations
                         </a>
                         @foreach($designations as $desig)
-                            <a href="{{ $hasBase ? route($baseRoute, $baseParams + ['designation' => $desig->id]) : '#' }}"
+                            <a href="{{ $hasBase ? route($baseRoute, $baseParams + ['designation' => $desig->id]) : '#' }}" wire:navigate
                                class="w-full text-left px-3 py-2 rounded-lg text-xs font-medium font-sans transition-all flex items-center gap-2 {{ (request('designation') == $desig->id) ? 'bg-diu-primary/10 text-diu-primary font-bold border-l-2 border-diu-primary pl-2.5' : 'text-slate-500 hover:text-slate-800 hover:bg-white/30' }}">
                                 <div class="w-1.5 h-1.5 rounded-full bg-diu-primary"></div>
                                 {{ $desig->name }}

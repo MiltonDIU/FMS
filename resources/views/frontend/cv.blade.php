@@ -7,6 +7,9 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         body {
+            /* Overridden below when the active theme's font can be embedded in a
+               PDF. dompdf only accepts an uploaded .ttf/.otf, never the woff2
+               that Google Fonts serves, so this stack is the normal case. */
             font-family: 'Helvetica Neue', Arial, sans-serif;
             color: #1f2937;
             font-size: 10.5px;
@@ -130,6 +133,11 @@
         }
         .page > *:not(.watermark) { position: relative; z-index: 1; }
     </style>
+
+    {{-- Applies the active theme's fonts when they are embeddable; emits nothing
+         otherwise, leaving the stack above in place. Must follow the styles it
+         overrides. --}}
+    {!! \App\Helpers\FontManager::pdfCssBlock() !!}
 </head>
 <body>
 <div class="page">
@@ -206,7 +214,7 @@
             @if(\App\Helpers\CvSections::enabled('publications') && $teacher->publications->isNotEmpty())
                 <h2>Publications ({{ $teacher->publications->count() }})</h2>
                 <ol class="pubs">
-                    @foreach($teacher->publications->take(40) as $pub)
+                    @foreach($teacher->publications as $pub)
                         <li>
                             {{ $pub->title ?? '' }}
                             @if($pub->journal_name) <em>({{ $pub->journal_name }})</em>@endif

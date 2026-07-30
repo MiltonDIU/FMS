@@ -31,7 +31,7 @@
                         <h4 class="text-sm font-semibold text-slate-800 tracking-tight leading-snug group-hover:text-diu-primary transition-colors">{{ $pub->title }}</h4>
                         <p class="text-xs text-slate-500 mt-1 italic font-sans">{{ $pub->journal_name ?? '' }}</p>
                         <div class="flex items-center space-x-4 mt-4">
-                            <a href="{{ $pubUrl }}" class="inline-flex items-center text-xs font-bold text-diu-primary hover:underline">
+                            <a href="{{ $pubUrl }}" wire:navigate class="inline-flex items-center text-xs font-bold text-diu-primary hover:underline">
                                 <span>View Details</span><span class="ml-1.5">→</span>
                             </a>
                         </div>

@@ -1,5 +1,6 @@
 <?php
 
+use App\Console\Commands\GenerateSitemap;
 use App\Console\Commands\SyncTeacherProfileScores;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -37,4 +38,43 @@ Schedule::command(SyncTeacherProfileScores::class, ['--chunk=100'])
     ->appendOutputTo(storage_path('logs/profile-score-sync.log'))
     ->name('teachers:sync-profile-scores')
     ->description('Daily midnight sync of cached profile completion scores');
+
+/*
+|--------------------------------------------------------------------------
+| Sitemap — Rebuilt Nightly at 01:30, Production Only
+|--------------------------------------------------------------------------
+| The directory publishes roughly twelve thousand URLs, far more than search
+| engines would find by crawling links alone, so the full list is written to
+| public/sitemap.xml and referenced from robots.txt.
+|
+| Runs after the profile score sync so both read a settled database. Publication
+| and teacher records change often enough that a nightly rebuild keeps lastmod
+| honest without the cost of generating it per request.
+|
+| Restricted to production because the URLs are built from APP_URL: on a dev
+| machine it would spend every night rewriting a 3 MB file full of localhost
+| addresses. Generate it by hand there instead.
+|
+| MANUAL RUN — this is what to use when going live:
+|   php artisan sitemap:generate               builds the file, updates
+|                                              robots.txt, and prints the
+|                                              generation date, the URL count
+|                                              and the Search Console link
+|   php artisan sitemap:generate --no-robots   leave robots.txt untouched
+|   php artisan sitemap:generate --path=…      write somewhere else
+|
+| Needs APP_URL set to the public origin — the command refuses to run otherwise,
+| since relative sitemap entries are worthless to a crawler. Submission itself is
+| manual and one-off: Google and Bing both removed their sitemap ping endpoints,
+| so the URL is entered in Search Console once and re-read automatically after.
+|--------------------------------------------------------------------------
+*/
+Schedule::command(GenerateSitemap::class)
+    ->dailyAt('01:30')
+    ->environments(['production'])
+    ->withoutOverlapping(30)
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/sitemap.log'))
+    ->name('sitemap:generate')
+    ->description('Nightly rebuild of public/sitemap.xml');
 

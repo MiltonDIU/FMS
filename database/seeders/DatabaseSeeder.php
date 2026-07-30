@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             FMSSeeder::class,
             SettingsSeeder::class,
             BrandingSettingsSeeder::class,
+            ThemeSettingsSeeder::class,
             CountrySeeder::class,
             FacultySeeder::class,
             DepartmentSeeder::class,

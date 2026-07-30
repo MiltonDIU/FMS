@@ -8,7 +8,7 @@
     @if($selectedFaculty)
         {{-- ─── Faculty selected → delegate to Livewire search ─── --}}
         <div class="text-xs text-slate-500 font-semibold mb-6 flex flex-wrap items-center gap-2 glass-panel py-2.5 px-5 rounded-2xl">
-            <a href="{{ route('home') }}" class="hover:text-diu-primary transition">Home</a>
+            <a href="{{ route('home') }}" wire:navigate class="hover:text-diu-primary transition">Home</a>
             <svg class="w-3.5 h-3.5 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
             <span class="text-diu-primary">{{ $selectedFaculty->short_name }}</span>
         </div>
@@ -112,7 +112,7 @@
                     <div class="group relative flex flex-col card card-hover rounded-3xl overflow-hidden min-h-[230px]">
 
                         {{-- Header strip --}}
-                        <a href="{{ $faculty->url }}"
+                        <a href="{{ $faculty->url }}" wire:navigate
                            class="block relative h-28 overflow-hidden flex-shrink-0"
                            style="background: {{ $grad }};">
 
@@ -151,7 +151,7 @@
                                                     'department_code'    => strtolower($dept->code),
                                                 ]);
                                             @endphp
-                                            <a href="{{ $deptUrl }}" title="{{ $dept->name }}"
+                                            <a href="{{ $deptUrl }}" wire:navigate title="{{ $dept->name }}"
                                                class="inline-flex items-center text-diu-primary bg-diu-primary/10 border border-diu-primary/20 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full transition-colors duration-150 hover:bg-diu-primary hover:text-white hover:border-diu-primary">
                                                 {{ $dept->code }}
                                             </a>
@@ -167,7 +167,7 @@
                                                                 'department_code'    => strtolower($dept->code),
                                                             ]);
                                                         @endphp
-                                                        <a href="{{ $deptUrl }}" title="{{ $dept->name }}"
+                                                        <a href="{{ $deptUrl }}" wire:navigate title="{{ $dept->name }}"
                                                            class="inline-flex items-center text-diu-primary bg-diu-primary/10 border border-diu-primary/20 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full transition-colors duration-150 hover:bg-diu-primary hover:text-white hover:border-diu-primary">
                                                             {{ $dept->code }}
                                                         </a>
@@ -197,7 +197,7 @@
                                     </div>
                                 </div>
 
-                                <a href="{{ $faculty->url }}"
+                                <a href="{{ $faculty->url }}" wire:navigate
                                    class="inline-flex items-center gap-1.5 text-xs font-bold text-diu-primary hover:text-diu-primary-hover transition-colors duration-200 group/cta">
                                     View Faculty
                                     <svg class="w-3.5 h-3.5 group-hover/cta:translate-x-0.5 transition-transform duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>

@@ -17,30 +17,124 @@ class FontManager
 {
     /**
      * Curated Google Font presets. Key => [label, family, google weights].
+     *
+     * 'weights' is the value of the css2 `wght` axis: either a variable-font
+     * range ('200..800') or a ';'-separated list of static weights ('400;700').
+     * Every value here has been checked against the live css2 API — an axis the
+     * family does not publish makes the whole request 400, which silently drops
+     * every font on the page.
+     *
+     * The ranges deliberately reach 900 where the family allows it, because the
+     * themes use font-medium through font-black. Requesting a narrower set makes
+     * the browser synthesise the missing weights, which looks visibly worse than
+     * the real cut.
+     *
+     * Set 'bangla' => true for families that carry the Bengali unicode block,
+     * so they can be used as an automatic fallback for Bangla text.
      */
     public const PRESETS = [
-        'inter'          => ['label' => 'Inter (Sans)',          'family' => 'Inter',          'weights' => '300;400;500;600;700'],
-        'roboto'         => ['label' => 'Roboto (Sans)',         'family' => 'Roboto',         'weights' => '300;400;500;700'],
-        'open-sans'      => ['label' => 'Open Sans (Sans)',      'family' => 'Open Sans',      'weights' => '400;600;700'],
-        'poppins'        => ['label' => 'Poppins (Sans)',        'family' => 'Poppins',        'weights' => '400;500;600;700'],
-        'montserrat'     => ['label' => 'Montserrat (Display)',  'family' => 'Montserrat',     'weights' => '400;600;700;800'],
-        'playfair'       => ['label' => 'Playfair Display',      'family' => 'Playfair Display','weights' => '400;600;700'],
-        'space-grotesk'  => ['label' => 'Space Grotesk (Display)','family' => 'Space Grotesk',  'weights' => '400;500;600;700'],
-        'jetbrains-mono' => ['label' => 'JetBrains Mono',         'family' => 'JetBrains Mono',  'weights' => '400;500'],
-        'roboto-mono'    => ['label' => 'Roboto Mono',            'family' => 'Roboto Mono',    'weights' => '400;500'],
-        'source-code-pro'=> ['label' => 'Source Code Pro',       'family' => 'Source Code Pro','weights' => '400;500'],
+        'manrope'        => ['label' => 'Manrope (Sans, variable)',  'family' => 'Manrope',           'weights' => '200..800'],
+        'inter'          => ['label' => 'Inter (Sans, variable)',    'family' => 'Inter',             'weights' => '100..900'],
+        'roboto'         => ['label' => 'Roboto (Sans, variable)',   'family' => 'Roboto',            'weights' => '100..900'],
+        'open-sans'      => ['label' => 'Open Sans (Sans, variable)','family' => 'Open Sans',         'weights' => '300..800'],
+        'poppins'        => ['label' => 'Poppins (Sans)',            'family' => 'Poppins',           'weights' => '300;400;500;600;700;800;900'],
+        'montserrat'     => ['label' => 'Montserrat (Display, variable)', 'family' => 'Montserrat',   'weights' => '100..900'],
+        'playfair'       => ['label' => 'Playfair Display (variable)','family' => 'Playfair Display', 'weights' => '400..900'],
+        'space-grotesk'  => ['label' => 'Space Grotesk (Display, variable)', 'family' => 'Space Grotesk', 'weights' => '300..700'],
+        'mina'           => ['label' => 'Mina (Bangla)',             'family' => 'Mina',              'weights' => '400;700', 'bangla' => true],
+        'hind-siliguri'  => ['label' => 'Hind Siliguri (Bangla)',    'family' => 'Hind Siliguri',     'weights' => '300;400;500;600;700', 'bangla' => true],
+        'baloo-da-2'     => ['label' => 'Baloo Da 2 (Bangla, variable)', 'family' => 'Baloo Da 2',    'weights' => '400..800', 'bangla' => true],
+        'jetbrains-mono' => ['label' => 'JetBrains Mono (variable)', 'family' => 'JetBrains Mono',    'weights' => '100..800'],
+        'roboto-mono'    => ['label' => 'Roboto Mono (variable)',    'family' => 'Roboto Mono',       'weights' => '100..700'],
+        'source-code-pro'=> ['label' => 'Source Code Pro (variable)','family' => 'Source Code Pro',   'weights' => '200..900'],
     ];
 
-    public const ROLES = ['sans', 'display', 'mono'];
+    public const ROLES = ['sans', 'display', 'mono', 'bangla'];
 
     /**
      * Default font per role (used when nothing is configured).
+     *
+     * Matches daffodilvarsity.edu.bd: Manrope for body/UI, Montserrat for
+     * headings, Mina for Bangla.
      */
     public const DEFAULTS = [
-        'sans'   => 'inter',
-        'display'=> 'space-grotesk',
+        'sans'   => 'manrope',
+        'display'=> 'montserrat',
         'mono'   => 'jetbrains-mono',
+        'bangla' => 'mina',
     ];
+
+    /**
+     * Default root font size.
+     */
+    public const SIZE_DEFAULT = '16px';
+
+    /**
+     * Weights requested for a custom Google family when the admin leaves the
+     * field blank. Covers font-normal through font-black, the span the themes
+     * use.
+     *
+     * Deliberately a static list rather than a range. css2 tolerates listing a
+     * static weight a family does not publish, but answers 400 for a range like
+     * "100..900" on a family that ships no variable axis — and one bad family
+     * fails the whole request, dropping every font on the page.
+     */
+    public const FALLBACK_WEIGHTS = '400;500;600;700;800;900';
+
+    /**
+     * Default weight per role. Bangla has no weight control of its own; it
+     * inherits whichever weight the surrounding text is using.
+     */
+    public const WEIGHT_DEFAULTS = [
+        'sans'    => '400',
+        'display' => '700',
+        'mono'    => '400',
+    ];
+
+    /**
+     * Every per-theme setting key suffix, mapped to its default value and the
+     * column type it is stored as.
+     *
+     * This is the single source of truth shared by three places: the runtime
+     * fallback in this class, the form defaults in System Settings, and
+     * ThemeSettingsSeeder. Adding a per-theme setting means adding it here.
+     *
+     * @return array<string,array{value:string,type:string,label:string}>
+     */
+    public static function settingDefaults(): array
+    {
+        $defaults = [];
+
+        foreach (self::ROLES as $role) {
+            $defaults["font_{$role}"] = [
+                'value' => self::DEFAULTS[$role],
+                'type'  => 'string',
+                'label' => ucfirst($role) . ' Font',
+            ];
+        }
+
+        $defaults['font_base_size'] = [
+            'value' => self::SIZE_DEFAULT,
+            'type'  => 'string',
+            'label' => 'Base Font Size (Root)',
+        ];
+
+        foreach (self::WEIGHT_DEFAULTS as $role => $weight) {
+            $defaults["font_{$role}_weight"] = [
+                'value' => $weight,
+                'type'  => 'string',
+                'label' => ucfirst($role) . ' Font Weight',
+            ];
+        }
+
+        $defaults['footer_match_theme'] = [
+            'value' => 'false',
+            'type'  => 'boolean',
+            'label' => 'Match Footer Background with Theme Color',
+        ];
+
+        return $defaults;
+    }
 
     /**
      * Combined options for a font-role select: presets + installed custom fonts.
@@ -101,17 +195,17 @@ class FontManager
             }
 
             Setting::set('global_custom_fonts', $globalFonts);
-            return $globalFonts;
+            return self::withInferredSource($globalFonts);
         }
 
         if (is_array($raw)) {
-            return $raw;
+            return self::withInferredSource($raw);
         }
 
         if (is_string($raw) && trim($raw) !== '') {
             $decoded = json_decode($raw, true);
             if (is_array($decoded)) {
-                return $decoded;
+                return self::withInferredSource($decoded);
             }
         }
 
@@ -119,41 +213,181 @@ class FontManager
     }
 
     /**
-     * Resolve the chosen value for a role into its CSS font-family stack.
+     * Give every entry an explicit 'source', inferring it for ones saved before
+     * the field existed.
+     *
+     * Without this, a legacy entry would read as source-less in the System
+     * Settings repeater and its upload/URL field would be hidden.
+     *
+     * @param  array<int,array<string,mixed>>  $fonts
+     * @return array<int,array<string,mixed>>
      */
-    public static function resolveRole(string $themeSlug, string $role): ?string
+    protected static function withInferredSource(array $fonts): array
     {
-        $value = Setting::get(self::settingKey($themeSlug, "font_{$role}"), self::DEFAULTS[$role] ?? null);
-
-        if (str_starts_with((string) $value, 'custom:')) {
-            $id = substr($value, strlen('custom:'));
-            foreach (self::customFonts($themeSlug) as $font) {
-                if (($font['id'] ?? null) === $id) {
-                    $family = $font['family'] ?? $font['name'] ?? $id;
-                    return "'" . str_replace("'", '', $family) . "', ui-sans-serif, system-ui, sans-serif";
-                }
+        return array_map(function (array $font): array {
+            if (filled($font['source'] ?? null)) {
+                return $font;
             }
+
+            $font['source'] = match (true) {
+                filled($font['file'] ?? null) => 'upload',
+                filled($font['url'] ?? null) => 'url',
+                default => 'google',
+            };
+
+            return $font;
+        }, $fonts);
+    }
+
+    /**
+     * Read a typography setting, treating a blank stored value as "not set".
+     *
+     * Setting::get() only falls back to its default when the row is missing
+     * entirely. These keys are seeded as rows holding NULL, so without this the
+     * defaults below would never apply and every font role would resolve empty.
+     */
+    protected static function setting(string $themeSlug, string $suffix, ?string $default): ?string
+    {
+        $value = Setting::get(self::settingKey($themeSlug, $suffix), $default);
+
+        return (is_string($value) && trim($value) !== '') ? $value : $default;
+    }
+
+    /**
+     * The raw setting value chosen for a role (preset key or "custom:<id>").
+     */
+    protected static function roleValue(string $themeSlug, string $role): ?string
+    {
+        return self::setting($themeSlug, "font_{$role}", self::DEFAULTS[$role] ?? null);
+    }
+
+    /**
+     * The custom font entry a role points at, or null if it points elsewhere.
+     *
+     * @return array<string,mixed>|null
+     */
+    protected static function roleCustomFont(string $themeSlug, string $role): ?array
+    {
+        $value = (string) self::roleValue($themeSlug, $role);
+
+        if (! str_starts_with($value, 'custom:')) {
             return null;
         }
 
-        if (isset(self::PRESETS[$value])) {
-            return "'" . self::PRESETS[$value]['family'] . "', ui-sans-serif, system-ui, sans-serif";
+        $id = substr($value, strlen('custom:'));
+
+        foreach (self::customFonts($themeSlug) as $font) {
+            if (($font['id'] ?? null) === $id) {
+                return $font;
+            }
         }
 
         return null;
     }
 
     /**
-     * Google Fonts <link> tags needed for the selected presets (deduped).
+     * Just the family name for a role, unquoted. Null if it cannot be resolved.
+     */
+    protected static function roleFamily(string $themeSlug, string $role): ?string
+    {
+        $value = self::roleValue($themeSlug, $role);
+
+        if (str_starts_with((string) $value, 'custom:')) {
+            $font = self::roleCustomFont($themeSlug, $role);
+
+            if ($font === null) {
+                return null;
+            }
+
+            return str_replace("'", '', $font['family'] ?? $font['name'] ?? $font['id']);
+        }
+
+        return isset(self::PRESETS[$value]) ? self::PRESETS[$value]['family'] : null;
+    }
+
+    /**
+     * Is this custom font entry a Google Fonts family we should build a css2
+     * request for, rather than an uploaded file or a raw stylesheet URL?
+     *
+     * @param  array<string,mixed>  $font
+     */
+    protected static function isGoogleFont(array $font): bool
+    {
+        return ($font['source'] ?? null) === 'google' && filled($font['family'] ?? null);
+    }
+
+    /**
+     * One `family=` value for a css2 request.
+     *
+     * The axis prefix is mandatory: "Inter:400;700" answers 400 Bad Request and
+     * takes every other family in the same request down with it, silently.
+     */
+    protected static function css2Family(string $family, string $weights): string
+    {
+        $weights = trim($weights) !== '' ? trim($weights) : self::FALLBACK_WEIGHTS;
+
+        return str_replace(' ', '+', $family) . ':wght@' . $weights;
+    }
+
+    /**
+     * Resolve the chosen value for a role into its CSS font-family stack.
+     *
+     * Latin-only families (Manrope, Montserrat, ...) carry no Bengali glyphs, so
+     * the Bangla family is spliced in behind the sans and display stacks. The
+     * browser picks it per-character, which means mixed English/Bangla content
+     * renders correctly without every Bangla string needing a `font-bangla`
+     * class of its own.
+     */
+    public static function resolveRole(string $themeSlug, string $role): ?string
+    {
+        $family = self::roleFamily($themeSlug, $role);
+
+        if ($family === null) {
+            return null;
+        }
+
+        $stack = ["'{$family}'"];
+
+        if (in_array($role, ['sans', 'display'], true)) {
+            $bangla = self::roleFamily($themeSlug, 'bangla');
+            if ($bangla !== null && $bangla !== $family) {
+                $stack[] = "'{$bangla}'";
+            }
+        }
+
+        $generic = $role === 'mono'
+            ? ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace']
+            : ['ui-sans-serif', 'system-ui', 'sans-serif'];
+
+        return implode(', ', array_merge($stack, $generic));
+    }
+
+    /**
+     * Google Fonts <link> tags for every family a role points at, deduped.
+     *
+     * Covers both the curated presets and custom-library entries marked as
+     * Google fonts, so an admin can use any family on Google Fonts without
+     * hand-writing a css2 URL.
      */
     public static function googleLinks(string $themeSlug): string
     {
         $families = [];
+
         foreach (self::ROLES as $role) {
-            $value = Setting::get(self::settingKey($themeSlug, "font_{$role}"), self::DEFAULTS[$role] ?? null);
+            $value = self::roleValue($themeSlug, $role);
+
             if (isset(self::PRESETS[$value])) {
-                $p = self::PRESETS[$value];
-                $families[$p['family']] = $p['family'] . ':' . $p['weights'];
+                $preset = self::PRESETS[$value];
+                $families[$preset['family']] = self::css2Family($preset['family'], $preset['weights']);
+
+                continue;
+            }
+
+            $font = self::roleCustomFont($themeSlug, $role);
+
+            if ($font !== null && self::isGoogleFont($font)) {
+                $family = str_replace("'", '', $font['family']);
+                $families[$family] = self::css2Family($family, $font['weights'] ?? self::FALLBACK_WEIGHTS);
             }
         }
 
@@ -161,7 +395,9 @@ class FontManager
             return '';
         }
 
-        $query = 'family=' . implode('&family=', array_map('rawurlencode', $families));
+        // Not URL-encoded on purpose: css2 needs the literal ':', '@', ';' and
+        // '..' separators, and '+' already stands in for spaces in family names.
+        $query = 'family=' . implode('&family=', $families);
         $href = 'https://fonts.googleapis.com/css2?' . $query . '&display=swap';
 
         return '<link rel="preconnect" href="https://fonts.googleapis.com">' . "\n"
@@ -211,9 +447,16 @@ class FontManager
 
     /**
      * Build the src for a custom font: local uploaded file or external URL.
+     *
+     * Returns null for anything that arrives as a stylesheet instead of a font
+     * file — those become <link> tags, not @font-face blocks.
      */
     protected static function fontSrc(array $font): ?string
     {
+        if (self::isGoogleFont($font)) {
+            return null;
+        }
+
         if (! empty($font['file'])) {
             $file = $font['file'];
             $path = str_starts_with($file, 'fonts/') ? $file : 'fonts/' . ltrim($file, '/');
@@ -236,12 +479,18 @@ class FontManager
     }
 
     /**
-     * Any external stylesheet links (e.g. Google css2) referenced by installed fonts.
+     * Hand-written stylesheet URLs from the custom font library.
+     *
+     * Entries marked as Google fonts are skipped: googleLinks() folds those into
+     * the single css2 request, so emitting them here too would load them twice.
      */
     public static function customStylesheetLinks(string $themeSlug): string
     {
         $links = [];
         foreach (self::customFonts($themeSlug) as $font) {
+            if (self::isGoogleFont($font)) {
+                continue;
+            }
             if (! empty($font['url']) && (str_ends_with($font['url'], '.css') || str_contains($font['url'], 'css2?') || str_contains($font['url'], 'fonts.googleapis'))) {
                 $links[] = '<link href="' . $font['url'] . '" rel="stylesheet">';
             }
@@ -264,12 +513,18 @@ class FontManager
             }
         }
 
-        $baseSize = Setting::get(self::settingKey($themeSlug, 'font_base_size'), '16px');
-        $sansWeight = Setting::get(self::settingKey($themeSlug, 'font_sans_weight'), '400');
-        $displayWeight = Setting::get(self::settingKey($themeSlug, 'font_display_weight'), '700');
-        $monoWeight = Setting::get(self::settingKey($themeSlug, 'font_mono_weight'), '400');
+        $baseSize = self::setting($themeSlug, 'font_base_size', self::SIZE_DEFAULT);
+        $sansWeight = self::setting($themeSlug, 'font_sans_weight', self::WEIGHT_DEFAULTS['sans']);
+        $displayWeight = self::setting($themeSlug, 'font_display_weight', self::WEIGHT_DEFAULTS['display']);
+        $monoWeight = self::setting($themeSlug, 'font_mono_weight', self::WEIGHT_DEFAULTS['mono']);
 
-        if (empty($vars) && ! $fontFaces && $baseSize === '16px' && $sansWeight === '400' && $displayWeight === '700' && $monoWeight === '400') {
+        // Nothing to override: emit no <style> at all and let the build-time
+        // @theme tokens in the theme's CSS stand on their own.
+        if (empty($vars) && ! $fontFaces
+            && $baseSize === self::SIZE_DEFAULT
+            && $sansWeight === self::WEIGHT_DEFAULTS['sans']
+            && $displayWeight === self::WEIGHT_DEFAULTS['display']
+            && $monoWeight === self::WEIGHT_DEFAULTS['mono']) {
             return '';
         }
 
@@ -288,6 +543,106 @@ class FontManager
         $lines[] = "code, pre, .font-mono {\n    font-weight: {$monoWeight};\n}";
 
         return "<style>\n" . implode("\n\n", $lines) . "\n</style>";
+    }
+
+    /**
+     * Formats dompdf can actually embed.
+     *
+     * Its stylesheet parser only accepts a URL source declared as
+     * format('truetype') and php-font-lib ships no WOFF2 reader, so the woff2
+     * that Google Fonts serves is unusable in a PDF. A theme font only reaches
+     * the CV if it was uploaded as a .ttf or .otf.
+     */
+    protected const PDF_EXTENSIONS = ['ttf', 'otf'];
+
+    /**
+     * Absolute path to a custom font's uploaded file, or null if it has none.
+     *
+     * @param  array<string,mixed>  $font
+     */
+    protected static function uploadedFontPath(array $font): ?string
+    {
+        if (empty($font['file'])) {
+            return null;
+        }
+
+        $file = $font['file'];
+        $relative = str_starts_with($file, 'fonts/') ? $file : 'fonts/' . ltrim($file, '/');
+        $path = storage_path('app/public/' . $relative);
+
+        return is_file($path) ? $path : null;
+    }
+
+    /**
+     * The role's font plus its file path, but only when dompdf can embed it.
+     *
+     * @return array{family:string,path:string}|null
+     */
+    protected static function pdfFontForRole(string $themeSlug, string $role): ?array
+    {
+        $font = self::roleCustomFont($themeSlug, $role);
+
+        if ($font === null) {
+            return null;
+        }
+
+        $path = self::uploadedFontPath($font);
+
+        if ($path === null) {
+            return null;
+        }
+
+        $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+
+        if (! in_array($extension, self::PDF_EXTENSIONS, true)) {
+            return null;
+        }
+
+        return [
+            'family' => str_replace("'", '', $font['family'] ?? $font['name'] ?? $font['id']),
+            'path' => $path,
+        ];
+    }
+
+    /**
+     * A <style> block for PDF templates: @font-face for any embeddable theme
+     * font, plus the rules that apply it.
+     *
+     * Returns '' when the theme's fonts cannot be embedded, which leaves the
+     * template's own font stack in place rather than silently falling back to a
+     * font dompdf would substitute anyway.
+     */
+    public static function pdfCssBlock(?string $themeSlug = null): string
+    {
+        $themeSlug ??= Setting::get('active_theme', 'theme_default');
+
+        $sans = self::pdfFontForRole($themeSlug, 'sans');
+        $display = self::pdfFontForRole($themeSlug, 'display');
+
+        if ($sans === null && $display === null) {
+            return '';
+        }
+
+        $faces = [];
+        $rules = [];
+
+        foreach (['sans' => $sans, 'display' => $display] as $role => $font) {
+            if ($font === null) {
+                continue;
+            }
+
+            // Keyed by family so one font used for both roles is embedded once.
+            $faces[$font['family']] = "@font-face {\n"
+                . "    font-family: '{$font['family']}';\n"
+                . "    font-style: normal;\n"
+                . "    src: url('{$font['path']}') format('truetype');\n"
+                . '}';
+
+            $selector = $role === 'sans' ? 'body' : 'h1, h2, h3, h4, h5, h6';
+            $rules[] = "{$selector} {\n    font-family: '{$font['family']}', 'Helvetica Neue', Arial, sans-serif;\n}";
+        }
+
+        return "<style>\n" . implode("\n", $faces) . "\n\n" . implode("\n\n", $rules) . "\n</style>";
     }
 
     protected static function guessFormat(string $path): string
