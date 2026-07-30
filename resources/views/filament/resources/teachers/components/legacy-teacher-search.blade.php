@@ -16,10 +16,10 @@
                 this.loading = true;
                 this.updatePosition();
                 try {
-                    let response = await fetch(`/api/v1/teachers/search?q=${encodeURIComponent(this.query)}`);
-                    if (!response.ok) {
-                        response = await fetch(`/api/teacher/search?q=${encodeURIComponent(this.query)}`);
-                    }
+                    const response = await fetch(`/api/teacher/search?q=${encodeURIComponent(this.query)}`, {
+                        headers: { 'Accept': 'application/json' },
+                        credentials: 'same-origin',
+                    });
                     const data = await response.json();
 
                     if (data.success) {

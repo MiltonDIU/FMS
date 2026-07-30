@@ -162,8 +162,6 @@ class SystemSettings extends Page
             'teacher_login_mode' => 'individual',
             'teacher_integration_api_url' => 'http://localhost:8000/api/v1/teachers/preview',
             'teacher_integration_mapping' => 'erp_teacher_profile',
-            'frontend_driver' => 'blade',
-            'nextjs_url' => '',
             'active_theme' => 'theme_default',
             'diu_color_palette' => 'diu',
             'diu_primary_color' => null,
@@ -1183,10 +1181,6 @@ class SystemSettings extends Page
             }
             $data['branding_logo_image'] = is_string($logo) ? $logo : null;
         }
-
-        // Hardcode frontend driver settings to always use Blade monolith
-        Setting::set('frontend_driver', 'blade');
-        Setting::set('nextjs_url', '');
 
         // Save base color settings first so that subsequent defaultValueFor() calls resolve using the new base color/palette!
         if (isset($data['theme_color_mode'])) {

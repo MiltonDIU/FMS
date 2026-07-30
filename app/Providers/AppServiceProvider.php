@@ -7,7 +7,6 @@ use App\Models\Department;
 use App\Models\Faculty;
 use App\Models\Teacher;
 use App\Services\MailConfigService;
-use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -28,8 +27,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        JsonResource::withoutWrapping();
-
         // Share header statistics with every theme's header partial so the
         // view no longer runs database queries itself.
         View::composer('frontend.themes.*.partials.header', function ($view) {
