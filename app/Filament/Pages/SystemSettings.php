@@ -544,39 +544,59 @@ class SystemSettings extends Page
                             ->icon('heroicon-o-globe-alt')
                             ->schema([
                                 \Filament\Schemas\Components\Section::make('Global Custom Font Library')
-                                    ->description('Upload and manage custom web fonts (.woff2, .ttf, .otf, .sfnt). Once uploaded, you can select these fonts in any of the theme dropdowns below.')
+                                    ->description('Add any Google Fonts family by name, upload your own font file, or point at an externally hosted one. Everything added here becomes selectable in the per-theme font dropdowns below.')
                                     ->collapsed()
                                     ->schema([
                                         \Filament\Forms\Components\Repeater::make('global_custom_fonts')
-                                            ->label('Uploaded Fonts')
+                                            ->label('Font Library')
                                             ->schema([
                                                 \Filament\Forms\Components\Hidden::make('id'),
                                                 \Filament\Forms\Components\Hidden::make('format'),
                                                 \Filament\Forms\Components\Hidden::make('weight'),
-                                                \Filament\Forms\Components\TextInput::make('name')
-                                                    ->label('Font Name')
+                                                \Filament\Forms\Components\Select::make('source')
+                                                    ->label('Source')
+                                                    ->options([
+                                                        'google' => 'Google Fonts (by name)',
+                                                        'upload' => 'Uploaded file',
+                                                        'url' => 'External URL',
+                                                    ])
+                                                    ->default('google')
                                                     ->required()
-                                                    ->placeholder('My Custom Font'),
+                                                    ->live()
+                                                    ->helperText('Google Fonts needs no URL — just the family name.'),
+                                                \Filament\Forms\Components\TextInput::make('name')
+                                                    ->label('Label')
+                                                    ->required()
+                                                    ->placeholder('Lora')
+                                                    ->helperText('Shown in the font dropdowns.'),
+                                                \Filament\Forms\Components\TextInput::make('family')
+                                                    ->label('CSS font-family Name')
+                                                    ->placeholder('Lora')
+                                                    ->required(fn (\Filament\Schemas\Components\Utilities\Get $get): bool => in_array($get('source'), ['google', 'url'], true))
+                                                    ->helperText('Exactly as Google spells it, e.g. "Noto Serif Bengali".'),
+                                                \Filament\Forms\Components\TextInput::make('weights')
+                                                    ->label('Weights')
+                                                    ->placeholder(\App\Helpers\FontManager::FALLBACK_WEIGHTS)
+                                                    ->visible(fn (\Filament\Schemas\Components\Utilities\Get $get): bool => $get('source') === 'google')
+                                                    ->helperText('Semicolon list like 400;700, or a variable range like 200..800 — but only if the family publishes a variable axis, otherwise the request fails. Blank uses ' . \App\Helpers\FontManager::FALLBACK_WEIGHTS . '.'),
                                                 \Filament\Forms\Components\FileUpload::make('file')
                                                     ->label('Upload Font File')
                                                     ->disk('public')
                                                     ->directory('fonts')
                                                     ->acceptedFileTypes(['font/woff2', 'font/woff', 'font/ttf', 'font/otf', 'font/sfnt', 'application/font-woff', 'application/font-woff2', 'application/x-font-ttf', 'application/vnd.ms-opentype'])
                                                     ->maxSize(5120)
-                                                    ->helperText('Upload a .woff2 / .ttf / .otf / .sfnt file.'),
+                                                    ->visible(fn (\Filament\Schemas\Components\Utilities\Get $get): bool => $get('source') === 'upload')
+                                                    ->helperText('A .woff2 / .ttf / .otf / .sfnt file. Use .ttf if this font also needs to appear in PDF exports.'),
                                                 \Filament\Forms\Components\TextInput::make('url')
-                                                    ->label('Or External Font URL')
+                                                    ->label('External Font URL')
                                                     ->url()
-                                                    ->placeholder('https://example.com/font.woff2 or Google css2 link')
-                                                    ->helperText('Use if hosting the font externally or linking Google stylesheet.'),
-                                                \Filament\Forms\Components\TextInput::make('family')
-                                                    ->label('CSS font-family Name')
-                                                    ->placeholder('My Custom Font')
-                                                    ->helperText('Required when using an external URL so we know the family name to reference.'),
+                                                    ->placeholder('https://example.com/font.woff2')
+                                                    ->visible(fn (\Filament\Schemas\Components\Utilities\Get $get): bool => $get('source') === 'url')
+                                                    ->helperText('A font file, or a stylesheet that declares the family.'),
                                             ])
                                             ->columns(4)
                                             ->default([])
-                                            ->createItemButtonLabel('Add Custom Font')
+                                            ->createItemButtonLabel('Add Font')
                                     ]),
 
                                 ...self::fontSections(),
@@ -1003,6 +1023,12 @@ class SystemSettings extends Page
                         ->default(\App\Helpers\FontManager::DEFAULTS['mono'])
                         ->searchable()
                         ->helperText('Used for code/mono text (font-mono).'),
+                    \Filament\Forms\Components\Select::make(\App\Helpers\FontManager::settingKey($slug, 'font_bangla'))
+                        ->label('Bangla Font')
+                        ->options(fn () => static::fontOptionsWithCurrent($slug, 'font_bangla'))
+                        ->default(\App\Helpers\FontManager::DEFAULTS['bangla'])
+                        ->searchable()
+                        ->helperText('Used for Bangla text (font-bangla), and as the automatic per-character fallback behind the sans and display fonts.'),
 
                     \Filament\Schemas\Components\Grid::make(4)
                         ->columnSpanFull()
@@ -1023,7 +1049,7 @@ class SystemSettings extends Page
                                     '23px' => '23px',
                                     '24px' => '24px',
                                 ])
-                                ->default('16px'),
+                                ->default(\App\Helpers\FontManager::SIZE_DEFAULT),
                             \Filament\Forms\Components\Select::make(\App\Helpers\FontManager::settingKey($slug, 'font_sans_weight'))
                                 ->label('Body Font Weight')
                                 ->options([
@@ -1033,7 +1059,7 @@ class SystemSettings extends Page
                                     '600' => 'Semibold (600)',
                                     '700' => 'Bold (700)',
                                 ])
-                                ->default('400'),
+                                ->default(\App\Helpers\FontManager::WEIGHT_DEFAULTS['sans']),
                             \Filament\Forms\Components\Select::make(\App\Helpers\FontManager::settingKey($slug, 'font_display_weight'))
                                 ->label('Heading Font Weight')
                                 ->options([
@@ -1044,7 +1070,7 @@ class SystemSettings extends Page
                                     '700' => 'Bold (700)',
                                     '800' => 'Extra Bold (800)',
                                 ])
-                                ->default('700'),
+                                ->default(\App\Helpers\FontManager::WEIGHT_DEFAULTS['display']),
                             \Filament\Forms\Components\Select::make(\App\Helpers\FontManager::settingKey($slug, 'font_mono_weight'))
                                 ->label('Mono Font Weight')
                                 ->options([
@@ -1054,7 +1080,7 @@ class SystemSettings extends Page
                                     '600' => 'Semibold (600)',
                                     '700' => 'Bold (700)',
                                 ])
-                                ->default('400'),
+                                ->default(\App\Helpers\FontManager::WEIGHT_DEFAULTS['mono']),
                         ]),
 
                     \Filament\Forms\Components\Toggle::make(\App\Helpers\FontManager::settingKey($slug, 'footer_match_theme'))

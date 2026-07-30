@@ -17,9 +17,14 @@
 @source '../../../../../../**/*.js';
 
 @theme {
-    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
-    --font-display: 'Space Grotesk', sans-serif;
+    /* Build-time defaults. FontManager::cssBlock() re-declares these on :root
+       later in <head>, so the per-theme picker in System Settings wins at
+       runtime. 'Mina' trails the Latin families so Bangla characters fall back
+       to it per-glyph in mixed English/Bangla text. */
+    --font-sans: 'Manrope', 'Mina', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+        'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-display: 'Montserrat', 'Mina', ui-sans-serif, system-ui, sans-serif;
+    --font-bangla: 'Mina', ui-sans-serif, system-ui, sans-serif;
     --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
     --color-diu-primary-dark: #002652;
