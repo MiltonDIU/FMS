@@ -14,32 +14,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('publications', function (Blueprint $table) {
-            $table->text('slug')->nullable()->after('title')->index();
+            $table->string('slug', 700)->nullable()->after('title')->index();
         });
 
-        // Backfill slugs from existing titles (deduplicated per collision).
-        $publications = DB::table('publications')->select('id', 'title', 'slug')->get();
-
-        foreach ($publications as $pub) {
-            $base = $pub->slug ?: Str::slug((string) $pub->title);
-
-            if ($base === '') {
-                $base = 'publication-' . $pub->id;
-            }
-
-            $slug = $base;
-            $counter = 1;
-
-            while (DB::table('publications')
-                ->where('slug', $slug)
-                ->where('id', '!=', $pub->id)
-                ->exists()
-            ) {
-                $slug = $base . '-' . ++$counter;
-            }
-
-            DB::table('publications')->where('id', $pub->id)->update(['slug' => $slug]);
-        }
     }
 
     /**
