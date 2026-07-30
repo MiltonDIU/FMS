@@ -119,7 +119,7 @@
     </div>
 
     <!-- Footer view profile link -->
-    <a href="{{ $profileUrl }}" class="px-5 py-3.5 bg-white/30 border-t border-white/40 flex items-center justify-between group-hover:bg-white/60 transition-colors">
+    <a href="{{ $profileUrl }}" wire:navigate class="px-5 py-3.5 bg-white/30 border-t border-white/40 flex items-center justify-between group-hover:bg-white/60 transition-colors">
         <div class="flex items-center gap-1.5">
             <svg class="w-4 h-4 {{ $isAdmin ? 'text-diu-accent' : 'text-diu-primary' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
             <span class="text-[10px] text-slate-400 font-semibold uppercase font-sans">

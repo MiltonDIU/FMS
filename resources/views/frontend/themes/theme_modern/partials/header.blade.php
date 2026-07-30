@@ -33,7 +33,7 @@
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
 
             <!-- Branded Logo and Title -->
-            <a href="{{ route('home') }}" class="flex items-center gap-3 cursor-pointer select-none">
+            <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-3 cursor-pointer select-none">
                 @if($brand['use_image_logo'])
                     <div class="relative flex items-center justify-center w-11 h-11 rounded-2xl shadow-md overflow-hidden border-2 border-diu-accent bg-white">
                         <img src="{{ $brand['logo_url'] }}" alt="{{ $brand['site_name'] }}" class="w-full h-full object-contain p-1" />

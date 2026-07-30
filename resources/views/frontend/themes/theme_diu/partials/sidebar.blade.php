@@ -27,7 +27,7 @@
                 @foreach($faculties as $fac)
                     @php $active = $currentFaculty && strtolower($fac->short_name ?? '') === strtolower($currentFaculty->short_name ?? ''); @endphp
                     <li>
-                        <a href="{{ $fac->url }}"
+                        <a href="{{ $fac->url }}" wire:navigate
                            class="group flex w-full items-center justify-between gap-2 border-l-[3px] px-3 py-2.5 rounded-none text-[15px] font-medium transition-colors {{ $active ? 'bg-[#EDF6FF] border-diu-primary text-slate-900' : 'border-transparent text-slate-700 hover:bg-[#EDF6FF]' }}">
                             <span class="truncate">{{ $fac->name }}</span>
                             <span class="text-[10px] font-semibold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-sm shrink-0">{{ $fac->code }}</span>
@@ -53,7 +53,7 @@
                                 : '#';
                         @endphp
                         <li>
-                            <a href="{{ $deptUrl }}"
+                            <a href="{{ $deptUrl }}" wire:navigate
                                class="group flex w-full items-center justify-between gap-2 border-l-[3px] pl-5 pr-3 py-2 rounded-none text-[15px] font-medium transition-colors {{ $dActive ? 'bg-[#EDF6FF] border-diu-accent text-slate-900' : 'border-transparent text-slate-700 hover:bg-[#EDF6FF]' }}">
                                 <span class="truncate">{{ $dept->name }}</span>
                                 <svg class="w-3.5 h-3.5 shrink-0 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
@@ -74,14 +74,14 @@
                     </h3>
                     <ul class="border-l border-[#A7A9AC]" role="list">
                         <li>
-                            <a href="{{ $hasBase ? route($baseRoute, $baseParams) : '#' }}"
+                            <a href="{{ $hasBase ? route($baseRoute, $baseParams) : '#' }}" wire:navigate
                                class="block w-full text-left border-l-[3px] px-3 py-2 rounded-none text-[15px] font-medium transition-colors {{ (!request('admin')) ? 'bg-[#EDF6FF] border-diu-accent text-slate-900' : 'border-transparent text-slate-700 hover:bg-[#EDF6FF]' }}">
                                 All Roles
                             </a>
                         </li>
                         @foreach($adminRoles as $role)
                             <li>
-                                <a href="{{ $hasBase ? route($baseRoute, $baseParams + ['admin' => $role->id]) : '#' }}"
+                                <a href="{{ $hasBase ? route($baseRoute, $baseParams + ['admin' => $role->id]) : '#' }}" wire:navigate
                                    class="block w-full text-left border-l-[3px] px-3 py-2 rounded-none text-[15px] font-medium transition-colors {{ (request('admin') == $role->id) ? 'bg-[#EDF6FF] border-diu-accent text-slate-900' : 'border-transparent text-slate-700 hover:bg-[#EDF6FF]' }}">
                                     {{ $role->name }}
                                 </a>
@@ -99,14 +99,14 @@
                     </h3>
                     <ul class="border-l border-[#A7A9AC]" role="list">
                         <li>
-                            <a href="{{ $hasBase ? route($baseRoute, $baseParams) : '#' }}"
+                            <a href="{{ $hasBase ? route($baseRoute, $baseParams) : '#' }}" wire:navigate
                                class="block w-full text-left border-l-[3px] px-3 py-2 rounded-none text-[15px] font-medium transition-colors {{ (!request('designation')) ? 'bg-[#EDF6FF] border-diu-primary text-slate-900' : 'border-transparent text-slate-700 hover:bg-[#EDF6FF]' }}">
                                 All Designations
                             </a>
                         </li>
                         @foreach($designations as $desig)
                             <li>
-                                <a href="{{ $hasBase ? route($baseRoute, $baseParams + ['designation' => $desig->id]) : '#' }}"
+                                <a href="{{ $hasBase ? route($baseRoute, $baseParams + ['designation' => $desig->id]) : '#' }}" wire:navigate
                                    class="block w-full text-left border-l-[3px] px-3 py-2 rounded-none text-[15px] font-medium transition-colors {{ (request('designation') == $desig->id) ? 'bg-[#EDF6FF] border-diu-primary text-slate-900' : 'border-transparent text-slate-700 hover:bg-[#EDF6FF]' }}">
                                     {{ $desig->name }}
                                 </a>

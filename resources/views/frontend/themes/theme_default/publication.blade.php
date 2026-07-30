@@ -20,13 +20,13 @@
 
     <!-- Breadcrumbs -->
     <div class="text-xs text-slate-500 font-semibold mb-8 flex flex-wrap items-center gap-2 glass-panel py-2.5 px-5 rounded-2xl">
-        <a href="{{ route('home') }}" class="hover:text-diu-primary transition">Home</a>
+        <a href="{{ route('home') }}" wire:navigate class="hover:text-diu-primary transition">Home</a>
         <svg class="w-3.5 h-3.5 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-        <a href="{{ $faculty->url }}" class="hover:text-diu-primary transition">{{ $faculty->short_name }}</a>
+        <a href="{{ $faculty->url }}" wire:navigate class="hover:text-diu-primary transition">{{ $faculty->short_name }}</a>
         <svg class="w-3.5 h-3.5 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-        <a href="{{ $departmentUrl }}" class="hover:text-diu-primary transition">{{ $department->code }}</a>
+        <a href="{{ $departmentUrl }}" wire:navigate class="hover:text-diu-primary transition">{{ $department->code }}</a>
         <svg class="w-3.5 h-3.5 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-        <a href="{{ $teacherUrl }}" class="hover:text-diu-primary transition">{{ $teacher->first_name }} {{ $teacher->last_name }}</a>
+        <a href="{{ $teacherUrl }}" wire:navigate class="hover:text-diu-primary transition">{{ $teacher->first_name }} {{ $teacher->last_name }}</a>
         <svg class="w-3.5 h-3.5 text-gray-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
         <span class="text-diu-primary truncate max-w-xs">Publication Details</span>
     </div>
@@ -35,7 +35,7 @@
 
         <!-- Upper header -->
         <div class="bg-gradient-to-r from-diu-primary to-diu-primary-dark p-6 md:p-8 text-white relative">
-            <a href="{{ $teacherUrl }}"
+            <a href="{{ $teacherUrl }}" wire:navigate
                class="bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all mb-4 backdrop-blur-xs inline-flex">
                 <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
                 Back to Profile
@@ -181,7 +181,7 @@
                     </div>
                 </div>
 
-                <a href="{{ $teacherUrl }}"
+                <a href="{{ $teacherUrl }}" wire:navigate
                    class="text-xs font-semibold text-diu-primary hover:text-diu-accent transition-colors flex items-center gap-1">
                     Back to Academic Profile <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg>
                 </a>
