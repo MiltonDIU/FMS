@@ -44,12 +44,18 @@ class PublicationController extends Controller
             abort(404);
         }
 
-        $publication->load('creator');
+        $publication->load('creator', 'teachers.department.faculty');
 
         // Build citations here (kept out of the view for separation of concerns)
         $authors = trim($teacher->first_name . ' ' . $teacher->last_name);
         $citations = $publication->citations($authors);
 
-        return view("frontend.themes.{$activeTheme}.publication", compact('faculty', 'department', 'teacher', 'publication', 'authors', 'citations'));
+        // A publication with several teacher authors is reachable at one URL per
+        // author, all serving the same paper. Point every copy at the primary
+        // author's URL so search engines index one address instead of choosing
+        // for us. Falls back to the requested URL if no author can host it.
+        $canonicalUrl = \App\Helpers\Seo::publicationUrl($publication) ?? url()->current();
+
+        return view("frontend.themes.{$activeTheme}.publication", compact('faculty', 'department', 'teacher', 'publication', 'authors', 'citations', 'canonicalUrl'));
     }
 }

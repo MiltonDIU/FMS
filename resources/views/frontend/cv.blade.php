@@ -214,7 +214,7 @@
             @if(\App\Helpers\CvSections::enabled('publications') && $teacher->publications->isNotEmpty())
                 <h2>Publications ({{ $teacher->publications->count() }})</h2>
                 <ol class="pubs">
-                    @foreach($teacher->publications->take(40) as $pub)
+                    @foreach($teacher->publications as $pub)
                         <li>
                             {{ $pub->title ?? '' }}
                             @if($pub->journal_name) <em>({{ $pub->journal_name }})</em>@endif
