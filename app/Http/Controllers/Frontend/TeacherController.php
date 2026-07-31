@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Frontend;
 
+use App\Helpers\Theme;
 use App\Http\Controllers\Controller;
 use App\Models\Faculty;
 use App\Models\Department;
-use App\Models\Setting;
 use App\Models\Teacher;
 use App\Helpers\ProfileDownload;
 use Illuminate\Http\Response;
@@ -19,8 +19,6 @@ class TeacherController extends Controller
 {
     public function show(string $faculty_short_name, string $department_code, string $teacher_webpage): View
     {
-        $activeTheme = Setting::get('active_theme', 'theme_default');
-
         // Find faculty
         $faculty = Faculty::where('is_active', true)
             ->where(function ($q) use ($faculty_short_name) {
@@ -101,8 +99,8 @@ class TeacherController extends Controller
             : \App\Helpers\Branding::logoUrl();
         $profileUrl = request()->url();
 
-        return view("frontend.themes.{$activeTheme}.profile", compact(
-            'activeTheme', 'faculty', 'department', 'teacher',
+        return view(Theme::view('profile'), compact(
+            'faculty', 'department', 'teacher',
             'metaTitle', 'metaDescription', 'photoUrl', 'profileUrl'
         ));
     }

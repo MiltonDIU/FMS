@@ -614,7 +614,9 @@ class FontManager
      */
     public static function pdfCssBlock(?string $themeSlug = null): string
     {
-        $themeSlug ??= Setting::get('active_theme', 'theme_default');
+        // Theme::active() rather than the raw setting: the stored name may point
+        // at a theme that has since been deleted, and a CV should still render.
+        $themeSlug ??= Theme::active();
 
         $sans = self::pdfFontForRole($themeSlug, 'sans');
         $display = self::pdfFontForRole($themeSlug, 'display');

@@ -7,6 +7,8 @@ use App\Http\Controllers\Frontend\HomeController;
 use App\Http\Controllers\Frontend\DepartmentController;
 use App\Http\Controllers\Frontend\TeacherController;
 use App\Http\Controllers\Frontend\PublicationController;
+use App\Http\Controllers\ThemeScreenshotController;
+use App\Http\Middleware\EnsureThemeInstalled;
 use Illuminate\Support\Facades\Route;
 
 // Legacy teacher search for the admin "Create Teacher" page. Registered here
@@ -15,6 +17,11 @@ use Illuminate\Support\Facades\Route;
 // the frontend catch-all routes below, which would otherwise swallow the path.
 Route::middleware('auth')->group(function () {
     Route::get('/api/teacher/search', [TeacherApiController::class, 'search']);
+
+    // A theme's screenshot lives inside its own folder, which is not web-served.
+    // Above the frontend catch-all for the same reason as the search route.
+    Route::get('/admin/theme-screenshot/{theme}', ThemeScreenshotController::class)
+        ->name('theme.screenshot');
 });
 
 /*
@@ -42,12 +49,20 @@ Route::middleware('auth')->group(function () {
         ->name('teacher.password.store');
 });
 
-// Public nested frontend routes (Blade + Livewire monolith, placed at the bottom)
-Route::get('/', [HomeController::class, 'index'])->name('home');
-Route::get('/{faculty_short_name}', [HomeController::class, 'index'])->name('faculty.show');
-Route::get('/{faculty_short_name}/{department_code}', [DepartmentController::class, 'show'])->name('department.show');
-Route::get('/{faculty_short_name}/{department_code}/contact', [DepartmentController::class, 'contact'])->name('department.contact');
-Route::get('/{faculty_short_name}/{department_code}/{teacher_webpage}', [TeacherController::class, 'show'])->name('teacher.show');
-Route::get('/{faculty_short_name}/{department_code}/{teacher_webpage}/vcard', [TeacherController::class, 'vcard'])->name('teacher.vcard');
-Route::get('/{faculty_short_name}/{department_code}/{teacher_webpage}/cv', [TeacherController::class, 'cv'])->name('teacher.cv');
-Route::get('/{faculty_short_name}/{department_code}/{teacher_webpage}/publication/{publication_slug}', [PublicationController::class, 'show'])->name('publication.show');
+/*
+| Public nested frontend routes (Blade + Livewire monolith, placed at the bottom).
+|
+| Grouped behind EnsureThemeInstalled so that deleting every theme folder answers
+| 503 with an explanation rather than rendering an empty-looking 200. The admin
+| panel sits outside this group on purpose — it is where the fix happens.
+*/
+Route::middleware(EnsureThemeInstalled::class)->group(function () {
+    Route::get('/', [HomeController::class, 'index'])->name('home');
+    Route::get('/{faculty_short_name}', [HomeController::class, 'index'])->name('faculty.show');
+    Route::get('/{faculty_short_name}/{department_code}', [DepartmentController::class, 'show'])->name('department.show');
+    Route::get('/{faculty_short_name}/{department_code}/contact', [DepartmentController::class, 'contact'])->name('department.contact');
+    Route::get('/{faculty_short_name}/{department_code}/{teacher_webpage}', [TeacherController::class, 'show'])->name('teacher.show');
+    Route::get('/{faculty_short_name}/{department_code}/{teacher_webpage}/vcard', [TeacherController::class, 'vcard'])->name('teacher.vcard');
+    Route::get('/{faculty_short_name}/{department_code}/{teacher_webpage}/cv', [TeacherController::class, 'cv'])->name('teacher.cv');
+    Route::get('/{faculty_short_name}/{department_code}/{teacher_webpage}/publication/{publication_slug}', [PublicationController::class, 'show'])->name('publication.show');
+});

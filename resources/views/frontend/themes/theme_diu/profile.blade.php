@@ -91,7 +91,7 @@
                         <a href="{{ $link->url }}" target="_blank" rel="noopener noreferrer"
                            class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg border border-slate-200 transition-colors"
                            title="{{ optional($link->platform)->name ?? 'Link' }}">
-                            @include("frontend.themes.{$activeTheme}.partials.social_icon", ['platform' => optional($link->platform)->name ?? ''])
+                            @include('frontend.themes.theme_diu.partials.social_icon', ['platform' => optional($link->platform)->name ?? ''])
                         </a>
                     @endforeach
                 </div>

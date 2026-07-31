@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Frontend;
 
+use App\Helpers\Theme;
 use App\Http\Controllers\Controller;
 use App\Models\Faculty;
 use App\Models\Department;
 use App\Models\Designation;
-use App\Models\Setting;
 use App\Models\Teacher;
 use App\Models\UserAdministrativeRole;
 use App\Services\DepartmentContacts;
@@ -17,8 +17,6 @@ class DepartmentController extends Controller
 {
     public function show(Request $request, string $faculty_short_name, string $department_code): View
     {
-
-        $activeTheme = Setting::get('active_theme', 'theme_default');
 
         // Find faculty
         $faculty = Faculty::where('is_active', true)
@@ -118,13 +116,11 @@ class DepartmentController extends Controller
             })
             ->count();
 
-        return view("frontend.themes.{$activeTheme}.department", compact('faculties', 'faculty', 'department', 'teachers', 'designations', 'adminRoles', 'totalMembers'));
+        return view(Theme::view('department'), compact('faculties', 'faculty', 'department', 'teachers', 'designations', 'adminRoles', 'totalMembers'));
     }
 
     public function contact(Request $request, string $faculty_short_name, string $department_code): View
     {
-        $activeTheme = Setting::get('active_theme', 'theme_default');
-
         // Resolve the department (same lookup as the department page)
         $faculty = Faculty::where('is_active', true)
             ->where(function ($q) use ($faculty_short_name) {
@@ -150,7 +146,7 @@ class DepartmentController extends Controller
         $apiError = $contacts['error'];
         $blocks = DepartmentContacts::BLOCKS;
 
-        return view("frontend.themes.{$activeTheme}.contact", compact(
+        return view(Theme::view('contact'), compact(
             'faculty', 'department', 'sections', 'blocks', 'apiError'
         ));
     }

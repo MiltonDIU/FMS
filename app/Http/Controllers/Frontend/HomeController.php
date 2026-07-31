@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Frontend;
 
+use App\Helpers\Theme;
 use App\Http\Controllers\Controller;
 use App\Models\Department;
 use App\Models\Faculty;
 use App\Models\Publication;
-use App\Models\Setting;
 use App\Models\Teacher;
 use Illuminate\View\View;
 
@@ -14,8 +14,6 @@ class HomeController extends Controller
 {
     public function index(?string $faculty_short_name = null): View
     {
-        $activeTheme = Setting::get('active_theme', 'theme_default');
-
         $faculties = Faculty::where('is_active', true)
             ->withCount(['departments', 'teachers'])
             ->orderBy('sort_order', 'asc')
@@ -55,7 +53,7 @@ class HomeController extends Controller
         $totalFaculties  = $faculties->count();
         $totalPublications = Publication::count();
 
-        return view("frontend.themes.{$activeTheme}.home", compact(
+        return view(Theme::view('home'), compact(
             'faculties',
             'selectedFaculty',
             'departments',

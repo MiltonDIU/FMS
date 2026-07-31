@@ -2,10 +2,10 @@
 
 namespace App\Livewire\Frontend;
 
+use App\Helpers\Theme;
 use App\Models\AdministrativeRole;
 use App\Models\Designation;
 use App\Models\Faculty;
-use App\Models\Setting;
 use App\Models\Teacher;
 use App\Models\UserAdministrativeRole;
 use Illuminate\Contracts\View\View;
@@ -258,13 +258,9 @@ class TeacherSearch extends Component
 
     public function render(): View
     {
-        $activeTheme = Setting::get('active_theme', 'theme_default');
-        $view = "frontend.themes.{$activeTheme}.livewire.teacher-search";
-
-        if (! view()->exists($view)) {
-            $view = 'frontend.themes.theme_diu.livewire.teacher-search';
-        }
-
-        return view($view);
+        // Theme::view() picks the active theme and falls back on its own
+        // when that theme has been deleted, so this no longer hardcodes
+        // one particular theme as everyone else's safety net.
+        return view(Theme::view('livewire.teacher-search'));
     }
 }

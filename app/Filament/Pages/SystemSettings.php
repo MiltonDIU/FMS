@@ -33,29 +33,17 @@ class SystemSettings extends Page
         return auth()->user()->can('View:SystemSettings', Setting::class);
     }
 
+    /**
+     * Themes the site can actually be switched to.
+     *
+     * Delegates to App\Helpers\Theme so the dropdown, the frontend and the
+     * font settings all agree on what "installed" means. It used to accept any
+     * folder carrying a layout, which let a half-finished theme be selected and
+     * then fail at render time; the helper requires every view the site needs.
+     */
     public static function getAvailableThemes(): array
     {
-        $themesPath = resource_path('views/frontend/themes');
-        $themes = [];
-        if (is_dir($themesPath)) {
-            $dirs = array_filter(glob($themesPath . '/*'), 'is_dir');
-            foreach ($dirs as $dir) {
-                // Only list themes that are actually usable: a complete theme
-                // must ship its own layout, otherwise selecting it would crash
-                // the frontend. This keeps stub/broken theme folders out of the
-                // Active Theme dropdown.
-                if (! is_file($dir . '/layouts/app.blade.php')) {
-                    continue;
-                }
-                $slug = basename($dir);
-                $name = str_replace(['_', '-'], ' ', $slug);
-                $themes[$slug] = ucwords($name);
-            }
-        }
-        if (empty($themes)) {
-            $themes['theme_default'] = 'Theme Default';
-        }
-        return $themes;
+        return \App\Helpers\Theme::options();
     }
 
     public ?array $data = [];
@@ -162,7 +150,7 @@ class SystemSettings extends Page
             'teacher_login_mode' => 'individual',
             'teacher_integration_api_url' => 'http://localhost:8000/api/v1/teachers/preview',
             'teacher_integration_mapping' => 'erp_teacher_profile',
-            'active_theme' => 'theme_default',
+            'active_theme' => \App\Helpers\Theme::active(),
             'diu_color_palette' => 'diu',
             'diu_primary_color' => null,
             'global_custom_fonts' => [],
@@ -609,8 +597,21 @@ class SystemSettings extends Page
                                         \Filament\Forms\Components\Select::make('active_theme')
                                             ->label('Active Theme')
                                             ->options(fn () => static::getAvailableThemes())
-                                            ->default('theme_default')
+                                            ->default(fn () => \App\Helpers\Theme::active())
+                                            ->helperText('Themes are folders under resources/views/frontend/themes. Drop one in and it appears here; delete one and the site falls back to another rather than breaking.')
+                                            ->live()
                                             ->required()
+                                            ->columnSpanFull(),
+                                        // Reads the dropdown rather than holding its own
+                                        // state, so the card follows the selection
+                                        // immediately and never gets saved.
+                                        \Filament\Forms\Components\ViewField::make('active_theme_preview')
+                                            ->label('Preview')
+                                            ->view('filament.forms.theme-preview')
+                                            ->viewData(fn (\Filament\Schemas\Components\Utilities\Get $get) => [
+                                                'slug' => $get('active_theme'),
+                                            ])
+                                            ->dehydrated(false)
                                             ->columnSpanFull(),
                                         \Filament\Forms\Components\Radio::make('theme_color_mode')
                                             ->label('Theme Color Settings Mode')

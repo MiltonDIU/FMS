@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Frontend;
 
+use App\Helpers\Theme;
 use App\Http\Controllers\Controller;
 use App\Models\Faculty;
 use App\Models\Department;
 use App\Models\Teacher;
-use App\Models\Setting;
 use Illuminate\View\View;
 use Illuminate\Support\Str;
 
@@ -14,8 +14,6 @@ class PublicationController extends Controller
 {
     public function show(string $faculty_short_name, string $department_code, string $teacher_webpage, string $publication_slug): View
     {
-        $activeTheme = Setting::get('active_theme', 'theme_default');
-
         // Find faculty
         $faculty = Faculty::where('short_name', $faculty_short_name)->firstOrFail();
 
@@ -56,6 +54,6 @@ class PublicationController extends Controller
         // for us. Falls back to the requested URL if no author can host it.
         $canonicalUrl = \App\Helpers\Seo::publicationUrl($publication) ?? url()->current();
 
-        return view("frontend.themes.{$activeTheme}.publication", compact('faculty', 'department', 'teacher', 'publication', 'authors', 'citations', 'canonicalUrl'));
+        return view(Theme::view('publication'), compact('faculty', 'department', 'teacher', 'publication', 'authors', 'citations', 'canonicalUrl'));
     }
 }
