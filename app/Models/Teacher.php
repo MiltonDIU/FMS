@@ -71,6 +71,11 @@ class Teacher extends Model implements HasMedia
         'is_archived'              => 'boolean',
         'profile_score'            => 'integer',
         'profile_score_synced_at'  => 'datetime',
+        // Activation link lifecycle. These are compared with isPast() and
+        // checked for null, so they have to arrive as dates rather than strings.
+        'verification_token_expires_at' => 'datetime',
+        'verification_token_used_at'    => 'datetime',
+        'activation_email_sent_at'      => 'datetime',
     ];
 
     /**

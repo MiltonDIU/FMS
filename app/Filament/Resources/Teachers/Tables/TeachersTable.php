@@ -394,44 +394,9 @@ class TeachersTable
                     ->visible(fn (Teacher $record): bool => auth()->user()?->can('sendTeacherEmail', $record) ?? false)
                     ->modalHeading(fn (Teacher $record) => "Send Email to {$record->full_name}")
                     ->modalDescription(fn (Teacher $record) => "Select a saved template or customize the email content for {$record->full_name}.")
-                    ->form([
-                        Select::make('template_id')
-                            ->label('Select Email Template')
-                            ->placeholder('Choose a template to load default subject & body...')
-                            ->options(fn () => \App\Models\EmailTemplate::query()->where('is_active', true)->pluck('name', 'id')->toArray())
-                            ->default(fn () => \App\Models\EmailTemplate::where('key', 'profile_verification_request')->value('id'))
-                            ->searchable()
-                            ->live()
-                            ->afterStateUpdated(function ($state, \Filament\Schemas\Components\Utilities\Set $set) {
-                                if ($state) {
-                                    $template = \App\Models\EmailTemplate::find($state);
-                                    if ($template) {
-                                        $set('subject', $template->subject);
-                                        $set('body', $template->body);
-                                    }
-                                }
-                            }),
-
-                        \Filament\Forms\Components\TextInput::make('subject')
-                            ->label('Email Subject Line')
-                            ->required()
-                            ->maxLength(255)
-                            ->default(fn () => \App\Models\EmailTemplate::where('key', 'profile_verification_request')->value('subject') ?? 'Action Required: Please Review & Confirm Your Profile Data'),
-
-                        \Filament\Forms\Components\Textarea::make('body')
-                            ->label('Email Body / Message')
-                            ->required()
-                            ->rows(7)
-                            ->default(fn () => \App\Models\EmailTemplate::where('key', 'profile_verification_request')->value('body') ?? '')
-                            ->helperText('Available placeholders: {teacher_name}, {employee_id}, {department}, {designation}, {profile_score}, {verification_link}'),
-                    ])
+                    ->form(\App\Filament\Resources\Teachers\Support\TeacherEmailComposer::schema())
                     ->action(function (Teacher $record, array $data) {
-                        \App\Jobs\SendCustomTemplatedEmailJob::dispatch($record, $data['subject'], $data['body']);
-
-                        Notification::make()
-                            ->title("Email queued for {$record->full_name}!")
-                            ->success()
-                            ->send();
+                        \App\Filament\Resources\Teachers\Support\TeacherEmailComposer::send([$record], $data);
                     }),
                 \Filament\Actions\Action::make('dashboard')
                     ->label('Dashboard')
@@ -549,50 +514,9 @@ class TeachersTable
                         ->visible(fn (): bool => auth()->user()?->can('bulkSendEmailToTeachers', Teacher::class) ?? false)
                         ->modalHeading('Send Email to Selected Teachers')
                         ->modalDescription('Select a saved email template or write custom content to send to selected teachers.')
-                        ->form([
-                            Select::make('template_id')
-                                ->label('Select Email Template')
-                                ->placeholder('Choose a template to load default subject & body...')
-                                ->options(fn () => \App\Models\EmailTemplate::query()->where('is_active', true)->pluck('name', 'id')->toArray())
-                                ->default(fn () => \App\Models\EmailTemplate::where('key', 'profile_verification_request')->value('id'))
-                                ->searchable()
-                                ->live()
-                                ->afterStateUpdated(function ($state, \Filament\Schemas\Components\Utilities\Set $set) {
-                                    if ($state) {
-                                        $template = \App\Models\EmailTemplate::find($state);
-                                        if ($template) {
-                                            $set('subject', $template->subject);
-                                            $set('body', $template->body);
-                                        }
-                                    }
-                                }),
-
-                            \Filament\Forms\Components\TextInput::make('subject')
-                                ->label('Email Subject Line')
-                                ->required()
-                                ->maxLength(255)
-                                ->default(fn () => \App\Models\EmailTemplate::where('key', 'profile_verification_request')->value('subject') ?? 'Action Required: Please Review & Confirm Your Profile Data'),
-
-                            \Filament\Forms\Components\Textarea::make('body')
-                                ->label('Email Body / Message')
-                                ->required()
-                                ->rows(7)
-                                ->default(fn () => \App\Models\EmailTemplate::where('key', 'profile_verification_request')->value('body') ?? '')
-                                ->helperText('Available placeholders: {teacher_name}, {employee_id}, {department}, {designation}, {profile_score}, {verification_link}'),
-                        ])
+                        ->form(\App\Filament\Resources\Teachers\Support\TeacherEmailComposer::schema())
                         ->action(function (\Illuminate\Database\Eloquent\Collection $records, array $data) {
-                            $subject = $data['subject'];
-                            $body    = $data['body'];
-                            $count   = $records->count();
-
-                            foreach ($records as $teacher) {
-                                \App\Jobs\SendCustomTemplatedEmailJob::dispatch($teacher, $subject, $body);
-                            }
-
-                            Notification::make()
-                                ->title("Email queued for {$count} selected teachers!")
-                                ->success()
-                                ->send();
+                            \App\Filament\Resources\Teachers\Support\TeacherEmailComposer::send($records, $data);
                         }),
                     BulkAction::make('sync_selected_profile_scores')
                         ->label('Sync Selected Scores')

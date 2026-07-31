@@ -25,8 +25,15 @@ class EmailTemplate extends Model
 
     /**
      * Replace dynamic placeholders in a template string for a given teacher.
+     *
+     * $extra carries values only some templates need, so the caller supplies
+     * them rather than every template paying for them. The activation email
+     * passes {activation_link} and {link_validity_days} this way, since the link
+     * is only meaningful next to a freshly issued token.
+     *
+     * @param  array<string,string>  $extra
      */
-    public static function replacePlaceholders(string $content, Teacher $teacher): string
+    public static function replacePlaceholders(string $content, Teacher $teacher, array $extra = []): string
     {
         // Generate verification link safely
         if (\Illuminate\Support\Facades\Route::has('teacher.profile.verify')) {
@@ -47,6 +54,8 @@ class EmailTemplate extends Model
             '{profile_score}'     => ($teacher->profile_score ?? 0) . '%',
             '{verification_link}' => $verificationLink,
         ];
+
+        $replacements = array_merge($replacements, $extra);
 
         return str_replace(array_keys($replacements), array_values($replacements), $content);
     }

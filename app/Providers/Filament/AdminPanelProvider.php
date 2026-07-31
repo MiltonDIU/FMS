@@ -89,6 +89,11 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+                // A teacher who arrived through an activation link is signed in
+                // but has no password of their own yet. This keeps them on the
+                // setup page until they choose one; a prompt alone would let
+                // them navigate away and stay in that state indefinitely.
+                \App\Http\Middleware\RequirePasswordSetup::class,
             ])
             ->userMenuItems([
                 \Filament\Navigation\MenuItem::make()

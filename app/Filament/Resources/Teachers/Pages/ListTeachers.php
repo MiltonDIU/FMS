@@ -148,67 +148,28 @@ class ListTeachers extends ListRecords
                         ->columnSpanFull()
                         ->helperText('Leave empty to send email to all active teachers.'),
 
-                    \Filament\Forms\Components\Select::make('template_id')
-                        ->label('Select Saved Email Template')
-                        ->placeholder('Choose a template to load default subject & body...')
-                        ->options(fn () => \App\Models\EmailTemplate::query()->where('is_active', true)->pluck('name', 'id')->toArray())
-                        ->searchable()
-                        ->live()
-                        ->columnSpanFull()
-                        ->afterStateUpdated(function ($state, \Filament\Schemas\Components\Utilities\Set $set) {
-                            if ($state) {
-                                $template = \App\Models\EmailTemplate::find($state);
-                                if ($template) {
-                                    $set('subject', $template->subject);
-                                    $set('body', $template->body);
-                                }
-                            }
-                        }),
-
-                    \Filament\Forms\Components\TextInput::make('subject')
-                        ->label('Email Subject Line')
-                        ->required()
-                        ->maxLength(255)
-                        ->columnSpanFull()
-                        ->placeholder('e.g. Action Required: Please Review & Confirm Your Profile Data'),
-
-                    \Filament\Forms\Components\Textarea::make('body')
-                        ->label('Email Body / Message')
-                        ->required()
-                        ->rows(7)
-                        ->columnSpanFull()
-                        ->helperText('Available placeholders: {teacher_name}, {employee_id}, {department}, {designation}, {profile_score}, {verification_link}'),
+                    ...\App\Filament\Resources\Teachers\Support\TeacherEmailComposer::schema(),
                 ])
                 ->action(function (array $data) {
                     $query = Teacher::query()->where('is_archived', false);
 
-                    if (!empty($data['employment_status_ids']) && is_array($data['employment_status_ids'])) {
+                    if (! empty($data['employment_status_ids']) && is_array($data['employment_status_ids'])) {
                         $query->whereIn('employment_status_id', $data['employment_status_ids']);
                     }
 
-                    $teachers = $query->get();
-                    $count    = $teachers->count();
+                    $teachers = $query->with('user')->get();
 
-                    if ($count === 0) {
+                    if ($teachers->isEmpty()) {
                         Notification::make()
                             ->warning()
                             ->title('No matching teachers found')
                             ->body('No teachers matched the selected employment statuses.')
                             ->send();
+
                         return;
                     }
 
-                    $subject = $data['subject'];
-                    $body    = $data['body'];
-
-                    foreach ($teachers as $teacher) {
-                        \App\Jobs\SendCustomTemplatedEmailJob::dispatch($teacher, $subject, $body);
-                    }
-
-                    Notification::make()
-                        ->title("Targeted email job queued for {$count} teachers!")
-                        ->success()
-                        ->send();
+                    \App\Filament\Resources\Teachers\Support\TeacherEmailComposer::send($teachers, $data);
                 }),
 
             CreateAction::make(),

@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Api\TeacherApiController;
+use App\Http\Controllers\Auth\TeacherActivationController;
+use App\Http\Controllers\Auth\TeacherPasswordSetupController;
 use App\Http\Controllers\Frontend\HomeController;
 use App\Http\Controllers\Frontend\DepartmentController;
 use App\Http\Controllers\Frontend\TeacherController;
@@ -13,6 +15,31 @@ use Illuminate\Support\Facades\Route;
 // the frontend catch-all routes below, which would otherwise swallow the path.
 Route::middleware('auth')->group(function () {
     Route::get('/api/teacher/search', [TeacherApiController::class, 'search']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| Teacher activation
+|--------------------------------------------------------------------------
+| Every teacher account came over from the old system with an unusable
+| password, so this emailed link is the only way in. It is the one route that
+| grants a session without a password, hence the throttle: the token is 64
+| random characters and unguessable, but the endpoint should not be an open
+| door to hammer either.
+|
+| Both paths sit above the frontend catch-all, which would otherwise match
+| /teacher/... as a faculty and department.
+*/
+Route::middleware('throttle:10,1')
+    ->get('/teacher/activate/{token}', TeacherActivationController::class)
+    ->name('teacher.activate');
+
+Route::middleware('auth')->group(function () {
+    Route::get('/teacher/set-password', [TeacherPasswordSetupController::class, 'create'])
+        ->name('teacher.password.create');
+
+    Route::post('/teacher/set-password', [TeacherPasswordSetupController::class, 'store'])
+        ->name('teacher.password.store');
 });
 
 // Public nested frontend routes (Blade + Livewire monolith, placed at the bottom)

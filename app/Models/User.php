@@ -53,6 +53,9 @@ class User extends Authenticatable implements FilamentUser
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            // Null means the account still has the unusable password it was
+            // migrated with, which is what holds a teacher on the setup page.
+            'password_set_at' => 'datetime',
         ];
     }
 
