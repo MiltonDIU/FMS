@@ -2,6 +2,18 @@
 
 @section('title', $publication->title . ' - Publication Details')
 
+{{-- Sharing and structured data. ScholarlyArticle, because this is the one page
+     type on the site that is a citation target. --}}
+@php
+    $seo = \App\Helpers\SeoPayload::forPublication($publication, $authors, $faculty, $department);
+@endphp
+
+@section('meta_description', $seo['description'])
+
+@section('seo')
+    @include('frontend.partials.seo-tags', ['seo' => $seo])
+@endsection
+
 @section('content')
 
     @php

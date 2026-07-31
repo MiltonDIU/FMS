@@ -6,9 +6,7 @@ use App\Helpers\Theme;
 use App\Http\Controllers\Controller;
 use App\Models\Faculty;
 use App\Models\Department;
-use App\Models\Designation;
 use App\Models\Teacher;
-use App\Models\UserAdministrativeRole;
 use App\Services\DepartmentContacts;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -35,88 +33,30 @@ class DepartmentController extends Controller
             })
             ->firstOrFail();
 
-        // Get filter designation / administrative role from query
-        $designationId = $request->query('designation');
-        $adminId = $request->query('admin');
-
-
-        // Fetch teachers in this department (home department OR department_teacher assignment)
-        $deptTeacherIds = Teacher::whereHas('departments', fn ($q) => $q->whereNull('department_teacher.deleted_at')->where('department_teacher.department_id', $department->id))->pluck('id');
-
-        $query = Teacher::where('teachers.is_active', true)
-            ->where('teachers.is_archived', false)
-            ->where(function ($q) use ($department, $deptTeacherIds) {
-                $q->where('teachers.department_id', $department->id)
-                    ->orWhereIn('teachers.id', $deptTeacherIds);
-            });
-
-        if ($designationId) {
-            $query->where('teachers.designation_id', $designationId);
-        }
-
-        if ($adminId) {
-            $adminTeacherIds = UserAdministrativeRole::query()
-                ->join('teachers', 'teachers.user_id', '=', 'administrative_role_user.user_id')
-                ->where(function ($q) use ($department, $deptTeacherIds) {
-                    $q->where('teachers.department_id', $department->id)
-                        ->orWhereIn('teachers.id', $deptTeacherIds);
-                })
-                ->where('administrative_role_user.administrative_role_id', $adminId)
-                ->distinct()
-                ->pluck('teachers.id');
-            $query->whereIn('teachers.id', $adminTeacherIds);
-        }
-
-        // Order by designation sort_order, then teacher sort_order
-        $teachers = $query->with(['designation', 'department', 'employmentStatus'])
-            ->join('designations', 'teachers.designation_id', '=', 'designations.id')
-            ->select('teachers.*')
-            ->orderBy('designations.sort_order', 'asc')
-            ->orderBy('teachers.sort_order', 'asc')
-            ->paginate(12)
-            ->withQueryString();
-
-        // Get designations present in this department for filters
-        $designationIds = Teacher::where('teachers.is_active', true)
-            ->where('teachers.is_archived', false)
-            ->where(function ($q) use ($department, $deptTeacherIds) {
-                $q->where('teachers.department_id', $department->id)
-                    ->orWhereIn('teachers.id', $deptTeacherIds);
-            })
-            ->whereNotNull('teachers.designation_id')
-            ->distinct()
-            ->pluck('teachers.designation_id');
-
-        $designations = Designation::whereIn('id', $designationIds)
-            ->orderBy('sort_order', 'asc')
-            ->get();
-
-        // Get administrative roles present in this department (via administrative_role_user pivot)
-        $adminRoleIds = UserAdministrativeRole::query()
-            ->join('teachers', 'teachers.user_id', '=', 'administrative_role_user.user_id')
-            ->where(function ($q) use ($department, $deptTeacherIds) {
-                $q->where('teachers.department_id', $department->id)
-                    ->orWhereIn('teachers.id', $deptTeacherIds);
-            })
-            ->whereNotNull('administrative_role_user.administrative_role_id')
-            ->distinct()
-            ->pluck('administrative_role_user.administrative_role_id');
-
-        $adminRoles = \App\Models\AdministrativeRole::whereIn('id', $adminRoleIds)
-            ->orderBy('sort_order', 'asc')
-            ->get();
-
-        $faculties = Faculty::where('is_active', true)->orderBy('sort_order')->get();
-
+        /*
+         * The page is rendered by the DepartmentSearch Livewire component, which
+         * builds its own teacher list, filters and faculty navigation — it has
+         * to, since typing in the search box re-renders it without a round trip
+         * through here.
+         *
+         * This action used to build all of that as well: a paginated teacher
+         * query, the designation and administrative-role filter lists, and every
+         * faculty. None of it was read by any theme's department view, and it
+         * cost around twenty queries on every page load. Only the count survives,
+         * because the Schema.org payload quotes it.
+         */
         $totalMembers = Teacher::where('teachers.is_active', true)
             ->where('teachers.is_archived', false)
-            ->where(function ($q) use ($department, $deptTeacherIds) {
-                $q->where('teachers.department_id', $department->id)
-                    ->orWhereIn('teachers.id', $deptTeacherIds);
-            })
+            ->where(fn ($q) => $q
+                ->where('teachers.department_id', $department->id)
+                ->orWhereIn('teachers.id', fn ($sub) => $sub
+                    ->select('teacher_id')
+                    ->from('department_teacher')
+                    ->whereNull('deleted_at')
+                    ->where('department_id', $department->id)))
             ->count();
 
-        return view(Theme::view('department'), compact('faculties', 'faculty', 'department', 'teachers', 'designations', 'adminRoles', 'totalMembers'));
+        return view(Theme::view('department'), compact('faculty', 'department', 'totalMembers'));
     }
 
     public function contact(Request $request, string $faculty_short_name, string $department_code): View

@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
@@ -150,6 +152,51 @@ class Publication extends Model
     public function getCreatedByNameAttribute(): string
     {
         return $this->creator?->name ?? 'System Generated';
+    }
+
+    /**
+     * Publications that fall inside a date range, including the ones that only
+     * know their year.
+     *
+     * Of 17,510 publications, 1,465 carry an exact publication_date and 17,003
+     * carry a publication_year. That is not an import that went wrong — the
+     * source export holds a Publication Date for 1,465 of its 12,423 rows, and
+     * every one of them was imported. The year is simply all that was ever
+     * recorded for the rest.
+     *
+     * So a filter that reads publication_date alone answers "papers we happen to
+     * hold a day for", not "papers published between these dates", and quietly
+     * drops most of the library. This matches on the exact date where there is
+     * one and falls back to the year where there is not.
+     *
+     * Either bound may be null for an open-ended range.
+     */
+    public function scopePublishedBetween(Builder $query, mixed $from = null, mixed $until = null): Builder
+    {
+        if (blank($from) && blank($until)) {
+            return $query;
+        }
+
+        $from = filled($from) ? Carbon::parse($from)->startOfDay() : null;
+        $until = filled($until) ? Carbon::parse($until)->endOfDay() : null;
+
+        return $query->where(function (Builder $outer) use ($from, $until) {
+            $outer
+                ->where(function (Builder $exact) use ($from, $until) {
+                    $exact->whereNotNull('publication_date')
+                        ->when($from, fn (Builder $q) => $q->where('publication_date', '>=', $from))
+                        ->when($until, fn (Builder $q) => $q->where('publication_date', '<=', $until));
+                })
+                ->orWhere(function (Builder $yearOnly) use ($from, $until) {
+                    // A year-only record counts as inside the range when its year
+                    // overlaps it at all — the day it was published is unknown,
+                    // so excluding it would be a guess in the other direction.
+                    $yearOnly->whereNull('publication_date')
+                        ->whereNotNull('publication_year')
+                        ->when($from, fn (Builder $q) => $q->where('publication_year', '>=', $from->year))
+                        ->when($until, fn (Builder $q) => $q->where('publication_year', '<=', $until->year));
+                });
+        });
     }
 
     /**

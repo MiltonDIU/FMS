@@ -217,7 +217,12 @@ class TeacherSearch extends Component
 
         return $query
             ->whereRaw("EXISTS (SELECT 1 FROM administrative_role_user aru WHERE aru.user_id = teachers.user_id AND ({$adminScope}) AND aru.deleted_at IS NULL)")
-            ->with(['designation', 'department.faculty', 'teachingAreas', 'administrativeRoles', 'employmentStatus'])
+            ->with(['designation', 'department.faculty', 'teachingAreas',
+                'administrativeRoles.administrativeRole', 'employmentStatus', 'user'])
+            // publications_count instead of loading every paper to call count()
+            // on it: three of the four themes print the number on each card,
+            // which fetched a teacher's whole bibliography per card.
+            ->withCount('publications')
             ->orderBy('admin_role_sort')
             ->orderBy('designations.sort_order')
             ->orderBy('teachers.sort_order')
@@ -231,7 +236,12 @@ class TeacherSearch extends Component
 
         return $query
             ->whereRaw("NOT EXISTS (SELECT 1 FROM administrative_role_user aru WHERE aru.user_id = teachers.user_id AND ({$adminScope}) AND aru.deleted_at IS NULL)")
-            ->with(['designation', 'department.faculty', 'teachingAreas', 'administrativeRoles', 'employmentStatus'])
+            ->with(['designation', 'department.faculty', 'teachingAreas',
+                'administrativeRoles.administrativeRole', 'employmentStatus', 'user'])
+            // publications_count instead of loading every paper to call count()
+            // on it: three of the four themes print the number on each card,
+            // which fetched a teacher's whole bibliography per card.
+            ->withCount('publications')
             ->orderBy('designations.sort_order')
             ->orderBy('teachers.sort_order')
             ->orderBy('teachers.first_name')

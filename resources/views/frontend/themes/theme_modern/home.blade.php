@@ -1,7 +1,19 @@
 @extends('frontend.themes.theme_modern.layouts.app')
 
-@section('title', 'Faculty Directory' . \App\Helpers\Branding::get('meta_title_suffix'))
-@section('meta_description', \App\Helpers\Branding::get('meta_description'))
+{{-- Sharing and structured data. Built in PHP and rendered by a shared partial
+     so all four themes advertise the same thing. --}}
+@php
+    $seo = $selectedFaculty
+        ? \App\Helpers\SeoPayload::forFaculty($selectedFaculty, $departments->count(), $selectedFaculty->teachers_count ?? 0)
+        : \App\Helpers\SeoPayload::forDirectory($totalFaculties ?? 0, $totalDepartments ?? 0, $totalTeachers ?? 0);
+@endphp
+
+@section('title', $seo['title'])
+@section('meta_description', $seo['description'])
+
+@section('seo')
+    @include('frontend.partials.seo-tags', ['seo' => $seo])
+@endsection
 
 @section('content')
 

@@ -303,15 +303,10 @@ class PublicationsTable
                             ->label('Until Date'),
                     ])
                     ->query(function (Builder $query, array $data): Builder {
-                        return $query
-                            ->when(
-                                $data['from'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('publication_date', '>=', $date),
-                            )
-                            ->when(
-                                $data['until'],
-                                fn (Builder $query, $date): Builder => $query->whereDate('publication_date', '<=', $date),
-                            );
+                        // publishedBetween() also matches the records that only
+                        // know their year, which is most of them; reading
+                        // publication_date alone returned 12 rows for 2023.
+                        return $query->publishedBetween($data['from'] ?? null, $data['until'] ?? null);
                     })
                     ->indicateUsing(function (array $data): array {
                         $indicators = [];

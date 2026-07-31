@@ -17,7 +17,7 @@
                             </button>
                         </li>
                         @php
-                            $faculties = \App\Models\Faculty::where('is_active', true)->orderBy('sort_order')->get();
+                            $faculties = $this->facultyList;
                         @endphp
                         @foreach($faculties as $fac)
                             @php $active = ! $this->all && $this->department && $fac->id === $this->department->faculty_id; @endphp
@@ -35,7 +35,7 @@
             <!-- Departments (for selected faculty) -->
             @if($this->department?->faculty)
                 @php
-                    $deptList = $this->department->faculty->departments()->where('is_active', true)->orderBy('sort_order')->get();
+                    $deptList = $this->departmentList;
                 @endphp
                 @if($deptList->isNotEmpty())
                     <section class="rounded-xl" aria-labelledby="sb-departments">

@@ -14,7 +14,7 @@
                     <span class="truncate">All Faculties</span>
                 </button>
                 @php
-                    $faculties = \App\Models\Faculty::where('is_active', true)->orderBy('sort_order')->get();
+                    $faculties = $this->facultyList;
                 @endphp
                 @foreach($faculties as $fac)
                     @php $active = ! $this->all && $this->department && $fac->id === $this->department->faculty_id; @endphp
@@ -30,7 +30,7 @@
         <!-- Departments (for selected faculty) -->
         @if($this->department?->faculty)
             @php
-                $deptList = $this->department->faculty->departments()->where('is_active', true)->orderBy('sort_order')->get();
+                $deptList = $this->departmentList;
             @endphp
             @if($deptList->isNotEmpty())
                 <div class="bg-white/50 backdrop-blur-md rounded-2xl border border-white/60 p-5 shadow-sm ring-1 ring-diu-accent/5">

@@ -206,11 +206,12 @@ class PublicationGrantTypeWidget extends ApexChartWidget
                 break;
 
             case 'date_range':
-                $dateStart = $this->filters['date_start'] ?? null;
-                $dateEnd = $this->filters['date_end'] ?? null;
-                if ($dateStart && $dateEnd) {
-                    $query->whereBetween('publication_date', [$dateStart, $dateEnd]);
-                }
+                // Same fallback as everywhere else: a range that reads
+                // publication_date alone under-reports by roughly nine tenths.
+                $query->publishedBetween(
+                    $this->filters['date_start'] ?? null,
+                    $this->filters['date_end'] ?? null,
+                );
                 break;
         }
 

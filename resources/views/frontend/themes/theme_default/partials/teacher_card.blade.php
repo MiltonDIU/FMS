@@ -18,7 +18,9 @@
     $accent = $isAdmin ? 'diu-accent' : 'diu-primary';
     $adminRoleName = $adminRole?->administrativeRole?->name;
 
-    $initials = strtoupper(substr($teacher->first_name, 0, 1) . substr($teacher->last_name, 0, 1));
+    // Cast: a teacher may have no last name recorded, and PHP 8.4 deprecates
+    // passing null to substr().
+    $initials = strtoupper(substr((string) $teacher->first_name, 0, 1) . substr((string) $teacher->last_name, 0, 1));
     $interests = $teacher->research_interests;
     $teachingAreas = $teacher->teachingAreas;
     $areaCount = $teachingAreas->count();
@@ -124,7 +126,7 @@
         <div class="flex items-center gap-1.5">
             <svg class="w-4 h-4 {{ $isAdmin ? 'text-diu-accent' : 'text-diu-primary' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
             <span class="text-[10px] text-slate-400 font-semibold uppercase font-sans">
-                {{ $teacher->publications->count() }} Publications
+                {{ $teacher->publications_count ?? $teacher->publications->count() }} Publications
             </span>
         </div>
         <span class="text-xs font-semibold text-diu-primary group-hover:text-diu-accent flex items-center gap-1 transition-all">

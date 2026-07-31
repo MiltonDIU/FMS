@@ -45,6 +45,38 @@ class DepartmentSearch extends Component
      */
     public string $view = 'teachers';
 
+    /**
+     * Teachers assigned to this department through the department_teacher pivot,
+     * as opposed to those whose home department it is.
+     *
+     * Memoised because five different code paths need it on a single render —
+     * the member count, the designation filter, the role filter and both halves
+     * of the teacher list — and it was running as five separate queries, the
+     * most expensive repeated statement on the page. Protected, so Livewire does
+     * not carry it between requests: it is a per-render cache, not state.
+     *
+     * @var array<int, int>|null
+     */
+    protected ?array $assignedTeacherIds = null;
+
+    /** @return array<int, int> */
+    protected function assignedTeacherIds(): array
+    {
+        if ($this->assignedTeacherIds !== null) {
+            return $this->assignedTeacherIds;
+        }
+
+        if (! $this->departmentId) {
+            return $this->assignedTeacherIds = [];
+        }
+
+        return $this->assignedTeacherIds = DB::table('department_teacher')
+            ->whereNull('deleted_at')
+            ->where('department_id', $this->departmentId)
+            ->pluck('teacher_id')
+            ->all();
+    }
+
     public function mount(?int $departmentId = null, string $view = 'teachers'): void
     {
         $this->departmentId = $departmentId;
@@ -62,13 +94,13 @@ class DepartmentSearch extends Component
         }
 
         $dept = $this->department;
-        $deptTeacherIds = Teacher::whereHas('departments', fn ($q) => $q->whereNull('department_teacher.deleted_at')->where('department_teacher.department_id', $dept->id))->pluck('id');
+        $assignedIds = $this->assignedTeacherIds();
 
         return Teacher::where('teachers.is_active', true)
             ->where('teachers.is_archived', false)
-            ->where(function ($q) use ($dept, $deptTeacherIds) {
+            ->where(function ($q) use ($dept, $assignedIds) {
                 $q->where('teachers.department_id', $dept->id)
-                    ->orWhereIn('teachers.id', $deptTeacherIds);
+                    ->orWhereIn('teachers.id', $assignedIds);
             })
             ->count();
     }
@@ -88,6 +120,33 @@ class DepartmentSearch extends Component
         }
 
         return DepartmentContacts::for($this->department);
+    }
+
+    /**
+     * The sidebar's faculty and department navigation.
+     *
+     * These were queried from inside the Blade view, which meant every theme
+     * repeated the same two statements and re-ran them on each Livewire render.
+     * As computed properties they resolve once per request and the four themes
+     * share one definition.
+     */
+    public function getFacultyListProperty()
+    {
+        return \App\Models\Faculty::where('is_active', true)->orderBy('sort_order')->get();
+    }
+
+    public function getDepartmentListProperty()
+    {
+        $faculty = $this->department?->faculty;
+
+        if (! $faculty) {
+            return collect();
+        }
+
+        return $faculty->departments()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get();
     }
 
     public function toggleAll(): void
@@ -122,9 +181,7 @@ class DepartmentSearch extends Component
     {
         $deptId = (! $this->all && $this->departmentId) ? (int) $this->departmentId : null;
         $facId = $deptId ? (int) $this->department->faculty_id : null;
-        $assignedIds = $deptId
-            ? Teacher::whereHas('departments', fn ($q) => $q->whereNull('department_teacher.deleted_at')->where('department_teacher.department_id', $deptId))->pluck('id')->all()
-            : [];
+        $assignedIds = $deptId ? $this->assignedTeacherIds() : [];
 
         $ids = Teacher::query()
             ->when($deptId, fn ($q) => $q->where(fn ($q2) => $q2->where('teachers.department_id', $deptId)->orWhereIn('teachers.id', $assignedIds)))
@@ -146,9 +203,7 @@ class DepartmentSearch extends Component
     {
         $deptId = (! $this->all && $this->departmentId) ? (int) $this->departmentId : null;
         $facId = $deptId ? (int) $this->department->faculty_id : null;
-        $assignedIds = $deptId
-            ? Teacher::whereHas('departments', fn ($q) => $q->whereNull('department_teacher.deleted_at')->where('department_teacher.department_id', $deptId))->pluck('id')->all()
-            : [];
+        $assignedIds = $deptId ? $this->assignedTeacherIds() : [];
 
         $ids = UserAdministrativeRole::query()
             ->join('teachers', 'teachers.user_id', '=', 'administrative_role_user.user_id')
@@ -183,9 +238,7 @@ class DepartmentSearch extends Component
         }
         $adminScope = $scopeParts ? '(' . implode(' OR ', $scopeParts) . ')' : '1=1';
 
-        $assignedIds = $deptId
-            ? Teacher::whereHas('departments', fn ($q) => $q->whereNull('department_teacher.deleted_at')->where('department_teacher.department_id', $this->departmentId))->pluck('id')
-            : collect();
+        $assignedIds = $deptId ? $this->assignedTeacherIds() : [];
 
         $query = Teacher::query()
             ->select('teachers.*')
@@ -247,7 +300,12 @@ class DepartmentSearch extends Component
 
         return $query
             ->whereRaw("EXISTS (SELECT 1 FROM administrative_role_user aru WHERE aru.user_id = teachers.user_id AND ({$adminScope}) AND aru.deleted_at IS NULL)")
-            ->with(['designation', 'department.faculty', 'teachingAreas', 'administrativeRoles', 'employmentStatus'])
+            ->with(['designation', 'department.faculty', 'teachingAreas',
+                'administrativeRoles.administrativeRole', 'employmentStatus', 'user'])
+            // publications_count instead of loading every paper to call count()
+            // on it: three of the four themes print the number on each card,
+            // which fetched a teacher's whole bibliography per card.
+            ->withCount('publications')
             ->orderBy('admin_role_sort')
             ->orderBy('designations.sort_order')
             ->orderBy('teachers.sort_order')
@@ -261,7 +319,12 @@ class DepartmentSearch extends Component
 
         return $query
             ->whereRaw("NOT EXISTS (SELECT 1 FROM administrative_role_user aru WHERE aru.user_id = teachers.user_id AND ({$adminScope}) AND aru.deleted_at IS NULL)")
-            ->with(['designation', 'department.faculty', 'teachingAreas', 'administrativeRoles', 'employmentStatus'])
+            ->with(['designation', 'department.faculty', 'teachingAreas',
+                'administrativeRoles.administrativeRole', 'employmentStatus', 'user'])
+            // publications_count instead of loading every paper to call count()
+            // on it: three of the four themes print the number on each card,
+            // which fetched a teacher's whole bibliography per card.
+            ->withCount('publications')
             ->orderBy('designations.sort_order')
             ->orderBy('teachers.sort_order')
             ->orderBy('teachers.first_name')

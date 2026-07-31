@@ -340,15 +340,14 @@ class PublicationIncentivesTable
                         \Filament\Forms\Components\DatePicker::make('date_until'),
                     ])
                     ->query(function ($query, array $data) {
-                        return $query
-                            ->when(
-                                $data['date_from'],
-                                fn ($query, $date) => $query->whereHas('publication', fn($q) => $q->whereDate('publication_date', '>=', $date)),
-                            )
-                            ->when(
-                                $data['date_until'],
-                                fn ($query, $date) => $query->whereHas('publication', fn($q) => $q->whereDate('publication_date', '<=', $date)),
-                            );
+                        if (blank($data['date_from'] ?? null) && blank($data['date_until'] ?? null)) {
+                            return $query;
+                        }
+
+                        // Year-only publications count too — see
+                        // Publication::scopePublishedBetween().
+                        return $query->whereHas('publication', fn ($q) => $q
+                            ->publishedBetween($data['date_from'] ?? null, $data['date_until'] ?? null));
                     })
             ],layout: FiltersLayout::Modal)
             ->filtersTriggerAction(function ($action) {

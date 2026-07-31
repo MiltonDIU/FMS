@@ -431,14 +431,10 @@ class ExportPublicationsJob implements ShouldQueue
         }
 
         // 2. Publication Date Range
+        // Year-only records are in range too; see Publication::scopePublishedBetween().
         if (!empty($this->filterData['publication_date_range'])) {
             $dateData = $this->filterData['publication_date_range'];
-            if (!empty($dateData['from'])) {
-                $query->whereDate('publication_date', '>=', $dateData['from']);
-            }
-            if (!empty($dateData['until'])) {
-                $query->whereDate('publication_date', '<=', $dateData['until']);
-            }
+            $query->publishedBetween($dateData['from'] ?? null, $dateData['until'] ?? null);
         }
 
         // 3. Status
