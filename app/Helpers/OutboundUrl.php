@@ -94,6 +94,14 @@ class OutboundUrl
      */
     protected static function resolve(string $host): array
     {
+        /*
+         * An IPv6 literal arrives from parse_url still wrapped in the brackets
+         * the URL syntax requires — "[::1]" — and neither FILTER_VALIDATE_IP nor
+         * a DNS lookup recognises that form. http://[::1]/ therefore resolved to
+         * nothing and passed the check, which is loopback by another spelling.
+         */
+        $host = trim($host, '[]');
+
         if (filter_var($host, FILTER_VALIDATE_IP)) {
             return [$host];
         }

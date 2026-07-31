@@ -162,8 +162,14 @@
                  photographs live on the legacy host, so that path never existed.
                  photo_url gives the address they are actually served from, and
                  the controller enables remote images for dompdf. --}}
-            @if($teacher->photo_url)
-                <img class="photo" src="{{ $teacher->photo_url }}">
+            @php
+                // dompdf runs with isRemoteEnabled, so it is the server that
+                // fetches this. serverFetchablePhotoUrl() refuses addresses that
+                // resolve inside the network; see the accessor for why.
+                $cvPhotoUrl = $teacher->serverFetchablePhotoUrl();
+            @endphp
+            @if($cvPhotoUrl)
+                <img class="photo" src="{{ $cvPhotoUrl }}">
             @else
                 <div class="photo-fallback">{{ strtoupper(substr($teacher->first_name ?? '?', 0, 1)) }}</div>
             @endif

@@ -227,7 +227,9 @@ class TeacherShareImage
     /** @return \GdImage|null */
     protected static function photo(Teacher $teacher)
     {
-        $url = $teacher->photo_url;
+        // The guarded accessor: this runs inside the network, so an address the
+        // legacy import wrote is not automatically safe to request.
+        $url = $teacher->serverFetchablePhotoUrl();
 
         if (blank($url)) {
             return null;

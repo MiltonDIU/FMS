@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Helpers\OutboundUrl;
 use App\Observers\TeacherObserver;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -180,6 +181,36 @@ class Teacher extends Model implements HasMedia
         }
 
         return self::PHOTO_BASE_URL . rawurlencode($photo);
+    }
+
+    /**
+     * The photograph, but only when the server itself is the one fetching it.
+     *
+     * photo_url hands back whatever absolute URL the column holds, which is
+     * right for an <img> tag — the browser fetches that, from outside the
+     * network, and a bad address costs a broken image and nothing else.
+     *
+     * Two paths are different: the share-card generator requests it with the
+     * HTTP client, and the CV renderer runs dompdf with remote images enabled.
+     * Both fetch from inside the network, where an address like
+     * http://169.254.169.254/ or a database host is reachable and a public
+     * visitor's is not. The column is written by the legacy import from another
+     * system's data rather than typed into a form, so its contents are not ours
+     * to trust. Anything that resolves to a private range is refused here and
+     * the caller falls back to the initials block.
+     *
+     * The check does a DNS lookup, so it is deliberately not part of photo_url:
+     * that one renders on every card of every directory page.
+     */
+    public function serverFetchablePhotoUrl(): ?string
+    {
+        $url = $this->photo_url;
+
+        if (blank($url)) {
+            return null;
+        }
+
+        return OutboundUrl::rejectionReason($url) === null ? $url : null;
     }
 
     /**
