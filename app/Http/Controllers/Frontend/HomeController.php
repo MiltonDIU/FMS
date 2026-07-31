@@ -28,6 +28,18 @@ class HomeController extends Controller
                 return $f->id == $faculty_short_name
                     || strtolower($f->short_name) === strtolower($faculty_short_name);
             });
+
+            /*
+             * A slug that matches no faculty is a wrong address, not the home
+             * page. This route is the catch-all for every single-segment URL, so
+             * without this every typo and every stale link answered 200 with the
+             * full directory — the same page served at unlimited addresses, which
+             * search engines read as duplicate content and a visitor reads as
+             * "the link worked".
+             */
+            if (! $selectedFaculty) {
+                abort(404);
+            }
         }
 
         $departments = collect();

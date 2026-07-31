@@ -96,4 +96,20 @@ class FrontendRoutesTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('Test  Teacher');
     }
+
+    /**
+     * /{faculty_short_name} is the catch-all for every single-segment URL, so an
+     * unknown slug used to answer 200 with the whole directory — the same page at
+     * unlimited addresses, and no signal to a visitor that the link was wrong.
+     */
+    public function test_an_unknown_faculty_slug_is_a_404_not_the_home_page()
+    {
+        $this->get('/no-such-faculty')->assertStatus(404);
+    }
+
+    public function test_the_nested_routes_still_404_below_a_real_faculty()
+    {
+        $this->get('/fsit/no-such-department')->assertStatus(404);
+        $this->get('/fsit/cse/no-such-teacher')->assertStatus(404);
+    }
 }

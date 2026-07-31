@@ -65,5 +65,13 @@
 
 {{-- Schema.org Person --}}
 <script type="application/ld+json">
-{!! json_encode($person, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
+{{--
+    JSON_HEX_TAG is what keeps this inside its own <script> element. Only
+    `description` passes through strip_tags; the name, job title, department and
+    faculty do not, and all of them are editable from the admin panel and the
+    teacher's own profile form. A name containing "</script>" would otherwise
+    close this tag and let whatever followed run as markup. The escaped form
+    (<, >) is still valid JSON-LD and parsers read it unchanged.
+--}}
+{!! json_encode($person, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}
 </script>

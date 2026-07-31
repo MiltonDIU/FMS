@@ -188,4 +188,47 @@ class SeoCanonicalTest extends TestCase
         $this->assertNotNull($primary);
         $this->assertSame('first', $primary->pivot->author_role);
     }
+
+    /**
+     * The Schema.org block is JSON inside a <script> element. Only its
+     * description passes through strip_tags — the name, job title, department and
+     * faculty do not, and every one of them is editable from the admin panel and
+     * the teacher's own profile form. Without JSON_HEX_TAG a name carrying
+     * "</script>" closes the element and whatever follows runs as markup.
+     */
+    public function test_json_ld_cannot_break_out_of_its_script_element(): void
+    {
+        $teacher = Teacher::where('is_active', true)
+            ->where('is_archived', false)
+            ->whereNotNull('webpage')
+            ->with('department.faculty')
+            ->first();
+
+        if (! $teacher || ! $teacher->department?->faculty) {
+            $this->markTestSkipped('no published teacher to render');
+        }
+
+        $teacher->first_name = 'Ana</script><script>alert(1)</script>';
+        $teacher->save();
+
+        $path = '/' . strtolower($teacher->department->faculty->short_name)
+            . '/' . strtolower($teacher->department->code)
+            . '/' . $teacher->webpage;
+
+        $html = $this->get($path)->assertStatus(200)->getContent();
+
+        $this->assertMatchesRegularExpression(
+            '#<script type="application/ld\+json">(.*?)</script>#s',
+            $html,
+        );
+        preg_match('#<script type="application/ld\+json">(.*?)</script>#s', $html, $matches);
+
+        $this->assertStringNotContainsString('</script>', $matches[1]);
+        $this->assertStringNotContainsString('<script>', $matches[1]);
+
+        // Still valid JSON-LD, and the name survives intact once decoded.
+        $decoded = json_decode(trim($matches[1]), true);
+        $this->assertIsArray($decoded);
+        $this->assertStringContainsString('</script>', $decoded['name']);
+    }
 }
