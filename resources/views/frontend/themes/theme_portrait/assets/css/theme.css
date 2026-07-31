@@ -364,6 +364,52 @@ header.sticky {
     gap: 2rem 1.25rem;
 }
 
+/*
+ * A record inside a profile tab: a degree, a post, a paper, an award.
+ *
+ * The same shape as .index-row on the directory page, one step quieter, because
+ * a profile is a list of dated facts and they read fastest when the dates line
+ * up in a column of their own. This is what replaced nine tabs' worth of
+ * rounded cards, coloured pills and icon tiles carried over from another theme.
+ */
+.record-row {
+    display: grid;
+    grid-template-columns: 4.5rem minmax(0, 1fr);
+    gap: 0.25rem 1.25rem;
+    padding: 1rem 0;
+    border-top: 1px solid var(--border-faint);
+}
+
+.record-row:last-child {
+    border-bottom: 1px solid var(--border-faint);
+}
+
+/* The dated column. Tabular figures so 1994 and 2006 sit on the same axis. */
+.record-meta {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.record-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 0.9375rem;
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+    color: var(--text-strong);
+}
+
+/* Below 40rem the meta column would squeeze the title to a few words a line. */
+@media (max-width: 40rem) {
+    .record-row {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
 /* Numbers shown beside a heading, e.g. "Faculty 214". Quiet by design. */
 .count {
     font-family: var(--font-mono);

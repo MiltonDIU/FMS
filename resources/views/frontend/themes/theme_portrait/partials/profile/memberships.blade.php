@@ -1,17 +1,63 @@
-<!-- Memberships Tab -->
-<div x-show="tab === 'memberships'" class="space-y-4" x-cloak>
-    <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-        <svg class="w-4 h-4 text-diu-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-5-4-4 4-4-4-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        Professional Memberships &amp; Affiliations
-    </h3>
+{{--
+    Professional memberships.
+
+    These carry dates too, so they take the same shape as everything else rather
+    than the single-line bullet rows they were. is_active decides whether a
+    membership is still held, for the same reason it does under Experience.
+--}}
+<div x-show="tab === 'memberships'" x-cloak>
+
     @if($teacher->memberships->isEmpty())
-        <p class="text-xs text-slate-400 font-sans">No affiliated professional bodies declared.</p>
+        <p class="text-[15px]" style="color: var(--text-muted);">
+            No professional bodies declared.
+        </p>
     @else
-        <div class="space-y-2">
+        <div>
             @foreach($teacher->memberships as $mem)
-                <div class="p-3  rounded-xl border border-slate-200 flex items-center gap-2.5 text-xs text-slate-700 font-sans font-medium ring-1 ring-slate-900/5">
-                    <div class="w-2 h-2 rounded-full bg-diu-primary shrink-0"></div>
-                    {{ optional($mem->membershipOrganization)->name }}{{ $mem->position ? ' — ' . $mem->position : '' }}{{ $mem->membership_id ? ' (ID: ' . $mem->membership_id . ')' : '' }}
+                @php
+                    $org = optional($mem->membershipOrganization)->name;
+                    $kind = optional($mem->membershipType)->name;
+
+                    $from = $mem->start_date ? \Illuminate\Support\Carbon::parse($mem->start_date)->format('Y') : null;
+                    $to = $mem->end_date ? \Illuminate\Support\Carbon::parse($mem->end_date)->format('Y') : null;
+
+                    $period = match (true) {
+                        $mem->is_active && $from => $from . '–now',
+                        (bool) $mem->is_active => 'Current',
+                        (bool) ($from && $to) => $from === $to ? $from : $from . '–' . $to,
+                        (bool) $from => $from,
+                        (bool) $to => 'to ' . $to,
+                        default => '—',
+                    };
+
+                    // position and the membership type often hold the same words
+                    // ("Executive Member"), which printed the role twice.
+                    $facts = collect([
+                        $mem->position,
+                        $kind,
+                        $mem->scope ? ucfirst($mem->scope) : null,
+                        $mem->membership_id ? 'ID ' . $mem->membership_id : null,
+                    ])->filter('filled')->uniqueStrict(fn ($fact) => mb_strtolower(trim($fact)))->all();
+                @endphp
+
+                <div class="record-row">
+                    <span class="record-meta">{{ $period }}</span>
+
+                    <span>
+                        <span class="record-title block">{{ $org ?: ($kind ?: 'Membership') }}</span>
+
+                        @if($facts)
+                            <span class="mt-1 block text-[13px]" style="color: var(--text-soft);">
+                                {{ implode(' · ', $facts) }}
+                            </span>
+                        @endif
+
+                        @if($mem->url)
+                            <a href="{{ $mem->url }}" target="_blank" rel="noopener noreferrer"
+                               class="mt-1 inline-block text-[12px] hover:underline"
+                               style="color: var(--brand-ink);">Society page &rarr;</a>
+                        @endif
+                    </span>
                 </div>
             @endforeach
         </div>

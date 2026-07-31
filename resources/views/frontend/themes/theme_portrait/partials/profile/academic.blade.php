@@ -1,43 +1,51 @@
-<!-- Academic Background Tab -->
-<div x-show="tab === 'academic'" class="space-y-4" x-cloak>
-    <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-        <svg class="w-4 h-4 text-diu-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
-        Academic Degrees &amp; Background
-    </h3>
+{{--
+    Academic background.
+
+    Degrees are dated facts, so the year takes a column of its own and the
+    degrees line up down the page — the same shape every other tab in this
+    profile uses. Previously two columns of bordered cards each carrying a
+    coloured "Year:" chip.
+--}}
+<div x-show="tab === 'academic'" x-cloak>
+
     @if($teacher->educations->isEmpty())
-        <div class="p-4 rounded-xl border border-slate-200 ">
-            <p class="text-xs text-slate-500 font-medium">No academic degrees have been added yet.</p>
-        </div>
+        <p class="text-[15px]" style="color: var(--text-muted);">
+            No academic degrees have been added yet.
+        </p>
     @else
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
             @foreach($teacher->educations as $edu)
                 @php
-                    $degreeName = optional($edu->degreeType)->name ?? optional($edu->degreeLevel)->name ?? 'Degree';
-                    $degreeTitle = $degreeName . ($edu->major ? ' in ' . $edu->major : '');
-                    $institution = $edu->institution ?? optional($edu->educationalInstitution)->name ?? 'N/A';
+                    $degree = optional($edu->degreeType)->name ?: optional($edu->degreeLevel)->name ?: 'Degree';
+                    $major = $edu->major ?: optional($edu->majorRelation)->name;
+                    $institution = $edu->institution ?: optional($edu->educationalInstitution)->name;
 
-                    $resultParts = [];
-                    if ($edu->cgpa) {
-                        $resultParts[] = 'CGPA: ' . $edu->cgpa . ($edu->scale ? ' / ' . $edu->scale : '');
-                    }
-                    if ($edu->grade) {
-                        $resultParts[] = 'Grade: ' . $edu->grade;
-                    }
-                    if ($edu->marks) {
-                        $resultParts[] = 'Marks: ' . $edu->marks . '%';
-                    }
-                    if (empty($resultParts) && $edu->resultType) {
-                        $resultParts[] = $edu->resultType->name;
-                    }
-                    $resultString = implode(' | ', $resultParts);
+                    // Result lives in whichever of these the record happens to carry.
+                    $result = match (true) {
+                        filled($edu->cgpa) && filled($edu->scale) => 'CGPA ' . $edu->cgpa . ' / ' . $edu->scale,
+                        filled($edu->cgpa) => 'CGPA ' . $edu->cgpa,
+                        filled($edu->grade) => 'Grade ' . $edu->grade,
+                        filled($edu->marks) => $edu->marks . '%',
+                        default => optional($edu->resultType)->name,
+                    };
                 @endphp
-                <div class="p-4 rounded-xl border border-slate-200  ring-1 ring-slate-900/5">
-                    <span class="bg-diu-primary/10 text-diu-primary text-[9px] font-sans font-black uppercase px-2 py-0.5 rounded-xs">Year: {{ $edu->passing_year ?? 'N/A' }}</span>
-                    <h4 class="text-sm font-bold text-slate-800 mt-2 font-display">{{ $degreeTitle }}</h4>
-                    <p class="text-xs text-slate-600 mt-0.5 font-medium">{{ $institution }}</p>
-                    @if($resultString)
-                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-2 bg-slate-50 border border-slate-100 rounded-sm inline-block px-1.5 py-0.5">Result: {{ $resultString }}</p>
-                    @endif
+
+                <div class="record-row">
+                    <span class="record-meta">{{ $edu->passing_year ?: '—' }}</span>
+
+                    <span>
+                        <span class="record-title block">
+                            {{ $degree }}@if($major) <span class="font-normal" style="color: var(--text-soft);">in {{ $major }}</span>@endif
+                        </span>
+
+                        @if($institution)
+                            <span class="mt-1 block text-[13px]" style="color: var(--text-soft);">{{ $institution }}</span>
+                        @endif
+
+                        @if(filled($result))
+                            <span class="mt-1 block text-[12px]" style="color: var(--text-muted);">{{ $result }}</span>
+                        @endif
+                    </span>
                 </div>
             @endforeach
         </div>
