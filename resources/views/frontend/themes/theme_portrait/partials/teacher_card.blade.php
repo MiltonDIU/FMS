@@ -31,9 +31,7 @@
 
     $adminRoleName = ($showAdminRole && $adminRole) ? $adminRole->administrativeRole?->name : null;
 
-    $initials = strtoupper(
-        substr((string) $teacher->first_name, 0, 1) . substr((string) $teacher->last_name, 0, 1)
-    );
+    $initials = $teacher->initials;
 
     $profileUrl = ($faculty?->short_name && $teacher->webpage)
         ? route('teacher.show', [

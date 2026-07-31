@@ -20,7 +20,7 @@
 
     // Cast: a teacher may have no last name recorded, and PHP 8.4 deprecates
     // passing null to substr().
-    $initials = strtoupper(substr((string) $teacher->first_name, 0, 1) . substr((string) $teacher->last_name, 0, 1));
+    $initials = $teacher->initials;
     $interests = $teacher->research_interests;
     $teachingAreas = $teacher->teachingAreas;
     $areaCount = $teachingAreas->count();

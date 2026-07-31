@@ -1,11 +1,18 @@
 @extends('frontend.themes.theme_default.layouts.app')
 
-@section('title', $teacher->first_name . ' ' . $teacher->last_name . ' - Profile')
+{{-- Sharing and structured data. Built once and used for the title, the
+     description and the tags, so a preview card and a search result cannot
+     disagree with each other. --}}
+@php
+    $seo = \App\Helpers\SeoPayload::forTeacher($teacher, $faculty, $department);
+@endphp
 
-@section('meta_description', $metaDescription ?? null)
+@section('title', $seo['title'])
+
+@section('meta_description', $seo['description'])
 
 @section('seo')
-    @include('frontend.partials.seo')
+    @include('frontend.partials.seo-tags', ['seo' => $seo])
 @endsection
 
 @section('content')

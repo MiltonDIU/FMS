@@ -5,6 +5,7 @@ namespace App\Helpers;
 use App\Models\Department;
 use App\Models\Faculty;
 use App\Models\Publication;
+use App\Models\Teacher;
 use Illuminate\Support\Str;
 
 /**
@@ -139,6 +140,121 @@ class SeoPayload
                     [$department->name, $url],
                 ]),
             ],
+        ];
+    }
+
+    /**
+     * A teacher's profile.
+     *
+     * How many publications a card may advertise. Five is what fits a
+     * description and is a fair sample of someone's work.
+     */
+    public const SUGGESTED_PUBLICATIONS = 5;
+
+    public static function forTeacher(Teacher $teacher, Faculty $faculty, Department $department): array
+    {
+        $url = Seo::absolute('teacher.show', [
+            'faculty_short_name' => strtolower((string) $faculty->short_name),
+            'department_code' => strtolower((string) $department->code),
+            'teacher_webpage' => $teacher->webpage,
+        ]);
+
+        $name = $teacher->full_name ?: trim("{$teacher->first_name} {$teacher->middle_name} {$teacher->last_name}");
+        $designation = optional($teacher->designation)->name ?: 'Faculty Member';
+
+        /*
+         * Papers worth suggesting: the ones that carry an abstract, so a reader
+         * following the link finds something to read rather than a bare title.
+         * About 7,000 of 17,500 publications have one.
+         */
+        $suggested = $teacher->publications
+            ->filter(fn ($publication) => filled($publication->abstract))
+            ->sortByDesc(fn ($publication) => $publication->publication_year ?? 0)
+            ->take(static::SUGGESTED_PUBLICATIONS)
+            ->values();
+
+        // A social card is one image, a title and a line of text — it cannot
+        // list papers. The line names what is there; the list itself goes into
+        // the structured data, which is what search engines read.
+        $description = static::clean(
+            $teacher->bio
+                ?: $teacher->research_interest
+                ?: trim("{$designation}, {$department->name} at " . Branding::get('site_name') . '.')
+        );
+
+        if ($suggested->isNotEmpty()) {
+            $lead = static::clean(
+                $description . ' Recent work includes “' . $suggested->first()->title . '”.',
+                static::DESCRIPTION_LIMIT
+            );
+
+            // Only take the longer line if the paper's title actually survived
+            // the cut; otherwise it reads as a sentence that stops mid-word.
+            if (str_contains($lead, 'Recent work includes')) {
+                $description = $lead;
+            }
+        }
+
+        return [
+            'title' => "{$name} — {$designation} | {$department->name}" . Branding::get('meta_title_suffix'),
+            'description' => $description,
+            'url' => $url,
+            // The rendered card, not the 90px thumbnail the legacy host serves.
+            'image' => Seo::absolute('teacher.share-image', [
+                'faculty_short_name' => strtolower((string) $faculty->short_name),
+                'department_code' => strtolower((string) $department->code),
+                'teacher_webpage' => $teacher->webpage,
+            ]),
+            'type' => 'profile',
+            'schema' => array_filter([
+                '@context' => 'https://schema.org',
+                '@type' => 'Person',
+                'name' => $name,
+                'url' => $url,
+                'image' => $teacher->photo_url,
+                'jobTitle' => optional($teacher->designation)->name,
+                /*
+                 * No email and no telephone. They are on the page for a visitor
+                 * who came looking, but putting them in structured data hands
+                 * them to every crawler that fetches the URL, and a teacher
+                 * sharing their own profile is not consenting to that.
+                 */
+                'description' => static::clean($teacher->bio ?: $teacher->research_interest, 400) ?: null,
+                'worksFor' => array_filter([
+                    '@type' => 'EducationalOrganization',
+                    'name' => $department->name,
+                    'parentOrganization' => array_filter([
+                        '@type' => 'EducationalOrganization',
+                        'name' => $faculty->name,
+                    ]),
+                ]),
+                'affiliation' => static::organisation(),
+                'sameAs' => $teacher->socialLinks?->pluck('url')->filter()->values()->all() ?: null,
+                'subjectOf' => $suggested
+                    ->map(fn ($publication) => array_filter([
+                        '@type' => 'ScholarlyArticle',
+                        'name' => $publication->title,
+                        'url' => Seo::publicationUrl($publication),
+                        'datePublished' => $publication->publication_date?->format('Y-m-d')
+                            ?: ($publication->publication_year ? (string) $publication->publication_year : null),
+                        'abstract' => static::clean($publication->abstract, 300) ?: null,
+                        'isPartOf' => $publication->journal_name
+                            ? ['@type' => 'Periodical', 'name' => $publication->journal_name]
+                            : null,
+                    ]))
+                    ->all() ?: null,
+                'breadcrumb' => static::breadcrumb([
+                    ['Directory', Seo::absolute('home')],
+                    [$faculty->name, Seo::absolute('faculty.show', [
+                        'faculty_short_name' => strtolower((string) $faculty->short_name),
+                    ])],
+                    [$department->name, Seo::absolute('department.show', [
+                        'faculty_short_name' => strtolower((string) $faculty->short_name),
+                        'department_code' => strtolower((string) $department->code),
+                    ])],
+                    [$name, $url],
+                ]),
+            ]),
         ];
     }
 

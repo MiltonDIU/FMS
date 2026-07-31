@@ -301,6 +301,36 @@ class Teacher extends Model implements HasMedia
         return $this->belongsTo(JobType::class);
     }
 
+    /** Words stored in the name fields that are titles, not names. */
+    protected const HONORIFICS = ['professor', 'prof', 'dr', 'md', 'mohammad', 'mohammed', 'mr', 'mrs', 'ms', 'miss', 'engr', 'engineer'];
+
+    /**
+     * Initials for the block shown when someone has no photograph.
+     *
+     * Taken from the first real name words, because titles are stored in the
+     * name fields: "Professor Dr. Md. Asif Nazrul" is first_name "Professor Dr.
+     * Md. Asif" and last_name "Nazrul", so the obvious first-letter-of-each gave
+     * "PN". Falls back to whatever is there if a name is nothing but titles.
+     */
+    public function getInitialsAttribute(): string
+    {
+        $words = preg_split('/\s+/', trim(
+            $this->full_name ?: "{$this->first_name} {$this->middle_name} {$this->last_name}"
+        ), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        $names = array_values(array_filter(
+            $words,
+            fn ($word) => ! in_array(mb_strtolower(rtrim($word, '.')), self::HONORIFICS, true)
+        ));
+
+        $names = $names ?: $words;
+
+        $first = mb_substr($names[0] ?? '', 0, 1);
+        $last = count($names) > 1 ? mb_substr(end($names), 0, 1) : '';
+
+        return mb_strtoupper($first . $last);
+    }
+
     /**
      * The employment status the public needs told about, or null when there is
      * nothing to say.

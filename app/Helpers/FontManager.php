@@ -578,6 +578,44 @@ class FontManager
      *
      * @return array{family:string,path:string}|null
      */
+    /**
+     * A TrueType/OpenType file for a font role, for anything that rasterises
+     * text rather than shipping CSS — the PDF renderer and the share-card
+     * generator.
+     *
+     * Falls back to a font the operating system provides, because a theme may
+     * be using Google Fonts, which are fetched by the browser and never exist
+     * on disk here. Returns null when nothing usable is found, and the caller
+     * is expected to degrade rather than draw with a broken font.
+     */
+    public static function truetypePath(string $role = 'sans', ?string $themeSlug = null): ?string
+    {
+        $font = static::pdfFontForRole($themeSlug ?? Theme::active(), $role);
+
+        if ($font !== null && is_file($font['path'])) {
+            return $font['path'];
+        }
+
+        foreach (static::SYSTEM_FONT_FALLBACKS as $candidate) {
+            if (is_file($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Ordinary places a sans-serif TrueType lives on a Linux host. Bold first
+     * for display use; the caller picks the role it wants.
+     */
+    protected const SYSTEM_FONT_FALLBACKS = [
+        '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+        '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
+        '/usr/share/fonts/truetype/ubuntu/Ubuntu-R.ttf',
+        '/usr/share/fonts/TTF/DejaVuSans.ttf',
+    ];
+
     protected static function pdfFontForRole(string $themeSlug, string $role): ?array
     {
         $font = self::roleCustomFont($themeSlug, $role);

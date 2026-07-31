@@ -8,6 +8,8 @@ use App\Models\Faculty;
 use App\Models\Department;
 use App\Models\Teacher;
 use App\Helpers\ProfileDownload;
+use App\Services\TeacherShareImage;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Response as ResponseFacade;
 use Illuminate\Support\Facades\Route as RouteFacade;
@@ -103,6 +105,34 @@ class TeacherController extends Controller
             'faculty', 'department', 'teacher',
             'metaTitle', 'metaDescription', 'photoUrl', 'profileUrl'
         ));
+    }
+
+    /**
+     * The card a social network shows when this profile is shared.
+     *
+     * Public and unauthenticated on purpose: the only things that ever fetch it
+     * are crawlers, which arrive with no session. It carries nothing the profile
+     * page does not already show a visitor, and deliberately no contact details
+     * — a share card is broadcast to everyone who sees the link.
+     */
+    public function shareImage(string $faculty_short_name, string $department_code, string $teacher_webpage)
+    {
+        $teacher = $this->resolveTeacher($faculty_short_name, $department_code, $teacher_webpage, [
+            'designation', 'department', 'teachingAreas',
+        ]);
+
+        $path = TeacherShareImage::pathFor($teacher);
+
+        // No card could be drawn — no usable font, most likely. Fall back to the
+        // site logo rather than serving a broken image to a crawler.
+        abort_if($path === null, 404);
+
+        return response()->file(Storage::disk('public')->path($path), [
+            'Content-Type' => 'image/png',
+            // The filename carries the teacher's updated_at, so a cached card is
+            // never stale and can be held for a long time.
+            'Cache-Control' => 'public, max-age=604800',
+        ]);
     }
 
     /**

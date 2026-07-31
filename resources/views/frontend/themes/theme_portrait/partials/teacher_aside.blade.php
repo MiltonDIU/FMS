@@ -22,7 +22,7 @@
                 <img src="{{ $photoUrl }}" alt="{{ $teacher->full_name }}">
             @else
                 <div class="portrait-fallback text-6xl">
-                    {{ strtoupper(substr((string) $teacher->first_name, 0, 1) . substr((string) $teacher->last_name, 0, 1)) }}
+                    {{ $teacher->initials }}
                 </div>
             @endif
         </div>
