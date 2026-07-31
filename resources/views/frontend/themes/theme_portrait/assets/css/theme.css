@@ -1,0 +1,352 @@
+@import 'tailwindcss';
+
+/* Safelist: classes injected dynamically inside Blade {{ }} ternary strings
+   (e.g. the department/teacher search sidebar active states). Tailwind's scanner
+   cannot see classes hidden inside PHP expressions, so without this they are not
+   generated and the elements render unstyled (appearing "stuck" on the dark
+   body background). Listing them here forces generation. */
+@source inline("bg-[#EDF6FF] text-slate-900 text-slate-700 border-diu-primary border-diu-accent border-transparent hover:bg-[#EDF6FF] bg-diu-primary/10 bg-slate-100 border-gray-100 border-white/60 bg-white/40 bg-white/70 ring-2 ring-diu-primary bg-white border-slate-200 text-gray-900 text-gray-800 text-gray-500 text-gray-300 text-slate-400 text-slate-600 text-slate-500 hover:text-diu-primary hover:bg-white hover:bg-white/30 hover:text-slate-600 hover:text-slate-700 focus:bg-white focus:ring-diu-primary focus:border-diu-primary");
+
+/* Drive dark mode from the `.dark` class on <html> (toggled by App\Helpers\Appearance
+   + the header switch), instead of Tailwind v4's default prefers-color-scheme media. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@source '../../../../../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../../../../../storage/framework/views/*.php';
+@source '../../../../../../**/*.blade.php';
+@source '../../../../../../**/*.js';
+
+@theme {
+    /* Build-time defaults. FontManager::cssBlock() re-declares these on :root
+       later in <head>, so the per-theme picker in System Settings wins at
+       runtime. 'Mina' trails the Latin families so Bangla characters fall back
+       to it per-glyph in mixed English/Bangla text. */
+    --font-sans: 'Manrope', 'Mina', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+        'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-display: 'Montserrat', 'Mina', ui-sans-serif, system-ui, sans-serif;
+    --font-bangla: 'Mina', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+    --color-diu-primary-dark: #002652;
+    --color-diu-primary: #034ea2;
+    --color-diu-primary-light: #0072bc;
+    --color-diu-primary-hover: #023b7a;
+    --color-diu-secondary-dark: #002652;
+    --color-diu-secondary: #034ea2;
+    --color-diu-secondary-light: #0072bc;
+    --color-diu-accent: #0072bc;
+    --color-diu-accent-light: #4dc3e6;
+    --color-diu-accent-hover: #005fa3;
+
+    /*
+     * Portrait sizing lives here on purpose.
+     *
+     * This theme is built around the photograph rather than beside it, so the
+     * frame is a token instead of a number sprinkled through the markup. The
+     * source images are presently 90-120px thumbnails pulled from an external
+     * site; when they move into local storage at a usable size, raising these
+     * two values is the whole change.
+     *
+     * The ratio matches what the photographs already are — roughly 5:6 — so the
+     * frame crops nothing. The circular avatars in the other themes cut the top
+     * and sides off every face.
+     */
+    --portrait-card-width: 15rem;   /* 240px column in the directory grid */
+    --portrait-hero-width: 20rem;   /* 320px on a teacher's own page */
+    --portrait-ratio: 5 / 6;
+
+    /*
+     * Height of the sticky site header. Both the profile sidebar and the tab
+     * strip park directly underneath it, so the number is shared rather than
+     * guessed twice — change the header padding and they follow.
+     */
+    --header-height: 4.25rem;
+}
+
+/*
+ * Faces are the content here, so they get the treatment usually reserved for
+ * artwork: a quiet frame, no crop, and enough space around them that a small
+ * source image reads as deliberate rather than deficient.
+ */
+.portrait-frame {
+    aspect-ratio: var(--portrait-ratio);
+    overflow: hidden;
+    background: color-mix(in srgb, var(--color-diu-primary) 6%, white);
+}
+
+.portrait-frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* Faces sit high in a portrait; centring would crop foreheads. */
+    object-position: center 22%;
+}
+
+/*
+ * 139 of 2000 teachers have no photograph. At this size an empty grey box is
+ * conspicuous, so the fallback is a coloured panel carrying their initials —
+ * something that looks chosen rather than missing.
+ */
+.portrait-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        160deg,
+        color-mix(in srgb, var(--color-diu-primary) 14%, white),
+        color-mix(in srgb, var(--color-diu-accent) 22%, white)
+    );
+    color: var(--color-diu-primary-dark);
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+/*
+ * Semantic surface tokens.
+ * Light theme maps them to the original white/slate palette; `.dark` remaps them
+ * to a deep, on-brand navy surface so the whole portal flips without touching
+ * every `bg-white` / `text-slate-*` utility in the markup.
+ */
+:root {
+    --surface-page: #f0f4f8;
+    --surface-card: #ffffff;
+    --surface-card-border: #e2e8f0;
+    --surface-subtle: #f8fafc;
+    --surface-subtle-border: #f1f5f9;
+    --surface-hover: #f1f5f9;
+    --surface-active: #EDF6FF;        /* sidebar active highlight */
+    --surface-active-border: var(--color-diu-primary);
+    --text-strong: #0f172a;          /* slate-900 */
+    --text-base: #334155;             /* slate-700 */
+    --text-soft: #475569;            /* slate-600 — secondary lines under a name */
+    --text-muted: #64748b;            /* slate-500 */
+    --text-faint: #94a3b8;           /* slate-400 */
+    --border-strong: #cbd5e1;        /* slate-300 */
+    --border-soft: #e2e8f0;          /* slate-200 */
+    --border-faint: #f1f5f9;         /* slate-100 */
+    --glass-bg: rgba(255, 255, 255, 0.75);
+    --glass-border: rgba(255, 255, 255, 0.4);
+    --glass-panel-bg: rgba(255, 255, 255, 0.45);
+    --glass-panel-border: rgba(255, 255, 255, 0.6);
+}
+
+.dark {
+    --surface-page: #0a1424;
+    --surface-card: #0f1d33;
+    --surface-card-border: #1e2f4d;
+    --surface-subtle: #14233d;
+    --surface-subtle-border: #1b2c49;
+    --surface-hover: #182943;
+    --surface-active: color-mix(in srgb, var(--color-diu-primary) 32%, #0a1424);
+    --surface-active-border: var(--color-diu-accent-light);
+    --text-strong: #e2e8f0;
+    --text-base: #cbd5e1;
+    --text-soft: #aebdd0;
+    --text-muted: #94a3b8;
+    --text-faint: #64748b;
+    --border-strong: #2a3f63;
+    --border-soft: #1e2f4d;
+    --border-faint: #16263f;
+    --glass-bg: rgba(15, 29, 51, 0.72);
+    --glass-border: rgba(76, 195, 230, 0.18);
+    --glass-panel-bg: rgba(15, 29, 51, 0.5);
+    --glass-panel-border: rgba(76, 195, 230, 0.22);
+    color-scheme: dark;
+}
+
+/*
+ * Remap the common light-surface utilities to the semantic tokens. Under `.dark`
+ * these utilities automatically resolve to the dark palette, so existing markup
+ * (including inline `style="color:#64748b"`) is covered centrally.
+ */
+@utility bg-surface-page { background-color: var(--surface-page); }
+@utility bg-surface-card { background-color: var(--surface-card); }
+@utility bg-surface-subtle { background-color: var(--surface-subtle); }
+@utility bg-surface-hover { background-color: var(--surface-hover); }
+
+.bg-white,
+.bg-white\/40,
+.bg-white\/70 { background-color: var(--surface-card); }
+
+.bg-slate-50 { background-color: var(--surface-subtle); }
+.bg-slate-100 { background-color: var(--surface-hover); }
+.bg-\[\#EDF6FF\] { background-color: var(--surface-active) !important; }
+
+.border-slate-100 { border-color: var(--border-faint); }
+.border-slate-200 { border-color: var(--border-soft); }
+.border-slate-300 { border-color: var(--border-strong); }
+.border-\[\#A7A9AC\] { border-color: var(--border-strong) !important; }
+
+.text-slate-900 { color: var(--text-strong); }
+.text-slate-800 { color: var(--text-strong); }
+.text-slate-700 { color: var(--text-base); }
+.text-slate-600 { color: var(--text-base); }
+.text-slate-500 { color: var(--text-muted); }
+.text-slate-400 { color: var(--text-faint); }
+.text-\[\#58595B\] { color: var(--text-base) !important; }
+.text-gray-900 { color: var(--text-strong); }
+.text-gray-800 { color: var(--text-strong); }
+.text-gray-700 { color: var(--text-base); }
+.text-gray-500 { color: var(--text-muted); }
+.text-gray-400 { color: var(--text-faint); }
+
+/* Inline hardcoded slate text used across cards */
+[style*="color:#64748b"],
+[style*="color: #64748b"] { color: var(--text-muted) !important; }
+[style*="color:#475569"],
+[style*="color: #475569"] { color: var(--text-base) !important; }
+[style*="color:#94a3b8"],
+[style*="color: #94a3b8"] { color: var(--text-faint) !important; }
+[style*="color:#58595B"],
+[style*="color: #58595B"] { color: var(--text-base) !important; }
+
+/* theme_portrait custom styles (owned by theme_portrait, editable independently) */
+body {
+    background-color: var(--surface-page);
+    background-image:
+        radial-gradient(at 0% 0%, color-mix(in srgb, var(--color-diu-accent) 6%, transparent) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, color-mix(in srgb, var(--color-diu-accent-light) 4%, transparent) 0px, transparent 50%),
+        radial-gradient(at 50% 100%, color-mix(in srgb, var(--color-diu-primary) 2%, transparent) 0px, transparent 50%),
+        linear-gradient(to bottom right, color-mix(in srgb, var(--color-diu-primary-light) 5%, var(--surface-page)), color-mix(in srgb, var(--color-diu-primary) 4%, var(--surface-page)));
+    background-attachment: fixed;
+    min-height: 100vh;
+    color: var(--text-base);
+}
+
+.glass-header {
+    background: var(--glass-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.glass-panel {
+    background: var(--glass-panel-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-panel-border);
+}
+
+/* Header bar sits on a white surface in light mode; follow the dark palette. */
+header.sticky {
+    background-color: var(--surface-card);
+    border-bottom-color: var(--border-soft);
+}
+
+[x-cloak] {
+    display: none !important;
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * theme_portrait — its own visual language
+ * ---------------------------------------------------------------------------
+ *
+ * The other three themes speak in gradients, rounded cards and coloured
+ * panels. This one is built the opposite way: white ground, hairline rules,
+ * generous space, and type doing the structural work. Colour appears only where
+ * it means something, so the photographs are the only saturated thing on the
+ * page.
+ *
+ * Everything below is deliberately low-level. The layout lives in the Blade
+ * files; these are the few primitives worth naming because they repeat.
+ */
+
+/* A hairline that survives dark mode and high-DPI rounding. */
+.rule {
+    border: 0;
+    border-top: 1px solid var(--border-soft);
+}
+
+.rule-strong {
+    border: 0;
+    border-top: 2px solid var(--text-strong);
+}
+
+/* Small capitalised label used instead of coloured badges. */
+.eyebrow {
+    font-family: var(--font-display);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-diu-primary);
+}
+
+/* Display sizes. Larger and tighter than the other themes, because here the
+   headline is the page furniture rather than a banner behind it. */
+.masthead {
+    font-family: var(--font-display);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 0.95;
+    text-wrap: balance;
+    font-size: clamp(2.25rem, 6vw, 4.5rem);
+}
+
+.section-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    font-size: clamp(1.375rem, 2.6vw, 1.875rem);
+}
+
+/*
+ * The faculty index: rows rather than cards. A directory is a list, and a list
+ * of six faculties reads faster as lines than as six coloured boxes.
+ */
+.index-row {
+    display: grid;
+    grid-template-columns: 3.5rem 1fr auto;
+    align-items: baseline;
+    gap: 1rem 1.25rem;
+    padding: 1.25rem 0;
+    border-top: 1px solid var(--border-soft);
+    transition: color 150ms ease;
+}
+
+.index-row:last-child {
+    border-bottom: 1px solid var(--border-soft);
+}
+
+.index-row:hover .index-name {
+    color: var(--color-diu-primary);
+}
+
+.index-number {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.index-name {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(1.05rem, 2vw, 1.375rem);
+    letter-spacing: -0.015em;
+    line-height: 1.2;
+    transition: color 150ms ease;
+}
+
+/*
+ * The gallery. Column width comes from the portrait token so raising it widens
+ * every card at once, and auto-fill means the grid reflows without breakpoints.
+ */
+.gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(var(--portrait-card-width), 100%), 1fr));
+    gap: 2rem 1.25rem;
+}
+
+/* Numbers shown beside a heading, e.g. "Faculty 214". Quiet by design. */
+.count {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}

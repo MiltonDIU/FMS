@@ -37,8 +37,8 @@
                 <div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(circle, rgba(255,255,255,0.6) 1px, transparent 1px); background-size: 16px 16px;"></div>
                 <div class="absolute left-5 flex items-center gap-3" style="bottom: -24px;">
                     <div class="w-20 h-20 rounded-2xl overflow-hidden bg-white p-1 shadow-md ring-1 ring-slate-200 shrink-0">
-                        @if($teacher->photo)
-                            <img src="https://faculty.daffodilvarsity.edu.bd/images/teacher/{{ $teacher->photo }}" alt="{{ $teacher->first_name }}" class="w-full h-full object-cover rounded-xl group-hover:scale-105 transition-transform duration-300" />
+                        @if($teacher->photo_url)
+                            <img src="{{ $teacher->photo_url }}" alt="{{ $teacher->first_name }}" class="w-full h-full object-cover rounded-xl group-hover:scale-105 transition-transform duration-300" />
                         @else
                             <div class="w-full h-full bg-diu-accent text-white flex items-center justify-center font-display font-bold text-lg rounded-xl">
                                 {{ $initials }}
@@ -58,6 +58,7 @@
                 </h4>
                 <p class="text-xs text-slate-600 font-medium truncate mt-0.5">{{ optional($teacher->designation)->name ?? 'Faculty Member' }}</p>
                 <p class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-0.5">{{ optional($teacher->department)->name ?? 'General' }}</p>
+                <x-teacher-status :teacher="$teacher" class="mt-1.5" />
 
                 <div class="mt-4 space-y-2 border-t border-slate-100 pt-3">
                     <div class="flex items-center gap-2 text-xs text-slate-600">
@@ -114,8 +115,8 @@
             <div class="relative h-20 bg-gradient-to-r from-diu-primary to-diu-primary-hover">
                 <div class="absolute inset-0 opacity-20" style="background-image: radial-gradient(circle, rgba(255,255,255,0.6) 1px, transparent 1px); background-size: 16px 16px; "></div>
                 <div class="absolute -bottom-6 left-5 w-20 h-20 rounded-2xl overflow-hidden bg-white p-1 shadow-md ring-1 ring-slate-200" style="bottom: -24px;">
-                    @if($teacher->photo)
-                        <img src="https://faculty.daffodilvarsity.edu.bd/images/teacher/{{ $teacher->photo }}" alt="{{ $teacher->first_name }}" class="w-full h-full object-cover rounded-xl group-hover:scale-105 transition-transform duration-300" />
+                    @if($teacher->photo_url)
+                        <img src="{{ $teacher->photo_url }}" alt="{{ $teacher->first_name }}" class="w-full h-full object-cover rounded-xl group-hover:scale-105 transition-transform duration-300" />
                     @else
                         <div class="w-full h-full bg-diu-primary text-white flex items-center justify-center font-display font-bold text-lg rounded-xl">
                             {{ $initials }}
@@ -130,6 +131,7 @@
                 </h4>
                 <p class="text-xs text-slate-600 font-medium truncate mt-0.5">{{ optional($teacher->designation)->name ?? 'Faculty Member' }}</p>
                 <p class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-0.5">{{ optional($teacher->department)->name ?? 'General' }}</p>
+                <x-teacher-status :teacher="$teacher" class="mt-1.5" />
 
                 <div class="mt-4 space-y-2 border-t border-slate-100 pt-3">
                     <div class="flex items-center gap-2 text-xs text-slate-600">

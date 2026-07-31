@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -18,6 +19,14 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 #[ObservedBy([TeacherObserver::class])]
 class Teacher extends Model implements HasMedia
 {
+    /**
+     * Where the legacy system serves teacher photographs from.
+     *
+     * Was hardcoded in thirteen templates. Once the images move into
+     * local storage, this is the line that changes.
+     */
+    public const PHOTO_BASE_URL = 'https://faculty.daffodilvarsity.edu.bd/images/teacher/';
+
     use HasFactory, SoftDeletes, InteractsWithMedia, Notifiable;
 
     protected $fillable = [
@@ -137,6 +146,43 @@ class Teacher extends Model implements HasMedia
     }
 
     /**
+     * Where the teacher's photograph can actually be fetched from, or null.
+     *
+     * `photo` cannot be used directly in an <img> tag. It holds three different
+     * kinds of value — a bare filename from the legacy import, an absolute URL
+     * from the media library, or the registered fallback path
+     * "/images/default-avatar.png" — and every view was prefixing all three with
+     * the external image host, producing addresses like
+     * ".../images/teacher//images/default-avatar.png".
+     *
+     * Because the fallback is never empty, `@if($teacher->photo)` was also
+     * always true, so the initials placeholders behind those checks never
+     * appeared. This returns null for the fallback so they can, which matters
+     * for the 139 teachers who have no picture — and the fallback file does not
+     * exist in public/ anyway, so it only ever rendered a broken image.
+     */
+    public function getPhotoUrlAttribute(): ?string
+    {
+        $photo = $this->photo;
+
+        if (blank($photo)) {
+            return null;
+        }
+
+        if (Str::startsWith($photo, ['http://', 'https://'])) {
+            return $photo;
+        }
+
+        // A rooted path is the media-library fallback rather than a real
+        // photograph, and the file it names is not present.
+        if (Str::startsWith($photo, '/')) {
+            return null;
+        }
+
+        return self::PHOTO_BASE_URL . rawurlencode($photo);
+    }
+
+    /**
      * Scope: Only active (non-archived) teachers.
      */
     public function scopeActive($query)
@@ -253,6 +299,38 @@ class Teacher extends Model implements HasMedia
     public function jobType(): BelongsTo
     {
         return $this->belongsTo(JobType::class);
+    }
+
+    /**
+     * The employment status the public needs told about, or null when there is
+     * nothing to say.
+     *
+     * Statuses split three ways. Those with check_active = 0 (retired,
+     * resigned, terminated) take the teacher off the site altogether, so they
+     * never reach a page. "Active" needs no announcement. What is left is the
+     * middle group — On Leave, Study Leave, Deputation — and that group is not
+     * small: of the teachers the directory currently shows, 219 are on study
+     * leave and 31 on ordinary leave. Showing them exactly like everyone else
+     * tells a visitor they are at their desk, which is the wrong message; a
+     * student emails and hears nothing back for a year.
+     *
+     * `slug` decides, not `name`, because names get edited in the admin panel.
+     *
+     * @return array{label: string, note: string|null, tone: string}|null
+     */
+    public function getPublicStatusAttribute(): ?array
+    {
+        $status = $this->employmentStatus;
+
+        if (! $status || $status->slug === 'active') {
+            return null;
+        }
+
+        return [
+            'label' => $status->name,
+            'note' => $status->description ?: null,
+            'tone' => $status->color ?: 'gray',
+        ];
     }
 
     /**

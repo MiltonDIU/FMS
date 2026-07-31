@@ -8,6 +8,7 @@ use App\Models\Designation;
 use App\Models\Setting;
 use App\Models\Teacher;
 use App\Models\UserAdministrativeRole;
+use App\Services\DepartmentContacts;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Request;
@@ -35,10 +36,20 @@ class DepartmentSearch extends Component
 
     public ?Department $department = null;
 
-    public function mount(?int $departmentId = null): void
+    /**
+     * Which face of the department is showing: its people, or its office
+     * contacts. Both are real URLs (department.show / department.contact) rather
+     * than component state, so the two views can be linked and the back button
+     * behaves. Only themes that render a switch ever pass anything but the
+     * default.
+     */
+    public string $view = 'teachers';
+
+    public function mount(?int $departmentId = null, string $view = 'teachers'): void
     {
         $this->departmentId = $departmentId;
         $this->department = $departmentId ? Department::find($departmentId) : null;
+        $this->view = $view === 'contact' ? 'contact' : 'teachers';
         $this->all = Request::query('all', false) ? true : false;
         $this->designationId = Request::query('designation', $this->designationId);
         $this->adminRoleId = Request::query('admin', $this->adminRoleId);
@@ -60,6 +71,23 @@ class DepartmentSearch extends Component
                     ->orWhereIn('teachers.id', $deptTeacherIds);
             })
             ->count();
+    }
+
+    /**
+     * The Dean / Head / office contacts for the department being viewed.
+     *
+     * Only themes whose department view actually renders this ever pay for it —
+     * a computed property is not evaluated until something asks. The service
+     * caches, so the repeated renders Livewire does while someone types in the
+     * search box cost nothing.
+     */
+    public function getContactsProperty(): array
+    {
+        if (! $this->department || $this->view !== 'contact') {
+            return ['sections' => [], 'error' => null];
+        }
+
+        return DepartmentContacts::for($this->department);
     }
 
     public function toggleAll(): void
@@ -219,7 +247,7 @@ class DepartmentSearch extends Component
 
         return $query
             ->whereRaw("EXISTS (SELECT 1 FROM administrative_role_user aru WHERE aru.user_id = teachers.user_id AND ({$adminScope}) AND aru.deleted_at IS NULL)")
-            ->with(['designation', 'department.faculty', 'teachingAreas', 'administrativeRoles'])
+            ->with(['designation', 'department.faculty', 'teachingAreas', 'administrativeRoles', 'employmentStatus'])
             ->orderBy('admin_role_sort')
             ->orderBy('designations.sort_order')
             ->orderBy('teachers.sort_order')
@@ -233,7 +261,7 @@ class DepartmentSearch extends Component
 
         return $query
             ->whereRaw("NOT EXISTS (SELECT 1 FROM administrative_role_user aru WHERE aru.user_id = teachers.user_id AND ({$adminScope}) AND aru.deleted_at IS NULL)")
-            ->with(['designation', 'department.faculty', 'teachingAreas', 'administrativeRoles'])
+            ->with(['designation', 'department.faculty', 'teachingAreas', 'administrativeRoles', 'employmentStatus'])
             ->orderBy('designations.sort_order')
             ->orderBy('teachers.sort_order')
             ->orderBy('teachers.first_name')

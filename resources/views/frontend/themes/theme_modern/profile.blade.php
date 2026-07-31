@@ -52,8 +52,8 @@
 
 
 
-                            @if($teacher->photo)
-                                <img src="https://faculty.daffodilvarsity.edu.bd/images/teacher/{{ $teacher->photo }}" alt="{{ $teacher->first_name }}" class="w-full h-full object-cover" />
+                            @if($teacher->photo_url)
+                                <img src="{{ $teacher->photo_url }}" alt="{{ $teacher->first_name }}" class="w-full h-full object-cover" />
                             @else
                                 <div class="w-full h-full bg-diu-primary text-white flex items-center justify-center font-display font-bold text-4xl">
                                     {{ strtoupper(substr($teacher->first_name, 0, 1)) }}
@@ -83,6 +83,10 @@
                             <p class="text-xs text-slate-500 font-sans font-medium mt-1">
                                 {{ optional($teacher->department)->name ?? 'General' }} • <span class="text-slate-400">{{ $faculty->name ?? \App\Helpers\Branding::get('short_name') }}</span>
                             </p>
+
+                            {{-- Says so when this person is on leave, so the page
+                                 does not imply they are at their desk. --}}
+                            <x-teacher-status :teacher="$teacher" variant="full" class="mt-3" />
                         </div>
                     </div>
                 </div>

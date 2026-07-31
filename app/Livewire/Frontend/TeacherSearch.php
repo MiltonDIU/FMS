@@ -217,7 +217,7 @@ class TeacherSearch extends Component
 
         return $query
             ->whereRaw("EXISTS (SELECT 1 FROM administrative_role_user aru WHERE aru.user_id = teachers.user_id AND ({$adminScope}) AND aru.deleted_at IS NULL)")
-            ->with(['designation', 'department.faculty', 'teachingAreas', 'administrativeRoles'])
+            ->with(['designation', 'department.faculty', 'teachingAreas', 'administrativeRoles', 'employmentStatus'])
             ->orderBy('admin_role_sort')
             ->orderBy('designations.sort_order')
             ->orderBy('teachers.sort_order')
@@ -231,7 +231,7 @@ class TeacherSearch extends Component
 
         return $query
             ->whereRaw("NOT EXISTS (SELECT 1 FROM administrative_role_user aru WHERE aru.user_id = teachers.user_id AND ({$adminScope}) AND aru.deleted_at IS NULL)")
-            ->with(['designation', 'department.faculty', 'teachingAreas', 'administrativeRoles'])
+            ->with(['designation', 'department.faculty', 'teachingAreas', 'administrativeRoles', 'employmentStatus'])
             ->orderBy('designations.sort_order')
             ->orderBy('teachers.sort_order')
             ->orderBy('teachers.first_name')

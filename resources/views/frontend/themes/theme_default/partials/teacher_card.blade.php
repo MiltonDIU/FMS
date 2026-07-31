@@ -41,8 +41,8 @@
             <div class="flex items-start gap-4">
                 <!-- Avatar or customized fallback image -->
                 <div class="relative w-16 h-16 shrink-0 rounded-full overflow-hidden border-2 border-white shadow-md">
-                    @if($teacher->photo)
-                        <img src="https://faculty.daffodilvarsity.edu.bd/images/teacher/{{ $teacher->photo }}" alt="{{ $teacher->first_name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    @if($teacher->photo_url)
+                        <img src="{{ $teacher->photo_url }}" alt="{{ $teacher->first_name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                     @else
                         <div class="w-full h-full bg-diu-primary text-white flex items-center justify-center font-display font-bold text-lg">
                             {{ $initials }}
@@ -65,6 +65,7 @@
                     </h4>
                     <p class="text-[11px] text-slate-500 font-medium truncate mt-0.5">{{ optional($teacher->designation)->name ?? 'Faculty Member' }}</p>
                     <p class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-0.5">{{ optional($teacher->department)->name ?? 'General' }}</p>
+                    <x-teacher-status :teacher="$teacher" class="mt-1.5" />
                 </div>
             </div>
 

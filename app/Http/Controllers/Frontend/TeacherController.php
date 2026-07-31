@@ -180,9 +180,13 @@ class TeacherController extends Controller
         $teacher = $this->resolveTeacher($faculty_short_name, $department_code, $teacher_webpage, [
             'designation', 'department', 'department.faculty',
             'educations.degreeLevel', 'educations.degreeType', 'educations.resultType',
-            'publications', 'trainingExperiences', 'certifications', 'skills',
-            'teachingAreas', 'memberships.membershipType', 'memberships.membershipOrganization', 'awards',
-            'jobExperiences', 'socialLinks.platform', 'user',
+            'educations.educationalInstitution',
+            'publications', 'trainingExperiences', 'skills',
+            'certifications.issuingAuthorityOrganizationRelation',
+            'teachingAreas', 'memberships.membershipType', 'memberships.membershipOrganization',
+            'awards.awardingBodyOrganizationRelation',
+            'jobExperiences.positionRelation', 'jobExperiences.organizationRelation',
+            'socialLinks.platform', 'user',
         ]);
 
         $brand = \App\Helpers\Branding::all();

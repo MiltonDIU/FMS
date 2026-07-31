@@ -171,8 +171,8 @@
             <div class="p-4 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-between ring-1 ring-slate-900/5">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-full overflow-hidden bg-slate-200 shrink-0">
-                        @if($teacher->photo)
-                            <img src="https://faculty.daffodilvarsity.edu.bd/images/teacher/{{ $teacher->photo }}" alt="{{ $teacher->first_name }}" class="w-full h-full object-cover" />
+                        @if($teacher->photo_url)
+                            <img src="{{ $teacher->photo_url }}" alt="{{ $teacher->first_name }}" class="w-full h-full object-cover" />
                         @else
                             <div class="w-full h-full bg-diu-primary text-white flex items-center justify-center font-display font-bold">{{ strtoupper(substr($teacher->first_name, 0, 1)) }}</div>
                         @endif

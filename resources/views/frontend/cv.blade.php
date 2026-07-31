@@ -49,6 +49,9 @@
         .org { font-size: 11px; color: #6b7280; margin-top: 2px; }
         .contact { font-size: 9.5px; color: #374151; margin-top: 7px; }
         .contact span { margin-right: 12px; white-space: nowrap; }
+        /* Word labels, not pictograms: the embedded theme font is a text face and
+           has no envelope or telephone glyph, so dompdf printed "?" for both. */
+        .contact .label { color: #6b7280; }
 
         /* ---------- Two-column body ---------- */
         .cols { display: flex; gap: 22px; align-items: flex-start; }
@@ -77,6 +80,13 @@
         .item { margin-bottom: 10px; page-break-inside: avoid; break-inside: avoid; }
         .item .row1 { font-weight: 600; color: #111827; }
         .item .row2 { color: #6b7280; font-style: italic; font-size: 9.5px; }
+        /* Marks a post still held, so a reader does not have to infer it from a
+           missing end date. Plain text, since dompdf has no icon font here. */
+        .item .row2 .current {
+            font-style: normal; font-weight: 700; font-size: 8px;
+            letter-spacing: 0.06em; text-transform: uppercase;
+            color: #034ea2; margin-left: 6px;
+        }
         .item .row3 { color: #374151; }
 
         ol.pubs { margin: 0; padding-left: 17px; }
@@ -148,8 +158,12 @@
 
     <div class="header">
         @if(\App\Helpers\CvSections::enabled('basic_info'))
-            @if($teacher->photo)
-                <img class="photo" src="{{ str_starts_with($teacher->photo, 'http') ? $teacher->photo : public_path('storage/'.$teacher->photo) }}">
+            {{-- Was resolving a bare filename to public_path('storage/…'), but the
+                 photographs live on the legacy host, so that path never existed.
+                 photo_url gives the address they are actually served from, and
+                 the controller enables remote images for dompdf. --}}
+            @if($teacher->photo_url)
+                <img class="photo" src="{{ $teacher->photo_url }}">
             @else
                 <div class="photo-fallback">{{ strtoupper(substr($teacher->first_name ?? '?', 0, 1)) }}</div>
             @endif
@@ -166,10 +180,10 @@
                 @endif
                 <div class="contact">
                     @if($teacher->user?->email || $teacher->secondary_email)
-                        <span>&#9993; {{ $teacher->user?->email ?? $teacher->secondary_email }}</span>
+                        <span><span class="label">Email:</span> {{ $teacher->user?->email ?? $teacher->secondary_email }}</span>
                     @endif
                     @if($teacher->phone || $teacher->personal_phone)
-                        <span>&#9742; {{ $teacher->phone ?? $teacher->personal_phone }}</span>
+                        <span><span class="label">Phone:</span> {{ $teacher->phone ?? $teacher->personal_phone }}</span>
                     @endif
                     @if($teacher->office_room)
                         <span>Room: {{ $teacher->office_room }}</span>
@@ -197,13 +211,41 @@
                 <div class="section">
                     <h2>Experience</h2>
                     @foreach($teacher->jobExperiences as $exp)
+                        @php
+                            /*
+                             * The column is `position`; `designation` does not exist on
+                             * this table, so every line printed the literal fallback
+                             * "Role". positionRelation is the lookup-table copy, used
+                             * when the free-text field is blank.
+                             */
+                            $role = $exp->position ?: optional($exp->positionRelation)->name;
+                            $org = $exp->organization ?: optional($exp->organizationRelation)->name;
+
+                            $from = $exp->start_date?->format('M Y');
+                            $to = $exp->end_date?->format('M Y');
+
+                            /*
+                             * Say which posts are still held. Printing "Present" whenever
+                             * end_date happened to be empty claimed a great many finished
+                             * jobs were current — is_current is the field that actually
+                             * knows, and a start date with no end date only tells us when
+                             * it began.
+                             */
+                            $period = match (true) {
+                                $exp->is_current && $from => $from . ' – Present',
+                                $exp->is_current => 'Present',
+                                (bool) ($from && $to) => $from . ' – ' . $to,
+                                (bool) $from => $from,
+                                (bool) $to => 'Until ' . $to,
+                                default => null,
+                            };
+                        @endphp
                         <div class="item">
-                            <div class="row1">{{ $exp->designation ?? 'Role' }}@if($exp->organization) — {{ $exp->organization }}@endif</div>
-                            @if($exp->start_date || $exp->end_date)
+                            <div class="row1">{{ $role ?: 'Position not recorded' }}@if($org) — {{ $org }}@endif</div>
+                            @if($period)
                                 <div class="row2">
-                                    {{ $exp->start_date?->format('M Y') ?? '' }}
-                                    &ndash;
-                                    {{ $exp->end_date?->format('M Y') ?? 'Present' }}
+                                    {{ $period }}
+                                    @if($exp->is_current)<span class="current">Current</span>@endif
                                 </div>
                             @endif
                         </div>
@@ -218,7 +260,9 @@
                         <li>
                             {{ $pub->title ?? '' }}
                             @if($pub->journal_name) <em>({{ $pub->journal_name }})</em>@endif
-                            @if($pub->year) &middot; {{ $pub->year }}@endif
+                            {{-- The column is publication_year; `year` does not exist,
+                                 so no publication ever carried a date here. --}}
+                            @if($pub->publication_year) &middot; {{ $pub->publication_year }}@endif
                         </li>
                     @endforeach
                 </ol>
@@ -244,11 +288,30 @@
                 <div class="side-block">
                     <h2>Education</h2>
                     @foreach($teacher->educations as $edu)
+                        @php
+                            /*
+                             * There is no `result` column and the relation is
+                             * resultType(), not result_type — both resolved to null, so
+                             * this line never printed for anyone. The grade actually
+                             * lives in cgpa/scale, grade or marks.
+                             */
+                            $resultValue = match (true) {
+                                filled($edu->cgpa) && filled($edu->scale) => $edu->cgpa . ' / ' . $edu->scale,
+                                filled($edu->cgpa) => (string) $edu->cgpa,
+                                filled($edu->grade) => (string) $edu->grade,
+                                filled($edu->marks) => (string) $edu->marks,
+                                default => null,
+                            };
+                            $resultLabel = optional($edu->resultType)->name ?: 'Result';
+                            $institution = $edu->institution ?: optional($edu->educationalInstitution)->name;
+                        @endphp
                         <div class="item">
                             <div class="row1">{{ $edu->degreeType?->name ?? 'Degree' }}@if($edu->degreeLevel?->name) ({{ $edu->degreeLevel->name }})@endif</div>
-                            <div class="row2">{{ $edu->institution ?? '' }}@if($edu->passing_year) &middot; {{ $edu->passing_year }}@endif</div>
-                            @if($edu->result_type?->name || $edu->result)
-                                <div class="row3" style="font-size:9px;color:#6b7280;">{{ $edu->result_type?->name ?? 'Result' }}: {{ $edu->result ?? 'N/A' }}</div>
+                            @if($institution || $edu->passing_year)
+                                <div class="row2">{{ $institution }}@if($edu->passing_year) &middot; {{ $edu->passing_year }}@endif</div>
+                            @endif
+                            @if($resultValue)
+                                <div class="row3" style="font-size:9px;color:#6b7280;">{{ $resultLabel }}: {{ $resultValue }}</div>
                             @endif
                         </div>
                     @endforeach
@@ -281,12 +344,20 @@
                                 <div class="row2">
                                     @if($mem->position){{ $mem->position }}@endif
                                     @if($mem->scope)&middot; {{ ucfirst($mem->scope) }}@endif
-                                    @if($mem->start_date || $mem->end_date)
-                                        &middot;
-                                        {{ $mem->start_date?->format('Y') ?? '' }}
-                                        &ndash;
-                                        {{ $mem->end_date?->format('Y') ?? 'Present' }}
-                                    @endif
+                                    @php
+                                        // Same rule as Experience: a missing end date is
+                                        // not evidence the membership is still held.
+                                        $from = $mem->start_date?->format('Y');
+                                        $to = $mem->end_date?->format('Y');
+                                        $span = match (true) {
+                                            $mem->is_active && $from => $from . ' – Present',
+                                            (bool) ($from && $to) => $from . ' – ' . $to,
+                                            (bool) $from => $from,
+                                            (bool) $to => 'Until ' . $to,
+                                            default => null,
+                                        };
+                                    @endphp
+                                    @if($span)&middot; {{ $span }}@endif
                                 </div>
                             @endif
                         </div>
@@ -298,10 +369,12 @@
                 <div class="side-block">
                     <h2>Awards & Honors</h2>
                     @foreach($teacher->awards as $award)
+                        {{-- The column is awarding_body; `organization` does not exist. --}}
+                        @php $body = $award->awarding_body ?: optional($award->awardingBodyOrganizationRelation)->name; @endphp
                         <div class="item">
                             <div class="row1">{{ $award->title ?? 'Award' }}</div>
-                            @if($award->organization || $award->year)
-                                <div class="row2">{{ $award->organization ?? '' }}@if($award->year) &middot; {{ $award->year }}@endif</div>
+                            @if($body || $award->year)
+                                <div class="row2">{{ $body }}@if($award->year) &middot; {{ $award->year }}@endif</div>
                             @endif
                         </div>
                     @endforeach
@@ -312,9 +385,12 @@
                 <div class="side-block">
                     <h2>Certifications</h2>
                     @foreach($teacher->certifications as $cert)
+                        {{-- The columns are title and issuing_authority; `name` and
+                             `organization` do not exist on this table. --}}
+                        @php $issuer = $cert->issuing_authority ?: optional($cert->issuingAuthorityOrganizationRelation)->name; @endphp
                         <div class="item">
-                            <div class="row1">{{ $cert->name ?? 'Certification' }}</div>
-                            @if($cert->organization)<div class="row2">{{ $cert->organization }}</div>@endif
+                            <div class="row1">{{ $cert->title ?? 'Certification' }}</div>
+                            @if($issuer)<div class="row2">{{ $issuer }}</div>@endif
                         </div>
                     @endforeach
                 </div>
