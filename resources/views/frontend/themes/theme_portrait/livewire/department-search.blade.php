@@ -150,13 +150,13 @@
                            class="pb-1 border-b-2 transition-colors"
                            style="{{ $this->view === 'contact'
                                 ? 'border-color: transparent; color: var(--text-muted);'
-                                : 'border-color: var(--color-diu-primary); color: var(--color-diu-primary);' }}">
+                                : 'border-color: var(--brand-ink); color: var(--brand-ink);' }}">
                             Faculty members
                         </a>
                         <a href="{{ route('department.contact', $deptRoute) }}" wire:navigate
                            class="pb-1 border-b-2 transition-colors"
                            style="{{ $this->view === 'contact'
-                                ? 'border-color: var(--color-diu-primary); color: var(--color-diu-primary);'
+                                ? 'border-color: var(--brand-ink); color: var(--brand-ink);'
                                 : 'border-color: transparent; color: var(--text-muted);' }}">
                             Contact
                         </a>

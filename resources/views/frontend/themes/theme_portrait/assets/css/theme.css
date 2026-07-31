@@ -60,7 +60,7 @@
      * strip park directly underneath it, so the number is shared rather than
      * guessed twice — change the header padding and they follow.
      */
-    --header-height: 4.25rem;
+    --header-height: 4.75rem;
 }
 
 /*
@@ -119,6 +119,16 @@
     --surface-hover: #f1f5f9;
     --surface-active: #EDF6FF;        /* sidebar active highlight */
     --surface-active-border: var(--color-diu-primary);
+    /*
+     * Brand colour as ink, i.e. for text rather than for fills.
+     *
+     * The brand blue is #034ea2, which sits at 1.8:1 against this theme's dark
+     * surface — the wordmark and every .eyebrow on the site were close to
+     * invisible with the lights off. Dark mode swaps in the light accent, which
+     * clears 7:1 on the same ground. Fills keep using --color-diu-primary; only
+     * text moves.
+     */
+    --brand-ink: var(--color-diu-primary);
     --text-strong: #0f172a;          /* slate-900 */
     --text-base: #334155;             /* slate-700 */
     --text-soft: #475569;            /* slate-600 — secondary lines under a name */
@@ -142,6 +152,7 @@
     --surface-hover: #182943;
     --surface-active: color-mix(in srgb, var(--color-diu-primary) 32%, #0a1424);
     --surface-active-border: var(--color-diu-accent-light);
+    --brand-ink: var(--color-diu-accent-light);
     --text-strong: #e2e8f0;
     --text-base: #cbd5e1;
     --text-soft: #aebdd0;
@@ -192,6 +203,16 @@
 .text-gray-700 { color: var(--text-base); }
 .text-gray-500 { color: var(--text-muted); }
 .text-gray-400 { color: var(--text-faint); }
+
+/* Brand blue as text: legible on both grounds via --brand-ink. Backgrounds and
+   borders keep the literal brand colour, which is what they are for. */
+.text-diu-primary { color: var(--brand-ink); }
+.hover\:text-diu-primary:hover { color: var(--brand-ink); }
+
+/* Active-state indicators in the sidebar and tab strips. The border is the whole
+   signal there, so it needs the same dark-ground legibility the text got. */
+.border-diu-primary { border-color: var(--brand-ink); }
+.border-diu-accent { border-color: var(--brand-ink); }
 
 /* Inline hardcoded slate text used across cards */
 [style*="color:#64748b"],
@@ -273,7 +294,7 @@ header.sticky {
     font-weight: 700;
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: var(--color-diu-primary);
+    color: var(--brand-ink);
 }
 
 /* Display sizes. Larger and tighter than the other themes, because here the

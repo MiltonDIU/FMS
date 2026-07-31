@@ -22,23 +22,46 @@
     <div class="max-w-[88rem] mx-auto px-5 sm:px-8">
         <div class="flex items-center justify-between gap-6 py-4">
 
-            {{-- Wordmark. The uploaded logo is used when there is one; otherwise
-                 the monogram stands in, set in the display face rather than
-                 dropped into a coloured circle. --}}
-            <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-3 shrink-0">
+            {{-- The wordmark.
+                 It used to lead with the monogram — a single letter "D" — and
+                 then two generic phrases, so the institution's name appeared
+                 nowhere in the header at all. The name is the branding, so it
+                 sets it: short name in the display face, full name underneath.
+                 The monogram is kept only as the mark beside an image logo,
+                 where it would be redundant, and dropped there too.
+
+                 No coloured pill for the badge: this theme uses a capitalised
+                 label after a hairline instead, which is the same rule the rest
+                 of the theme follows. --}}
+            <a href="{{ route('home') }}" wire:navigate
+               class="flex items-center gap-3 shrink-0 min-w-0"
+               aria-label="{{ $brand['site_name'] }} — {{ $brand['badge_text'] }}">
+
                 @if(! empty($brand['use_image_logo']) && ! empty($brand['logo_url']))
-                    <img src="{{ $brand['logo_url'] }}" alt="{{ $brand['site_name'] }}" class="h-9 w-auto">
-                @else
-                    <span class="font-display text-xl font-extrabold tracking-tight"
-                          style="color: var(--color-diu-primary);">
-                        {{ $brand['monogram'] ?: $brand['site_short_name'] }}
-                    </span>
+                    <img src="{{ $brand['logo_url'] }}" alt="{{ $brand['site_name'] }}"
+                         class="h-10 w-auto shrink-0">
                 @endif
 
-                <span class="hidden sm:block leading-tight">
-                    <span class="block font-display text-[13px] font-bold tracking-tight"
-                          style="color: var(--text-strong);">{{ $brand['portal_label'] }}</span>
-                    <span class="block text-[11px]" style="color: var(--text-muted);">{{ $brand['portal_sublabel'] }}</span>
+                {{-- Line heights are pinned rather than left to the font, because
+                     --header-height is what the sticky profile sidebar and tab
+                     strip measure themselves against: 24 + 6 + 14 + 32 of
+                     padding = 76px = 4.75rem. --}}
+                <span class="min-w-0">
+                    <span class="flex items-baseline gap-2.5 leading-[24px]">
+                        <span class="font-display text-[22px] font-extrabold tracking-[-0.02em] whitespace-nowrap"
+                              style="color: var(--brand-ink);">
+                            {{ $brand['site_short_name'] ?: $brand['short_name'] ?: $brand['monogram'] }}
+                        </span>
+
+                        @if(filled($brand['badge_text']))
+                            <span class="hidden sm:block h-4 w-px shrink-0" style="background-color: var(--border-strong);"></span>
+                            <span class="hidden sm:block text-[11px] font-semibold uppercase tracking-[0.16em] whitespace-nowrap"
+                                  style="color: var(--text-muted);">{{ $brand['badge_text'] }}</span>
+                        @endif
+                    </span>
+
+                    <span class="mt-1.5 block truncate text-[11px] leading-[14px] tracking-[0.06em]"
+                          style="color: var(--text-soft);">{{ $brand['tagline'] ?: $brand['site_name'] }}</span>
                 </span>
             </a>
 

@@ -140,7 +140,7 @@
                                         style="color: var(--text-muted);">
                                     <span x-show="copied !== '{{ $style['key'] }}'">Copy</span>
                                     <span x-show="copied === '{{ $style['key'] }}'" x-cloak
-                                          style="color: var(--color-diu-primary);">Copied</span>
+                                          style="color: var(--brand-ink);">Copied</span>
                                 </button>
                             </div>
 
@@ -207,7 +207,7 @@
 
             <p class="mt-12">
                 <a href="{{ $publicationsUrl }}" wire:navigate
-                   class="text-[13px] font-semibold hover:underline" style="color: var(--color-diu-primary);">
+                   class="text-[13px] font-semibold hover:underline" style="color: var(--brand-ink);">
                     ← All publications by {{ $teacher->full_name }}
                 </a>
             </p>
