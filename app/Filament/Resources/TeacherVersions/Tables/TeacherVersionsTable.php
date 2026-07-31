@@ -261,7 +261,12 @@ class TeacherVersionsTable
                     ->label('Rollback')
                     ->icon('heroicon-o-arrow-path')
                     ->color('info')
-                    ->visible(fn ($record) => in_array($record->status, ['approved', 'partially_approved', 'completed']) && !$record->is_active)
+                    // activateVersion() reapplies a whole past profile. Unlike
+                    // approve/reject, the service does no authorisation of its
+                    // own, so status alone was the only thing gating it.
+                    ->visible(fn ($record) => auth()->user()?->can('Update:TeacherVersion')
+                        && in_array($record->status, ['approved', 'partially_approved', 'completed'])
+                        && !$record->is_active)
                     ->requiresConfirmation()
                     ->modalHeading('Activate Version (Rollback)')
                     ->modalDescription('This will restore the teacher profile to this version\'s COMPLETE state. All data from this version will be applied.')

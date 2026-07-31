@@ -67,6 +67,18 @@ class IntegrationMappingForm
                                     return;
                                 }
 
+                                // The server does the fetching and shows the body
+                                // back, so an unchecked address turns this field
+                                // into a window onto the internal network.
+                                if ($reason = \App\Helpers\OutboundUrl::rejectionReason($apiUrl)) {
+                                    \Filament\Notifications\Notification::make()
+                                        ->title('That address cannot be fetched')
+                                        ->body($reason)
+                                        ->danger()
+                                        ->send();
+                                    return;
+                                }
+
                                 try {
                                     if ($apiMethod === 'POST') {
                                         $response = Http::timeout(10)->post($apiUrl);

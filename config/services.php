@@ -40,4 +40,21 @@ return [
 
     'diu_contacts_api' => env('DIU_CONTACTS_API', 'https://webbackend.daffodilvarsity.edu.bd/api/v1/public/department'),
 
+    'integration' => [
+        /*
+         * Hosts the Integration Mapping screen may fetch from even though they
+         * sit on a private network. Everything else resolving to a private or
+         * reserved address is refused, so an operator cannot point the server at
+         * internal services or a cloud metadata endpoint and read the response.
+         *
+         * The application's own host is always permitted, which is what lets the
+         * default localhost integration URL keep working in development.
+         *
+         * Comma-separated, e.g. INTEGRATION_ALLOWED_HOSTS=erp.internal,10.0.0.5
+         */
+        'allowed_hosts' => array_filter(
+            array_map('trim', explode(',', (string) env('INTEGRATION_ALLOWED_HOSTS', ''))),
+        ),
+    ],
+
 ];

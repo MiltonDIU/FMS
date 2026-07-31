@@ -37,6 +37,16 @@ class SettingPolicy
         return $authUser->can('Delete:Setting');
     }
 
+    /**
+     * Filament checks this, not delete(), for the bulk delete action.
+     * While it was absent, non-strict authorization silently allowed it,
+     * so anyone who could list the table could empty it.
+     */
+    public function deleteAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('DeleteAny:Setting');
+    }
+
     public function restore(AuthUser $authUser, Setting $setting): bool
     {
         return $authUser->can('Restore:Setting');

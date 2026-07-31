@@ -28,9 +28,17 @@ class MyProfile extends Page
 
     public static function canAccess(): bool
     {
-        // Allow access if user has 'teacher' role OR has specific permission
-        // This handles cases where a user might have multiple roles
-        return  auth()->user()->can('View:MyProfile') && auth()->user()?->hasRole('teacher') ?? false;
+        $user = auth()->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        // Both conditions are wanted here, unlike the other pages: the screen
+        // edits the signed-in user's own teacher record, so without one there is
+        // nothing to show. Checked against the actual relation rather than the
+        // "teacher" role, since that is what mount() reads.
+        return $user->can('View:MyProfile') && $user->isTeacher();
     }
 
     public ?array $data = [];

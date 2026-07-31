@@ -37,6 +37,16 @@ class IntegrationMappingPolicy
         return $authUser->can('Delete:IntegrationMapping');
     }
 
+    /**
+     * Filament checks this, not delete(), for the bulk delete action.
+     * While it was absent, non-strict authorization silently allowed it,
+     * so anyone who could list the table could empty it.
+     */
+    public function deleteAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('DeleteAny:IntegrationMapping');
+    }
+
     public function restore(AuthUser $authUser, IntegrationMapping $integrationMapping): bool
     {
         return $authUser->can('Restore:IntegrationMapping');

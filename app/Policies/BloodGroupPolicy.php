@@ -37,6 +37,16 @@ class BloodGroupPolicy
         return $authUser->can('Delete:BloodGroup');
     }
 
+    /**
+     * Filament checks this, not delete(), for the bulk delete action.
+     * While it was absent, non-strict authorization silently allowed it,
+     * so anyone who could list the table could empty it.
+     */
+    public function deleteAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('DeleteAny:BloodGroup');
+    }
+
     public function restore(AuthUser $authUser, BloodGroup $bloodGroup): bool
     {
         return $authUser->can('Restore:BloodGroup');

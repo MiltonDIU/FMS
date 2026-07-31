@@ -64,6 +64,9 @@ class AuthorsTable
                         ->label('Merge Selected Authors')
                         ->icon('heroicon-o-user-group')
                         ->color('warning')
+                        // Rewrites foreign keys and deletes the merged-away
+                        // rows, so it needs Delete:Author, not just list access.
+                        ->visible(fn (): bool => auth()->user()?->can('Delete:Author') ?? false)
                         ->form(fn (\Illuminate\Support\Collection $records) => [
                             \Filament\Forms\Components\Select::make('primary_author_id')
                                 ->label('Select Primary Author (surviving record)')

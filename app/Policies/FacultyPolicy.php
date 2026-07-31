@@ -37,6 +37,16 @@ class FacultyPolicy
         return $authUser->can('Delete:Faculty');
     }
 
+    /**
+     * Filament checks this, not delete(), for the bulk delete action.
+     * While it was absent, non-strict authorization silently allowed it,
+     * so anyone who could list the table could empty it.
+     */
+    public function deleteAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('DeleteAny:Faculty');
+    }
+
     public function restore(AuthUser $authUser, Faculty $faculty): bool
     {
         return $authUser->can('Restore:Faculty');

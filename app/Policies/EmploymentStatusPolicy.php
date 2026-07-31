@@ -37,6 +37,16 @@ class EmploymentStatusPolicy
         return $authUser->can('Delete:EmploymentStatus');
     }
 
+    /**
+     * Filament checks this, not delete(), for the bulk delete action.
+     * While it was absent, non-strict authorization silently allowed it,
+     * so anyone who could list the table could empty it.
+     */
+    public function deleteAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('DeleteAny:EmploymentStatus');
+    }
+
     public function restore(AuthUser $authUser, EmploymentStatus $employmentStatus): bool
     {
         return $authUser->can('Restore:EmploymentStatus');

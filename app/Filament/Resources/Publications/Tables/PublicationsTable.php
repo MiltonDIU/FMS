@@ -435,7 +435,11 @@ class PublicationsTable
                     ->label('Incentive')
                     ->icon(Heroicon::OutlinedBanknotes)
                     ->color('success')
-                    ->visible(fn($record) => !$record->hasIncentive())
+                    // Creates a PublicationIncentive and writes per-author
+                    // amounts, so it needs that resource's create permission
+                    // rather than only Publication access.
+                    ->visible(fn($record) => (auth()->user()?->can('Create:PublicationIncentive') ?? false)
+                        && !$record->hasIncentive())
                     ->mountUsing(function ($form, $record) {
                         $pivots = \DB::table('publication_authors')
                             ->where('publication_id', $record->id)
@@ -585,7 +589,8 @@ class PublicationsTable
                     ->label('View Incentive')
                     ->icon(Heroicon::OutlinedEye)
                     ->color('info')
-                    ->visible(fn($record) => $record->hasIncentive())
+                    ->visible(fn($record) => (auth()->user()?->can('View:PublicationIncentive') ?? false)
+                        && $record->hasIncentive())
                     ->url(fn($record) => route('filament.admin.resources.publication-incentives.edit', $record->incentive)),
             ])
             ->toolbarActions([

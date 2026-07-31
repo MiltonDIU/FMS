@@ -37,6 +37,16 @@ class MajorPolicy
         return $authUser->can('Delete:Major');
     }
 
+    /**
+     * Filament checks this, not delete(), for the bulk delete action.
+     * While it was absent, non-strict authorization silently allowed it,
+     * so anyone who could list the table could empty it.
+     */
+    public function deleteAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('DeleteAny:Major');
+    }
+
     public function restore(AuthUser $authUser, Major $major): bool
     {
         return $authUser->can('Restore:Major');

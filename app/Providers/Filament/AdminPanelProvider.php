@@ -29,6 +29,23 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             ->passwordReset()
+            /*
+             * Without this, a missing policy method is not an error — Filament
+             * falls through to allowing the action. That is how bulk delete went
+             * ungoverned across 35 resources: Shield's method list omitted
+             * 'deleteAny', so no policy defined it, and the check quietly passed
+             * for anyone who could list a table.
+             *
+             * Strict mode turns that silence into a LogicException naming the
+             * policy and method, so the next gap of this kind surfaces the first
+             * time it is hit rather than years later.
+             *
+             * Verified against every role and the full page set before enabling;
+             * behaviour is identical with it on and off. If a new resource ever
+             * throws here, add the named method to its policy rather than
+             * removing this line.
+             */
+            ->strictAuthorization()
             ->colors([
                 'primary' => Color::Amber,
             ])

@@ -1167,6 +1167,11 @@ class SystemSettings extends Page
 
     public function save(): void
     {
+        // canAccess() only requires View:SystemSettings, but this writes every
+        // setting on the page. Public Livewire methods are reachable from the
+        // browser without going through an action, so the check lives here.
+        abort_unless(auth()->user()?->can('Update:SystemSettings'), 403);
+
         $data = $this->form->getState();
 
         if (isset($data['global_custom_fonts']) && is_array($data['global_custom_fonts'])) {
@@ -1260,6 +1265,8 @@ class SystemSettings extends Page
 
     public function resetColors(): void
     {
+        abort_unless(auth()->user()?->can('Update:SystemSettings'), 403);
+
         \App\Helpers\ColorPalette::resetToDefaults();
 
         // Re-fill the form so the UI reflects the restored defaults. Override
@@ -1284,6 +1291,9 @@ class SystemSettings extends Page
 
     public function startBackgroundExport(): void
     {
+        // Dispatches a full export of the database.
+        abort_unless(auth()->user()?->can('Update:SystemSettings'), 403);
+
         $limit = (int) ($this->data['export_limit'] ?? 0);
         $provider = $this->data['export_provider'] ?? 'auto';
         $overwrite = (bool) ($this->data['export_overwrite'] ?? false);
@@ -1299,6 +1309,9 @@ class SystemSettings extends Page
 
     public function startBackgroundImport(): void
     {
+        // Dispatches a master import that rewrites teacher data.
+        abort_unless(auth()->user()?->can('Update:SystemSettings'), 403);
+
         $limit = (int) ($this->data['import_limit'] ?? 0);
         $dryRun = (bool) ($this->data['import_dry_run'] ?? false);
         $skipExisting = (bool) ($this->data['import_skip_existing'] ?? true);
@@ -1314,6 +1327,9 @@ class SystemSettings extends Page
 
     public function searchTeacherApi(): void
     {
+        // Reads the ERP/legacy source; not a write, but not for read-only eyes.
+        abort_unless(auth()->user()?->can('Update:SystemSettings'), 403);
+
         $query = trim($this->data['teacher_search_query'] ?? '');
 
         if (empty($query)) {
@@ -1358,6 +1374,9 @@ class SystemSettings extends Page
 
     public function importOrMergeTeacherFromSettings(): void
     {
+        // Creates or overwrites a teacher profile from the previewed payload.
+        abort_unless(auth()->user()?->can('Update:SystemSettings'), 403);
+
         if (empty($this->preview_raw_payload)) {
             Notification::make()->title('No teacher preview data to import.')->warning()->send();
             return;

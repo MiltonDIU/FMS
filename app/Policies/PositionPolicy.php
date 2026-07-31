@@ -37,6 +37,16 @@ class PositionPolicy
         return $authUser->can('Delete:Position');
     }
 
+    /**
+     * Filament checks this, not delete(), for the bulk delete action.
+     * While it was absent, non-strict authorization silently allowed it,
+     * so anyone who could list the table could empty it.
+     */
+    public function deleteAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('DeleteAny:Position');
+    }
+
     public function restore(AuthUser $authUser, Position $position): bool
     {
         return $authUser->can('Restore:Position');

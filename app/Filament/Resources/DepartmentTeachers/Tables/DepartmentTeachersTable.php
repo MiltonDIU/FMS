@@ -178,6 +178,9 @@ class DepartmentTeachersTable
                     ->rules(['required', 'integer', 'min:1'])
                     ->sortable()
                     ->extraAttributes(['class' => 'dt-sort-order-cell'])
+                    // Reorders the public directory listing. Inline columns skip
+                    // policies, so without this read access is enough to edit it.
+                    ->disabled(fn (DepartmentTeacher $record): bool => ! auth()->user()?->can('update', $record))
                     ->updateStateUsing(function ($record, $state) {
                         $newPosition = max(1, (int) $state);
                         $oldPosition = $record->sort_order;

@@ -31,9 +31,12 @@ class ImportTeachers extends Page implements HasForms
 
     public static function canAccess(): bool
     {
-        // Allow access if user has 'teacher' role OR has specific permission
-        // This handles cases where a user might have multiple roles
-        return  auth()->user()->can('View:ImportTeachers')   && auth()->user()?->hasRole('super_admin') ?? false;
+        // The permission is the control. Previously this also demanded the
+        // super_admin role, which made granting View:ImportTeachers to anyone
+        // else do nothing — the permission appeared in the roles screen but
+        // never opened the page. Only super_admin holds it today, so nobody
+        // gains access from this; the grant simply works now.
+        return auth()->user()?->can('View:ImportTeachers') ?? false;
     }
 
 

@@ -22,6 +22,9 @@ class ManageMajors extends ManageRecords
                 ->label('Scan Duplicates (AI)')
                 ->icon('heroicon-o-sparkles')
                 ->color('warning')
+                // Opens the merge UI, whose buttons call mergeGroup(), and
+                // a refresh hits the paid AI service.
+                ->visible(fn (): bool => auth()->user()?->can('Delete:Major') ?? false)
                 ->modalHeading('AI-Powered Duplicate Suggestions')
                 ->modalContent(function () {
                     $cache = app(\App\Services\DuplicateFinderService::class)->getSuggestionsWithCache('major');
@@ -37,6 +40,10 @@ class ManageMajors extends ManageRecords
 
     public function refreshAiScan(string $type): void
     {
+        // Callable from the browser like mergeGroup below, and it spends money:
+        // a forced refresh calls the AI duplicate service.
+        abort_unless(auth()->user()?->can('Update:Major'), 403);
+
         app(\App\Services\DuplicateFinderService::class)->getSuggestionsWithCache($type, forceRefresh: true);
         
         Notification::make()
@@ -49,6 +56,13 @@ class ManageMajors extends ManageRecords
 
     public function mergeGroup($targetId, array $allIds, string $type): void
     {
+        // Public methods on a Livewire page are callable straight from the
+        // browser, outside the action pipeline where visible() and authorize()
+        // would run. This one rewrites foreign keys and then deletes rows, so it
+        // needs the delete permission the page itself never asked for — reaching
+        // this page only requires ViewAny.
+        abort_unless(auth()->user()?->can('Delete:Major'), 403);
+
         $targetId = (int) $targetId;
         $allIds = array_map('intval', $allIds);
         $sourceIds = array_values(array_filter($allIds, fn($id) => $id !== $targetId));

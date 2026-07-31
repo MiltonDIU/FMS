@@ -37,6 +37,8 @@ class ListPublications extends ListRecords
                 ->label('Export Publications')
                 ->icon(Heroicon::OutlinedArrowDownTray)
                 ->color('primary')
+                // Writes the whole filtered dataset to a downloadable file.
+                ->visible(fn (): bool => auth()->user()?->can('ViewAny:Publication') ?? false)
                 ->action(function () {
                     $user = auth()->user();
                     $filters = $this->tableFilters;
@@ -55,6 +57,8 @@ class ListPublications extends ListRecords
                 ->label('Export by Author')
                 ->icon(Heroicon::OutlinedUsers)
                 ->color('warning')
+                ->visible(fn (): bool => (auth()->user()?->can('ViewAny:Publication') ?? false)
+                    && (auth()->user()?->can('ViewAny:Author') ?? false))
                 ->action(function () {
                     $user = auth()->user();
                     $filters = $this->tableFilters;

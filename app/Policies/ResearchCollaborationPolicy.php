@@ -37,6 +37,16 @@ class ResearchCollaborationPolicy
         return $authUser->can('Delete:ResearchCollaboration');
     }
 
+    /**
+     * Filament checks this, not delete(), for the bulk delete action.
+     * While it was absent, non-strict authorization silently allowed it,
+     * so anyone who could list the table could empty it.
+     */
+    public function deleteAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('DeleteAny:ResearchCollaboration');
+    }
+
     public function restore(AuthUser $authUser, ResearchCollaboration $researchCollaboration): bool
     {
         return $authUser->can('Restore:ResearchCollaboration');

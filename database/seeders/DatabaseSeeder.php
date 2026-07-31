@@ -23,6 +23,8 @@ class DatabaseSeeder extends Seeder
             SettingsSeeder::class,
             BrandingSettingsSeeder::class,
             ThemeSettingsSeeder::class,
+            SystemSettingsPermissionSeeder::class,
+            BulkDeletePermissionSeeder::class,
             CountrySeeder::class,
             FacultySeeder::class,
             DepartmentSeeder::class,

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Users\Tables;
 
+use App\Models\User;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -57,7 +58,12 @@ class UsersTable
                     ->sortable()
                     ->dateTime()
                     ->searchable(),
-                ToggleColumn::make('is_active')->sortable(),
+                ToggleColumn::make('is_active')
+                    ->sortable()
+                    // is_active is the first thing canAccessPanel() checks, so
+                    // this switch reinstates or locks out an account. Inline
+                    // columns skip policies; only disabled() is honoured.
+                    ->disabled(fn (User $record): bool => ! auth()->user()?->can('update', $record)),
             ])
             ->reorderable('sort_order')
             ->defaultSort('sort_order')
@@ -94,9 +100,23 @@ class UsersTable
                         Select::make('roles')
                             ->label('Roles')
                             ->multiple()
-                            ->options(\Spatie\Permission\Models\Role::pluck('name', 'id'))
-                            ->default(fn ($record) => $record->roles->pluck('id')->toArray())
-                            ->searchable(),
+                            // Same restriction as the edit form: replicating a
+                            // user must not become a way to mint a role you do
+                            // not hold. The default is intersected too, so
+                            // copying a super_admin does not carry the role over.
+                            ->options(fn () => \Spatie\Permission\Models\Role::query()
+                                ->whereIn('name', auth()->user()?->assignableRoleNames() ?? [])
+                                ->pluck('name', 'id'))
+                            ->default(fn ($record) => $record->roles
+                                ->whereIn('name', auth()->user()?->assignableRoleNames() ?? [])
+                                ->pluck('id')
+                                ->toArray())
+                            ->searchable()
+                            ->rule(fn (): \Closure => function (string $attribute, $value, \Closure $fail) {
+                                if (! auth()->user()?->canAssignRoleIds(\Illuminate\Support\Arr::wrap($value))) {
+                                    $fail('You can only assign roles you hold yourself.');
+                                }
+                            }),
                     ])
                     ->using(function ($record, array $data): \App\Models\User {
                         // Create a replica

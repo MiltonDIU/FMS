@@ -37,6 +37,16 @@ class GenderPolicy
         return $authUser->can('Delete:Gender');
     }
 
+    /**
+     * Filament checks this, not delete(), for the bulk delete action.
+     * While it was absent, non-strict authorization silently allowed it,
+     * so anyone who could list the table could empty it.
+     */
+    public function deleteAny(AuthUser $authUser): bool
+    {
+        return $authUser->can('DeleteAny:Gender');
+    }
+
     public function restore(AuthUser $authUser, Gender $gender): bool
     {
         return $authUser->can('Restore:Gender');

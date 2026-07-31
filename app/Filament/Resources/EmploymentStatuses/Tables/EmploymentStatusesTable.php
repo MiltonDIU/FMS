@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\EmploymentStatuses\Tables;
 
+use App\Models\EmploymentStatus;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -34,7 +35,12 @@ class EmploymentStatusesTable
                     ->sortable(),
                 \Filament\Tables\Columns\ToggleColumn::make('allow_login')
                     ->label('Allow Login')
-                    ->sortable(),
+                    ->sortable()
+                    // canAccessPanel() consults this per teacher, so one switch
+                    // grants or revokes panel access for every teacher holding
+                    // the status. Inline columns skip policies; only disabled()
+                    // is checked before saving.
+                    ->disabled(fn (EmploymentStatus $record): bool => ! auth()->user()?->can('update', $record)),
                 IconColumn::make('is_active')
                     ->label('Status')
                     ->boolean()

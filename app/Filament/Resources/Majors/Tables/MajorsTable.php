@@ -63,6 +63,9 @@ class MajorsTable
                         ->label('Merge Selected')
                         ->icon('heroicon-o-arrows-pointing-in')
                         ->color('warning')
+                        // Rewrites foreign keys and deletes the merged-away
+                        // rows, so it needs Delete:Major, not just list access.
+                        ->visible(fn (): bool => auth()->user()?->can('Delete:Major') ?? false)
                         ->form(fn (\Illuminate\Support\Collection $records) => [
                             \Filament\Forms\Components\Select::make('target_id')
                                 ->label('Select Primary / Target Major')

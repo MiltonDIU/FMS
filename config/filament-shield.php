@@ -119,8 +119,15 @@ return [
         'path' => app_path('Policies'),
         'merge' => true,
         'generate' => true,
+        /*
+         * 'deleteAny' belongs here alongside the other bulk methods. It was
+         * missing, so generated policies had no deleteAny() — and Filament asks
+         * for exactly that when authorizing a DeleteBulkAction. With the method
+         * absent and strict authorization off, the check silently passed, which
+         * let anyone able to list a table bulk delete every row in it.
+         */
         'methods' => [
-            'viewAny', 'view', 'create', 'update', 'delete', 'restore',
+            'viewAny', 'view', 'create', 'update', 'delete', 'deleteAny', 'restore',
             'forceDelete', 'forceDeleteAny', 'restoreAny', 'replicate', 'reorder',
         ],
         'single_parameter_methods' => [
@@ -235,6 +242,13 @@ return [
     */
 
     'custom_permissions' => [
+        /*
+         * System Settings ships only a View permission, yet the page can save
+         * every setting and dispatch the master import and export. Anyone able
+         * to open it could therefore write, so the write side is split out here
+         * and checked separately by the page's methods.
+         */
+        'Update:SystemSettings',
         'BatchCalculateProfileScores:Teacher',
         'SyncProfileScore:Teacher',
         'BulkSendEmailToTeachers:Teacher',

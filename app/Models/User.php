@@ -3,8 +3,10 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Spatie\Permission\Models\Role;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
@@ -79,6 +81,55 @@ class User extends Authenticatable implements FilamentUser
     public function isTeacher(): bool
     {
         return $this->teacher()->exists();
+    }
+
+    /**
+     * Roles this user is allowed to hand out.
+     *
+     * Update:User governs editing a user, but says nothing about which roles may
+     * be attached. Unconstrained, anyone holding it could grant themselves
+     * super_admin — 471 permissions — or quietly promote a colleague sideways
+     * into a role they have no business granting.
+     *
+     * The rule is that you can only pass on what you already hold, with
+     * super_admin exempt because it is the role that administers the others.
+     */
+    public function assignableRoleNames(): array
+    {
+        if ($this->hasRole('super_admin')) {
+            return Role::query()->pluck('name')->all();
+        }
+
+        return $this->getRoleNames()->all();
+    }
+
+    /**
+     * Constrain a role query to what this user may assign.
+     */
+    public function scopeAssignableRolesFor(Builder $query, ?self $actor): Builder
+    {
+        return $query->whereIn('name', $actor?->assignableRoleNames() ?? []);
+    }
+
+    /**
+     * May this user attach every one of these role ids?
+     *
+     * Checked on submit as well as when building the options, because narrowing a
+     * dropdown only hides choices — it does not stop a crafted request naming an
+     * id that was never offered.
+     *
+     * @param  array<int|string>  $roleIds
+     */
+    public function canAssignRoleIds(array $roleIds): bool
+    {
+        if (empty($roleIds)) {
+            return true;
+        }
+
+        $requested = Role::query()->whereIn('id', $roleIds)->pluck('name');
+
+        return $requested->count() === count(array_unique($roleIds))
+            && $requested->diff($this->assignableRoleNames())->isEmpty();
     }
 
     /**
