@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Spatie\Permission\Models\Role;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Activitylog\Support\LogOptions;
+use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Filament\Models\Contracts\FilamentUser;
@@ -17,7 +19,28 @@ use Filament\Panel;
 class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasRoles, SoftDeletes;
+    use HasFactory, Notifiable, HasRoles, SoftDeletes, LogsActivity;
+
+    /**
+     * Record changes to a user account in the activity log.
+     *
+     * logAll() takes every column; the two exclusions are credentials rather
+     * than information. The password hash and the remember token both sign
+     * somebody in, and a log is written to be read, so storing them would put
+     * working keys somewhere they do not belong.
+     *
+     * logOnlyDirty() keeps each entry to what actually changed, so the record
+     * reads as a diff instead of repeating the whole row every time.
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('User')
+            ->logAll()
+            ->logExcept(['password', 'remember_token'])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
+    }
 
     /**
      * The attributes that are mass assignable.

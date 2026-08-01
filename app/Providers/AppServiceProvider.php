@@ -7,6 +7,7 @@ use App\Models\Department;
 use App\Models\Faculty;
 use App\Models\Teacher;
 use App\Services\MailConfigService;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -27,6 +28,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        /*
+         * The audit trail's policy is registered by hand. Laravel guesses
+         * App\Models\Foo -> App\Policies\FooPolicy, and this model has to be
+         * named explicitly because config/activitylog.php decides which class
+         * the package actually uses. With strictAuthorization() on, a missing
+         * policy raises rather than quietly allowing — so this is not optional.
+         */
+        Gate::policy(\App\Models\Activity::class, \App\Policies\ActivityPolicy::class);
+
         // Share header statistics with every theme's header partial so the
         // view no longer runs database queries itself.
         View::composer('frontend.themes.*.partials.header', function ($view) {
