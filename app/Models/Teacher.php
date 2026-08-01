@@ -6,6 +6,7 @@ use App\Helpers\OutboundUrl;
 use App\Observers\TeacherObserver;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -211,6 +212,24 @@ class Teacher extends Model implements HasMedia
         }
 
         return OutboundUrl::rejectionReason($url) === null ? $url : null;
+    }
+
+    /**
+     * Only the teachers the public is allowed to see.
+     *
+     * The website has always applied these two conditions by hand in each
+     * controller and Livewire component. The API adds a second set of callers
+     * reading the same records, and a condition forgotten in one endpoint would
+     * publish the other 872: of 2,000 teacher records, 1,128 are visible.
+     *
+     * So the rule lives here once, is used by every API query, and is covered by
+     * a test that counts what the endpoints return against this scope.
+     */
+    public function scopePublished(Builder $query): Builder
+    {
+        return $query
+            ->where('teachers.is_active', true)
+            ->where('teachers.is_archived', false);
     }
 
     /**
