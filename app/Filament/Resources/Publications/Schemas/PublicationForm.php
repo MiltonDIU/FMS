@@ -86,9 +86,9 @@ class PublicationForm
                     ->schema([
                         Select::make('first_author_id')
                             ->label('First Author')
-                            ->options(fn () => static::getAuthorOptions())
                             ->searchable()
-                            ->preload()
+                            ->getSearchResultsUsing(fn (string $search) => static::searchAuthors($search))
+                            ->getOptionLabelUsing(fn ($value) => static::authorLabel($value))
                             ->afterStateHydrated(function ($component, $record) {
                                 if (!$record) return null;
                                 $pivot = \DB::table('publication_authors')
@@ -102,9 +102,9 @@ class PublicationForm
 
                         Select::make('corresponding_author_id')
                             ->label('Corresponding Author')
-                            ->options(fn () => static::getAuthorOptions())
                             ->searchable()
-                            ->preload()
+                            ->getSearchResultsUsing(fn (string $search) => static::searchAuthors($search))
+                            ->getOptionLabelUsing(fn ($value) => static::authorLabel($value))
                             ->afterStateHydrated(function ($component, $record) {
                                 if (!$record) return null;
                                 $pivot = \DB::table('publication_authors')
@@ -118,10 +118,10 @@ class PublicationForm
 
                         Select::make('co_author_ids')
                             ->label('Co-Authors')
-                            ->options(fn () => static::getAuthorOptions())
                             ->searchable()
-                            ->preload()
                             ->multiple()
+                            ->getSearchResultsUsing(fn (string $search) => static::searchAuthors($search))
+                            ->getOptionLabelsUsing(fn (array $values) => static::authorLabels($values))
                             ->afterStateHydrated(function ($component, $record) {
                                 if (!$record) return null;
                                 $pivots = \DB::table('publication_authors')
@@ -177,17 +177,165 @@ class PublicationForm
             ]);
     }
 
-    protected static function getAuthorOptions(): array
+    /**
+     * How many names one search may offer.
+     *
+     * There are 2,000 teachers and 1,600 external authors. This form used to
+     * preload every eligible one into all three selects — 8,184 options in the
+     * page — so the search is now run in the database and only the first
+     * matches come back.
+     */
+    protected const SEARCH_LIMIT = 50;
+
+    /**
+     * Names matching what the person typed, current staff first.
+     *
+     * A teacher who has left is still offered, marked "Former". Somebody who
+     * resigns keeps co-authoring with the people who are still here, and the
+     * record has to be able to say so — an author list that silently ends at
+     * the current payroll would describe papers that do not exist.
+     *
+     * @return array<string, string>
+     */
+    public static function searchAuthors(string $search): array
     {
-        $teachers = \App\Models\Teacher::where('is_archived', false)
-            ->get()
-            ->mapWithKeys(fn ($t) => ["App\\Models\\Teacher:{$t->id}" => "{$t->full_name} (Teacher)"]);
+        $search = trim($search);
 
-        $authors = \App\Models\Author::where('is_active', true)
+        if ($search === '') {
+            return [];
+        }
+
+        $like = '%' . $search . '%';
+
+        $teachers = \App\Models\Teacher::query()
+            ->where(fn ($q) => $q
+                ->where('full_name', 'like', $like)
+                ->orWhere('first_name', 'like', $like)
+                ->orWhere('last_name', 'like', $like)
+                ->orWhere('employee_id', 'like', $like))
+            // Current staff first: they are who is being picked nearly every
+            // time, and a departed colleague further down the list is no
+            // trouble, whereas the reverse would be.
+            ->orderBy('is_archived')
+            ->orderBy('full_name')
+            ->limit(self::SEARCH_LIMIT)
+            ->get()
+            ->mapWithKeys(fn ($t) => [static::keyFor(\App\Models\Teacher::class, $t->id) => static::teacherLabel($t)]);
+
+        $authors = \App\Models\Author::query()
+            ->where('name', 'like', $like)
             ->with('authorType')
+            ->orderByDesc('is_active')
+            ->orderBy('name')
+            ->limit(self::SEARCH_LIMIT)
             ->get()
-            ->mapWithKeys(fn ($a) => ["App\\Models\\Author:{$a->id}" => "{$a->name} ({$a->authorType->name})"]);
+            ->mapWithKeys(fn ($a) => [static::keyFor(\App\Models\Author::class, $a->id) => static::externalLabel($a)]);
 
-        return $teachers->merge($authors)->toArray();
+        return $teachers->merge($authors)->take(self::SEARCH_LIMIT)->toArray();
+    }
+
+    /**
+     * The name behind one stored value, whatever its state.
+     *
+     * This is what the select shows for an author already on the record, and
+     * what Filament validates the field against. Reading it from the options
+     * list was the bug: an archived teacher was not in that list, so their name
+     * rendered as the raw key and the form refused to save at all — across
+     * 6,270 of the 17,510 publications.
+     */
+    public static function authorLabel(mixed $value): ?string
+    {
+        [$model, $id] = static::parseKey($value);
+
+        if (! $model || ! $id) {
+            return null;
+        }
+
+        if ($model === \App\Models\Teacher::class) {
+            $teacher = \App\Models\Teacher::find($id);
+
+            return $teacher ? static::teacherLabel($teacher) : null;
+        }
+
+        if ($model === \App\Models\Author::class) {
+            $author = \App\Models\Author::with('authorType')->find($id);
+
+            return $author ? static::externalLabel($author) : null;
+        }
+
+        return null;
+    }
+
+    /**
+     * The same, for the multiple select — one query per kind, not per name.
+     *
+     * @param  array<int, string>  $values
+     * @return array<string, string>
+     */
+    public static function authorLabels(array $values): array
+    {
+        $wanted = ['teachers' => [], 'authors' => []];
+
+        foreach ($values as $value) {
+            [$model, $id] = static::parseKey($value);
+
+            if ($model === \App\Models\Teacher::class) {
+                $wanted['teachers'][] = $id;
+            } elseif ($model === \App\Models\Author::class) {
+                $wanted['authors'][] = $id;
+            }
+        }
+
+        $labels = [];
+
+        if ($wanted['teachers']) {
+            foreach (\App\Models\Teacher::whereIn('id', $wanted['teachers'])->get() as $teacher) {
+                $labels[static::keyFor(\App\Models\Teacher::class, $teacher->id)] = static::teacherLabel($teacher);
+            }
+        }
+
+        if ($wanted['authors']) {
+            foreach (\App\Models\Author::with('authorType')->whereIn('id', $wanted['authors'])->get() as $author) {
+                $labels[static::keyFor(\App\Models\Author::class, $author->id)] = static::externalLabel($author);
+            }
+        }
+
+        return $labels;
+    }
+
+    /** "Former" is stated, so an unfamiliar name does not read as a mistake. */
+    protected static function teacherLabel(\App\Models\Teacher $teacher): string
+    {
+        return $teacher->full_name . ($teacher->is_archived ? ' (Former Teacher)' : ' (Teacher)');
+    }
+
+    protected static function externalLabel(\App\Models\Author $author): string
+    {
+        $type = $author->authorType?->name ?? 'External';
+
+        return $author->name . ' (' . $type . ($author->is_active ? '' : ' — Inactive') . ')';
+    }
+
+    /**
+     * The stored form is "App\Models\Teacher:1066" — the morph type and the id.
+     *
+     * Written with the class constant rather than a literal so a namespace that
+     * moves cannot leave the two halves of this file disagreeing.
+     */
+    protected static function keyFor(string $model, int|string $id): string
+    {
+        return $model . ':' . $id;
+    }
+
+    /** @return array{0: ?string, 1: ?string} */
+    protected static function parseKey(mixed $value): array
+    {
+        if (! is_string($value) || ! str_contains($value, ':')) {
+            return [null, null];
+        }
+
+        [$model, $id] = explode(':', $value, 2);
+
+        return [$model, $id];
     }
 }
