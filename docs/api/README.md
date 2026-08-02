@@ -6,6 +6,18 @@ For the departments building directory apps against the FMS.
 **Format:** JSON in, JSON out. Send `Accept: application/json` on every request — without it a validation failure comes back as an HTML redirect instead of a 422.
 **Auth:** bearer token (Laravel Sanctum).
 
+### The Postman collection
+
+A ready-to-run collection covers every endpoint below —
+`docs/api/fms-api-v1.postman_collection.json`. It is **deliberately not in the
+repository**: it ships with working credentials so it runs on import without a
+single edit, and git keeps a password long after the file is deleted. Ask the
+team for a copy, and do not commit the one you are given — `.gitignore` already
+refuses it.
+
+Everything the collection does is described here, so nothing below depends on
+having it.
+
 ---
 
 ## 1. Why there is a login at all

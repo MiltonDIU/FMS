@@ -33,3 +33,9 @@ auth.json
 .next/
 web/.next/
 web/node_module
+
+# The Postman collection ships with working credentials so it runs on import
+# without a single edit. That is the point of it, and also why it must not be
+# committed — git history keeps a password long after the file is deleted.
+# docs/api/README.md documents the same API and carries none.
+docs/api/*.postman_collection.json
