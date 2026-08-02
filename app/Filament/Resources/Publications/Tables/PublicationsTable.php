@@ -328,6 +328,52 @@ class PublicationsTable
                     ])
                     ->multiple(),
 
+                /*
+                 * Which publications belong to the people still on the payroll.
+                 *
+                 * Publications carry a faculty and a department of their own, but
+                 * neither says anything about whether the author is still here —
+                 * so "how much research have our current teachers produced" could
+                 * not be answered from this page at all. It matches through the
+                 * author, not the publication's own columns.
+                 *
+                 * A paper with several teacher authors matches if *any* of them
+                 * holds a selected status. That is why the counts in the labels
+                 * add up to more than 17,510: a paper written by an active
+                 * teacher and a departed one is counted under both, and it should
+                 * be — it is genuinely a paper by each of them.
+                 */
+                \Filament\Tables\Filters\SelectFilter::make('author_employment_status')
+                    ->label("Author's Employment Status")
+                    ->options(fn () => static::employmentStatusOptions())
+                    ->multiple()
+                    ->query(function (Builder $query, array $data): Builder {
+                        $values = array_filter($data['values'] ?? []);
+
+                        if (empty($values)) {
+                            return $query;
+                        }
+
+                        return $query->whereHas(
+                            'teachers',
+                            fn (Builder $q) => $q->whereIn('teachers.employment_status_id', $values),
+                        );
+                    })
+                    ->indicateUsing(function (array $data): ?string {
+                        $values = array_filter($data['values'] ?? []);
+
+                        if (empty($values)) {
+                            return null;
+                        }
+
+                        $names = \App\Models\EmploymentStatus::whereIn('id', $values)
+                            ->orderBy('sort_order')
+                            ->pluck('name')
+                            ->implode(', ');
+
+                        return 'Author status: ' . $names;
+                    }),
+
                 \Filament\Tables\Filters\SelectFilter::make('publication_type_id')
                     ->label('Publication Type')
                     ->relationship('type', 'name')
@@ -595,6 +641,50 @@ class PublicationsTable
                     RestoreBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /** How long the per-status publication counts are held for. */
+    protected const STATUS_COUNT_CACHE = 900;
+
+    /**
+     * The employment statuses, each labelled with how many publications it covers.
+     *
+     * The number is the point of the filter — "how much have our current teachers
+     * produced" is usually answered by reading it, without applying anything. It
+     * also keeps the five statuses nobody holds yet from looking broken: they read
+     * "Retired (0)" rather than silently returning nothing when picked.
+     *
+     * One grouped query behind a fifteen-minute cache. Counting distinct
+     * publications per status on every page load would be paid by every admin
+     * opening the list, and these numbers move by a handful a week.
+     *
+     * @return array<int, string>
+     */
+    protected static function employmentStatusOptions(): array
+    {
+        $counts = \Illuminate\Support\Facades\Cache::remember(
+            'publications.author-status-counts',
+            self::STATUS_COUNT_CACHE,
+            // Aliased in the SELECT rather than plucked through a raw
+            // expression: pluck() keys off the column name as the driver
+            // returns it, so a raw COUNT(...) comes back under a name no
+            // property lookup can find.
+            fn () => \DB::table('publication_authors as pa')
+                ->join('teachers as t', 't.id', '=', 'pa.authorable_id')
+                ->where('pa.authorable_type', Teacher::class)
+                ->whereNotNull('t.employment_status_id')
+                ->groupBy('t.employment_status_id')
+                ->selectRaw('t.employment_status_id as status_id, COUNT(DISTINCT pa.publication_id) as total')
+                ->pluck('total', 'status_id')
+                ->all(),
+        );
+
+        return \App\Models\EmploymentStatus::orderBy('sort_order')
+            ->get()
+            ->mapWithKeys(fn ($status) => [
+                $status->id => $status->name . ' (' . number_format($counts[$status->id] ?? 0) . ')',
+            ])
+            ->all();
     }
 }
 
