@@ -145,11 +145,14 @@ class DirectoryController extends Controller
         if (filled($search = $request->query('q'))) {
             $like = '%' . $search . '%';
 
+            // Not full_name: it is a column and an accessor of the same name,
+            // and the column is empty on all 2,000 rows — the accessor builds
+            // the name from the parts on read. Matching against it compiles and
+            // runs and finds nothing.
             $query->where(fn ($q) => $q
                 ->where('teachers.first_name', 'like', $like)
                 ->orWhere('teachers.middle_name', 'like', $like)
                 ->orWhere('teachers.last_name', 'like', $like)
-                ->orWhere('teachers.full_name', 'like', $like)
                 ->orWhere('teachers.employee_id', 'like', $like)
                 ->orWhere('teachers.secondary_email', 'like', $like));
         }

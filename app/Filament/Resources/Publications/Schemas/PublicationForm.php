@@ -207,17 +207,26 @@ class PublicationForm
 
         $like = '%' . $search . '%';
 
+        /*
+         * Searched and sorted on the name parts, not on full_name.
+         *
+         * full_name is a column *and* an accessor of the same name, and the
+         * column is empty on all 2,000 rows — the accessor builds the name from
+         * first/middle/last on read. So a WHERE or ORDER BY against it compiles,
+         * runs, and quietly matches or sorts nothing.
+         */
         $teachers = \App\Models\Teacher::query()
             ->where(fn ($q) => $q
-                ->where('full_name', 'like', $like)
-                ->orWhere('first_name', 'like', $like)
+                ->where('first_name', 'like', $like)
+                ->orWhere('middle_name', 'like', $like)
                 ->orWhere('last_name', 'like', $like)
                 ->orWhere('employee_id', 'like', $like))
             // Current staff first: they are who is being picked nearly every
             // time, and a departed colleague further down the list is no
             // trouble, whereas the reverse would be.
             ->orderBy('is_archived')
-            ->orderBy('full_name')
+            ->orderBy('first_name')
+            ->orderBy('last_name')
             ->limit(self::SEARCH_LIMIT)
             ->get()
             ->mapWithKeys(fn ($t) => [static::keyFor(\App\Models\Teacher::class, $t->id) => static::teacherLabel($t)]);

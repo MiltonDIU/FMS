@@ -177,6 +177,49 @@ class PublicationsTable
                         'approved' => 'success',
                         'rejected' => 'danger',
                     }),
+                /*
+                 * Where the record came from: the old website, the PD export, or
+                 * this system.
+                 *
+                 * Not one badge but as many as apply. The two flags are not
+                 * alternatives — 1,898 of the 17,510 carry both, because the paper
+                 * was on the old site *and* in the PD export and the import matched
+                 * them to one record. Collapsing that into a single label would
+                 * quietly drop the fact that two sources agreed.
+                 *
+                 * Neither flag means nobody imported it: it was entered here. That
+                 * is 0 today and is the number to watch — it is how much of the
+                 * library this system has produced rather than inherited.
+                 */
+                TextColumn::make('source')
+                    ->label('Source')
+                    ->badge()
+                    ->state(function (Publication $record): array {
+                        $sources = [];
+
+                        if ($record->come_from_old_site) {
+                            $sources[] = 'Old Site';
+                        }
+
+                        if ($record->come_from_pd) {
+                            $sources[] = 'PD';
+                        }
+
+                        return $sources ?: ['New'];
+                    })
+                    ->color(fn (string $state): string => match ($state) {
+                        'Old Site' => 'gray',
+                        'PD' => 'info',
+                        'New' => 'success',
+                        default => 'gray',
+                    })
+                    ->tooltip(fn (Publication $record): string => match (true) {
+                        $record->come_from_old_site && $record->come_from_pd => 'Found on the old website and in the PD export',
+                        (bool) $record->come_from_old_site => 'Imported from the old website',
+                        (bool) $record->come_from_pd => 'Imported from the PD export',
+                        default => 'Created in this system',
+                    }),
+
                 TextColumn::make('creator.name')
                     ->label('Created By')
                     ->default('System Generated')
@@ -190,10 +233,9 @@ class PublicationsTable
                     ->formatStateUsing(fn (?int $state): string => $state > 0 ? (string) $state : 'None')
                     ->sortable()
                     ->toggleable(),
-                IconColumn::make('come_from_pd')
-                    ->label('From PD')
-                    ->boolean()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                // The "From PD" tick that used to live here is now one of the
+                // Source badges above, which also says when a record came from
+                // the old site — something this column never showed.
                 IconColumn::make('is_featured')
                     ->boolean()
             ->toggleable(isToggledHiddenByDefault: true),
