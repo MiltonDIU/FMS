@@ -231,7 +231,11 @@ class PublicationForm
             ->get()
             ->mapWithKeys(fn ($t) => [static::keyFor(\App\Models\Teacher::class, $t->id) => static::teacherLabel($t)]);
 
+        // notMerged: an author who has been handed to a teacher is not a person
+        // you can credit any more — their papers belong to the teacher now, and
+        // offering the old name would just recreate the split.
         $authors = \App\Models\Author::query()
+            ->notMerged()
             ->where('name', 'like', $like)
             ->with('authorType')
             ->orderByDesc('is_active')
@@ -240,7 +244,20 @@ class PublicationForm
             ->get()
             ->mapWithKeys(fn ($a) => [static::keyFor(\App\Models\Author::class, $a->id) => static::externalLabel($a)]);
 
-        return $teachers->merge($authors)->take(self::SEARCH_LIMIT)->toArray();
+        /*
+         * collect() around each side before merging.
+         *
+         * ->get() returns an Eloquent collection, and mapWithKeys keeps that
+         * class even though the values are now plain strings. Eloquent's merge()
+         * then calls getKey() on each item to build its dictionary and dies with
+         * "Call to a member function getKey() on string" — but only once the
+         * search matches at least one external author, which is why a search for
+         * a teacher's name never showed it.
+         */
+        return collect($teachers->all())
+            ->merge($authors->all())
+            ->take(self::SEARCH_LIMIT)
+            ->all();
     }
 
     /**

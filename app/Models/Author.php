@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 
 class Author extends Model
 {
@@ -16,10 +18,13 @@ class Author extends Model
         'email',
         'author_type_id',
         'is_active',
+        'merged_into_teacher_id',
+        'merged_at',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'merged_at' => 'datetime',
     ];
 
     public function authorType(): BelongsTo
@@ -32,5 +37,127 @@ class Author extends Model
         return $this->morphToMany(Publication::class, 'authorable', 'publication_authors')
             ->withPivot(['author_role', 'sort_order', 'incentive_amount'])
             ->withTimestamps();
+    }
+
+    /**
+     * The teacher this author turned out to be.
+     *
+     * Set by merging. Null for everyone who is genuinely external — which is
+     * most of them, and the point of keeping the column rather than deleting the
+     * row: a name that was dealt with looks different from one that was not.
+     */
+    public function mergedIntoTeacher(): BelongsTo
+    {
+        return $this->belongsTo(Teacher::class, 'merged_into_teacher_id');
+    }
+
+    public function isMerged(): bool
+    {
+        return $this->merged_into_teacher_id !== null;
+    }
+
+    /** Authors still standing on their own — the ones worth offering or checking. */
+    public function scopeNotMerged(Builder $query): Builder
+    {
+        return $query->whereNull('authors.merged_into_teacher_id');
+    }
+
+    public function scopeMerged(Builder $query): Builder
+    {
+        return $query->whereNotNull('authors.merged_into_teacher_id');
+    }
+
+    /**
+     * Hands this author's publications to a teacher.
+     *
+     * Lives on the model rather than in the table action because it rewrites
+     * money and ownership, and that deserves to be callable — and testable —
+     * without a browser.
+     *
+     * What it does, per publication the author is credited on:
+     *
+     *  - if the teacher is not on that paper, the pivot row is retyped, so the
+     *    role, the position in the author list and the incentive all carry over
+     *    untouched;
+     *  - if the teacher is already on it, the two rows are one person, so they
+     *    collapse into one. The amounts are **added**: 9,285,030.47 of the
+     *    incentive money sits on external authors, and a merge that dropped a
+     *    duplicate's share would quietly change what a publication paid out.
+     *    The surviving row keeps the earlier of the two roles, first author
+     *    outranking corresponding, which outranks co-author.
+     *
+     * The author row is kept and retired. Deleting it would erase the evidence
+     * that these papers were ever filed under another spelling.
+     *
+     * @return array{publications: int, moved: int, combined: int, amount: float}
+     */
+    public function mergeInto(Teacher $teacher): array
+    {
+        $summary = ['publications' => 0, 'moved' => 0, 'combined' => 0, 'amount' => 0.0];
+
+        DB::transaction(function () use ($teacher, &$summary) {
+            $rows = DB::table('publication_authors')
+                ->where('authorable_type', self::class)
+                ->where('authorable_id', $this->id)
+                ->get();
+
+            $summary['publications'] = $rows->count();
+
+            foreach ($rows as $row) {
+                $summary['amount'] += (float) ($row->incentive_amount ?? 0);
+
+                $existing = DB::table('publication_authors')
+                    ->where('publication_id', $row->publication_id)
+                    ->where('authorable_type', Teacher::class)
+                    ->where('authorable_id', $teacher->id)
+                    ->first();
+
+                if ($existing === null) {
+                    DB::table('publication_authors')
+                        ->where('id', $row->id)
+                        ->update([
+                            'authorable_type' => Teacher::class,
+                            'authorable_id' => $teacher->id,
+                            'updated_at' => now(),
+                        ]);
+
+                    $summary['moved']++;
+
+                    continue;
+                }
+
+                DB::table('publication_authors')
+                    ->where('id', $existing->id)
+                    ->update([
+                        'incentive_amount' => (float) ($existing->incentive_amount ?? 0)
+                            + (float) ($row->incentive_amount ?? 0),
+                        'author_role' => static::strongerRole($existing->author_role, $row->author_role),
+                        'updated_at' => now(),
+                    ]);
+
+                DB::table('publication_authors')->where('id', $row->id)->delete();
+
+                $summary['combined']++;
+            }
+
+            $this->forceFill([
+                'merged_into_teacher_id' => $teacher->id,
+                'merged_at' => now(),
+                // Retired, so it stops being offered as an author from here on.
+                'is_active' => false,
+            ])->save();
+        });
+
+        return $summary;
+    }
+
+    /** First author outranks corresponding, which outranks everything else. */
+    protected static function strongerRole(?string $a, ?string $b): string
+    {
+        $rank = ['first' => 1, 'corresponding' => 2, 'co_author' => 3];
+
+        $rankOf = fn (?string $role) => $rank[$role] ?? 4;
+
+        return $rankOf($a) <= $rankOf($b) ? ($a ?? 'co_author') : ($b ?? 'co_author');
     }
 }
