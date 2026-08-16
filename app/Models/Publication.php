@@ -45,6 +45,8 @@ class Publication extends Model
         'slug',
         'journal_name',
         'journal_link',
+        'doi',
+        'scopus_eid',
         'publication_date',
         'publication_year',
         'research_area',

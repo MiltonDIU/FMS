@@ -16,6 +16,7 @@ class Author extends Model
     protected $fillable = [
         'name',
         'email',
+        'scopus_id',
         'author_type_id',
         'is_active',
         'merged_into_teacher_id',
@@ -49,6 +50,68 @@ class Author extends Model
     public function mergedIntoTeacher(): BelongsTo
     {
         return $this->belongsTo(Teacher::class, 'merged_into_teacher_id');
+    }
+
+    /**
+     * Scopus author identifiers known to be this person.
+     *
+     * Several is normal: Scopus splits an author across profiles when the name
+     * is written differently.
+     */
+    public function scopusAuthorIds(): \Illuminate\Database\Eloquent\Relations\MorphMany
+    {
+        return $this->morphMany(ScopusAuthorId::class, 'authorable');
+    }
+
+    /**
+     * An author we know only by the name printed on a paper.
+     *
+     * `email` and `author_type_id` are both NOT NULL, and a Scopus export gives
+     * us neither, so anything creating an author from one has to invent both or
+     * the insert is refused outright — which is exactly what was happening to
+     * the Scopus review importers.
+     *
+     * The address follows the one the original bulk import used for the 1,600
+     * authors already here: the name reduced to its letters, at fms.com. Same
+     * person arriving by a second route therefore lands on the same row rather
+     * than a duplicate, even when the two spellings differ in punctuation.
+     */
+    public static function createExternal(string $name): self
+    {
+        $name = trim($name);
+        $email = static::placeholderEmail($name);
+
+        $existing = static::withTrashed()->where('email', $email)->first();
+
+        if ($existing !== null) {
+            if ($existing->trashed()) {
+                $existing->restore();
+            }
+
+            return $existing;
+        }
+
+        return static::create([
+            'name' => $name,
+            'email' => $email,
+            // GA — a guest author, which is all an export tells us.
+            'author_type_id' => AuthorType::query()->where('name', 'GA')->value('id') ?? 2,
+            'is_active' => true,
+        ]);
+    }
+
+    /**
+     * The @fms.com address stood in for an author who never gave us one.
+     *
+     * A name with no letters at all — initials-only, or non-Latin — would
+     * otherwise collapse every such author onto one address, so those fall back
+     * to something unique instead of something shared.
+     */
+    public static function placeholderEmail(string $name): string
+    {
+        $handle = preg_replace('/[^a-z]/', '', strtolower($name));
+
+        return ($handle !== '' ? $handle : 'author' . uniqid()) . '@fms.com';
     }
 
     public function isMerged(): bool

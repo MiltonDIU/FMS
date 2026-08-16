@@ -36,6 +36,7 @@ class Teacher extends Model implements HasMedia
         'department_id',
         'designation_id',
         'employee_id',
+        'scopus_id',
         'webpage',
         'first_name',
         'middle_name',
@@ -512,6 +513,18 @@ class Teacher extends Model implements HasMedia
     public function socialLinks(): HasMany
     {
         return $this->hasMany(SocialLink::class)->orderBy('sort_order');
+    }
+
+    /**
+     * Scopus author identifiers known to be this teacher.
+     *
+     * Several is the normal case: Scopus builds author profiles by algorithm and
+     * splits one person across them when a name is written differently or an
+     * affiliation changes.
+     */
+    public function scopusAuthorIds(): \Illuminate\Database\Eloquent\Relations\MorphMany
+    {
+        return $this->morphMany(ScopusAuthorId::class, 'authorable');
     }
 
     /**
