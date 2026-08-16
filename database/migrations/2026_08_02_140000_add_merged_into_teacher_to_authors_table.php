@@ -31,16 +31,18 @@ return new class extends Migration
                 ->constrained('teachers')
                 ->nullOnDelete();
 
-            $table->timestamp('merged_at')->nullable()->after('merged_into_teacher_id');
+            // The foreign key brings its own index on the column, so looking up
+            // "who was merged into this teacher" is covered without a second one.
 
-            $table->index('merged_into_teacher_id', 'authors_merged_into_teacher_index');
+            $table->timestamp('merged_at')->nullable()->after('merged_into_teacher_id');
         });
     }
 
     public function down(): void
     {
         Schema::table('authors', function (Blueprint $table) {
-            $table->dropIndex('authors_merged_into_teacher_index');
+            // Order matters: the constraint has to go before the column, and the
+            // column takes its index with it.
             $table->dropConstrainedForeignId('merged_into_teacher_id');
             $table->dropColumn('merged_at');
         });
