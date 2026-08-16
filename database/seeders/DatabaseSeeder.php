@@ -41,6 +41,9 @@ class DatabaseSeeder extends Seeder
             // ── Configuration ───────────────────────────────────────────────
             SettingsSeeder::class,
             BrandingSettingsSeeder::class,
+            // After branding, because the institution name falls back to the
+            // branding site name when it has not been set.
+            InstitutionIdentitySeeder::class,
             ThemeSettingsSeeder::class,
             IntegrationMappingSeeder::class,
             NotificationRoutingSeeder::class,
