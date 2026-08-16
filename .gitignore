@@ -39,3 +39,12 @@ web/node_module
 # committed — git history keeps a password long after the file is deleted.
 # docs/api/README.md documents the same API and carries none.
 docs/api/*.postman_collection.json
+
+# The Scopus exports the review was built against: 5.7 MB of real data, and the
+# csv carries a Correspondence Address column, so it is 1,572 rows of named
+# people with their email addresses. Two reasons it stays out: git history keeps
+# them forever, and this directory is under public/, where anything committed is
+# downloadable by anyone who guesses the filename. Uploads belong in
+# storage/app/private/scopus, which the review already writes to and which is
+# already ignored.
+public/documents/scopas/
