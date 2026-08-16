@@ -83,7 +83,7 @@ return [
             'port' => env('API_ONLY_DB_PORT', '3306'),
             'database' => env('API_ONLY_DB_DATABASE', 'project_fms_api_only'),
             'username' => env('API_ONLY_DB_USERNAME', 'diu'),
-            'password' => env('API_ONLY_DB_PASSWORD', 'Diu@654321'),
+            'password' => env('API_ONLY_DB_PASSWORD', ''),
             'charset' => 'utf8mb4',
             'collation' => 'utf8mb4_unicode_ci',
             'prefix' => '',

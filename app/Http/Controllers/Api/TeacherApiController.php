@@ -114,10 +114,12 @@ class TeacherApiController extends Controller
             ], 404);
 
         } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('TeacherApiController search error: ' . $e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred while searching.',
-                'error' => $e->getMessage(),
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error.',
             ], 500);
         }
     }
