@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * One Scopus author identifier, against the person it belongs to.
@@ -78,5 +79,60 @@ class ScopusAuthorId extends Model
     public function recorder(): BelongsTo
     {
         return $this->belongsTo(User::class, 'recorded_by');
+    }
+
+    /**
+     * Binds an identifier to somebody, without taking it off anybody else.
+     *
+     * The identifier is unique by design — it names one Scopus profile, so two
+     * people cannot both hold it — which means a blind create is an exception
+     * waiting for the first export that disagrees with a binding we already
+     * made. That is not a rare case either: the matcher's whole job is deciding
+     * which of several similar names a paper belongs to, and it is allowed to
+     * be wrong.
+     *
+     * So an identifier already recorded stays where it is. Whoever bound it
+     * first did so with a reviewer's decision or an earlier run behind them,
+     * and silently moving it would rewrite that without telling anybody.
+     *
+     * @param  Model&object{id: int}  $owner  a Teacher or an Author
+     * @return bool  whether this call is what bound it
+     */
+    public static function bindTo(Model $owner, ?string $scopusAuthorId, string $source = self::SOURCE_REVIEW, ?int $recordedBy = null): bool
+    {
+        $scopusAuthorId = trim((string) $scopusAuthorId);
+
+        if ($scopusAuthorId === '') {
+            return false;
+        }
+
+        $existing = static::query()->where('scopus_author_id', $scopusAuthorId)->first();
+
+        if ($existing !== null) {
+            // Already ours, or already somebody else's. Either way, untouched.
+            return false;
+        }
+
+        static::create([
+            'scopus_author_id' => $scopusAuthorId,
+            'authorable_type' => $owner->getMorphClass(),
+            'authorable_id' => $owner->getKey(),
+            'source' => $source,
+            'recorded_by' => $recordedBy,
+        ]);
+
+        return true;
+    }
+
+    /** Who currently holds this identifier, if anybody. */
+    public static function ownerOf(?string $scopusAuthorId): ?Model
+    {
+        $scopusAuthorId = trim((string) $scopusAuthorId);
+
+        if ($scopusAuthorId === '') {
+            return null;
+        }
+
+        return static::query()->where('scopus_author_id', $scopusAuthorId)->first()?->authorable;
     }
 }

@@ -88,6 +88,45 @@ class ScopusWorkbookImporter
     }
 
     /**
+     * Where each column actually is, by the heading printed above it.
+     *
+     * This used to read fixed letters — B, J, R — which held for exactly as
+     * long as nobody added a column. Two went into the People sheet and every
+     * letter after E moved: Teacher ID slid from J to L and Decision from R to
+     * T, so the importer read "how the unit was found" as a teacher id and
+     * "who it might be" as a decision, and bound nothing while reporting
+     * success.
+     *
+     * The heading is the stable thing, so that is what is looked up. The old
+     * letter stays as the fallback, which keeps a workbook produced before this
+     * readable.
+     *
+     * @return array<string, string>  lower-cased heading => column letter
+     */
+    protected function columnsOf(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet): array
+    {
+        $columns = [];
+
+        foreach ($sheet->getRowIterator(1, 1) as $row) {
+            foreach ($row->getCellIterator() as $cell) {
+                $heading = trim((string) $cell->getValue());
+
+                if ($heading !== '') {
+                    $columns[mb_strtolower($heading)] ??= $cell->getColumn();
+                }
+            }
+        }
+
+        return $columns;
+    }
+
+    /** @param  array<string, string>  $columns */
+    protected function columnFor(array $columns, string $heading, string $fallback): string
+    {
+        return $columns[mb_strtolower($heading)] ?? $fallback;
+    }
+
+    /**
      * Binds Scopus Author IDs to Teachers when Decision is positive or explicit ID given.
      */
     protected function importPeopleSheet(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet): int
@@ -95,10 +134,15 @@ class ScopusWorkbookImporter
         $lastRow = $sheet->getHighestDataRow();
         $linked = 0;
 
+        $columns = $this->columnsOf($sheet);
+        $idCol = $this->columnFor($columns, 'Scopus Author ID', 'B');
+        $teacherCol = $this->columnFor($columns, 'Teacher ID', 'J');
+        $decisionCol = $this->columnFor($columns, 'Decision', 'R');
+
         for ($r = 2; $r <= $lastRow; $r++) {
-            $scopusAuthorId = trim((string) $sheet->getCell("B{$r}")->getValue());
-            $teacherIdVal = trim((string) $sheet->getCell("J{$r}")->getValue());
-            $decision = strtolower(trim((string) $sheet->getCell("R{$r}")->getValue()));
+            $scopusAuthorId = trim((string) $sheet->getCell("{$idCol}{$r}")->getValue());
+            $teacherIdVal = trim((string) $sheet->getCell("{$teacherCol}{$r}")->getValue());
+            $decision = strtolower(trim((string) $sheet->getCell("{$decisionCol}{$r}")->getValue()));
 
             if (empty($scopusAuthorId)) {
                 continue;
@@ -149,9 +193,19 @@ class ScopusWorkbookImporter
         $skipped = 0;
         $errors = [];
 
+        // By heading, for the reason given on columnsOf.
+        $columns = $this->columnsOf($sheet);
+        $at = fn (string $heading, string $fallback) => $this->columnFor($columns, $heading, $fallback);
+
+        [$titleCol, $decisionCol, $yearCol, $doiCol, $eidCol, $sourceCol, $typeCol, $citedCol, $authorsCol, $idsCol, $affiliationsCol, $existingCol] = [
+            $at('Scopus Title', 'A'), $at('Decision', 'T'), $at('Year', 'B'), $at('DOI', 'C'),
+            $at('EID', 'D'), $at('Source Title', 'E'), $at('Document Type', 'F'), $at('Cited by', 'G'),
+            $at('Scopus — all authors', 'H'), $at('Scopus author ids', ''), $at('Authors with affiliations', ''), $at('Our Publication ID', 'K'),
+        ];
+
         for ($r = 2; $r <= $lastRow; $r++) {
-            $title = trim((string) $sheet->getCell("A{$r}")->getValue());
-            $decision = strtolower(trim((string) $sheet->getCell("T{$r}")->getValue()));
+            $title = trim((string) $sheet->getCell("{$titleCol}{$r}")->getValue());
+            $decision = strtolower(trim((string) $sheet->getCell("{$decisionCol}{$r}")->getValue()));
 
             if (empty($title)) {
                 continue;
@@ -163,14 +217,16 @@ class ScopusWorkbookImporter
             }
 
             try {
-                $year = trim((string) $sheet->getCell("B{$r}")->getValue());
-                $doi = trim((string) $sheet->getCell("C{$r}")->getValue());
-                $eid = trim((string) $sheet->getCell("D{$r}")->getValue());
-                $sourceTitle = trim((string) $sheet->getCell("E{$r}")->getValue());
-                $docType = trim((string) $sheet->getCell("F{$r}")->getValue());
-                $citedBy = trim((string) $sheet->getCell("G{$r}")->getValue());
-                $allAuthors = trim((string) $sheet->getCell("H{$r}")->getValue());
-                $existingIdVal = trim((string) $sheet->getCell("K{$r}")->getValue());
+                $year = trim((string) $sheet->getCell("{$yearCol}{$r}")->getValue());
+                $doi = trim((string) $sheet->getCell("{$doiCol}{$r}")->getValue());
+                $eid = trim((string) $sheet->getCell("{$eidCol}{$r}")->getValue());
+                $sourceTitle = trim((string) $sheet->getCell("{$sourceCol}{$r}")->getValue());
+                $docType = trim((string) $sheet->getCell("{$typeCol}{$r}")->getValue());
+                $citedBy = trim((string) $sheet->getCell("{$citedCol}{$r}")->getValue());
+                $allAuthors = trim((string) $sheet->getCell("{$authorsCol}{$r}")->getValue());
+                $allAuthorIds = $idsCol === '' ? '' : trim((string) $sheet->getCell("{$idsCol}{$r}")->getValue());
+                $allAuthorAffiliations = $affiliationsCol === '' ? '' : trim((string) $sheet->getCell("{$affiliationsCol}{$r}")->getValue());
+                $existingIdVal = trim((string) $sheet->getCell("{$existingCol}{$r}")->getValue());
 
                 // Check if already exists in DB by ID, DOI, EID, or Title
                 $publication = null;
@@ -225,7 +281,7 @@ class ScopusWorkbookImporter
                 }
 
                 // Process author linkages
-                $this->attachAuthors($publication, $allAuthors);
+                $this->attachAuthors($publication, $allAuthors, $allAuthorIds, $allAuthorAffiliations);
 
             } catch (\Throwable $e) {
                 $errors[] = "Row {$r} ({$title}): " . $e->getMessage();
@@ -242,23 +298,31 @@ class ScopusWorkbookImporter
     /**
      * Resolves author names/IDs from Scopus format and attaches to publication_authors pivot.
      */
-    protected function attachAuthors(Publication $publication, string $allAuthorsString): void
+    protected function attachAuthors(Publication $publication, string $allAuthorsString, string $allAuthorIds = '', string $allAuthorAffiliations = ''): void
     {
         if (empty($allAuthorsString)) {
             return;
         }
 
-        // Format: "Fu, Xiang (111); Mahmud, Sakil (222); Luo, Zhen (333)" or "Name1; Name2"
-        $authorEntries = array_filter(array_map('trim', explode(';', $allAuthorsString)));
+        // Format: "Fu, Xiang (111); Mahmud, Sakil (222)" or, as the workbook now
+        // writes it, plain names with the ids in their own column beside them.
+        $authorEntries = array_values(array_filter(array_map('trim', explode(';', $allAuthorsString)), 'strlen'));
         $sortOrder = 0;
 
-        foreach ($authorEntries as $entry) {
+        $ids = array_values(array_filter(array_map('trim', explode(';', $allAuthorIds)), 'strlen'));
+        $idsAlign = $ids !== [] && count($ids) === count($authorEntries);
+
+        $affiliations = array_values(array_filter(array_map('trim', explode(';', $allAuthorAffiliations)), 'strlen'));
+        $affiliationsAlign = $affiliations !== [] && count($affiliations) === count($authorEntries);
+
+        foreach ($authorEntries as $position => $entry) {
             $name = $entry;
-            $scopusId = null;
+            $scopusId = $idsAlign ? ($ids[$position] ?? null) : null;
+            $affiliation = $affiliationsAlign ? ($affiliations[$position] ?? null) : null;
 
             if (preg_match('/^(.*?)\s*\((\d+)\)$/', $entry, $matches)) {
                 $name = trim($matches[1]);
-                $scopusId = trim($matches[2]);
+                $scopusId ??= trim($matches[2]);
             }
 
             $name = static::formatAuthorName($name);
@@ -268,6 +332,11 @@ class ScopusWorkbookImporter
 
             if ($resolved['kind'] === 'teacher' && $resolved['teacher'] !== null) {
                 $teacher = $resolved['teacher'];
+
+                // The same binding the online import does, so a review checked
+                // in Excel leaves the system knowing exactly what one checked
+                // in the browser does.
+                ScopusAuthorId::bindTo($teacher, $scopusId, ScopusAuthorId::SOURCE_REVIEW, Auth::id());
 
                 $exists = DB::table('publication_authors')
                     ->where('publication_id', $publication->id)
@@ -282,10 +351,18 @@ class ScopusWorkbookImporter
                         'authorable_id' => $teacher->id,
                         'author_role' => $role,
                         'sort_order' => $sortOrder,
+                        'affiliation' => $affiliation,
                         'incentive_amount' => 0.00,
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);
+                } elseif ($affiliation) {
+                    DB::table('publication_authors')
+                        ->where('publication_id', $publication->id)
+                        ->where('authorable_type', Teacher::class)
+                        ->where('authorable_id', $teacher->id)
+                        ->whereNull('affiliation')
+                        ->update(['affiliation' => $affiliation]);
                 }
             } else {
                 // Attach or create external author
@@ -302,24 +379,11 @@ class ScopusWorkbookImporter
 
                 if (! $externalAuthor) {
                     $externalAuthor = Author::createExternal($name);
-
-                    // createExternal can hand back somebody already here under
-                    // a different spelling of the same name, so the id is only
-                    // recorded if it is not on them already.
-                    if (! empty($scopusId)) {
-                        ScopusAuthorId::firstOrCreate(
-                            [
-                                'scopus_author_id' => $scopusId,
-                                'authorable_type' => Author::class,
-                                'authorable_id' => $externalAuthor->id,
-                            ],
-                            [
-                                'source' => ScopusAuthorId::SOURCE_REVIEW,
-                                'recorded_by' => Auth::id(),
-                            ],
-                        );
-                    }
                 }
+
+                // Outside the "just created" branch, so an author matched by
+                // name on a later paper still gets the id that paper carried.
+                ScopusAuthorId::bindTo($externalAuthor, $scopusId, ScopusAuthorId::SOURCE_REVIEW, Auth::id());
 
                 $exists = DB::table('publication_authors')
                     ->where('publication_id', $publication->id)
@@ -334,10 +398,18 @@ class ScopusWorkbookImporter
                         'authorable_id' => $externalAuthor->id,
                         'author_role' => $role,
                         'sort_order' => $sortOrder,
+                        'affiliation' => $affiliation,
                         'incentive_amount' => 0.00,
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);
+                } elseif ($affiliation) {
+                    DB::table('publication_authors')
+                        ->where('publication_id', $publication->id)
+                        ->where('authorable_type', Author::class)
+                        ->where('authorable_id', $externalAuthor->id)
+                        ->whereNull('affiliation')
+                        ->update(['affiliation' => $affiliation]);
                 }
             }
 

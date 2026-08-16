@@ -148,6 +148,7 @@ class ScopusOnlineReviewTest extends TestCase
                     'document_type' => 'Article',
                     'cited_by' => '3',
                     'all_authors' => 'Nobodyhere, Quirin (555); Elsewhere, Tamsin (556)',
+                    'all_author_affiliations' => 'Department of Computer Science, Daffodil International University; Department of Physics, BRAC University',
                     'diu_authors' => [],
                     'publication' => null,
                     'confidence' => 'none',
@@ -170,6 +171,12 @@ class ScopusOnlineReviewTest extends TestCase
         $publication = Publication::where('scopus_eid', '2-s2.0-777')->first();
         $this->assertNotNull($publication);
         $this->assertSame(2, $publication->externalAuthors()->count());
+
+        $affiliationsInDb = \Illuminate\Support\Facades\DB::table('publication_authors')
+            ->where('publication_id', $publication->id)
+            ->pluck('affiliation')
+            ->toArray();
+        $this->assertContains('Department of Computer Science, Daffodil International University', $affiliationsInDb);
 
         $payload = $payloadService->getPayload(999998);
         $this->assertSame('imported', $payload['papers']['eid:2-s2.0-777']['decision']);
@@ -219,4 +226,72 @@ class ScopusOnlineReviewTest extends TestCase
 
         Storage::disk('local')->delete($payloadService->diskPath(999997));
     }
+
+    public function test_scopus_online_review_view_renders_people_filters_and_counters(): void
+    {
+        $import = ScopusImport::create([
+            'original_filename' => 'view_test.csv',
+            'source_path' => 'scopus/view_test.csv',
+            'status' => ScopusImport::STATUS_READY,
+            'uploaded_by' => $this->anAdmin()->id,
+        ]);
+
+        $payload = [
+            'import_id' => $import->id,
+            'summary' => [],
+            'papers' => [],
+            'people' => [
+                'p1' => [
+                    'name' => 'Teacher Person',
+                    'scopus_id' => '111',
+                    'papers' => 2,
+                    'match_kind' => 'teacher',
+                    'teacher_id' => 1,
+                    'teacher_name' => 'Dr. Teacher',
+                    'author_id' => null,
+                    'author_name' => null,
+                    'confidence' => 'certain',
+                ],
+                'p2' => [
+                    'name' => 'Author Person',
+                    'scopus_id' => '222',
+                    'papers' => 1,
+                    'match_kind' => 'author',
+                    'teacher_id' => null,
+                    'teacher_name' => null,
+                    'author_id' => 5,
+                    'author_name' => 'Ext Author',
+                    'confidence' => 'likely',
+                ],
+                'p3' => [
+                    'name' => 'Unmatched Person',
+                    'scopus_id' => '333',
+                    'papers' => 1,
+                    'match_kind' => 'unknown',
+                    'teacher_id' => null,
+                    'teacher_name' => null,
+                    'author_id' => null,
+                    'author_name' => null,
+                    'confidence' => 'none',
+                ],
+            ],
+        ];
+
+        $view = $this->view('filament.pages.partials.scopus-online-review', [
+            'import' => $import,
+            'payload' => $payload,
+        ]);
+
+        $view->assertSee('Filter:');
+        $view->assertSee('Match with Teacher Table');
+        $view->assertSee('Match with Author Table');
+        $view->assertSee('Not Matched');
+        $view->assertSee('Dr. Teacher');
+        $view->assertSee('Ext Author');
+        $view->assertSee('Author Table');
+        $view->assertSee('Not matched');
+
+        $import->delete();
+    }
 }
+

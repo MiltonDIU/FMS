@@ -255,6 +255,28 @@ class ScopusAnalysis
                     fn ($n) => trim(preg_replace('/\s*\(\d+\)\s*$/', '', $n)),
                     $names,
                 )),
+                /*
+                 * The identifiers the names were stripped of, kept beside them.
+                 *
+                 * "Author full names" arrives as "Murshid, Md Mahmud (57190123)"
+                 * and the id is taken off so the column reads as a list of
+                 * people. That left the importers with nothing to bind: both of
+                 * them parse an id back out of all_authors, which by then has
+                 * none, so every author went in without one and the
+                 * scopus_author_ids table stayed empty through 793 papers.
+                 *
+                 * Aligned by position with all_authors, and written only when
+                 * the two lists are the same length — without that the
+                 * positions mean nothing and an id would be filed against the
+                 * wrong person, which the unique constraint would then make
+                 * permanent.
+                 */
+                'all_author_ids' => count($ids) === count($names)
+                    ? implode('; ', array_map(fn ($id) => trim((string) $id), $ids))
+                    : '',
+                'all_author_affiliations' => count($segments) === count($names)
+                    ? implode('; ', array_map(fn ($segment) => trim((string) $segment), $segments))
+                    : '',
                 'diu_authors' => $ours,
                 'publication' => $match['publication'],
                 'confidence' => $match['confidence'],
@@ -433,7 +455,7 @@ class ScopusAnalysis
      * Shown beside a candidate so a reviewer can tell "published at Southeast
      * University while working here" from "somebody else with the same name".
      */
-    protected function institutionIn(string $segment): ?string
+    public function institutionIn(string $segment): ?string
     {
         foreach (array_map('trim', explode(',', $segment)) as $piece) {
             if (preg_match('/\b(universit|institut|college|hospital|academy|laborator|research cent)/i', $piece)) {

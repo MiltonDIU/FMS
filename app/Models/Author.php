@@ -19,12 +19,15 @@ class Author extends Model
         'scopus_id',
         'author_type_id',
         'is_active',
+        'used_our_affiliation',
+        'affiliation',
         'merged_into_teacher_id',
         'merged_at',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'used_our_affiliation' => 'boolean',
         'merged_at' => 'datetime',
     ];
 
@@ -61,6 +64,54 @@ class Author extends Model
     public function scopusAuthorIds(): \Illuminate\Database\Eloquent\Relations\MorphMany
     {
         return $this->morphMany(ScopusAuthorId::class, 'authorable');
+    }
+
+    /**
+     * Records what an export said about where this author was writing from.
+     *
+     * "Ever" is the rule, and it only travels one way. Somebody who appears
+     * once under our name and five times under a former employer's is ours, so
+     * a true is never overwritten by a later false — the reverse would let the
+     * last paper processed decide who somebody is.
+     *
+     * The named institution is kept only while the answer is no. Once we know
+     * they wrote under our own affiliation, whose address appeared on some
+     * other paper is not what the row is for.
+     */
+    public function recordAffiliationStanding(bool $usedOurs, ?string $namedInstitution = null): void
+    {
+        if ($this->used_our_affiliation === true) {
+            return;
+        }
+
+        $this->used_our_affiliation = $usedOurs;
+        $this->affiliation = $usedOurs ? null : ($namedInstitution ?: $this->affiliation);
+
+        $this->save();
+    }
+
+    /**
+     * Authors no export has ever placed at this institution.
+     *
+     * The ones to leave alone: a co-author at another university belongs in
+     * this table permanently and is not a merge waiting to happen.
+     */
+    public function scopeNeverOurs(Builder $query): Builder
+    {
+        return $query->where('used_our_affiliation', false);
+    }
+
+    /**
+     * Authors an export did place here, and who are therefore worth a look.
+     *
+     * Somebody writing under our own affiliation who is not one of our teachers
+     * is either a teacher we failed to match by name, or a student or member of
+     * staff who is not in the teachers table at all.
+     */
+    public function scopePossiblyOurs(Builder $query): Builder
+    {
+        return $query->where('used_our_affiliation', true)
+            ->whereNull('merged_into_teacher_id');
     }
 
     /**

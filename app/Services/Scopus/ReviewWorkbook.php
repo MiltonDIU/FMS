@@ -229,7 +229,13 @@ class ReviewWorkbook
 
         $headers = [
             'Scopus Title', 'Year', 'DOI', 'EID', 'Source Title', 'Document Type', 'Cited by',
-            'Scopus — all authors', $this->ours . ' authors on this paper',
+            'Scopus — all authors',
+            // Beside the names rather than inside them, so the list stays
+            // readable and the importer still has something to bind. Without
+            // this the workbook round trip loses every identifier the export
+            // carried, which is what left scopus_author_ids empty.
+            'Scopus author ids',
+            $this->ours . ' authors on this paper',
             'Matched on', 'Our Publication ID', 'Our Title', 'Our Year', 'Our record came from',
             'Our authors', 'Authorship', 'What differs', 'Scopus 1st author', 'Our 1st author',
             'Decision', 'Notes',
@@ -254,6 +260,7 @@ class ReviewWorkbook
                 $paper['document_type'],
                 $paper['cited_by'],
                 $paper['all_authors'],
+                $paper['all_author_ids'] ?? '',
                 collect($paper['diu_authors'])->pluck('name')->implode('; '),
                 $publication ? strtoupper($paper['match_basis']) : 'Not found',
                 $publication?->id,
@@ -269,26 +276,28 @@ class ReviewWorkbook
                 '',
             ], null, 'A' . $row, true);
 
+            // One column wider than before — "Scopus author ids" went in at I —
+            // so everything from there on has moved a letter right.
             if ($publication) {
                 // The authorship verdict is the cell a reviewer scans for, so it
                 // carries the colour rather than the whole row.
-                $sheet->getStyle("P{$row}")->getFill()->setFillType(Fill::FILL_SOLID)
+                $sheet->getStyle("Q{$row}")->getFill()->setFillType(Fill::FILL_SOLID)
                     ->getStartColor()->setRGB($colour);
 
                 // Where our copy came from, coloured too: an authorship problem
                 // on a PD-imported record means something different from one on
                 // a record somebody entered here.
-                $sheet->getStyle("N{$row}")->getFill()->setFillType(Fill::FILL_SOLID)
+                $sheet->getStyle("O{$row}")->getFill()->setFillType(Fill::FILL_SOLID)
                     ->getStartColor()->setRGB($this->sourceColour($publication));
 
                 // A disagreement about who came first changes the incentive
                 // split, so both names are marked, not just the verdict.
                 if ($authorship['status'] === AuthorshipComparison::FIRST_AUTHOR_DIFFERS) {
-                    $sheet->getStyle("R{$row}:S{$row}")->getFill()->setFillType(Fill::FILL_SOLID)
+                    $sheet->getStyle("S{$row}:T{$row}")->getFill()->setFillType(Fill::FILL_SOLID)
                         ->getStartColor()->setRGB('F8BBD0');
                 }
             } else {
-                $sheet->getStyle("J{$row}")->getFill()->setFillType(Fill::FILL_SOLID)
+                $sheet->getStyle("K{$row}")->getFill()->setFillType(Fill::FILL_SOLID)
                     ->getStartColor()->setRGB('FFF2CC');
             }
 
@@ -297,8 +306,9 @@ class ReviewWorkbook
 
         $this->finish($sheet, $headers, $row - 1, [
             'A' => 55, 'B' => 8, 'C' => 26, 'D' => 22, 'E' => 34, 'F' => 16, 'G' => 9,
-            'H' => 60, 'I' => 34, 'J' => 12, 'K' => 12, 'L' => 55, 'M' => 10, 'N' => 20,
-            'O' => 60, 'P' => 22, 'Q' => 60, 'R' => 26, 'S' => 26, 'T' => 16, 'U' => 28,
+            'H' => 60, 'I' => 30, 'J' => 34, 'K' => 12, 'L' => 12, 'M' => 55, 'N' => 10,
+            'O' => 20, 'P' => 60, 'Q' => 22, 'R' => 60, 'S' => 26, 'T' => 26, 'U' => 16,
+            'V' => 28,
         ]);
     }
 

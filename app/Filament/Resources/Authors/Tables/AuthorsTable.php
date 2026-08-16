@@ -38,6 +38,33 @@ class AuthorsTable
                     ->badge()
                     ->sortable(),
                 /*
+                 * Where the export said this person was writing from.
+                 *
+                 * Every row in this table used to look the same — a GA with a
+                 * placeholder address — so a co-author at Universiti Malaysia
+                 * Pahang and one of our own teachers under a misspelt name were
+                 * indistinguishable. This is the difference, and it is the
+                 * difference that decides whether a row is a merge waiting to
+                 * happen or somebody who belongs here permanently.
+                 */
+                TextColumn::make('used_our_affiliation')
+                    ->label('Affiliation')
+                    ->badge()
+                    ->state(fn ($record) => match ($record->used_our_affiliation) {
+                        true => 'Wrote as ' . \App\Helpers\Institution::shortName(),
+                        false => 'Another institution',
+                        default => 'Not established',
+                    })
+                    ->color(fn ($record) => match ($record->used_our_affiliation) {
+                        true => 'warning',
+                        false => 'gray',
+                        default => 'secondary',
+                    })
+                    // Named underneath, so "not ours" is answerable without
+                    // opening the record or going back to the export.
+                    ->description(fn ($record) => $record->affiliation)
+                    ->sortable(),
+                /*
                  * Who this name turned out to be.
                  *
                  * Empty for everyone genuinely external, which is most of them.
@@ -78,6 +105,27 @@ class AuthorsTable
                         false: fn (\Illuminate\Database\Eloquent\Builder $query) => $query->notMerged(),
                         blank: fn (\Illuminate\Database\Eloquent\Builder $query) => $query,
                     ),
+                /*
+                 * The question this column exists to answer: which of these
+                 * 7,347 names are actually ours. Somebody who wrote under our
+                 * own affiliation and is not a teacher is either a teacher the
+                 * matcher could not place by name, or a student or member of
+                 * staff who is not in the teachers table at all — and both are
+                 * worth looking at. Nobody needs to look at the other 4,804.
+                 */
+                \Filament\Tables\Filters\TernaryFilter::make('used_our_affiliation')
+                    ->label('Wrote under our affiliation')
+                    ->placeholder('All')
+                    ->trueLabel('Yes — may be one of ours')
+                    ->falseLabel('No — another institution')
+                    ->queries(
+                        true: fn (\Illuminate\Database\Eloquent\Builder $query) => $query->where('used_our_affiliation', true),
+                        false: fn (\Illuminate\Database\Eloquent\Builder $query) => $query->where('used_our_affiliation', false),
+                        blank: fn (\Illuminate\Database\Eloquent\Builder $query) => $query,
+                    ),
+                \Filament\Tables\Filters\Filter::make('possibly_ours')
+                    ->label('Ours, and not yet merged')
+                    ->query(fn (\Illuminate\Database\Eloquent\Builder $query) => $query->possiblyOurs()),
                 TrashedFilter::make(),
             ])
             ->recordActions([

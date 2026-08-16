@@ -5,6 +5,9 @@
         --fms-muted: #4b5563;
         --fms-strong: #111827;
         --fms-bg: #ffffff;
+        /* The panel's primary is Amber; the selection badge follows it. */
+        --fms-accent: #d97706;
+        --fms-accent-text: #ffffff;
         max-height: calc(85vh - 80px);
         display: flex;
         flex-direction: column;
@@ -15,6 +18,8 @@
         --fms-muted: #9ca3af;
         --fms-strong: #f3f4f6;
         --fms-bg: #111827;
+        --fms-accent: #f59e0b;
+        --fms-accent-text: #1f2937;
     }
 
     .fms-custom-scroll {
@@ -77,10 +82,255 @@
         max-height: calc(85vh - 160px);
         overflow-y: auto;
     }
+
+    /*
+     * The bulk toolbar.
+     *
+     * Everything in it used to be 11px text in one flex row — the count, both
+     * actions, the clear link — so it read as a sentence rather than as
+     * controls, and the disabled buttons at 40% opacity looked like greyed-out
+     * words. It needs to be a bar: its own bounds, the count on one side, the
+     * buttons on the other, and edges on the buttons so they are recognisable
+     * as buttons whether or not they are usable.
+     */
+    .fms-bulk-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.55rem 0.8rem;
+        border: 1px solid var(--fms-line);
+        border-radius: 0.75rem;
+        background-color: var(--fms-head);
+    }
+
+    .fms-bulk-status,
+    .fms-bulk-count {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        font-size: 0.75rem;
+        min-width: 0;
+    }
+
+    .fms-bulk-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 1.5rem;
+        height: 1.5rem;
+        padding: 0 0.4rem;
+        border-radius: 999px;
+        font-weight: 700;
+        /* So the bar does not jitter as the count goes 9 -> 10 -> 100. */
+        font-variant-numeric: tabular-nums;
+        background-color: var(--fms-accent);
+        color: var(--fms-accent-text);
+    }
+
+    .fms-bulk-selected {
+        font-weight: 600;
+        color: var(--fms-strong);
+    }
+
+    .fms-bulk-hint {
+        color: var(--fms-muted);
+    }
+
+    .fms-bulk-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .fms-bulk-btn {
+        font-size: 0.75rem;
+        font-weight: 600;
+        line-height: 1.25rem;
+        padding: 0.25rem 0.7rem;
+        border-radius: 0.5rem;
+        /* Neutral rather than a colour, so one rule gives every tint an edge. */
+        border: 1px solid rgba(0, 0, 0, 0.12);
+        white-space: nowrap;
+        transition: filter 0.15s ease, opacity 0.15s ease;
+    }
+
+    .dark .fms-bulk-btn {
+        border-color: rgba(255, 255, 255, 0.14);
+    }
+
+    .fms-bulk-btn:not(:disabled):hover {
+        filter: brightness(0.96);
+    }
+
+    .fms-bulk-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .fms-bulk-clear {
+        font-size: 0.7rem;
+        color: var(--fms-muted);
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.5rem;
+    }
+
+    .fms-bulk-clear:hover {
+        color: var(--fms-strong);
+        background-color: rgba(127, 127, 127, 0.12);
+    }
+
+    /* People filter bar & match badges */
+    .fms-filter-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--fms-line);
+        border-radius: 0.75rem;
+        background-color: var(--fms-head);
+    }
+
+    .fms-filter-title {
+        font-size: 0.725rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--fms-muted);
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    .fms-filter-group {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    .fms-filter-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.25rem 0.6rem;
+        border-radius: 0.5rem;
+        border: 1px solid var(--fms-line);
+        background-color: var(--fms-bg);
+        color: var(--fms-strong);
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+    .fms-filter-pill:hover {
+        background-color: rgba(127, 127, 127, 0.08);
+    }
+
+    .fms-filter-pill.active-all {
+        background-color: #1f2937;
+        color: #ffffff;
+        border-color: #1f2937;
+    }
+    .dark .fms-filter-pill.active-all {
+        background-color: #f3f4f6;
+        color: #111827;
+        border-color: #f3f4f6;
+    }
+
+    .fms-filter-pill.active-teacher {
+        background-color: #059669;
+        color: #ffffff;
+        border-color: #059669;
+    }
+
+    .fms-filter-pill.active-author {
+        background-color: #7c3aed;
+        color: #ffffff;
+        border-color: #7c3aed;
+    }
+
+    .fms-filter-pill.active-unmatched {
+        background-color: #d97706;
+        color: #ffffff;
+        border-color: #d97706;
+    }
+
+    .fms-filter-num {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.05rem 0.4rem;
+        border-radius: 999px;
+        font-size: 0.675rem;
+        font-weight: 700;
+        background-color: rgba(127, 127, 127, 0.15);
+        color: inherit;
+    }
+
+    .fms-icon-sm {
+        width: 14px !important;
+        height: 14px !important;
+        min-width: 14px !important;
+        min-height: 14px !important;
+        max-width: 14px !important;
+        max-height: 14px !important;
+        flex-shrink: 0;
+        display: inline-block;
+        vertical-align: middle;
+    }
+
+    .fms-match-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 0.375rem;
+        font-weight: 700;
+        font-size: 0.75rem;
+        line-height: 1.1;
+    }
+
+    .fms-match-badge-teacher {
+        background-color: #ecfdf5;
+        color: #047857;
+        border: 1px solid #a7f3d0;
+    }
+    .dark .fms-match-badge-teacher {
+        background-color: rgba(6, 78, 59, 0.5);
+        color: #6ee7b7;
+        border-color: #047857;
+    }
+
+    .fms-match-badge-author {
+        background-color: #f5f3ff;
+        color: #6d28d9;
+        border: 1px solid #ddd6fe;
+    }
+    .dark .fms-match-badge-author {
+        background-color: rgba(76, 29, 149, 0.5);
+        color: #c4b5fd;
+        border-color: #6d28d9;
+    }
+
+    .fms-match-unmatched {
+        color: var(--fms-muted);
+        font-style: italic;
+        font-size: 0.75rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
 </style>
 
 <div x-data="{
     activeTab: 'summary',
+    peopleFilter: 'all',
     importId: {{ $import->id }},
 
     /*
@@ -105,14 +355,22 @@
         return Array.from(this.$root.querySelectorAll('select[data-decision-group=\'' + group + '\']'));
     },
 
+    visibleRows(group) {
+        return this.rows(group).filter((el) => {
+            const tr = el.closest('tr');
+            if (!tr) return true;
+            return tr.style.display !== 'none' && window.getComputedStyle(tr).display !== 'none';
+        });
+    },
+
     keys(group) {
-        return this.rows(group).map((el) => el.dataset.decisionKey);
+        return this.visibleRows(group).map((el) => el.dataset.decisionKey);
     },
 
     allPicked(group) {
-        const total = this.keys(group).length;
+        const vKeys = this.keys(group);
 
-        return total > 0 && this.picked[group].length === total;
+        return vKeys.length > 0 && vKeys.every((k) => this.picked[group].includes(k));
     },
 
     toggle(group, key) {
@@ -122,7 +380,13 @@
     },
 
     toggleAll(group, checked) {
-        this.picked[group] = checked ? this.keys(group) : [];
+        const vKeys = this.keys(group);
+
+        if (checked) {
+            this.picked[group] = Array.from(new Set([...this.picked[group], ...vKeys]));
+        } else {
+            this.picked[group] = this.picked[group].filter((k) => !vKeys.includes(k));
+        }
     },
 
     async applyBulk(group, decision) {
@@ -588,21 +852,30 @@
                             <th>Scopus Name</th>
                             <th>Scopus Author ID</th>
                             <th>Papers</th>
-                            <th>Matched Teacher</th>
+                            <th>Matched Teacher / Author</th>
                             <th>Confidence</th>
                             <th>Decision / Action</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($importedPeopleList as $pKey => $person)
+                            @php
+                                $isTeacherMatch = !empty($person['teacher_name']) || !empty($person['teacher_id']) || ($person['match_kind'] ?? '') === 'teacher';
+                                $isAuthorMatch = !$isTeacherMatch && (!empty($person['author_name']) || !empty($person['author_id']) || ($person['match_kind'] ?? '') === 'author');
+                            @endphp
                             <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition">
                                 <td class="font-medium text-gray-900 dark:text-gray-100">{{ $person['name'] }}</td>
                                 <td class="font-mono text-gray-600 dark:text-gray-400">{{ $person['scopus_id'] ?: '—' }}</td>
                                 <td class="font-bold">{{ $person['papers'] }}</td>
                                 <td>
-                                    @if($person['teacher_name'])
-                                        <span class="font-bold text-primary-600 dark:text-primary-400">
+                                    @if($isTeacherMatch)
+                                        <span class="inline-flex items-center gap-1 font-bold text-primary-600 dark:text-primary-400">
                                             #{{ $person['teacher_id'] }} {{ $person['teacher_name'] }}
+                                        </span>
+                                    @elseif($isAuthorMatch)
+                                        <span class="inline-flex items-center gap-1 font-bold text-purple-600 dark:text-purple-400">
+                                            #{{ $person['author_id'] }} {{ $person['author_name'] }}
+                                            <span class="text-[9px] uppercase px-1 py-0.2 bg-purple-100 text-purple-800 dark:bg-purple-900/60 dark:text-purple-200 rounded font-semibold ml-0.5">Author Table</span>
                                         </span>
                                     @else
                                         <span class="text-gray-400 italic">Not matched</span>
@@ -635,6 +908,24 @@
 
     <!-- Tab 6: People -->
     <div x-show="activeTab === 'people'" class="space-y-4" x-cloak>
+        @php
+            $peopleList = $payload['people'] ?? [];
+            $teacherMatchCount = count(array_filter($peopleList, function($p) {
+                return !empty($p['teacher_name']) || !empty($p['teacher_id']) || ($p['match_kind'] ?? '') === 'teacher';
+            }));
+            $authorMatchCount = count(array_filter($peopleList, function($p) {
+                $isTeacher = !empty($p['teacher_name']) || !empty($p['teacher_id']) || ($p['match_kind'] ?? '') === 'teacher';
+                $isAuthor = !empty($p['author_name']) || !empty($p['author_id']) || ($p['match_kind'] ?? '') === 'author';
+                return !$isTeacher && $isAuthor;
+            }));
+            $notMatchedCount = count(array_filter($peopleList, function($p) {
+                $isTeacher = !empty($p['teacher_name']) || !empty($p['teacher_id']) || ($p['match_kind'] ?? '') === 'teacher';
+                $isAuthor = !empty($p['author_name']) || !empty($p['author_id']) || ($p['match_kind'] ?? '') === 'author';
+                return !$isTeacher && !$isAuthor;
+            }));
+            $totalPeopleCount = count($peopleList);
+        @endphp
+
         @include('filament.pages.partials.scopus-bulk-bar', [
             'group' => 'people',
             'pending' => count(array_filter($payload['people'] ?? [], fn($p) => ($p['decision'] ?? '') !== 'imported')),
@@ -643,6 +934,54 @@
                 ['decision' => 'skip', 'label' => 'Skip selected', 'class' => 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'],
             ],
         ])
+
+        {{-- Filter & Counters Bar for People --}}
+        <div class="fms-filter-bar">
+            <div class="fms-filter-title">
+                <svg class="fms-icon-sm" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                </svg>
+                Filter:
+            </div>
+
+            <div class="fms-filter-group">
+                {{-- All --}}
+                <button type="button"
+                    @click="peopleFilter = 'all'"
+                    :class="peopleFilter === 'all' ? 'active-all' : ''"
+                    class="fms-filter-pill">
+                    <span>🌐 All People</span>
+                    <span class="fms-filter-num">{{ $totalPeopleCount }}</span>
+                </button>
+
+                {{-- Teacher Match --}}
+                <button type="button"
+                    @click="peopleFilter = 'teacher'"
+                    :class="peopleFilter === 'teacher' ? 'active-teacher' : ''"
+                    class="fms-filter-pill">
+                    <span>🎓 Match with Teacher Table</span>
+                    <span class="fms-filter-num">{{ $teacherMatchCount }}</span>
+                </button>
+
+                {{-- Author Match --}}
+                <button type="button"
+                    @click="peopleFilter = 'author'"
+                    :class="peopleFilter === 'author' ? 'active-author' : ''"
+                    class="fms-filter-pill">
+                    <span>👤 Match with Author Table</span>
+                    <span class="fms-filter-num">{{ $authorMatchCount }}</span>
+                </button>
+
+                {{-- Not Matched --}}
+                <button type="button"
+                    @click="peopleFilter = 'unmatched'"
+                    :class="peopleFilter === 'unmatched' ? 'active-unmatched' : ''"
+                    class="fms-filter-pill">
+                    <span>❓ Not Matched</span>
+                    <span class="fms-filter-num">{{ $notMatchedCount }}</span>
+                </button>
+            </div>
+        </div>
 
         <div class="fms-review-table-wrapper">
             <div class="overflow-x-auto fms-tab-content-scroll fms-custom-scroll">
@@ -658,14 +997,21 @@
                             <th>Scopus Name</th>
                             <th>Scopus Author ID</th>
                             <th>Papers</th>
-                            <th>Matched Teacher</th>
+                            <th>Matched Teacher / Author</th>
                             <th>Confidence</th>
                             <th>Decision / Action</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($payload['people'] ?? [] as $pKey => $person)
-                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition">
+                            @php
+                                $isTeacherMatch = !empty($person['teacher_name']) || !empty($person['teacher_id']) || ($person['match_kind'] ?? '') === 'teacher';
+                                $isAuthorMatch = !$isTeacherMatch && (!empty($person['author_name']) || !empty($person['author_id']) || ($person['match_kind'] ?? '') === 'author');
+                                $rowMatchKind = $isTeacherMatch ? 'teacher' : ($isAuthorMatch ? 'author' : 'unmatched');
+                            @endphp
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition"
+                                x-show="peopleFilter === 'all' || peopleFilter === '{{ $rowMatchKind }}'"
+                                x-cloak>
                                 <td class="text-center align-middle">
                                     @if(($person['decision'] ?? '') !== 'imported')
                                         <input type="checkbox"
@@ -702,12 +1048,28 @@
                                 <td class="font-mono text-gray-600 dark:text-gray-400">{{ $person['scopus_id'] ?: '—' }}</td>
                                 <td class="font-bold">{{ $person['papers'] }}</td>
                                 <td>
-                                    @if($person['teacher_name'])
-                                        <span class="font-bold text-primary-600 dark:text-primary-400">
+                                    @if($isTeacherMatch)
+                                        <span class="fms-match-badge fms-match-badge-teacher">
+                                            <svg class="fms-icon-sm" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                                            </svg>
                                             #{{ $person['teacher_id'] }} {{ $person['teacher_name'] }}
                                         </span>
+                                    @elseif($isAuthorMatch)
+                                        <span class="fms-match-badge fms-match-badge-author">
+                                            <svg class="fms-icon-sm" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                            </svg>
+                                            #{{ $person['author_id'] }} {{ $person['author_name'] }} (Author Table)
+                                        </span>
                                     @else
-                                        <span class="text-gray-400 italic">Not matched</span>
+                                        <span class="fms-match-unmatched">
+                                            <svg class="fms-icon-sm" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                            </svg>
+                                            Not matched
+                                        </span>
                                     @endif
                                 </td>
                                 <td>
