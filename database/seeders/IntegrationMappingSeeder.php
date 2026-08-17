@@ -47,6 +47,32 @@ class IntegrationMappingSeeder extends Seeder
             ['source_field' => 'designation_id', 'target_model' => 'Teacher', 'target_field' => 'designation_id', 'is_identifier' => false],
             ['source_field' => 'designation.id', 'target_model' => 'Teacher', 'target_field' => 'designation_id', 'is_identifier' => false],
 
+            /*
+             * Fields the HR API sends as text where the teachers table stores a
+             * foreign key. is_relation turns the text into the matching row's
+             * ID; match_column says which column to compare against, because
+             * "ITM" belongs against departments.code while a department's full
+             * name belongs against departments.name.
+             *
+             * Order matters within a target column: the last rule to produce a
+             * non-null value wins, so the broad name is listed first and the
+             * exact code second.
+             */
+            ['source_field' => 'gender', 'target_model' => 'Teacher', 'target_field' => 'gender_id', 'is_identifier' => false, 'is_relation' => true, 'match_column' => 'name'],
+            ['source_field' => 'blood_group', 'target_model' => 'Teacher', 'target_field' => 'blood_group_id', 'is_identifier' => false, 'is_relation' => true, 'match_column' => 'name'],
+            ['source_field' => 'religion', 'target_model' => 'Teacher', 'target_field' => 'religion_id', 'is_identifier' => false, 'is_relation' => true, 'match_column' => 'name'],
+            // No match column: nationality is tried first, then the country name.
+            ['source_field' => 'nationality', 'target_model' => 'Teacher', 'target_field' => 'country_id', 'is_identifier' => false, 'is_relation' => true, 'match_column' => null],
+            ['source_field' => 'employment_status', 'target_model' => 'Teacher', 'target_field' => 'employment_status_id', 'is_identifier' => false, 'is_relation' => true, 'match_column' => 'name'],
+            ['source_field' => 'employee_type', 'target_model' => 'Teacher', 'target_field' => 'job_type_id', 'is_identifier' => false, 'is_relation' => true, 'match_column' => 'name'],
+            ['source_field' => 'department', 'target_model' => 'Teacher', 'target_field' => 'department_id', 'is_identifier' => false, 'is_relation' => true, 'match_column' => 'name'],
+            ['source_field' => 'department_code', 'target_model' => 'Teacher', 'target_field' => 'department_id', 'is_identifier' => false, 'is_relation' => true, 'match_column' => 'code'],
+            ['source_field' => 'designation', 'target_model' => 'Teacher', 'target_field' => 'designation_id', 'is_identifier' => false, 'is_relation' => true, 'match_column' => 'name'],
+
+            // Plain columns the HR API names differently from the legacy source.
+            ['source_field' => 'work_phone', 'target_model' => 'Teacher', 'target_field' => 'phone', 'is_identifier' => false],
+            ['source_field' => 'email', 'target_model' => 'Teacher', 'target_field' => 'secondary_email', 'is_identifier' => false],
+
             // Educations
             ['source_field' => 'educations.institution', 'target_model' => 'Education', 'target_field' => 'institution', 'is_identifier' => false],
             ['source_field' => 'educations.major', 'target_model' => 'Education', 'target_field' => 'major', 'is_identifier' => false],

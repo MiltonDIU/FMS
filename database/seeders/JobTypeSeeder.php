@@ -12,9 +12,9 @@ class JobTypeSeeder extends Seeder
     {
         $jobTypes = [
             [
-                'name' => 'Full Time',
-                'slug' => 'full-time',
-                'description' => 'Full-time permanent position',
+                'name' => 'Regular',
+                'slug' => 'regular',
+                'description' => 'Regular permanent position',
                 'is_active' => true,
                 'sort_order' => 1,
             ],
