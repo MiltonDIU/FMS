@@ -40,6 +40,13 @@ web/node_module
 # docs/api/README.md documents the same API and carries none.
 docs/api/*.postman_collection.json
 
+# The vendor's HR API specification. It quotes the live Keycloak client secret
+# and the hr-api service password in plain text, so committing it would put
+# working production credentials in git history permanently. The integration
+# reads its credentials from the admin panel instead; nothing in the codebase
+# needs this file to run.
+docs/API-Information.pdf
+
 # The Scopus exports the review was built against: 5.7 MB of real data, and the
 # csv carries a Correspondence Address column, so it is 1,572 rows of named
 # people with their email addresses. Two reasons it stays out: git history keeps

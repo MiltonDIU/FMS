@@ -39,14 +39,22 @@
             },
             updatePosition() {
                 const input = this.$refs.searchInput;
-                if (input) {
-                    const rect = input.getBoundingClientRect();
-                    this.dropdownPosition = {
-                        top: rect.bottom + window.scrollY + 6,
-                        left: rect.left + window.scrollX,
-                        width: rect.width
-                    };
-                }
+                if (!input) return;
+
+                const rect = input.getBoundingClientRect();
+
+                // Seven columns need more room than the search box itself has,
+                // so the panel widens beyond the input — then shifts left if
+                // that would push it off the right edge of the window.
+                const margin = 16;
+                const available = window.innerWidth - (margin * 2);
+                const width = Math.min(Math.max(rect.width, 1040), available);
+
+                let left = rect.left + window.scrollX;
+                const overflow = (left + width) - (window.innerWidth - margin);
+                if (overflow > 0) left = Math.max(margin, left - overflow);
+
+                this.dropdownPosition = { top: rect.bottom + window.scrollY + 6, left, width };
             },
             autoFill(teacher) {
                 if (window.Livewire) {
@@ -95,10 +103,13 @@
                             <table class="w-full border-collapse" style="table-layout: fixed; width: 100%;">
                                 <thead class="sticky top-0 bg-white z-10">
                                 <tr class="text-left text-[11px] font-bold text-gray-400 uppercase tracking-wider" style="border-bottom: 3px solid darkgray;">
-                                    <th class="px-6 py-4 border-b w-[30%]">Name</th>
-                                    <th class="px-6 py-4 border-b w-[20%]">Emp ID</th>
-                                    <th class="px-6 py-4 border-b w-[30%]">Email Address</th>
-                                    <th class="px-6 py-4 border-b w-[20%] text-center">Action</th>
+                                    <th class="px-4 py-4 border-b w-[19%]">Name</th>
+                                    <th class="px-4 py-4 border-b w-[10%]">Emp ID</th>
+                                    <th class="px-4 py-4 border-b w-[18%]">Email Address</th>
+                                    <th class="px-4 py-4 border-b w-[22%]">Department</th>
+                                    <th class="px-4 py-4 border-b w-[11%]">Status</th>
+                                    <th class="px-4 py-4 border-b w-[10%]">Type</th>
+                                    <th class="px-4 py-4 border-b w-[10%] text-center">Action</th>
                                 </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-50 bg-white">
@@ -108,7 +119,7 @@
                                         @click="autoFill(teacher)"
                                         style="text-align: center; line-height: 30px; border-bottom: 1px solid darkgray;"
                                     >
-                                        <td class="px-6 py-5">
+                                        <td class="px-4 py-5">
                                             <div class="flex flex-col gap-1">
                                                 <span class="text-sm font-bold text-gray-900 group-hover:text-primary-600 transition-colors" x-text="teacher.full_name || teacher.name"></span>
                                                 <template x-if="teacher.exists_locally">
@@ -119,9 +130,37 @@
                                                 </template>
                                             </div>
                                         </td>
-                                        <td class="px-6 py-5 text-sm font-medium text-gray-600 font-mono tracking-tight" x-text="teacher.employee_id || teacher.employeeID || 'N/A'"></td>
-                                        <td class="px-6 py-5 text-sm text-gray-500 truncate" x-text="teacher.email || teacher.secondary_email || '—'" :title="teacher.email"></td>
-                                        <td class="px-6 py-5 text-center">
+                                        <td class="px-4 py-5 text-sm font-medium text-gray-600 font-mono tracking-tight" x-text="teacher.employee_id || teacher.employeeID || 'N/A'"></td>
+                                        <td class="px-4 py-5 text-sm text-gray-500 truncate" x-text="teacher.email || teacher.secondary_email || '—'" :title="teacher.email"></td>
+
+                                        {{-- Department, employment status and type come from the HR
+                                             directory. Legacy rows carry none of them, so each falls
+                                             back to a dash rather than rendering "undefined". --}}
+                                        <td class="px-4 py-5 text-sm text-gray-600 truncate"
+                                            :title="teacher.department"
+                                            x-text="teacher.department || teacher.department_slug || '—'"></td>
+
+                                        <td class="px-4 py-5">
+                                            <template x-if="teacher.employment_status">
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20"
+                                                      x-text="teacher.employment_status"></span>
+                                            </template>
+                                            <template x-if="!teacher.employment_status">
+                                                <span class="text-sm text-gray-400">—</span>
+                                            </template>
+                                        </td>
+
+                                        <td class="px-4 py-5">
+                                            <template x-if="teacher.employee_type">
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-700 ring-1 ring-inset ring-gray-500/20"
+                                                      x-text="teacher.employee_type"></span>
+                                            </template>
+                                            <template x-if="!teacher.employee_type">
+                                                <span class="text-sm text-gray-400">—</span>
+                                            </template>
+                                        </td>
+
+                                        <td class="px-4 py-5 text-center">
                                             <button
                                                 type="button"
                                                 @click.stop="autoFill(teacher)"

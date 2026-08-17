@@ -16,6 +16,110 @@ use Illuminate\Support\Str;
 class FormPayloadResolver
 {
     /**
+     * Pre-set the status fields for somebody the HR system says is employed.
+     *
+     * Whether a status counts as employed is not decided here: the
+     * employment_statuses table already carries check_active ("teachers with
+     * this status are inactive when false") and allow_login, so On Leave and
+     * Deputation are handled correctly without naming them, and a status added
+     * later needs no code change.
+     *
+     * These are form defaults, not a saved record — whoever is importing sees
+     * them on screen and can change any of them before pressing Create.
+     *
+     * @param array<string,mixed> $formData
+     * @return array<string,mixed>
+     */
+    protected static function applyEmploymentDefaults(array $formData): array
+    {
+        if (! \App\Models\Setting::get('import_approve_active_teachers', true)) {
+            return $formData;
+        }
+
+        $statusId = $formData['employment_status_id'] ?? null;
+
+        if (! $statusId) {
+            return $formData;
+        }
+
+        $status = \App\Models\EmploymentStatus::find($statusId);
+
+        if (! $status || ! $status->check_active) {
+            return $formData;
+        }
+
+        $formData['profile_status'] = 'approved';
+        $formData['is_public'] = true;
+        $formData['is_active'] = true;
+        $formData['login_allowed'] = (bool) $status->allow_login;
+
+        return $formData;
+    }
+
+    /**
+     * A grade point, or null when the number is not one.
+     *
+     * Results are not all on a grade-point scale. A marks-based result reports
+     * 403 out of 600, and the HR API puts that 600 in the same "scale" field a
+     * CGPA result puts 4.0 in. The columns are decimal(4,2) and decimal(3,1),
+     * so storing it raised an out-of-range error that aborted the whole import
+     * of that teacher.
+     *
+     * Null rather than a substituted 4.0: these columns are nullable, and
+     * inventing a scale for a result that never had one would be worse than
+     * recording none — the marks live in grade and result type either way.
+     */
+    protected static function gradePoint(mixed $value, float $max): ?float
+    {
+        if (! is_numeric($value)) {
+            return null;
+        }
+
+        $number = (float) $value;
+
+        return ($number > 0 && $number <= $max) ? $number : null;
+    }
+
+    /**
+     * Where this teacher belongs in their department's ordering.
+     *
+     * A department is listed by seniority — designations carry a rank, 1 being
+     * Professor — and within a rank by sort_order. A new arrival goes at the end
+     * of their own rank's block, which means after everyone of their rank or
+     * senior to it, and before everyone junior.
+     *
+     * @param array<string,mixed> $formData
+     */
+    protected static function nextSortOrder(array $formData): int
+    {
+        $departmentId = $formData['department_id'] ?? null;
+        $designationId = $formData['designation_id'] ?? null;
+
+        $fallback = fn () => (\App\Models\Teacher::max('sort_order') ?? \App\Models\Teacher::count()) + 1;
+
+        if (! \App\Models\Setting::get('import_rank_sort_order', true)
+            || ! $departmentId
+            || ! $designationId) {
+            return $fallback();
+        }
+
+        $rank = \App\Models\Designation::whereKey($designationId)->value('rank');
+
+        if ($rank === null) {
+            return $fallback();
+        }
+
+        $last = \App\Models\Teacher::query()
+            ->where('department_id', $departmentId)
+            ->whereHas('designation', fn ($query) => $query->where('rank', '<=', $rank))
+            ->max('sort_order');
+
+        // Nobody of this rank or senior in the department yet: the teacher opens
+        // the department rather than landing after its junior staff.
+        return ($last ?? 0) + 1;
+    }
+
+    /**
      * Resolve and format transformed overview data into Filament form state.
      */
     public static function resolveForForm(array $overview): array
@@ -40,8 +144,10 @@ class FormPayloadResolver
             $formData['webpage'] = Str::slug($formData['first_name'] . ' ' . ($formData['last_name'] ?? '') . '-' . rand(100, 999));
         }
 
+        $formData = static::applyEmploymentDefaults($formData);
+
         if (empty($formData['sort_order'])) {
-            $formData['sort_order'] = (\App\Models\Teacher::max('sort_order') ?? \App\Models\Teacher::count()) + 1;
+            $formData['sort_order'] = static::nextSortOrder($formData);
         }
 
         $rel = $overview['Relations'] ?? [];
@@ -111,8 +217,8 @@ class FormPayloadResolver
                 'country_id' => $countryId,
                 'passing_year' => $item['passing_year'] ?? null,
                 'duration' => $item['duration'] ?? null,
-                'cgpa' => $item['cgpa'] ?? null,
-                'scale' => $item['scale'] ?? 4.0,
+                'cgpa' => static::gradePoint($item['cgpa'] ?? null, 99.99),
+                'scale' => static::gradePoint($item['scale'] ?? null, 99.9),
                 'grade' => $item['grade'] ?? null,
             ]);
         })->toArray();

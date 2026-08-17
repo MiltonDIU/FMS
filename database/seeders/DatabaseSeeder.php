@@ -57,6 +57,9 @@ class DatabaseSeeder extends Seeder
 
             // ── Lookup tables ───────────────────────────────────────────────
             CountrySeeder::class,
+            // Fills in each country's demonym, which is what the HR system
+            // sends for a teacher's nationality.
+            CountryNationalitySeeder::class,
             GenderSeeder::class,
             BloodGroupSeeder::class,
             ReligionSeeder::class,

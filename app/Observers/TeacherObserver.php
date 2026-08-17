@@ -14,6 +14,28 @@ use App\Mail\TeacherWelcomeMail;
 class TeacherObserver
 {
     /**
+     * Keep the full_name column in step with the name parts.
+     *
+     * The column exists and a dozen places read it — exports, mail, the Scopus
+     * matching — but nothing ever wrote it outside the one-off
+     * `teachers:fill-fullname` command, so every teacher created since it was
+     * added had it empty. Firing on saving covers creates and updates alike, and
+     * a name edited on the form no longer leaves a stale display name behind.
+     */
+    public function saving(Teacher $teacher): void
+    {
+        $name = \App\Support\TeacherName::fromParts(
+            $teacher->first_name,
+            $teacher->middle_name,
+            $teacher->last_name,
+        );
+
+        if ($name !== '') {
+            $teacher->full_name = $name;
+        }
+    }
+
+    /**
      * Handle the Teacher "creating" event.
      * Auto-create User account from Teacher data.
      */

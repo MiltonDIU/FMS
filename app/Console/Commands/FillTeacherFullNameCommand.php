@@ -59,39 +59,13 @@ class FillTeacherFullNameCommand extends Command
     }
 
     /**
-     * Clean prefix titles from name case-insensitively
+     * Clean prefix titles from name case-insensitively.
+     *
+     * The rules live in App\Support\TeacherName so that this backfill and the
+     * observer keeping full_name current always agree.
      */
     private function cleanNamePrefixes(string $name): string
     {
-        $prefixes = [
-            'professors\s+dr',
-            'professor',
-            'prof',
-            'engr',
-            'mst',
-            'mr',
-            'ms',
-            'dr'
-        ];
-
-        $cleaned = $name;
-        $matched = true;
-
-        while ($matched) {
-            $matched = false;
-            foreach ($prefixes as $p) {
-                // Match prefix word boundary, optional dot, followed by space
-                $pattern = '/^' . $p . '\b\.?\s+/i';
-                if (preg_match($pattern, $cleaned)) {
-                    $cleaned = preg_replace($pattern, '', $cleaned);
-                    $matched = true;
-                    break;
-                }
-            }
-        }
-
-        // Normalize spaces
-        $cleaned = preg_replace('/\s+/', ' ', $cleaned);
-        return trim($cleaned);
+        return \App\Support\TeacherName::clean($name);
     }
 }

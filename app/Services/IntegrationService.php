@@ -57,6 +57,7 @@ class IntegrationService
 
                         foreach ($arrayData as $index => $item) {
                             $val = is_array($item) ? Arr::get($item, $childKey) : null;
+                            $val = $this->resolveValue($val, $targetField, $config);
                             if ($val !== null) {
                                 $transformed['Relations'][$targetModel][$index][$targetField] = $val;
                             }
@@ -66,13 +67,97 @@ class IntegrationService
             } else {
                 // Direct model mapping (User or Teacher)
                 $value = Arr::get($payload, $sourceField) ?? Arr::get($data, $sourceField);
+                $value = $this->resolveValue($value, $targetField, $config);
                 if ($value !== null) {
                     $transformed[$targetModel][$targetField] = $value;
                 }
             }
         }
 
+        $transformed['Teacher'] = $this->splitPackedName($transformed['Teacher']);
+
         return $transformed;
+    }
+
+    /**
+     * Split a full name that arrived in one field.
+     *
+     * The HR system frequently sends the whole name as first_name and leaves
+     * last_name empty — "Md. Fokhray Hossain", nothing else. last_name is a
+     * required field on the teacher form, so the import filled the form and
+     * then refused to save it.
+     *
+     * Only fires when there is nothing to lose: a last name already mapped from
+     * the source is never touched, and a single-word first name is left alone
+     * because there is no second part to take.
+     *
+     * The surname is the last word and everything before it is the given name.
+     * middle_name is left alone — it is optional on the record, and inferring it
+     * from the second word is what reduced "Md. Fokhray Hossain" to a first name
+     * of "Md.".
+     *
+     * @param array $teacher the mapped Teacher attributes
+     */
+    protected function splitPackedName(array $teacher): array
+    {
+        $first = trim((string) ($teacher['first_name'] ?? ''));
+
+        if ($first === '' || filled($teacher['last_name'] ?? null)) {
+            return $teacher;
+        }
+
+        if (!str_contains($first, ' ')) {
+            return $teacher;
+        }
+
+        $parts = \App\Support\TeacherName::split($first);
+
+        $teacher['first_name'] = $parts['first_name'];
+        $teacher['last_name'] = $parts['last_name'];
+
+        return $teacher;
+    }
+
+    /**
+     * Turn text into a foreign key when the target column asks for one.
+     *
+     * The HR API sends "Male", "ITM", "Active" where the teachers table stores
+     * gender_id, department_id, employment_status_id. Any column ending in _id
+     * is looked up by name or code in the table its name implies, so no mapping
+     * row needs extra configuration for it.
+     *
+     * Every other value passes straight through, which is why the mappings
+     * written before this existed behave exactly as they did.
+     *
+     * @param array $config the mapping row, which may carry a lookup_model override
+     */
+    protected function resolveValue(mixed $value, string $targetField, array $config): mixed
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $explicitModel = $config['lookup_model'] ?? null;
+
+        /*
+         * The mapping row's own answer wins when it has one. Rules written
+         * before the flag existed carry no answer, and fall back to deciding
+         * from the column name — which is what they already did.
+         */
+        $isRelation = array_key_exists('is_relation', $config)
+            ? (bool) $config['is_relation']
+            : (\App\Support\LookupResolver::handles($targetField) || filled($explicitModel));
+
+        if (!$isRelation) {
+            return $value;
+        }
+
+        return \App\Support\LookupResolver::resolve(
+            $value,
+            $targetField,
+            $explicitModel,
+            $config['match_column'] ?? null,
+        );
     }
 
     /**

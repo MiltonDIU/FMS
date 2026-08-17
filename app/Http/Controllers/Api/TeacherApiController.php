@@ -4,19 +4,25 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Teacher;
+use App\Services\HrApiService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class TeacherApiController extends Controller
 {
     /**
-     * Search for a teacher by employee_id in legacy database.
+     * Search for a teacher, from the HR API when it is set up.
+     *
+     * Falls back to the legacy database when the API is not configured yet or
+     * cannot be reached, so an HR outage never stops an admin onboarding
+     * somebody.
      *
      * @param Request $request
      * @return JsonResponse
      */
-    public function search(Request $request): JsonResponse
+    public function search(Request $request, HrApiService $hrApi): JsonResponse
     {
         $request->validate([
             'q' => 'nullable|string',
@@ -24,6 +30,68 @@ class TeacherApiController extends Controller
 
         $query = trim($request->input('q'));
 
+        if ($hrApi->isConfigured()) {
+            try {
+                $rows = $this->searchHrApi($hrApi, $query);
+
+                if (!empty($rows)) {
+                    return response()->json([
+                        'success' => true,
+                        'source' => 'hr_api',
+                        'message' => 'Teachers found.',
+                        'data' => $rows,
+                    ]);
+                }
+            } catch (\RuntimeException $e) {
+                Log::warning('HR API search failed, falling back to legacy: ' . $e->getMessage());
+            }
+        }
+
+        return $this->searchLegacy($query);
+    }
+
+    /**
+     * Search the HR API and reduce each record to what the dropdown renders.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    protected function searchHrApi(HrApiService $hrApi, string $query): array
+    {
+        $records = $hrApi->searchTeachers($query);
+
+        if (empty($records)) {
+            return [];
+        }
+
+        $localEmployeeIds = Teacher::pluck('employee_id')->toArray();
+
+        return array_map(function (array $record) use ($localEmployeeIds) {
+            $employeeId = $record['employee_id'] ?? null;
+
+            return [
+                'employee_id' => $employeeId,
+                'full_name' => $record['full_name'] ?? trim(($record['first_name'] ?? '') . ' ' . ($record['last_name'] ?? '')),
+                'email' => $record['email'] ?? null,
+                'department' => $record['department'] ?? null,
+                'designation' => $record['designation'] ?? null,
+                // employment_status carries what is_active would have said and
+                // more besides — On Leave, Retired, Suspended — so the boolean
+                // is not sent as well.
+                'employment_status' => $record['employment_status'] ?? null,
+                'employee_type' => $record['employee_type'] ?? null,
+                'exists_locally' => in_array($employeeId, $localEmployeeIds),
+                // Tells the import step to fetch the full profile from the API
+                // rather than from the legacy preview path.
+                'source' => 'hr_api',
+            ];
+        }, $records);
+    }
+
+    /**
+     * The original search against the legacy `old_db` connection.
+     */
+    protected function searchLegacy(string $query): JsonResponse
+    {
         try {
             $legacyQuery = DB::connection('old_db')
                 ->table('dfd_add')

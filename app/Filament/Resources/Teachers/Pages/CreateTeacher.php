@@ -57,6 +57,36 @@ class CreateTeacher extends CreateRecord
         $rawPayload = $teacher;
         $searchKey = $teacher['employee_id'] ?? $teacher['employeeID'] ?? $teacher['webpage'] ?? $teacher['email'] ?? $teacher['name'] ?? null;
 
+        // A row that came from the HR API is completed from the HR API: that is
+        // where the educations, publications and job experiences live. Rows from
+        // the legacy search keep going through the preview path below.
+        if (($teacher['source'] ?? null) === 'hr_api' && $searchKey) {
+            try {
+                $profile = app(\App\Services\HrApiService::class)->getTeacherProfile((string) $searchKey);
+
+                if ($profile === null) {
+                    \Filament\Notifications\Notification::make()
+                        ->title('No profile found')
+                        ->body("The HR API has no profile for employee {$searchKey}.")
+                        ->warning()
+                        ->send();
+
+                    return;
+                }
+
+                $rawPayload = $profile;
+                $searchKey = null; // Already have the full record; skip the preview lookup.
+            } catch (\RuntimeException $e) {
+                \Filament\Notifications\Notification::make()
+                    ->title('Could not load that profile')
+                    ->body($e->getMessage())
+                    ->danger()
+                    ->send();
+
+                return;
+            }
+        }
+
         if ($searchKey) {
             $controller = app(\App\Http\Controllers\Api\V1\FrontendApiController::class);
             $req = \Illuminate\Http\Request::create('/api/v1/teachers/preview', 'GET', [

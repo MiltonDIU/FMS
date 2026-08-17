@@ -16,6 +16,10 @@ class CountryForm
                     ->required()
                     ->unique(ignoreRecord: true)
                     ->maxLength(255),
+                TextInput::make('nationality')
+                    ->maxLength(255)
+                    ->placeholder('Bangladeshi')
+                    ->helperText('The demonym the HR system sends. Imports match a teacher\'s nationality against this.'),
                 TextInput::make('code')
                     ->required()
                     ->unique(ignoreRecord: true)

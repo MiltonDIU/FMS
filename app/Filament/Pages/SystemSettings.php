@@ -11,8 +11,10 @@ use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Forms\Components\ColorPicker;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -150,6 +152,14 @@ class SystemSettings extends Page
             'teacher_login_mode' => 'individual',
             'teacher_integration_api_url' => 'http://localhost:8000/api/v1/teachers/preview',
             'teacher_integration_mapping' => 'erp_teacher_profile',
+            'hr_api_base_url' => '',
+            'hr_api_token_url' => 'https://auth0.diu.edu.bd/realms/diu/protocol/openid-connect/token',
+            'hr_api_client_id' => '',
+            'hr_api_client_secret' => '',
+            'hr_api_username' => '',
+            'hr_api_password' => '',
+            'import_approve_active_teachers' => true,
+            'import_rank_sort_order' => true,
             'active_theme' => \App\Helpers\Theme::active(),
             'diu_color_palette' => 'diu',
             'diu_primary_color' => null,
@@ -169,20 +179,116 @@ class SystemSettings extends Page
                         Tab::make('Teacher API Integration')
                             ->icon('heroicon-o-cloud-arrow-down')
                             ->schema([
-                                Section::make('API & Integration Setup')
-                                    ->description('Configure external ERP / API URL and mapping rules for searching and importing teachers')
-                                    ->columns(3)
+                                Section::make('HR API (DIU SSO)')
+                                    ->description('Credentials for the live HR employee API. Leave the base URL empty to keep using the legacy database only. Save first, then press Test Connection.')
+                                    ->columns(2)
                                     ->schema([
-                                        TextInput::make('teacher_integration_api_url')
-                                            ->label('API Endpoint URL')
-                                            ->placeholder('http://localhost:8000/api/v1/teachers/preview')
-                                            ->default('http://localhost:8000/api/v1/teachers/preview')
-                                            ->columnSpan(2),
+                                        TextInput::make('hr_api_base_url')
+                                            ->label('Base URL')
+                                            ->placeholder('https://api.diu.edu.bd')
+                                            ->helperText('Host only — the endpoint paths are fixed.')
+                                            ->columnSpanFull(),
+
+                                        TextInput::make('hr_api_token_url')
+                                            ->label('Token URL')
+                                            ->placeholder('https://auth0.diu.edu.bd/realms/diu/protocol/openid-connect/token')
+                                            ->columnSpanFull(),
+
+                                        TextInput::make('hr_api_client_id')
+                                            ->label('Client ID'),
+
+                                        TextInput::make('hr_api_client_secret')
+                                            ->label('Client Secret')
+                                            ->password()
+                                            ->revealable(),
+
+                                        TextInput::make('hr_api_username')
+                                            ->label('Username'),
+
+                                        TextInput::make('hr_api_password')
+                                            ->label('Password')
+                                            ->password()
+                                            ->revealable(),
+
+                                        \Filament\Schemas\Components\Actions::make([
+                                            Action::make('testHrApi')
+                                                ->label('Test Connection')
+                                                ->icon('heroicon-o-signal')
+                                                ->color('warning')
+                                                ->action('testHrApiConnection'),
+                                        ])->columnSpanFull(),
+                                    ]),
+
+                                Section::make('On Import')
+                                    ->description('Defaults applied to the Create Teacher form when a profile is pulled in. Nothing is saved until you review the form and press Create.')
+                                    ->schema([
+                                        Toggle::make('import_approve_active_teachers')
+                                            ->label('Approve and publish employed teachers')
+                                            ->default(true)
+                                            ->helperText('When the HR system reports a status the employment_statuses table treats as employed, the form opens with Profile Status set to Approved, Publicly Visible on, and the account active. Login follows that status\'s own "allow login" setting.'),
+
+                                        Toggle::make('import_rank_sort_order')
+                                            ->label('Position by designation rank')
+                                            ->default(true)
+                                            ->helperText('Places the teacher at the end of their designation\'s block within their department, rather than at the very end of the whole list.'),
+                                    ]),
+
+                                Section::make('Field Mapping')
+                                    ->description('Which set of rules converts an incoming payload into teacher records. This applies to both sources — the HR API and the legacy database.')
+                                    ->columns(2)
+                                    ->schema([
                                         Select::make('teacher_integration_mapping')
                                             ->label('Mapping Rule')
                                             ->options(fn () => \App\Models\IntegrationMapping::pluck('name', 'slug')->toArray())
                                             ->default('erp_teacher_profile')
-                                            ->required(),
+                                            ->required()
+                                            ->live()
+                                            ->helperText('Change a field name, or add one, on the Integration Mappings screen — no code change needed.'),
+
+                                        Placeholder::make('mapping_summary')
+                                            ->label('Rules in this mapping')
+                                            ->content(function (Get $get): string {
+                                                $mapping = \App\Models\IntegrationMapping::where('slug', $get('teacher_integration_mapping'))->first();
+
+                                                if (! $mapping) {
+                                                    return 'No mapping selected.';
+                                                }
+
+                                                $rules = $mapping->mapping_config ?? [];
+
+                                                // How many of the rules describe repeated sections
+                                                // (educations, publications…) rather than plain columns.
+                                                $relations = collect($rules)
+                                                    ->pluck('target_model')
+                                                    ->filter(fn ($model) => $model && ! in_array($model, ['User', 'Teacher'], true))
+                                                    ->unique()
+                                                    ->values();
+
+                                                return count($rules) . ' field rules'
+                                                    . ($relations->isNotEmpty()
+                                                        ? ', covering ' . $relations->implode(', ')
+                                                        : '');
+                                            }),
+
+                                        \Filament\Schemas\Components\Actions::make([
+                                            Action::make('viewMappings')
+                                                ->label('View / Edit Field Mappings')
+                                                ->icon('heroicon-o-arrow-top-right-on-square')
+                                                ->color('gray')
+                                                ->url(fn () => \App\Filament\Resources\IntegrationMappings\IntegrationMappingResource::getUrl('index'))
+                                                ->openUrlInNewTab(),
+                                        ])->columnSpanFull(),
+                                    ]),
+
+                                Section::make('Legacy Import Fallback')
+                                    ->description('Used only when the HR API is not configured or a search result came from the legacy database.')
+                                    ->collapsed()
+                                    ->schema([
+                                        TextInput::make('teacher_integration_api_url')
+                                            ->label('Preview Endpoint URL')
+                                            ->placeholder('http://localhost:8000/api/v1/teachers/preview')
+                                            ->default('http://localhost:8000/api/v1/teachers/preview')
+                                            ->columnSpanFull(),
                                     ]),
                             ]),
                         Tab::make('Teacher Settings')
@@ -1323,6 +1429,26 @@ class SystemSettings extends Page
             ->success()
             ->title('Master Import Job Dispatched!')
             ->body('The import process has been queued in the background. You can monitor it in Telescope under the Jobs tab.')
+            ->send();
+    }
+
+    /**
+     * Fetch a token from the HR API and report whether the credentials work.
+     */
+    public function testHrApiConnection(): void
+    {
+        // Makes the server call an external system with stored credentials, and
+        // public Livewire methods are reachable from the browser without going
+        // through an action, so the check lives here.
+        abort_unless(auth()->user()?->can('Update:SystemSettings'), 403);
+
+        $result = app(\App\Services\HrApiService::class)->testConnection();
+
+        Notification::make()
+            ->title($result['ok'] ? 'HR API connection OK' : 'HR API connection failed')
+            ->body($result['message'])
+            ->status($result['ok'] ? 'success' : 'danger')
+            ->persistent()
             ->send();
     }
 
