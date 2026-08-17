@@ -8,6 +8,7 @@ use App\Models\Teacher;
 use App\Models\User;
 use App\Services\HrApiService;
 use App\Services\IntegrationService;
+use App\Support\RelationMerge;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -49,6 +50,13 @@ class HrTeacherImportSeeder extends Seeder
         'socialLinks' => 'socialLinks',
     ];
 
+
+    /** Rows matched and refreshed from the API across the whole run. */
+    protected int $relationsUpdated = 0;
+
+    /** Rows the API knew about and we did not. */
+    protected int $relationsAdded = 0;
+
     public function run(): void
     {
         /** @var HrApiService $hrApi */
@@ -89,6 +97,9 @@ class HrTeacherImportSeeder extends Seeder
         }
 
         $this->command?->info("Created {$created}, updated {$updated}, skipped {$skipped}.");
+        $this->command?->info(
+            "Detail rows: {$this->relationsUpdated} refreshed, {$this->relationsAdded} added, nothing deleted."
+        );
 
         foreach ($failures as $failure) {
             $this->command?->warn('  ' . $failure);
@@ -134,8 +145,12 @@ class HrTeacherImportSeeder extends Seeder
 
         $overview = app(IntegrationService::class)->transform($profile, $slug);
 
+        $existing = Teacher::where('employee_id', $employeeId)->first();
+
         // Everything the form would have shown, with foreign keys resolved.
-        $formData = FormPayloadResolver::resolveForForm($overview);
+        // Passing the existing record keeps its address, publication state and
+        // listing position out of the payload's hands.
+        $formData = FormPayloadResolver::resolveForForm($overview, $existing);
 
         $email = $formData['email']
             ?? $overview['User']['email']
@@ -162,9 +177,7 @@ class HrTeacherImportSeeder extends Seeder
             }
         }
 
-        return DB::transaction(function () use ($employeeId, $formData, $email) {
-            $existing = Teacher::where('employee_id', $employeeId)->first();
-
+        return DB::transaction(function () use ($employeeId, $formData, $email, $existing) {
             $user = $this->resolveUser($existing, $formData, $email, $employeeId);
 
             $attributes = $this->teacherAttributes($formData);
@@ -178,7 +191,10 @@ class HrTeacherImportSeeder extends Seeder
                 $teacher = Teacher::create($attributes);
             }
 
-            $this->syncRelations($teacher, $formData);
+            $counts = $this->syncRelations($teacher, $formData);
+
+            $this->relationsUpdated += $counts['updated'];
+            $this->relationsAdded += $counts['added'];
 
             return $existing ? 'updated' : 'created';
         });
@@ -236,15 +252,21 @@ class HrTeacherImportSeeder extends Seeder
     }
 
     /**
-     * Replace each relation with what the API just reported.
+     * Merge what the API reported into each relation.
      *
-     * Replace rather than append: re-running must not leave a teacher with the
-     * same degree recorded four times.
+     * Nothing is ever deleted. A row the API sends is matched against what is
+     * already on file: a match is updated with the newer values, anything
+     * unmatched is added, and rows the API knows nothing about are left exactly
+     * where they are. That is what makes a re-import safe to run against
+     * profiles somebody has spent time correcting.
      *
      * @param array<string,mixed> $formData
+     * @return array{updated:int,added:int} counts across all relations
      */
-    protected function syncRelations(Teacher $teacher, array $formData): void
+    protected function syncRelations(Teacher $teacher, array $formData): array
     {
+        $updated = $added = 0;
+
         foreach (self::RELATIONS as $key => $relation) {
             $rows = $formData[$key] ?? [];
 
@@ -254,8 +276,11 @@ class HrTeacherImportSeeder extends Seeder
 
             $related = $teacher->$relation()->getRelated();
             $fillable = array_flip($related->getFillable());
+            $matchOn = RelationMerge::keysFor($key);
 
-            $clean = [];
+            // Loaded once: matching row by row against the database would issue
+            // a query per education per teacher.
+            $existing = $teacher->$relation()->get();
 
             foreach ($rows as $row) {
                 if (! is_array($row)) {
@@ -265,22 +290,41 @@ class HrTeacherImportSeeder extends Seeder
                 $row = array_intersect_key($row, $fillable);
                 $row = array_filter($row, fn ($value) => $value !== null && $value !== '');
 
-                if ($row !== []) {
-                    $clean[] = $row;
+                if ($row === []) {
+                    continue;
+                }
+
+                $match = $this->findMatch($existing, $row, $matchOn);
+
+                if ($match) {
+                    $match->fill($row)->save();
+                    $updated++;
+                } else {
+                    $created = $teacher->$relation()->create($row);
+                    $existing->push($created);
+                    $added++;
                 }
             }
-
-            // Nothing came back for this section: leave whatever is on file
-            // rather than wiping data the API simply did not mention.
-            if ($clean === []) {
-                continue;
-            }
-
-            $teacher->$relation()->delete();
-
-            foreach ($clean as $row) {
-                $teacher->$relation()->create($row);
-            }
         }
+
+        return ['updated' => $updated, 'added' => $added];
+    }
+
+    /**
+     * The row on file that describes the same thing, if there is one.
+     *
+     * @param \Illuminate\Database\Eloquent\Collection $existing
+     * @param array<string,mixed> $row
+     * @param array<int,string> $matchOn
+     */
+    protected function findMatch($existing, array $row, array $matchOn)
+    {
+        if ($matchOn === []) {
+            return null;
+        }
+
+        return $existing->first(
+            fn ($candidate) => RelationMerge::matches($matchOn, $candidate, $row),
+        );
     }
 }

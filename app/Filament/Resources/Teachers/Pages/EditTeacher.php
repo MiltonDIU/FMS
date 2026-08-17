@@ -133,8 +133,136 @@ class EditTeacher extends EditRecord
 
         // Unset photo so SpatieMediaLibraryFileUpload component can load media directly from model
         unset($data['photo']);
-        
+
+        $data = $this->mergeHrProfile($data);
+
         return $data;
+    }
+
+    /**
+     * Overlay the HR system's version of this teacher onto the loaded form.
+     *
+     * Reached from the search box on the create screen, which sends anyone
+     * already on file here rather than trying to create them twice. Nothing is
+     * written: the form is filled so the changes can be looked at and saved —
+     * or abandoned — by whoever asked for the merge.
+     *
+     * @param array<string,mixed> $data
+     * @return array<string,mixed>
+     */
+    protected function mergeHrProfile(array $data): array
+    {
+        $employeeId = request()->query('hrMerge');
+
+        // Only for the record actually asked for, so a stale or hand-edited
+        // query string cannot pull one teacher's profile onto another.
+        if (blank($employeeId) || (string) $employeeId !== (string) $this->record->employee_id) {
+            return $data;
+        }
+
+        try {
+            $profile = app(\App\Services\HrApiService::class)->getTeacherProfile((string) $employeeId);
+        } catch (\RuntimeException $e) {
+            \Filament\Notifications\Notification::make()
+                ->title('Could not load the HR profile')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+
+            return $data;
+        }
+
+        if ($profile === null) {
+            \Filament\Notifications\Notification::make()
+                ->title('No HR profile found')
+                ->body("The directory has nothing for employee {$employeeId}.")
+                ->warning()
+                ->send();
+
+            return $data;
+        }
+
+        $slug = (string) \App\Models\Setting::get('teacher_integration_mapping', 'erp_teacher_profile');
+        $overview = app(\App\Services\IntegrationService::class)->transform($profile, $slug);
+
+        // Passing the record keeps its address, publication state and listing
+        // position out of the payload's hands.
+        $incoming = \App\Helpers\FormPayloadResolver::resolveForForm($overview, $this->record);
+
+        $changed = $this->applyScalars($data, $incoming);
+        $counts = $this->applyRelations($data, $incoming);
+
+        \Filament\Notifications\Notification::make()
+            ->title('HR data merged into the form')
+            ->body("{$changed} field(s) updated, {$counts['updated']} detail row(s) refreshed, "
+                . "{$counts['added']} added. Nothing was removed. Review and press Save to keep it.")
+            ->success()
+            ->persistent()
+            ->send();
+
+        return $data;
+    }
+
+    /**
+     * Overlay the teacher's own columns, leaving anything the API is silent on.
+     *
+     * @param array<string,mixed> $data
+     * @param array<string,mixed> $incoming
+     * @return int how many fields actually changed
+     */
+    protected function applyScalars(array &$data, array $incoming): int
+    {
+        $changed = 0;
+
+        foreach ($incoming as $key => $value) {
+            if (is_array($value) || $value === null || $value === '') {
+                continue;
+            }
+
+            // email is the account's, handled separately on save.
+            if ($key === 'email') {
+                continue;
+            }
+
+            if (($data[$key] ?? null) != $value) {
+                $data[$key] = $value;
+                $changed++;
+            }
+        }
+
+        return $changed;
+    }
+
+    /**
+     * Merge each repeated section, matching rows rather than replacing them.
+     *
+     * @param array<string,mixed> $data
+     * @param array<string,mixed> $incoming
+     * @return array{updated:int,added:int}
+     */
+    protected function applyRelations(array &$data, array $incoming): array
+    {
+        $updated = $added = 0;
+
+        foreach (array_keys(\App\Support\RelationMerge::MATCH_ON) as $relation) {
+            $rows = $incoming[$relation] ?? null;
+
+            if (! is_array($rows) || $rows === []) {
+                continue;
+            }
+
+            $result = \App\Support\RelationMerge::mergeRows(
+                is_array($data[$relation] ?? null) ? $data[$relation] : [],
+                $rows,
+                \App\Support\RelationMerge::keysFor($relation),
+            );
+
+            $data[$relation] = $result['rows'];
+            $updated += $result['updated'];
+            $added += $result['added'];
+        }
+
+        return ['updated' => $updated, 'added' => $added];
     }
 
     /**

@@ -121,8 +121,16 @@ class FormPayloadResolver
 
     /**
      * Resolve and format transformed overview data into Filament form state.
+     *
+     * @param \App\Models\Teacher|null $existing the teacher being re-imported,
+     *        when there is one. Passing it keeps the decisions that belong to
+     *        the record rather than to the payload — its public address, its
+     *        publication state, its place in the department listing. Those are
+     *        set when a teacher first arrives and are an administrator's to
+     *        change afterwards, not something a later import should silently
+     *        undo.
      */
-    public static function resolveForForm(array $overview): array
+    public static function resolveForForm(array $overview, $existing = null): array
     {
         $formData = [];
 
@@ -140,14 +148,39 @@ class FormPayloadResolver
             $formData['email'] = $overview['User']['email'];
         }
 
-        if (empty($formData['webpage']) && !empty($formData['first_name'])) {
-            $formData['webpage'] = Str::slug($formData['first_name'] . ' ' . ($formData['last_name'] ?? '') . '-' . rand(100, 999));
-        }
+        if ($existing) {
+            /*
+             * A teacher already on file keeps what belongs to the record.
+             *
+             * webpage in particular: it is the public profile address and is
+             * unique. It used to be regenerated with a fresh random suffix on
+             * every re-import, because the HR system does not send one and the
+             * code only checked whether the incoming payload had it — so every
+             * update quietly broke the teacher's links and search listings.
+             *
+             * Publication state and listing position are administrators'
+             * decisions. Somebody unpublished on purpose must not be put back
+             * on the public site by a routine sync.
+             */
+            $formData['webpage'] = $existing->webpage ?: ($formData['webpage'] ?? null);
+            $formData['sort_order'] = $existing->sort_order;
 
-        $formData = static::applyEmploymentDefaults($formData);
+            unset(
+                $formData['profile_status'],
+                $formData['is_public'],
+                $formData['is_active'],
+                $formData['login_allowed'],
+            );
+        } else {
+            if (empty($formData['webpage']) && !empty($formData['first_name'])) {
+                $formData['webpage'] = Str::slug($formData['first_name'] . ' ' . ($formData['last_name'] ?? '') . '-' . rand(100, 999));
+            }
 
-        if (empty($formData['sort_order'])) {
-            $formData['sort_order'] = static::nextSortOrder($formData);
+            $formData = static::applyEmploymentDefaults($formData);
+
+            if (empty($formData['sort_order'])) {
+                $formData['sort_order'] = static::nextSortOrder($formData);
+            }
         }
 
         $rel = $overview['Relations'] ?? [];

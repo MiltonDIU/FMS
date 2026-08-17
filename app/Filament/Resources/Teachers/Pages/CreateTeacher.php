@@ -48,6 +48,34 @@ class CreateTeacher extends CreateRecord
     #[On('fillTeacherData')]
     public function fillTeacherData(array $teacher): void
     {
+        /*
+         * The search marks rows we already hold and offers "Merge Profile", but
+         * this is the create screen: pressing Create then tried to insert a
+         * second teacher for the same person, and teachers.user_id is unique, so
+         * it failed on a constraint. Send them to that teacher's edit screen
+         * instead, where the merge actually happens and can be reviewed.
+         */
+        $employeeId = $teacher['employee_id'] ?? $teacher['employeeID'] ?? null;
+
+        if ($employeeId) {
+            $existing = \App\Models\Teacher::where('employee_id', $employeeId)->first();
+
+            if ($existing) {
+                \Filament\Notifications\Notification::make()
+                    ->title('This teacher is already on file')
+                    ->body('Opening their profile so the incoming data can be merged into it. Review the changes, then save.')
+                    ->info()
+                    ->send();
+
+                $this->redirect(TeacherResource::getUrl('edit', [
+                    'record' => $existing,
+                    'hrMerge' => $employeeId,
+                ]));
+
+                return;
+            }
+        }
+
         /** @var \App\Services\IntegrationService $integrationService */
         $integrationService = app(\App\Services\IntegrationService::class);
 
