@@ -105,7 +105,16 @@
 .bg-slate-300 { background-color: var(--surface-hover); }
 .bg-gray-50 { background-color: var(--surface-subtle); }
 
-.bg-slate-900 { background-color: var(--surface-card); }
+/*
+ * Not remapped, and deliberately not: bg-slate-900 is a dark panel, not a light
+ * surface. It was in the list above with bg-white and bg-slate-50, so the one
+ * element using it — the BibTeX block on a publication page — got
+ * var(--surface-card), which is #ffffff in light mode, while its text-slate-100
+ * stayed near-white. The citation was there, in white on white.
+ *
+ * Left to Tailwind so the class means slate-900 in both modes, which is what a
+ * code panel wants and what its light text is chosen against.
+ */
 .bg-slate-950 { background-color: #050b15; }
 
 .border-slate-100 { border-color: var(--border-faint); }

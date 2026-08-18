@@ -11,7 +11,7 @@
 @section('meta_description', $seo['description'])
 
 @section('seo')
-    @include('frontend.partials.seo-tags', ['seo' => $seo])
+    @include('frontend.themes.theme_portrait.partials.seo-tags', ['seo' => $seo])
 @endsection
 
 @section('meta_description', \Illuminate\Support\Str::limit(strip_tags((string) $publication->abstract) ?: $publication->title, 155))
@@ -98,9 +98,9 @@
             {{-- The full byline, with the authors who wrote under our own
                  affiliation marked. The paragraph above is the citation line;
                  this is the roll, and it is where the roles and affiliations
-                 are. Shared across themes — who wrote a paper is not styling. --}}
+                 are. This theme's own partial, in this theme's own language. --}}
             <div class="mt-8">
-                @include('frontend.partials.publication_authors', ['publication' => $publication])
+                @include('frontend.themes.theme_portrait.partials.publication_authors', ['publication' => $publication])
             </div>
 
             {{-- Facts as a definition list on hairlines, matching the contact

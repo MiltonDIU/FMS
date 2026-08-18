@@ -1,6 +1,9 @@
 {{--
     The paper's authors, and which of them wrote it as one of ours.
 
+    A full copy on purpose. This theme owns every file it renders, so deleting
+    another theme cannot take this one down with it.
+
     Every author is listed, in published order — a paper is not ours alone and a
     byline that hid the collaborators would be wrong. What the page marks is the
     narrower thing: which of them carried this institution's affiliation on this

@@ -2,7 +2,7 @@
 
 @section('title', ($department->name ?? 'Department') . ' - Faculty Directory')
 
-{{-- Sharing and structured data; see frontend.partials.seo-tags. --}}
+{{-- Sharing and structured data; see frontend.themes.theme_default.partials.seo-tags. --}}
 @php
     $seo = \App\Helpers\SeoPayload::forDepartment($faculty, $department, $totalMembers ?? 0);
 @endphp
@@ -10,7 +10,7 @@
 @section('meta_description', $seo['description'])
 
 @section('seo')
-    @include('frontend.partials.seo-tags', ['seo' => $seo])
+    @include('frontend.themes.theme_default.partials.seo-tags', ['seo' => $seo])
 @endsection
 
 @section('content')

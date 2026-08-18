@@ -2,9 +2,13 @@
     /*
      * Renders the sharing and structured-data block for a public page.
      *
-     * Theme-agnostic on purpose: all four themes yield 'seo' from their head
-     * partial and include this, so the markup a search engine or a chat preview
-     * sees does not depend on which theme happens to be active.
+     * This theme's own copy. Every file this theme renders lives inside
+     * theme_diu/, so removing another theme cannot take these pages down.
+     *
+     * The markup is deliberately the same in each theme: what a search engine
+     * or a chat preview reads should not change with the skin. Keep them in
+     * step by hand — that is the cost of the themes being independent, and it
+     * is the trade that was chosen.
      *
      * Expects $seo from App\Helpers\SeoPayload.
      */

@@ -19,7 +19,8 @@ use Illuminate\Support\Str;
  *
  * The payload is built here rather than in Blade because it is data, and because
  * four themes render it: a copy per theme would drift the moment one changed.
- * Each method returns the same shape, which frontend.partials.seo-tags renders.
+ * Each method returns the same shape, which each theme's own seo-tags partial
+ * renders — the themes are independent, so there are four copies of that markup.
  *
  * @phpstan-type Payload array{title: string, description: string, url: string, image: string|null, type: string, schema: array<string, mixed>|null}
  */

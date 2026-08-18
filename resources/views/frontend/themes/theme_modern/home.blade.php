@@ -12,7 +12,7 @@
 @section('meta_description', $seo['description'])
 
 @section('seo')
-    @include('frontend.partials.seo-tags', ['seo' => $seo])
+    @include('frontend.themes.theme_modern.partials.seo-tags', ['seo' => $seo])
 @endsection
 
 @section('content')
