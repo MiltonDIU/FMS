@@ -57,6 +57,9 @@ class TeacherController extends Controller
             ->with([
                 'designation',
                 'department',
+                // photo_url reads the avatar collection, so without this every
+                // card on the page costs its own query for one photograph.
+                'media',
                 'educations.degreeLevel',
                 'educations.degreeType',
                 'educations.resultType',
@@ -90,15 +93,16 @@ class TeacherController extends Controller
         $metaTitle = "{$fullName} — " . ($teacher->designation?->name ?? 'Faculty Member')
             . " | {$department->name}{$titleSuffix}";
 
-        $rawDesc = $teacher->bio ?: $teacher->researchInterestNames()->implode(', ') ?: \App\Helpers\Branding::get('meta_description');
+        $rawDesc = $teacher->bio ?: implode(', ', $teacher->researchInterestNames()) ?: \App\Helpers\Branding::get('meta_description');
         $metaDescription = \Illuminate\Support\Str::limit(
             trim(preg_replace('/\s+/', ' ', strip_tags($rawDesc))),
             160
         );
 
-        $photoUrl = $teacher->photo
-            ? (str_starts_with($teacher->photo, 'http') ? $teacher->photo : asset("storage/{$teacher->photo}"))
-            : \App\Helpers\Branding::logoUrl();
+        // photo_url, not the column: it already knows where a photograph lives
+        // and returns null rather than the media library's fallback path, which
+        // this used to hand to asset('storage/...') and turn into a 404.
+        $photoUrl = $teacher->photo_url ?: \App\Helpers\Branding::logoUrl();
         $profileUrl = request()->url();
 
         return view(Theme::view('profile'), compact(
@@ -182,10 +186,7 @@ class TeacherController extends Controller
             'teacher_webpage' => $teacher->webpage ?? $teacher_webpage,
         ]);
         $lines[] = 'URL:' . $profileUrl;
-        if ($teacher->photo) {
-            $photo = str_starts_with($teacher->photo, 'http')
-                ? $teacher->photo
-                : asset("storage/{$teacher->photo}");
+        if ($photo = $teacher->photo_url) {
             $lines[] = 'PHOTO;VALUE=URI:' . $photo;
         }
         $lines[] = 'END:VCARD';

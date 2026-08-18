@@ -42,21 +42,11 @@
         : '#';
 
     /*
-     * Teacher::getPhotoAttribute() falls back to a media-library path when the
-     * column is empty, which for all 139 teachers without a picture is
-     * "/images/default-avatar.png". Prefixing that with the external image host
-     * builds a broken URL, and because the value is never null the initials
-     * panel below never got a chance to show. So the value is only treated as a
-     * filename when it actually looks like one.
+     * photo_url answers this once, from our own storage, and returns null when
+     * there is no picture so the initials panel below gets its turn. This used
+     * to build the address here against the external faculty host.
      */
-    $photo = $teacher->photo;
-    $photoUrl = null;
-
-    if (filled($photo) && ! str_contains($photo, '/')) {
-        $photoUrl = 'https://faculty.daffodilvarsity.edu.bd/images/teacher/' . rawurlencode($photo);
-    } elseif (filled($photo) && str_starts_with($photo, 'http')) {
-        $photoUrl = $photo;
-    }
+    $photoUrl = $teacher->photo_url;
 @endphp
 
 <a href="{{ $profileUrl }}" wire:navigate

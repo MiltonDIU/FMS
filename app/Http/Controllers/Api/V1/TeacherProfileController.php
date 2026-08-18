@@ -76,7 +76,7 @@ class TeacherProfileController extends Controller
         ];
 
         // Always loaded: without these the record does not identify anybody.
-        $always = ['designation', 'department.faculty', 'employmentStatus', 'user', 'administrativeRoles.administrativeRole'];
+        $always = ['designation', 'department.faculty', 'employmentStatus', 'user', 'administrativeRoles.administrativeRole', 'media'];
 
         if (blank($asked = $request->query('include'))) {
             return array_merge($always, ...array_values($optional));

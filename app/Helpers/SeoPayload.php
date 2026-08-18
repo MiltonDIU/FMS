@@ -178,7 +178,7 @@ class SeoPayload
         // the structured data, which is what search engines read.
         $description = static::clean(
             $teacher->bio
-                ?: $teacher->researchInterestNames()->implode(', ')
+                ?: implode(', ', $teacher->researchInterestNames())
                 ?: trim("{$designation}, {$department->name} at " . Branding::get('site_name') . '.')
         );
 
@@ -219,7 +219,7 @@ class SeoPayload
                  * them to every crawler that fetches the URL, and a teacher
                  * sharing their own profile is not consenting to that.
                  */
-                'description' => static::clean($teacher->bio ?: $teacher->researchInterestNames()->implode(', '), 400) ?: null,
+                'description' => static::clean($teacher->bio ?: implode(', ', $teacher->researchInterestNames()), 400) ?: null,
                 'worksFor' => array_filter([
                     '@type' => 'EducationalOrganization',
                     'name' => $department->name,

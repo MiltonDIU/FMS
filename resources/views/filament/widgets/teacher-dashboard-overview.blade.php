@@ -387,12 +387,9 @@
         $teacher = $teacher ?? null;
         $user = auth()->user();
         $displayName = $teacher?->full_name ?: $user?->name ?: $user?->email ?: 'Teacher';
-        $photo = $teacher?->photo;
-        $avatarUrl = $photo
-            ? (\Illuminate\Support\Str::startsWith($photo, ['http://', 'https://', '/'])
-                ? $photo
-                : 'https://faculty.daffodilvarsity.edu.bd/images/teacher/' . ltrim($photo, '/'))
-            : null;
+        // The model works out where a photograph lives; this used to paste the
+        // legacy filename onto the old faculty host, which is going away.
+        $avatarUrl = $teacher?->photo_url;
         $initial = strtoupper(substr($displayName, 0, 1));
     @endphp
 

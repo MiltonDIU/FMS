@@ -9,7 +9,7 @@
 <div x-show="tab === 'overview'" x-cloak>
 
     @php
-        $bio = $teacher->bio ?: $teacher->researchInterestNames()->implode(', ');
+        $bio = $teacher->bio ?: implode(', ', $teacher->researchInterestNames());
         $interests = $teacher->researchInterestNames();
     @endphp
 

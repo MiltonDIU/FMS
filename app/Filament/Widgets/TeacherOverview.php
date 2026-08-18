@@ -86,7 +86,9 @@ class TeacherOverview extends Widget
     {
         // Base query for teachers
         $teachersQuery = Teacher::query()
-            ->with(['department', 'designation', 'employmentStatus'])
+            // 'media' because the list renders each teacher's photograph, and
+            // photo_url reads it from the avatar collection.
+            ->with(['department', 'designation', 'employmentStatus', 'media'])
             ->active();
 
         // Apply scoping first
@@ -404,7 +406,7 @@ class TeacherOverview extends Widget
                 return [
                     'name'  => $teacher->full_name,
                     'count' => $teacher->$countColumn,
-                    'photo' => $teacher->photo,
+                    'photo' => $teacher->photo_url,
                     'rank'  => $teacher->designation->name ?? '',
                 ];
             })
@@ -438,7 +440,7 @@ class TeacherOverview extends Widget
             ->map(fn ($t) => [
                 'name'      => $t->full_name,
                 'score'     => $t->profile_score ?? 0,
-                'photo'     => $t->photo,
+                'photo'     => $t->photo_url,
                 'rank'      => $t->designation->name ?? '',
                 'synced_at' => $t->profile_score_synced_at?->diffForHumans() ?? 'Never',
             ])

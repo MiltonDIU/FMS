@@ -148,40 +148,73 @@ class Teacher extends Model implements HasMedia
     }
 
     /**
-     * Where the teacher's photograph can actually be fetched from, or null.
+     * The teacher's photograph, served from our own storage.
      *
-     * `photo` cannot be used directly in an <img> tag. It holds three different
-     * kinds of value — a bare filename from the legacy import, an absolute URL
-     * from the media library, or the registered fallback path
-     * "/images/default-avatar.png" — and every view was prefixing all three with
-     * the external image host, producing addresses like
-     * ".../images/teacher//images/default-avatar.png".
+     * The one address any page should use. Four views were each working it out
+     * for themselves and each getting it wrong in a different way — one pasted
+     * the legacy filename onto the external host, one ran it through
+     * Storage::url() as though it were a local path, one fell back to
+     * ui-avatars.com, and the fourth did two of those in sequence.
      *
-     * Because the fallback is never empty, `@if($teacher->photo)` was also
-     * always true, so the initials placeholders behind those checks never
-     * appeared. This returns null for the fallback so they can, which matters
-     * for the 139 teachers who have no picture — and the fallback file does not
-     * exist in public/ anyway, so it only ever rendered a broken image.
+     * Nothing here reaches outside any more. teachers:download-photos fetched
+     * the pictures off the old faculty site into the avatar collection, and
+     * that site is going away — an <img> still pointing at it is a photograph
+     * that works until somebody else turns their server off.
+     *
+     * Null when there is none, so the initials placeholder behind
+     * `@if($teacher->photo_url)` can show. It matters for the teachers who have
+     * no picture at all, and it is why the media library is asked for its file
+     * rather than its URL: the collection registers a fallback URL, so asking
+     * for the URL never returns nothing and the placeholder never appeared.
      */
     public function getPhotoUrlAttribute(): ?string
     {
-        $photo = $this->photo;
-
-        if (blank($photo)) {
-            return null;
+        if ($this->exists && ($media = $this->getFirstMedia('avatar')) !== null) {
+            return $media->getUrl();
         }
 
-        if (Str::startsWith($photo, ['http://', 'https://'])) {
-            return $photo;
-        }
+        // Uploads made before the photographs moved wrote the media URL into
+        // the column itself. Still ours, still local — just stored elsewhere.
+        $photo = $this->getRawOriginal('photo');
 
-        // A rooted path is the media-library fallback rather than a real
-        // photograph, and the file it names is not present.
-        if (Str::startsWith($photo, '/')) {
+        return filled($photo) && Str::startsWith($photo, ['http://', 'https://'])
+            ? $photo
+            : null;
+    }
+
+    /**
+     * Where the old faculty site keeps this teacher's photograph.
+     *
+     * The last use of that host, and it exists for one job: giving
+     * teachers:download-photos something to fetch so the picture can be brought
+     * here. Nothing that renders a page should call it — see photo_url.
+     *
+     * Reads the column directly. The accessor above deliberately no longer
+     * returns the bare filename, and this is the only thing that still needs it.
+     */
+    public function legacyPhotoUrl(): ?string
+    {
+        $photo = trim((string) $this->getRawOriginal('photo'));
+
+        // Blank, already an address, or a rooted path — none of which is the
+        // legacy import's bare filename.
+        if ($photo === '' || Str::startsWith($photo, ['http://', 'https://', '/'])) {
             return null;
         }
 
         return self::PHOTO_BASE_URL . rawurlencode($photo);
+    }
+
+    /** The legacy address, but only when it is safe for the server to request. */
+    public function serverFetchableLegacyPhotoUrl(): ?string
+    {
+        $url = $this->legacyPhotoUrl();
+
+        if ($url === null) {
+            return null;
+        }
+
+        return OutboundUrl::rejectionReason($url) === null ? $url : null;
     }
 
     /**
@@ -286,14 +319,24 @@ class Teacher extends Model implements HasMedia
      * `$teacher->researchInterests` as well, and shadowed the relation of that
      * name. Every `->researchInterests->isNotEmpty()` in the views got an array
      * back instead of a collection.
+     *
+     * An array, not a collection, and that is the whole of the reason it is not
+     * one: the cards call array_slice() on it to show the first two, and
+     * theme_portrait asks empty() before printing "none". A collection breaks
+     * the first outright and quietly fails the second — an object is never
+     * empty, so the "no interests" line could not appear. The accessor this
+     * replaced returned an array and every template was written against that.
+     *
+     * @return array<int, string>
      */
-    public function researchInterestNames(): \Illuminate\Support\Collection
+    public function researchInterestNames(): array
     {
         return $this->researchInterests
             ->pluck('interest')
             ->map(fn ($interest) => trim((string) $interest))
             ->filter()
-            ->values();
+            ->values()
+            ->all();
     }
 
     /**

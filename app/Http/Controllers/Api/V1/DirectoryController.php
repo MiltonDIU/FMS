@@ -139,7 +139,7 @@ class DirectoryController extends Controller
     protected function teacherQuery(Request $request)
     {
         $query = Teacher::published()
-            ->with(['designation', 'department.faculty', 'employmentStatus', 'user'])
+            ->with(['designation', 'department.faculty', 'employmentStatus', 'user', 'media'])
             ->withCount('publications');
 
         if (filled($search = $request->query('q'))) {

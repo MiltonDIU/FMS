@@ -208,7 +208,7 @@
                     <h2>Profile</h2>
                     @if($teacher->bio)<p class="summary">{{ strip_tags($teacher->bio) }}</p>@endif
                     @if($teacher->researchInterests->isNotEmpty())
-                        <p class="summary" style="margin-top:6px;"><strong>Research Interests:</strong> {{ $teacher->researchInterestNames()->implode(', ') }}</p>
+                        <p class="summary" style="margin-top:6px;"><strong>Research Interests:</strong> {{ implode(', ', $teacher->researchInterestNames()) }}</p>
                     @endif
                 </div>
             @endif

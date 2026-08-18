@@ -859,8 +859,12 @@
 
                         <div class="teacher-header">
                             <div class="teacher-avatar">
-                                @if($teacher->photo)
-                                    <img src="{{ \Illuminate\Support\Facades\Storage::url($teacher->photo) }}" alt="Avatar" onerror="this.src='https://ui-avatars.com/api/?name={{ urlencode($teacher->full_name) }}&color=7F9CF5&background=EBF4FF'">
+                                {{-- photo_url, not Storage::url($teacher->photo): the column holds a
+                                     legacy filename, not a storage path, so that built an address that
+                                     never resolved and fell through to ui-avatars.com — a third-party
+                                     service fetched for every row of the list. --}}
+                                @if($teacher->photo_url)
+                                    <img src="{{ $teacher->photo_url }}" alt="Avatar">
                                 @else
                                     {{ strtoupper(substr($teacher->first_name, 0, 1)) }}{{ strtoupper(substr($teacher->last_name, 0, 1)) }}
                                 @endif

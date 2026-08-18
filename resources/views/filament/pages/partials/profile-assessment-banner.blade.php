@@ -202,8 +202,8 @@
         <div class="gap-card gap-profile-card" style="border-top:4px solid {{ $topBorderColor }};margin-bottom:16px">
             {{-- Avatar --}}
             <div class="gap-avatar" style="overflow: hidden;">
-                @if($teacher && $teacher->photo)
-                    <img src="{{ str_starts_with($teacher->photo, 'http') ? $teacher->photo : asset('storage/' . $teacher->photo) }}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;" />
+                @if($teacher && $teacher->photo_url)
+                    <img src="{{ $teacher->photo_url }}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover;" />
                 @else
                     {{ $initials }}
                 @endif
