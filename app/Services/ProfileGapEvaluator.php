@@ -199,9 +199,11 @@ class ProfileGapEvaluator
 
         $sectionRatios['personal'] = (($hasDob ? 1 : 0) + ($hasGender ? 1 : 0) + ($hasBlood ? 1 : 0) + ($hasReligion ? 1 : 0) + ($hasBio ? 1 : 0)) / 5.0;
 
-        // ── 4. Academic Info (5% Weight) ──────────────────────────────────────
-        $hasResearch = !empty($teacher->research_interest);
-        if (!$hasResearch) $addGap('academic_info', 'research_interest', 'Research Interest is empty', 'Academic Info', 'optional');
+        // ── 4. Research Interest (5% Weight) ──────────────────────────────────
+        $hasResearch = $teacher->relationLoaded('researchInterests')
+            ? $teacher->researchInterests->isNotEmpty()
+            : $teacher->researchInterests()->exists();
+        if (!$hasResearch) $addGap('academic_info', 'researchInterests', 'No research interest added', 'Research Interest', 'optional');
 
         $sectionRatios['academic_info'] = $hasResearch ? 1.0 : 0.0;
 

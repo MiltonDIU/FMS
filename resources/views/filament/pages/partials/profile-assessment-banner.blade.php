@@ -22,7 +22,7 @@
         'basic'         => ['name' => 'Basic Info',             'desc' => 'Account & Employee ID', 'icon' => 'user',         'category' => 'Basic Info',             'tab' => 'Basic Info'],
         'contact'       => ['name' => 'Contact Info',           'desc' => 'Phone, Email & Addresses', 'icon' => 'phone',       'category' => 'Contact Info',           'tab' => 'Contact Info'],
         'personal'      => ['name' => 'Personal Details',      'desc' => 'DOB, Gender, Religion & Bio','icon' => 'file-text',  'category' => 'Personal Details',       'tab' => 'Personal Details'],
-        'academic_info' => ['name' => 'Academic Info',         'desc' => 'Research Interests',    'icon' => 'sparkles',     'category' => 'Academic Info',          'tab' => 'Academic Info'],
+        'academic_info' => ['name' => 'Research Interest',     'desc' => 'Research Interests',    'icon' => 'sparkles',     'category' => 'Research Interest',      'tab' => 'Research Interest'],
         'education'     => ['name' => 'Academic Qualification', 'desc' => 'Degrees & Institutions', 'icon' => 'academic',   'category' => 'Academic Qualification', 'tab' => 'Educations'],
         'publication'   => ['name' => 'Publications',          'desc' => 'Research & Journals',   'icon' => 'book-open',   'category' => 'Publications',           'tab' => 'Publications'],
         'experience'    => ['name' => 'Job Experience',        'desc' => 'Work & Designations',   'icon' => 'briefcase',   'category' => 'Experience Details',      'tab' => 'Job Experience'],

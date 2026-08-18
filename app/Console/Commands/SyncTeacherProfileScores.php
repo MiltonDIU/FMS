@@ -55,7 +55,7 @@ class SyncTeacherProfileScores extends Command
 
         // ── Batch mode ───────────────────────────────────────────────────────
         // NOTE: No ->select() restriction here — ProfileGapEvaluator reads
-        // scalar fields like employee_id, phone, bio, gender_id, research_interest
+        // scalar fields like employee_id, phone, bio, gender_id
         // etc. directly from the teacher model. Restricting columns would make
         // them null and produce incorrect (lower) scores.
         $query = Teacher::query()

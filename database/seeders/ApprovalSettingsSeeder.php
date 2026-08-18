@@ -48,13 +48,14 @@ class ApprovalSettingsSeeder extends Seeder
                 'is_active' => true,
             ],
             
-            // Tab 4: Academic Info
+            // Tab 4: Research Interest — the key stays `academic_info` so that
+            // settings already stored under it keep working.
             [
                 'section_key' => 'academic_info',
-                'section_label' => 'Academic Information',
+                'section_label' => 'Research Interest',
                 'requires_approval' => true,
                 'description' => 'Research interests and academic focus areas',
-                'fields' => ['research_interest'],
+                'fields' => ['researchInterests'],
                 'sort_order' => 4,
                 'is_active' => true,
             ],

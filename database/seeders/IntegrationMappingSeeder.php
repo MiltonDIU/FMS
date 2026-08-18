@@ -41,7 +41,6 @@ class IntegrationMappingSeeder extends Seeder
             ['source_field' => 'office_room', 'target_model' => 'Teacher', 'target_field' => 'office_room', 'is_identifier' => false],
             ['source_field' => 'photo', 'target_model' => 'Teacher', 'target_field' => 'photo', 'is_identifier' => false],
             ['source_field' => 'bio', 'target_model' => 'Teacher', 'target_field' => 'bio', 'is_identifier' => false],
-            ['source_field' => 'research_interest', 'target_model' => 'Teacher', 'target_field' => 'research_interest', 'is_identifier' => false],
             ['source_field' => 'department_id', 'target_model' => 'Teacher', 'target_field' => 'department_id', 'is_identifier' => false],
             ['source_field' => 'department.id', 'target_model' => 'Teacher', 'target_field' => 'department_id', 'is_identifier' => false],
             ['source_field' => 'designation_id', 'target_model' => 'Teacher', 'target_field' => 'designation_id', 'is_identifier' => false],

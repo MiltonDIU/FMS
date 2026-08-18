@@ -53,7 +53,6 @@ class TeacherResource extends JsonResource
 
             // ── Present only when the caller asked for the full profile ──────
             'bio' => $this->when(filled($this->bio), $this->bio),
-            'research_interest' => $this->when(filled($this->research_interest), $this->research_interest),
 
             'educations' => $this->whenLoaded('educations', fn () => $this->educations->map(fn ($e) => [
                 'degree' => optional($e->degreeType)->name ?: optional($e->degreeLevel)->name,
@@ -106,6 +105,10 @@ class TeacherResource extends JsonResource
             ])),
 
             'teaching_areas' => $this->whenLoaded('teachingAreas', fn () => $this->teachingAreas->pluck('area')),
+            // A list of names, like teaching_areas beside it. This replaced
+            // `research_interest`, which was one comma-separated string that
+            // every caller then split apart for itself.
+            'research_interests' => $this->whenLoaded('researchInterests', fn () => $this->researchInterests->pluck('interest')),
             'skills' => $this->whenLoaded('skills', fn () => $this->skills->pluck('name')),
 
             'research_projects' => $this->whenLoaded('researchProjects', fn () => $this->researchProjects->map(fn ($p) => [

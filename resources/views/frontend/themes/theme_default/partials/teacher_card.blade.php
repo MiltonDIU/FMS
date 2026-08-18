@@ -21,7 +21,7 @@
     // Cast: a teacher may have no last name recorded, and PHP 8.4 deprecates
     // passing null to substr().
     $initials = $teacher->initials;
-    $interests = $teacher->research_interests;
+    $interests = $teacher->researchInterestNames();
     $teachingAreas = $teacher->teachingAreas;
     $areaCount = $teachingAreas->count();
     $profileUrl = ($faculty->short_name && $teacher->webpage)

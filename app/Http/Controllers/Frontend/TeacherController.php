@@ -64,7 +64,7 @@ class TeacherController extends Controller
                 'trainingExperiences',
                 'certifications',
                 'skills',
-                'teachingAreas',
+                'teachingAreas', 'researchInterests',
                 'memberships.membershipType',
                 'memberships.membershipOrganization',
                 'awards',
@@ -90,7 +90,7 @@ class TeacherController extends Controller
         $metaTitle = "{$fullName} — " . ($teacher->designation?->name ?? 'Faculty Member')
             . " | {$department->name}{$titleSuffix}";
 
-        $rawDesc = $teacher->bio ?: $teacher->research_interest ?: \App\Helpers\Branding::get('meta_description');
+        $rawDesc = $teacher->bio ?: $teacher->researchInterestNames()->implode(', ') ?: \App\Helpers\Branding::get('meta_description');
         $metaDescription = \Illuminate\Support\Str::limit(
             trim(preg_replace('/\s+/', ' ', strip_tags($rawDesc))),
             160
@@ -118,7 +118,7 @@ class TeacherController extends Controller
     public function shareImage(string $faculty_short_name, string $department_code, string $teacher_webpage)
     {
         $teacher = $this->resolveTeacher($faculty_short_name, $department_code, $teacher_webpage, [
-            'designation', 'department', 'teachingAreas',
+            'designation', 'department', 'teachingAreas', 'researchInterests',
         ]);
 
         $path = TeacherShareImage::pathFor($teacher);
@@ -211,7 +211,7 @@ class TeacherController extends Controller
             'educations.educationalInstitution',
             'publications', 'trainingExperiences', 'skills',
             'certifications.issuingAuthorityOrganizationRelation',
-            'teachingAreas', 'memberships.membershipType', 'memberships.membershipOrganization',
+            'teachingAreas', 'researchInterests', 'memberships.membershipType', 'memberships.membershipOrganization',
             'awards.awardingBodyOrganizationRelation',
             'jobExperiences.positionRelation', 'jobExperiences.organizationRelation',
             'socialLinks.platform', 'user',

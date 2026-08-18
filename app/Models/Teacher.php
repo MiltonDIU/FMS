@@ -57,7 +57,6 @@ class Teacher extends Model implements HasMedia
         'office_room',
         'photo',
         'bio',
-        'research_interest',
         'profile_status',
         'verification_status',
         'verification_token',
@@ -279,18 +278,22 @@ class Teacher extends Model implements HasMedia
     }
 
     /**
-     * Get the research interests as a clean, trimmed array
-     * (parsed from the comma-separated source string).
+     * The research interests as a plain list of names.
+     *
+     * A method rather than an accessor, deliberately. `research_interests` was
+     * one, and Eloquent studly-cases an attribute name before looking for its
+     * accessor — so `getResearchInterestsAttribute` answered to
+     * `$teacher->researchInterests` as well, and shadowed the relation of that
+     * name. Every `->researchInterests->isNotEmpty()` in the views got an array
+     * back instead of a collection.
      */
-    public function getResearchInterestsAttribute(): array
+    public function researchInterestNames(): \Illuminate\Support\Collection
     {
-        if (!$this->research_interest) {
-            return [];
-        }
-
-        return array_values(array_filter(
-            array_map('trim', explode(',', $this->research_interest))
-        ));
+        return $this->researchInterests
+            ->pluck('interest')
+            ->map(fn ($interest) => trim((string) $interest))
+            ->filter()
+            ->values();
     }
 
     /**
@@ -498,6 +501,14 @@ class Teacher extends Model implements HasMedia
     public function teachingAreas(): HasMany
     {
         return $this->hasMany(TeachingArea::class)->orderBy('sort_order');
+    }
+
+    /**
+     * Get the research interests for the teacher.
+     */
+    public function researchInterests(): HasMany
+    {
+        return $this->hasMany(ResearchInterest::class)->orderBy('sort_order');
     }
 
     /**

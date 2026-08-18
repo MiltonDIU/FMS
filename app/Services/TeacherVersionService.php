@@ -29,8 +29,9 @@ class TeacherVersionService
         // Tab 3: Personal Details
         'personal_details' => ['date_of_birth', 'gender_id', 'blood_group_id', 'country_id', 'religion_id'],
         
-        // Tab 4: Academic Info
-        'academic_info' => ['research_interest'],
+        // Tab 4: Research Interest (Relation) — the section key stays
+        // `academic_info` because approval settings are stored under it.
+        'academic_info' => ['researchInterests'],
         
         // Tab 5: Educations (Relation)
         'educations' => ['educations'],
@@ -73,7 +74,7 @@ class TeacherVersionService
      */
     public const RELATION_NAMES = [
         'educations', 'publications', 'jobExperiences', 'trainingExperiences',
-        'awards', 'skills', 'teachingAreas', 'memberships', 'socialLinks'
+        'awards', 'skills', 'teachingAreas', 'researchInterests', 'memberships', 'socialLinks'
     ];
 
     /**
@@ -416,6 +417,7 @@ class TeacherVersionService
             'awards' => ['awards'],
             'skills' => ['skills'],
             'teaching_areas' => ['teachingAreas'],
+            'academic_info' => ['researchInterests'],
             'memberships' => ['memberships'],
             'social_links' => ['socialLinks'],
         ];

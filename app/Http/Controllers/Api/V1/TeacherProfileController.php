@@ -69,6 +69,7 @@ class TeacherProfileController extends Controller
             'awards' => ['awards.awardingBodyOrganizationRelation'],
             'memberships' => ['memberships.membershipType', 'memberships.membershipOrganization'],
             'teaching_areas' => ['teachingAreas'],
+            'research_interests' => ['researchInterests'],
             'skills' => ['skills'],
             'research' => ['researchProjects'],
             'social_links' => ['socialLinks.platform'],

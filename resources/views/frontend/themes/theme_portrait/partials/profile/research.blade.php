@@ -7,15 +7,23 @@
 --}}
 <div x-show="tab === 'research'" x-cloak>
 
-    @if($teacher->research_interest)
-        <blockquote class="border-l-2 pl-5 max-w-[62ch]" style="border-color: var(--brand-ink);">
-            <p class="text-[17px] leading-[1.65]" style="color: var(--text-base);">
-                {{ $teacher->research_interest }}
-            </p>
-        </blockquote>
+    {{-- Set as a rule-and-list rather than a pull quote: it stopped being one
+         person's sentence and became a list they keep, each entry able to say
+         what it covers. --}}
+    @if($teacher->researchInterests->isNotEmpty())
+        <div class="border-l-2 pl-5 max-w-[62ch]" style="border-color: var(--brand-ink);">
+            @foreach($teacher->researchInterests as $interest)
+                <p class="text-[17px] leading-[1.65] {{ $loop->first ? '' : 'mt-3' }}" style="color: var(--text-base);">
+                    {{ $interest->interest }}
+                    @if($interest->description)
+                        <span class="block text-[14px] mt-0.5" style="color: var(--text-soft);">{{ $interest->description }}</span>
+                    @endif
+                </p>
+            @endforeach
+        </div>
     @endif
 
-    <section class="{{ $teacher->research_interest ? 'mt-12' : '' }}">
+    <section class="{{ $teacher->researchInterests->isNotEmpty() ? 'mt-12' : '' }}">
         <div class="flex items-baseline justify-between mb-2">
             <h3 class="eyebrow">Projects</h3>
             @if($teacher->researchProjects->isNotEmpty())

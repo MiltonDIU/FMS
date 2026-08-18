@@ -9,8 +9,8 @@
 <div x-show="tab === 'overview'" x-cloak>
 
     @php
-        $bio = $teacher->bio ?: $teacher->research_interest;
-        $interests = $teacher->research_interests ?? [];
+        $bio = $teacher->bio ?: $teacher->researchInterestNames()->implode(', ');
+        $interests = $teacher->researchInterestNames();
     @endphp
 
     @if(filled($bio))

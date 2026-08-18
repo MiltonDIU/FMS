@@ -203,12 +203,12 @@
         {{-- MAIN COLUMN --}}
         <div class="col-main">
 
-            @if(\App\Helpers\CvSections::enabled('profile') && ($teacher->bio || $teacher->research_interest))
+            @if(\App\Helpers\CvSections::enabled('profile') && ($teacher->bio || $teacher->researchInterests->isNotEmpty()))
                 <div class="section">
                     <h2>Profile</h2>
                     @if($teacher->bio)<p class="summary">{{ strip_tags($teacher->bio) }}</p>@endif
-                    @if($teacher->research_interest)
-                        <p class="summary" style="margin-top:6px;"><strong>Research Interests:</strong> {{ $teacher->research_interest }}</p>
+                    @if($teacher->researchInterests->isNotEmpty())
+                        <p class="summary" style="margin-top:6px;"><strong>Research Interests:</strong> {{ $teacher->researchInterestNames()->implode(', ') }}</p>
                     @endif
                 </div>
             @endif

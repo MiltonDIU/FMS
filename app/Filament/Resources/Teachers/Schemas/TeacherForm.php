@@ -34,6 +34,7 @@ class TeacherForm
         'publications' => 10,
         'trainingExperiences' => 10,
         'teachingAreas' => 30,
+        'researchInterests' => 30,
     ];
 
     /**
@@ -300,10 +301,52 @@ class TeacherForm
                                 ]),
                             ]),
 
-                        Tab::make('Academic Info')
+                        /*
+                         * What used to be Academic Info, which was one textarea
+                         * holding a comma-separated list. Interests are a list a
+                         * teacher keeps, the same shape as their teaching areas,
+                         * so they are kept the same way — a row each, in an order
+                         * they chose, with room to say what the interest covers.
+                         */
+                        Tab::make('Research Interest')
                             ->icon('heroicon-o-academic-cap')
+                            ->badge(fn ($record) => $record?->researchInterests()->count())
                             ->schema([
-                                Textarea::make('research_interest')->rows(2)->columnSpanFull(),
+                                Repeater::make('researchInterests')
+                                    ->relationship(modifyQueryUsing: static::window('researchInterests'))
+                                    ->itemLabel(fn (array $state): ?string => $state['interest'] ?? null)
+                                    ->schema([
+                                        TextInput::make('interest')
+                                            ->label('Research Interest / Area')
+                                            ->required(),
+                                        TextInput::make('description')
+                                            ->label('Description / Notes'),
+                                    ])
+                                    ->columns(2)
+                                    ->defaultItems(0)
+                                    ->collapsed()
+                                    ->reorderable()
+                                    ->orderColumn('sort_order')
+                                    ->deletable(true)
+                                    ->addable(true)
+                                    ->saveRelationshipsUsing(function (Repeater $component, $state, $record) {
+                                        $record->researchInterests()->whereIn('id', static::removedIds($component, $state))->delete();
+
+                                        $sortOrder = 0;
+                                        foreach ($state ?? [] as $item) {
+                                            $data = [
+                                                'interest' => $item['interest'],
+                                                'description' => $item['description'] ?? null,
+                                                'sort_order' => $sortOrder++,
+                                            ];
+                                            if (isset($item['id'])) {
+                                                $record->researchInterests()->where('id', $item['id'])->update($data);
+                                            } else {
+                                                $record->researchInterests()->create($data);
+                                            }
+                                        }
+                                    }),
+                                static::loadMore('researchInterests', 'research interests'),
                             ]),
 
                         Tab::make('Educations')
