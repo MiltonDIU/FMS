@@ -483,6 +483,19 @@ class ScopusReview extends Page implements HasTable
     }
 
     /**
+     * Who actually corresponded, when the export got it wrong or said nothing.
+     *
+     * Names, as they appear in the author list beside the box — matched back to
+     * a position by the same rules the correspondence address is read with, so a
+     * reviewer types what they can see rather than counting along the row.
+     */
+    public function updateCorrespondingOverride(int $importId, string $paperKey, string $names): void
+    {
+        app(\App\Services\Scopus\ScopusAnalysisPayloadService::class)
+            ->setCorrespondingOverride($importId, $paperKey, $names);
+    }
+
+    /**
      * The same decision across every row the reviewer ticked.
      *
      * A run brings hundreds of rows and most of them get the same answer, so

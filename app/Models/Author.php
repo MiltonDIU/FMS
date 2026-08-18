@@ -20,7 +20,6 @@ class Author extends Model
         'author_type_id',
         'is_active',
         'used_our_affiliation',
-        'affiliation',
         'merged_into_teacher_id',
         'merged_at',
     ];
@@ -39,8 +38,31 @@ class Author extends Model
     public function publications()
     {
         return $this->morphToMany(Publication::class, 'authorable', 'publication_authors')
-            ->withPivot(['author_role', 'sort_order', 'incentive_amount'])
+            ->withPivot(['author_role', 'sort_order', 'incentive_amount', 'affiliation', 'used_our_affiliation'])
             ->withTimestamps();
+    }
+
+    /**
+     * Every institution this author has been printed under, most recent first.
+     *
+     * What the dropped `affiliation` column was reaching for and could not hold:
+     * a person is at one place on one paper and somewhere else on the next, and
+     * a single string can only keep whichever was seen first. Read from the
+     * papers, it is the whole list.
+     *
+     * @return \Illuminate\Support\Collection<int, string>
+     */
+    public function affiliations(): \Illuminate\Support\Collection
+    {
+        return DB::table('publication_authors')
+            ->join('publications', 'publications.id', '=', 'publication_authors.publication_id')
+            ->where('authorable_type', static::class)
+            ->where('authorable_id', $this->id)
+            ->whereNotNull('affiliation')
+            ->orderByDesc('publications.publication_year')
+            ->pluck('affiliation')
+            ->unique()
+            ->values();
     }
 
     /**
@@ -67,16 +89,31 @@ class Author extends Model
     }
 
     /**
-     * Records what an export said about where this author was writing from.
+     * Whether this row is one of our own people, or a genuine outsider.
+     *
+     * Not "where this author works" — a person writes from different places on
+     * different papers, and that belongs on `publication_authors.affiliation`,
+     * one line per author per paper. This is the narrower, and only useful,
+     * thing the authors table needs: has this name ever appeared under our own
+     * institution's affiliation, anywhere in anything we have read.
+     *
+     * A yes makes the row a merge candidate — either a teacher we failed to
+     * match by name, or a student or member of staff not in the teachers table
+     * at all. A no makes it a collaborator who belongs here permanently.
      *
      * "Ever" is the rule, and it only travels one way. Somebody who appears
      * once under our name and five times under a former employer's is ours, so
      * a true is never overwritten by a later false — the reverse would let the
      * last paper processed decide who somebody is.
      *
-     * The named institution is kept only while the answer is no. Once we know
-     * they wrote under our own affiliation, whose address appeared on some
-     * other paper is not what the row is for.
+     * Derived, and no more authoritative than what it was derived from:
+     * `scopus:backfill-affiliations` rebuilds it from the exports themselves.
+     * It is kept rather than computed because the exports say more than our own
+     * publications do — an author's standing counts the papers nobody approved
+     * for import too, which the pivot has no row for.
+     *
+     * @param  string|null  $namedInstitution  ignored; kept so callers that pass
+     *                                         what the export said still work
      */
     public function recordAffiliationStanding(bool $usedOurs, ?string $namedInstitution = null): void
     {
@@ -85,7 +122,6 @@ class Author extends Model
         }
 
         $this->used_our_affiliation = $usedOurs;
-        $this->affiliation = $usedOurs ? null : ($namedInstitution ?: $this->affiliation);
 
         $this->save();
     }
@@ -95,6 +131,10 @@ class Author extends Model
      *
      * The ones to leave alone: a co-author at another university belongs in
      * this table permanently and is not a merge waiting to happen.
+     *
+     * Nothing calls this today — the authors list filters on the other one —
+     * but it is half of a pair, and the half that says out loud that a false is
+     * not a null. An author nothing has looked at yet is in neither scope.
      */
     public function scopeNeverOurs(Builder $query): Builder
     {

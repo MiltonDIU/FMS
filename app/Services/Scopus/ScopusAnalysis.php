@@ -47,6 +47,7 @@ class ScopusAnalysis
         protected ScopusFileReader $reader,
         protected AffiliationMatcher $affiliations,
         protected RecordResolver $resolver,
+        protected CorrespondingAuthors $corresponding = new CorrespondingAuthors,
     ) {}
 
     /**
@@ -277,6 +278,20 @@ class ScopusAnalysis
                 'all_author_affiliations' => count($segments) === count($names)
                     ? implode('; ', array_map(fn ($segment) => trim((string) $segment), $segments))
                     : '',
+                /*
+                 * Which of those positions Scopus called the corresponding one.
+                 *
+                 * Positions rather than names, because a name is exactly what
+                 * cannot be relied on here — the correspondence column writes
+                 * "M.M. Murshid" where the author list writes "Murshid, Md
+                 * Mahmud", and matching the two is this run's job, not the
+                 * importer's. By the time it reaches attachAuthors the answer is
+                 * an index into the same list every other column is indexed by.
+                 */
+                'corresponding_positions' => $this->corresponding->positionsIn(
+                    (string) ($row['Correspondence Address'] ?? ''),
+                    $names,
+                ),
                 'diu_authors' => $ours,
                 'publication' => $match['publication'],
                 'confidence' => $match['confidence'],

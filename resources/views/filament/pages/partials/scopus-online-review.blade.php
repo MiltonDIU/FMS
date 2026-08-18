@@ -572,6 +572,7 @@
                             <th>First author</th>
                             <th>Scopus Authors</th>
                             <th>Our Stored Authors</th>
+                            <th>Corresponding</th>
                             <th>Decision / Action</th>
                         </tr>
                     </thead>
@@ -654,6 +655,7 @@
                                 </td>
                                 <td class="text-gray-600 dark:text-gray-400"><div class="max-w-[200px]">{{ $paper['all_authors'] }}</div></td>
                                 <td class="text-gray-600 dark:text-gray-400"><div class="max-w-[200px]">{{ $paper['our_authors'] ?: 'None' }}</div></td>
+                                @include('filament.pages.partials.scopus-corresponding-cell', ['paper' => $paper, 'pKey' => $pKey])
                                 <td class="whitespace-nowrap">
                                     @if(($paper['decision'] ?? '') === 'imported')
                                         <span class="bg-success-100 text-success-800 dark:bg-success-900/50 dark:text-success-300 px-2.5 py-1 rounded font-bold text-[11px] inline-flex items-center gap-1">
@@ -678,7 +680,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="p-6 text-center text-gray-500 dark:text-gray-400">No papers needing attention.</td>
+                                <td colspan="9" class="p-6 text-center text-gray-500 dark:text-gray-400">No papers needing attention.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -717,6 +719,7 @@
                             <th>Year / DOI</th>
                             <th>Journal / Source</th>
                             <th>Authors</th>
+                            <th>Corresponding</th>
                             <th>Decision / Action</th>
                         </tr>
                     </thead>
@@ -741,6 +744,7 @@
                                 <td class="text-gray-600 dark:text-gray-400 max-w-[200px] truncate" title="{{ $paper['all_authors'] }}">
                                     {{ $paper['all_authors'] }}
                                 </td>
+                                @include('filament.pages.partials.scopus-corresponding-cell', ['paper' => $paper, 'pKey' => $pKey])
                                 <td class="whitespace-nowrap">
                                     @if(($paper['decision'] ?? '') === 'imported')
                                         <span class="bg-success-100 text-success-800 dark:bg-success-900/50 dark:text-success-300 px-2.5 py-1 rounded font-bold text-[11px] inline-flex items-center gap-1">
@@ -765,7 +769,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="p-6 text-center text-gray-500 dark:text-gray-400">No new publications found.</td>
+                                <td colspan="7" class="p-6 text-center text-gray-500 dark:text-gray-400">No new publications found.</td>
                             </tr>
                         @endforelse
                     </tbody>

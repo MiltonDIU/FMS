@@ -47,6 +47,11 @@ class ScopusAnalysisPayloadService
                 // two columns did not line up. See ScopusAnalysis.
                 'all_author_ids' => $paper['all_author_ids'] ?? '',
                 'all_author_affiliations' => $paper['all_author_affiliations'] ?? '',
+                // Positions in all_authors that the correspondence address named.
+                // Kept separately from the reviewer's own answer below, so the
+                // two never have to be told apart after the fact.
+                'corresponding_positions' => $paper['corresponding_positions'] ?? [],
+                'corresponding_override' => null,
                 'diu_authors' => $paper['diu_authors'],
                 'existing_publication_id' => $pub?->id,
                 'existing_publication_title' => $pub?->title,
@@ -163,6 +168,54 @@ class ScopusAnalysisPayloadService
         }
     }
 
+    /**
+     * The reviewer's own answer to who corresponded, as they typed it.
+     *
+     * Stored beside what the export said rather than over it, so the two can
+     * still be told apart — and so clearing the box puts the export's answer
+     * back rather than leaving the paper with nobody.
+     */
+    public function setCorrespondingOverride(int $importId, string $paperKey, string $names): void
+    {
+        $payload = $this->getPayload($importId);
+
+        if (! $payload) {
+            return;
+        }
+
+        $foundKey = $this->resolveKey($payload['papers'], $paperKey);
+
+        if ($foundKey === null) {
+            return;
+        }
+
+        $names = trim($names);
+
+        $payload['papers'][$foundKey]['corresponding_override'] = $names === '' ? null : $names;
+        $payload['updated_at'] = now()->toIso8601String();
+
+        Storage::disk('local')->put($this->diskPath($importId), json_encode($payload, JSON_PRETTY_PRINT));
+    }
+
+    /**
+     * The names this paper's corresponding authors are recorded under, for
+     * showing back to a reviewer.
+     *
+     * @param  array<string, mixed>  $paper
+     */
+    public function correspondingNames(array $paper): string
+    {
+        $names = array_values(array_filter(
+            array_map('trim', explode(';', (string) ($paper['all_authors'] ?? ''))),
+            'strlen',
+        ));
+
+        return implode('; ', array_filter(array_map(
+            fn ($position) => $names[$position] ?? null,
+            $this->correspondingPositions($paper),
+        )));
+    }
+
     public function setPersonDecision(int $importId, string $personKey, string $decision, ?int $teacherId = null): void
     {
         $payload = $this->getPayload($importId);
@@ -275,7 +328,10 @@ class ScopusAnalysisPayloadService
         $errors = [];
 
         DB::transaction(function () use ($importId, &$payload, $selectedPaperKeys, &$created, &$updated, &$skipped, &$peopleLinked, &$errors) {
-            $resolver = app(RecordResolver::class);
+            // Built on the rules this run was made under, so that what counts as
+            // our own affiliation here is what counted when the workbook was
+            // written rather than whatever the defaults happen to be today.
+            $attacher = AuthorAttacher::for(ScopusImport::find($importId)?->matchingOptions());
 
             /*
              * Every publication we could match against, read once.
@@ -471,13 +527,13 @@ class ScopusAnalysisPayloadService
                     $payload['papers'][$pKey]['existing_publication_id'] = $publication->id;
 
                     try {
-                        $this->attachAuthors(
+                        $attacher->attach(
                             $publication,
                             $paper['all_authors'],
-                            $resolver,
-                            $payload['people'] ?? [],
                             (string) ($paper['all_author_ids'] ?? ''),
                             (string) ($paper['all_author_affiliations'] ?? ''),
+                            $this->correspondingPositions($paper),
+                            $payload['people'] ?? [],
                         );
                     } catch (\Throwable $e) {
                         $errors[] = "Authors of {$paper['title']}: " . $e->getMessage();
@@ -500,184 +556,44 @@ class ScopusAnalysisPayloadService
     }
 
     /**
-     * @param  array<array-key, array<string, mixed>>  $people  the run's own people, keyed as the analysis keyed them
+     * The author positions to record as corresponding, reviewer first.
+     *
+     * The analysis reads the correspondence address; a reviewer who disagrees
+     * types names instead, and those are matched back to the same author list by
+     * the same rules. An override that matches nothing is treated as no
+     * override rather than as "nobody corresponded" — a typo should not quietly
+     * erase what the export said.
+     *
+     * @param  array<string, mixed>  $paper
+     * @return array<int, int>
      */
-    protected function attachAuthors(Publication $publication, string $allAuthorsString, RecordResolver $resolver, array $people = [], string $allAuthorIds = '', string $allAuthorAffiliations = ''): void
+    protected function correspondingPositions(array $paper): array
     {
-        if (empty($allAuthorsString)) {
-            return;
+        $override = trim((string) ($paper['corresponding_override'] ?? ''));
+
+        if ($override !== '') {
+            $names = array_values(array_filter(
+                array_map('trim', explode(';', (string) ($paper['all_authors'] ?? ''))),
+                'strlen',
+            ));
+
+            $positions = app(CorrespondingAuthors::class)->positionsIn($override, $names);
+
+            if ($positions !== []) {
+                return $positions;
+            }
         }
 
-        $authorEntries = array_values(array_filter(array_map('trim', explode(';', $allAuthorsString)), 'strlen'));
-        $sortOrder = 0;
-
-        /*
-         * The identifiers, by position.
-         *
-         * Trusted only when there is exactly one for each name. The analysis
-         * already refuses to write the list when the export's columns disagree,
-         * and this is the second half of the same care: an identifier is unique
-         * and binding one to the wrong person is not something a later run can
-         * undo by itself.
-         */
-        $ids = array_values(array_filter(array_map('trim', explode(';', $allAuthorIds)), 'strlen'));
-        $idsAlign = $ids !== [] && count($ids) === count($authorEntries);
-
-        $affiliations = array_values(array_filter(array_map('trim', explode(';', $allAuthorAffiliations)), 'strlen'));
-        $affiliationsAlign = $affiliations !== [] && count($affiliations) === count($authorEntries);
-
-        // Built on first use, since a paper with no external authors needs none.
-        $byName = null;
-
-        foreach ($authorEntries as $position => $entry) {
-            $name = $entry;
-            $scopusId = $idsAlign ? ($ids[$position] ?? null) : null;
-            $affiliation = $affiliationsAlign ? ($affiliations[$position] ?? null) : null;
-
-            // A workbook column still carries "Name (57190123)", so the id is
-            // taken from the name too when the parallel list is not there.
-            if (preg_match('/^(.*?)\s*\((\d+)\)$/', $entry, $matches)) {
-                $name = trim($matches[1]);
-                $scopusId ??= trim($matches[2]);
-            }
-
-            $name = static::formatAuthorName($name);
-
-            $resolved = $resolver->resolveAuthor($name, null, null, [], $scopusId);
-            $role = ($sortOrder === 0) ? 'first' : 'co_author';
-
-            if ($resolved['kind'] === 'teacher' && $resolved['teacher'] !== null) {
-                $teacher = $resolved['teacher'];
-
-                /*
-                 * Bound here, not only in the People tab.
-                 *
-                 * The tab binds an identifier when a reviewer approves that
-                 * person, one at a time, and 914 of them went by with nobody
-                 * approved — so nothing was ever recorded. A paper being
-                 * imported has already been judged to be this teacher's, and
-                 * the identifier printed against their name on it is the same
-                 * evidence the tab would have used.
-                 */
-                ScopusAuthorId::bindTo($teacher, $scopusId, ScopusAuthorId::SOURCE_REVIEW, Auth::id());
-
-                $exists = DB::table('publication_authors')
-                    ->where('publication_id', $publication->id)
-                    ->where('authorable_type', Teacher::class)
-                    ->where('authorable_id', $teacher->id)
-                    ->exists();
-
-                if (! $exists) {
-                    DB::table('publication_authors')->insert([
-                        'publication_id' => $publication->id,
-                        'authorable_type' => Teacher::class,
-                        'authorable_id' => $teacher->id,
-                        'author_role' => $role,
-                        'sort_order' => $sortOrder,
-                        'affiliation' => $affiliation,
-                        'incentive_amount' => 0.00,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-                } elseif ($affiliation) {
-                    DB::table('publication_authors')
-                        ->where('publication_id', $publication->id)
-                        ->where('authorable_type', Teacher::class)
-                        ->where('authorable_id', $teacher->id)
-                        ->whereNull('affiliation')
-                        ->update(['affiliation' => $affiliation]);
-                }
-            } else {
-                $externalAuthor = null;
-                if (! empty($scopusId)) {
-                    $externalAuthor = Author::whereHas('scopusAuthorIds', function ($q) use ($scopusId) {
-                        $q->where('scopus_author_id', $scopusId);
-                    })->first();
-                }
-
-                if (! $externalAuthor) {
-                    $externalAuthor = Author::where('name', $name)->first();
-                }
-
-                $wasCreated = $externalAuthor === null;
-
-                if ($wasCreated) {
-                    $externalAuthor = Author::createExternal($name);
-                }
-
-                /*
-                 * Bound whether the row is new or was already here.
-                 *
-                 * This used to sit inside the "just created" branch, so an
-                 * author matched by name on their second paper never got the
-                 * identifier that paper carried. bindTo leaves an identifier
-                 * somebody already holds exactly where it is, which is what
-                 * makes it safe to call on every author of every paper.
-                 */
-                ScopusAuthorId::bindTo($externalAuthor, $scopusId, ScopusAuthorId::SOURCE_REVIEW, Auth::id());
-
-                /*
-                 * What the export said about where they were writing from.
-                 *
-                 * The run's own people list is the answer: the analysis put
-                 * somebody in it precisely because their affiliation line named
-                 * this institution. Absent from it means the export placed them
-                 * somewhere else, which is the difference between a co-author at
-                 * another university and one of ours whose name we could not
-                 * match — and without it every row in the authors table looks
-                 * exactly like every other.
-                 *
-                 * Only stamped when the run actually knew: a payload with no
-                 * people, which is what the older ones are, must not be read as
-                 * "none of these were ours".
-                 */
-                if ($people !== []) {
-                    $byName ??= $this->peopleByName($people, $resolver);
-
-                    [$usedOurs, $named] = $this->standingOf($name, $scopusId, $resolver, $byName);
-
-                    $externalAuthor->recordAffiliationStanding($usedOurs, $named);
-                } elseif ($wasCreated) {
-                    // Left explicitly unknown rather than silently false.
-                    $externalAuthor->used_our_affiliation = null;
-                }
-
-                $exists = DB::table('publication_authors')
-                    ->where('publication_id', $publication->id)
-                    ->where('authorable_type', Author::class)
-                    ->where('authorable_id', $externalAuthor->id)
-                    ->exists();
-
-                if (! $exists) {
-                    DB::table('publication_authors')->insert([
-                        'publication_id' => $publication->id,
-                        'authorable_type' => Author::class,
-                        'authorable_id' => $externalAuthor->id,
-                        'author_role' => $role,
-                        'sort_order' => $sortOrder,
-                        'affiliation' => $affiliation,
-                        'incentive_amount' => 0.00,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-                } elseif ($affiliation) {
-                    DB::table('publication_authors')
-                        ->where('publication_id', $publication->id)
-                        ->where('authorable_type', Author::class)
-                        ->where('authorable_id', $externalAuthor->id)
-                        ->whereNull('affiliation')
-                        ->update(['affiliation' => $affiliation]);
-                }
-            }
-
-            $sortOrder++;
-        }
+        return array_values(array_filter(
+            array_map('intval', (array) ($paper['corresponding_positions'] ?? [])),
+            fn (int $position) => $position >= 0,
+        ));
     }
 
     /**
      * Stamps every author a finished run saw with where it saw them writing from.
      *
-     * The same reading attachAuthors does, applied to a run that has already
+     * The same reading AuthorAttacher does, applied to a run that has already
      * happened. Existing rows carry nothing — 7,347 authors, every one of them
      * a GA with a placeholder address — and re-importing to fill that in would
      * mean re-applying decisions somebody already applied. The run's own json
@@ -806,7 +722,7 @@ class ScopusAnalysisPayloadService
     /**
      * The author row an export entry corresponds to, without creating one.
      *
-     * Same order of preference attachAuthors uses, plus the placeholder address
+     * Same order of preference AuthorAttacher uses, plus the placeholder address
      * createExternal builds, which is what actually collapses two spellings of
      * one name onto a single row.
      */
@@ -822,62 +738,6 @@ class ScopusAnalysisPayloadService
 
         return Author::where('name', $name)->first()
             ?? Author::where('email', Author::placeholderEmail($name))->first();
-    }
-
-    /**
-     * The run's people indexed by name, which is the only thing there is to
-     * match an author entry on.
-     *
-     * The people are keyed by Scopus identifier, and `all_authors` — the only
-     * author list the payload keeps per paper — has those identifiers stripped
-     * out of it. So neither the identifier nor the analysis's own key can be
-     * used here, and matching has to go through the name. nameKey reduces both
-     * sides to the same distinguishing tokens, so "Murshid, Md Mahmud" as the
-     * export writes it meets "Md Mahmud Murshid" as we would.
-     *
-     * @param  array<array-key, array<string, mixed>>  $people
-     * @return array<string, array<string, mixed>>
-     */
-    protected function peopleByName(array $people, RecordResolver $resolver): array
-    {
-        $indexed = [];
-
-        foreach ($people as $person) {
-            $key = $resolver->nameKey((string) ($person['name'] ?? ''));
-
-            if ($key !== '') {
-                $indexed[$key] ??= $person;
-            }
-        }
-
-        return $indexed;
-    }
-
-    /**
-     * Whether this author carried our affiliation, and whose they carried if not.
-     *
-     * @param  array<string, array<string, mixed>>  $byName  from peopleByName
-     * @return array{0: bool, 1: ?string}
-     */
-    protected function standingOf(string $name, ?string $scopusId, RecordResolver $resolver, array $byName): array
-    {
-        $person = $byName[$resolver->nameKey($name)] ?? null;
-
-        if ($person === null) {
-            // Never in the run's people at all: the export named somebody
-            // else's institution against every paper we saw them on.
-            return [false, null];
-        }
-
-        $standing = $person['standing'] ?? ScopusAnalysis::AFFILIATED_HERE;
-
-        if ($standing === ScopusAnalysis::AFFILIATED_HERE) {
-            return [true, null];
-        }
-
-        // In the people list, but only because a name or a recorded identifier
-        // put them there — the affiliation line still named somewhere else.
-        return [false, implode('; ', $person['other_affiliations'] ?? []) ?: null];
     }
 
     public static function formatAuthorName(string $name): string

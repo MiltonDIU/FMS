@@ -62,6 +62,11 @@
 
         <div class="p-6 md:p-8 space-y-8">
 
+            {{-- Every author of the paper, with the ones who wrote it under our
+                 own affiliation marked. Shared across themes, because which
+                 authors a paper has is not a question of styling. --}}
+            @include('frontend.partials.publication_authors', ['publication' => $publication])
+
             <!-- Core Metadata Block -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-white/30 backdrop-blur-xs rounded-xl border border-white/60 text-xs ring-1 ring-slate-900/5">
                 @if($venue)

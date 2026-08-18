@@ -84,18 +84,123 @@ class Publication extends Model
         'impact_factor' => 'decimal:2',
     ];
 
+    /**
+     * The pivot columns every reader of an authorship needs.
+     *
+     * `affiliation` and `used_our_affiliation` were being written by the import
+     * and read by nobody, because they were never listed here — so the question
+     * the columns exist to answer, which of this paper's authors wrote it as one
+     * of ours, could not be asked through the relation at all.
+     */
+    protected const AUTHOR_PIVOT = ['author_role', 'sort_order', 'incentive_amount', 'affiliation', 'used_our_affiliation'];
+
     public function teachers()
     {
         return $this->morphedByMany(Teacher::class, 'authorable', 'publication_authors')
-            ->withPivot(['author_role', 'sort_order', 'incentive_amount'])
+            ->withPivot(self::AUTHOR_PIVOT)
             ->withTimestamps();
     }
 
     public function externalAuthors()
     {
         return $this->morphedByMany(Author::class, 'authorable', 'publication_authors')
-            ->withPivot(['author_role', 'sort_order', 'incentive_amount'])
+            ->withPivot(self::AUTHOR_PIVOT)
             ->withTimestamps();
+    }
+
+    /**
+     * The authors this paper can be credited to the university by.
+     *
+     * Teachers who carried our own affiliation on this paper. Not "our teachers
+     * who are on it": somebody who joined last year has papers written under a
+     * previous employer, and those are that employer's output, not ours.
+     *
+     * Rows nothing has established are excluded, which is the strict reading —
+     * an import that never recorded an affiliation cannot be taken as evidence
+     * of one. The backfill command is what turns those from null into an answer.
+     */
+    public function ourTeachers()
+    {
+        return $this->teachers()->wherePivot('used_our_affiliation', true);
+    }
+
+    /**
+     * The paper's byline, in the order it was published in.
+     *
+     * One entry per person, which is the part that needs saying: somebody who is
+     * both the first-listed author and the corresponding one holds two rows,
+     * because author_role is a single enum and neither fact can be dropped. On a
+     * page they are one author with two things true of them, so the rows are
+     * collapsed back here rather than printing the same name twice.
+     *
+     * @return \Illuminate\Support\Collection<int, array{
+     *     name: string, roles: array<int, string>, is_ours: bool,
+     *     used_our_affiliation: ?bool, affiliation: ?string, teacher: ?Teacher, url: ?string
+     * }>
+     */
+    public function byline(): \Illuminate\Support\Collection
+    {
+        $this->loadMissing(['teachers.department.faculty', 'externalAuthors']);
+
+        $entries = collect();
+
+        foreach ($this->teachers as $teacher) {
+            $entries->push([
+                'key' => 'T:' . $teacher->id,
+                'name' => $teacher->full_name,
+                'pivot' => $teacher->pivot,
+                'teacher' => $teacher,
+            ]);
+        }
+
+        foreach ($this->externalAuthors as $author) {
+            $entries->push([
+                'key' => 'A:' . $author->id,
+                'name' => $author->name,
+                'pivot' => $author->pivot,
+                'teacher' => null,
+            ]);
+        }
+
+        return $entries
+            ->groupBy('key')
+            ->map(function ($rows) {
+                /*
+                 * The strongest claim among this person's rows decides where
+                 * they sit, and the earliest sort_order decides the order — a
+                 * corresponding row written later carries the same position.
+                 */
+                $roles = $rows->pluck('pivot.author_role')->unique()->values();
+                $first = $rows->first();
+
+                $affiliation = $rows->pluck('pivot.affiliation')->filter()->first();
+                $standing = $rows->pluck('pivot.used_our_affiliation')
+                    ->reject(fn ($value) => $value === null)
+                    ->map(fn ($value) => (bool) $value)
+                    ->sort()
+                    ->last();
+
+                return [
+                    'name' => $first['name'],
+                    'roles' => $roles->sortBy(fn (string $role) => match ($role) {
+                        'first' => 0,
+                        'corresponding' => 1,
+                        default => 2,
+                    })->values()->all(),
+                    'teacher' => $first['teacher'],
+                    // Ours on this paper: one of our teachers who carried our
+                    // own affiliation on it. A teacher who published under a
+                    // previous employer is on the paper but not on our count.
+                    'is_ours' => $first['teacher'] !== null && $standing === true,
+                    'used_our_affiliation' => $standing,
+                    'affiliation' => $affiliation,
+                    'url' => $first['teacher'] ? \App\Helpers\Seo::teacherUrl($first['teacher']) : null,
+                    'sort_order' => (int) $rows->min('pivot.sort_order'),
+                    'rank' => $roles->contains('first') ? 0 : ($roles->contains('corresponding') ? 1 : 2),
+                ];
+            })
+            ->sortBy([['sort_order', 'asc'], ['rank', 'asc']])
+            ->values();
     }
 
 

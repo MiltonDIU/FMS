@@ -128,6 +128,29 @@ class Seo
     }
 
     /**
+     * A teacher's own page, or null when they have nothing to be reached at.
+     *
+     * Three things have to be there — a faculty short name, a department code
+     * and a webpage slug — and a teacher missing any of them has no address, so
+     * their name on a byline is text rather than a link.
+     */
+    public static function teacherUrl(?Teacher $teacher): ?string
+    {
+        $department = $teacher?->department;
+        $faculty = $department?->faculty;
+
+        if (! $teacher || ! $department || ! $faculty?->short_name || blank($teacher->webpage)) {
+            return null;
+        }
+
+        return self::absolute('teacher.show', [
+            'faculty_short_name' => strtolower($faculty->short_name),
+            'department_code' => strtolower($department->code),
+            'teacher_webpage' => $teacher->webpage,
+        ]);
+    }
+
+    /**
      * The teacher a publication canonicalises onto.
      */
     public static function primaryAuthor(Publication $publication): ?Teacher

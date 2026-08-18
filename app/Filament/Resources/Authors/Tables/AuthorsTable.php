@@ -60,9 +60,26 @@ class AuthorsTable
                         false => 'gray',
                         default => 'secondary',
                     })
-                    // Named underneath, so "not ours" is answerable without
-                    // opening the record or going back to the export.
-                    ->description(fn ($record) => $record->affiliation)
+                    /*
+                     * Named underneath, so "not ours" is answerable without
+                     * opening the record or going back to the export.
+                     *
+                     * Every institution the papers put them at, not one. This
+                     * used to read a column on the author holding whichever was
+                     * seen first, which on somebody who has moved — or who
+                     * collaborates across two — named one place and implied it
+                     * was the only one.
+                     */
+                    ->description(function ($record) {
+                        $affiliations = $record->affiliations();
+
+                        if ($affiliations->isEmpty()) {
+                            return null;
+                        }
+
+                        return $affiliations->take(2)->implode('; ')
+                            . ($affiliations->count() > 2 ? ' +' . ($affiliations->count() - 2) . ' more' : '');
+                    })
                     ->sortable(),
                 /*
                  * Who this name turned out to be.

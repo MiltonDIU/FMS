@@ -48,6 +48,9 @@ class ImportAllOldTeachersDataCommand extends Command
             'import:old-teachers-publications',
             'import:old-teachers-teaching-areas',
             'import:training-experiences',
+            'publications:convert-pipeline',
+            'publications:import-pipeline',
+
         ];
 
         $this->info("🏁 Starting master import for all old teacher data...");

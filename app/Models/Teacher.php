@@ -428,9 +428,26 @@ class Teacher extends Model implements HasMedia
     public function publications(): \Illuminate\Database\Eloquent\Relations\MorphToMany
     {
         return $this->morphToMany(Publication::class, 'authorable', 'publication_authors')
-            ->withPivot(['author_role', 'sort_order', 'incentive_amount'])
+            // affiliation and used_our_affiliation say which of these papers
+            // this teacher wrote as one of ours — the ones from a previous
+            // employer are theirs to list and not the university's to count.
+            ->withPivot(['author_role', 'sort_order', 'incentive_amount', 'affiliation', 'used_our_affiliation'])
             ->orderBy('publications.sort_order')
             ->withTimestamps();
+    }
+
+    /**
+     * The publications this teacher wrote under our own affiliation.
+     *
+     * Deliberately excludes the ones nothing has established. An import that
+     * never recorded an affiliation is not evidence of one, and counting it
+     * would let the university claim papers on the strength of a missing
+     * column. `publications:backfill-author-affiliations` is what turns those
+     * from unknown into an answer.
+     */
+    public function ourPublications(): \Illuminate\Database\Eloquent\Relations\MorphToMany
+    {
+        return $this->publications()->wherePivot('used_our_affiliation', true);
     }
 
     /**

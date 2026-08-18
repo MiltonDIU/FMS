@@ -30,7 +30,7 @@ class BackfillAuthorAffiliationsCommand extends Command
     public function handle(ScopusAnalysisPayloadService $payloads): int
     {
         if ($this->option('fresh')) {
-            $cleared = Author::query()->update(['used_our_affiliation' => null, 'affiliation' => null]);
+            $cleared = Author::query()->update(['used_our_affiliation' => null]);
             $this->warn("Cleared {$cleared} author(s) before starting.");
         }
 

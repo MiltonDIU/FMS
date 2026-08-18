@@ -95,6 +95,14 @@
                 </p>
             </header>
 
+            {{-- The full byline, with the authors who wrote under our own
+                 affiliation marked. The paragraph above is the citation line;
+                 this is the roll, and it is where the roles and affiliations
+                 are. Shared across themes — who wrote a paper is not styling. --}}
+            <div class="mt-8">
+                @include('frontend.partials.publication_authors', ['publication' => $publication])
+            </div>
+
             {{-- Facts as a definition list on hairlines, matching the contact
                  block in the sidebar — one visual language for "label, value". --}}
             @if(! empty($facts))

@@ -2,7 +2,6 @@
 
 namespace App\Services\Scopus;
 
-use App\Models\Author;
 use App\Models\Publication;
 use App\Models\ScopusAuthorId;
 use App\Models\Teacher;
@@ -29,9 +28,21 @@ class ScopusWorkbookImporter
         'accept',
     ];
 
+    protected AuthorAttacher $attacher;
+
     public function __construct(
-        protected RecordResolver $resolver
-    ) {}
+        protected RecordResolver $resolver,
+        protected CorrespondingAuthors $corresponding = new CorrespondingAuthors,
+        ?AuthorAttacher $attacher = null,
+    ) {
+        /*
+         * The workbook does not carry the rules its run was made under, so the
+         * defaults are what there is. That only affects what counts as our own
+         * affiliation at the edges — the sister institutions — and a reviewer
+         * who needed those included has the browser path, which does know.
+         */
+        $this->attacher = $attacher ?? AuthorAttacher::for();
+    }
 
     /**
      * Parse the checked workbook and apply decisions.
@@ -203,6 +214,11 @@ class ScopusWorkbookImporter
             $at('Scopus — all authors', 'H'), $at('Scopus author ids', ''), $at('Authors with affiliations', ''), $at('Our Publication ID', 'K'),
         ];
 
+        // Both blank in a workbook written before these existed, which reads as
+        // "the export named nobody" — the same answer those runs already gave.
+        $correspondingCol = $at('Corresponding author(s)', '');
+        $overrideCol = $at('Corresponding override', '');
+
         for ($r = 2; $r <= $lastRow; $r++) {
             $title = trim((string) $sheet->getCell("{$titleCol}{$r}")->getValue());
             $decision = strtolower(trim((string) $sheet->getCell("{$decisionCol}{$r}")->getValue()));
@@ -227,6 +243,14 @@ class ScopusWorkbookImporter
                 $allAuthorIds = $idsCol === '' ? '' : trim((string) $sheet->getCell("{$idsCol}{$r}")->getValue());
                 $allAuthorAffiliations = $affiliationsCol === '' ? '' : trim((string) $sheet->getCell("{$affiliationsCol}{$r}")->getValue());
                 $existingIdVal = trim((string) $sheet->getCell("{$existingCol}{$r}")->getValue());
+
+                // The reviewer's answer beats the export's, which is the whole
+                // point of putting the column in front of them.
+                $corresponding = $overrideCol === '' ? '' : trim((string) $sheet->getCell("{$overrideCol}{$r}")->getValue());
+
+                if ($corresponding === '' && $correspondingCol !== '') {
+                    $corresponding = trim((string) $sheet->getCell("{$correspondingCol}{$r}")->getValue());
+                }
 
                 // Check if already exists in DB by ID, DOI, EID, or Title
                 $publication = null;
@@ -281,7 +305,16 @@ class ScopusWorkbookImporter
                 }
 
                 // Process author linkages
-                $this->attachAuthors($publication, $allAuthors, $allAuthorIds, $allAuthorAffiliations);
+                $this->attacher->attach(
+                    $publication,
+                    $allAuthors,
+                    $allAuthorIds,
+                    $allAuthorAffiliations,
+                    $this->corresponding->positionsIn(
+                        $corresponding,
+                        array_values(array_filter(array_map('trim', explode(';', $allAuthors)), 'strlen')),
+                    ),
+                );
 
             } catch (\Throwable $e) {
                 $errors[] = "Row {$r} ({$title}): " . $e->getMessage();
@@ -293,128 +326,6 @@ class ScopusWorkbookImporter
             'skipped' => $skipped,
             'errors' => $errors,
         ];
-    }
-
-    /**
-     * Resolves author names/IDs from Scopus format and attaches to publication_authors pivot.
-     */
-    protected function attachAuthors(Publication $publication, string $allAuthorsString, string $allAuthorIds = '', string $allAuthorAffiliations = ''): void
-    {
-        if (empty($allAuthorsString)) {
-            return;
-        }
-
-        // Format: "Fu, Xiang (111); Mahmud, Sakil (222)" or, as the workbook now
-        // writes it, plain names with the ids in their own column beside them.
-        $authorEntries = array_values(array_filter(array_map('trim', explode(';', $allAuthorsString)), 'strlen'));
-        $sortOrder = 0;
-
-        $ids = array_values(array_filter(array_map('trim', explode(';', $allAuthorIds)), 'strlen'));
-        $idsAlign = $ids !== [] && count($ids) === count($authorEntries);
-
-        $affiliations = array_values(array_filter(array_map('trim', explode(';', $allAuthorAffiliations)), 'strlen'));
-        $affiliationsAlign = $affiliations !== [] && count($affiliations) === count($authorEntries);
-
-        foreach ($authorEntries as $position => $entry) {
-            $name = $entry;
-            $scopusId = $idsAlign ? ($ids[$position] ?? null) : null;
-            $affiliation = $affiliationsAlign ? ($affiliations[$position] ?? null) : null;
-
-            if (preg_match('/^(.*?)\s*\((\d+)\)$/', $entry, $matches)) {
-                $name = trim($matches[1]);
-                $scopusId ??= trim($matches[2]);
-            }
-
-            $name = static::formatAuthorName($name);
-
-            $resolved = $this->resolver->resolveAuthor($name, null, null, [], $scopusId);
-            $role = ($sortOrder === 0) ? 'first' : 'co_author';
-
-            if ($resolved['kind'] === 'teacher' && $resolved['teacher'] !== null) {
-                $teacher = $resolved['teacher'];
-
-                // The same binding the online import does, so a review checked
-                // in Excel leaves the system knowing exactly what one checked
-                // in the browser does.
-                ScopusAuthorId::bindTo($teacher, $scopusId, ScopusAuthorId::SOURCE_REVIEW, Auth::id());
-
-                $exists = DB::table('publication_authors')
-                    ->where('publication_id', $publication->id)
-                    ->where('authorable_type', Teacher::class)
-                    ->where('authorable_id', $teacher->id)
-                    ->exists();
-
-                if (! $exists) {
-                    DB::table('publication_authors')->insert([
-                        'publication_id' => $publication->id,
-                        'authorable_type' => Teacher::class,
-                        'authorable_id' => $teacher->id,
-                        'author_role' => $role,
-                        'sort_order' => $sortOrder,
-                        'affiliation' => $affiliation,
-                        'incentive_amount' => 0.00,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-                } elseif ($affiliation) {
-                    DB::table('publication_authors')
-                        ->where('publication_id', $publication->id)
-                        ->where('authorable_type', Teacher::class)
-                        ->where('authorable_id', $teacher->id)
-                        ->whereNull('affiliation')
-                        ->update(['affiliation' => $affiliation]);
-                }
-            } else {
-                // Attach or create external author
-                $externalAuthor = null;
-                if (! empty($scopusId)) {
-                    $externalAuthor = Author::whereHas('scopusAuthorIds', function ($q) use ($scopusId) {
-                        $q->where('scopus_author_id', $scopusId);
-                    })->first();
-                }
-
-                if (! $externalAuthor) {
-                    $externalAuthor = Author::where('name', $name)->first();
-                }
-
-                if (! $externalAuthor) {
-                    $externalAuthor = Author::createExternal($name);
-                }
-
-                // Outside the "just created" branch, so an author matched by
-                // name on a later paper still gets the id that paper carried.
-                ScopusAuthorId::bindTo($externalAuthor, $scopusId, ScopusAuthorId::SOURCE_REVIEW, Auth::id());
-
-                $exists = DB::table('publication_authors')
-                    ->where('publication_id', $publication->id)
-                    ->where('authorable_type', Author::class)
-                    ->where('authorable_id', $externalAuthor->id)
-                    ->exists();
-
-                if (! $exists) {
-                    DB::table('publication_authors')->insert([
-                        'publication_id' => $publication->id,
-                        'authorable_type' => Author::class,
-                        'authorable_id' => $externalAuthor->id,
-                        'author_role' => $role,
-                        'sort_order' => $sortOrder,
-                        'affiliation' => $affiliation,
-                        'incentive_amount' => 0.00,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-                } elseif ($affiliation) {
-                    DB::table('publication_authors')
-                        ->where('publication_id', $publication->id)
-                        ->where('authorable_type', Author::class)
-                        ->where('authorable_id', $externalAuthor->id)
-                        ->whereNull('affiliation')
-                        ->update(['affiliation' => $affiliation]);
-                }
-            }
-
-            $sortOrder++;
-        }
     }
 
     public static function formatAuthorName(string $name): string

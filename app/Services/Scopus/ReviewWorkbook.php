@@ -235,7 +235,20 @@ class ReviewWorkbook
             // this the workbook round trip loses every identifier the export
             // carried, which is what left scopus_author_ids empty.
             'Scopus author ids',
+            /*
+             * The affiliation lines, in the same order as the names.
+             *
+             * The importer has looked for this column since affiliations were
+             * added and never found it, because nothing wrote it — so every
+             * publication imported from a checked workbook went in with no
+             * record of where any of its authors were writing from, while the
+             * same review done in the browser recorded all of it.
+             */
+            'Authors with affiliations',
             $this->ours . ' authors on this paper',
+            // What the correspondence address said, and room to disagree with
+            // it. Names, not positions: a reviewer should not have to count.
+            'Corresponding author(s)', 'Corresponding override',
             'Matched on', 'Our Publication ID', 'Our Title', 'Our Year', 'Our record came from',
             'Our authors', 'Authorship', 'What differs', 'Scopus 1st author', 'Our 1st author',
             'Decision', 'Notes',
@@ -261,7 +274,10 @@ class ReviewWorkbook
                 $paper['cited_by'],
                 $paper['all_authors'],
                 $paper['all_author_ids'] ?? '',
+                $paper['all_author_affiliations'] ?? '',
                 collect($paper['diu_authors'])->pluck('name')->implode('; '),
+                $this->correspondingNames($paper),
+                '',
                 $publication ? strtoupper($paper['match_basis']) : 'Not found',
                 $publication?->id,
                 $publication?->title,
@@ -276,28 +292,41 @@ class ReviewWorkbook
                 '',
             ], null, 'A' . $row, true);
 
-            // One column wider than before — "Scopus author ids" went in at I —
-            // so everything from there on has moved a letter right.
+            /*
+             * Three columns wider than the layout these letters were written
+             * for — affiliations at J, and the two corresponding-author columns
+             * at L and M — so everything from "Matched on" onwards has moved
+             * three to the right. The letters are still hand-written because
+             * only styling needs them; the importer reads by heading, which is
+             * what stopped the last such move from breaking it.
+             */
             if ($publication) {
                 // The authorship verdict is the cell a reviewer scans for, so it
                 // carries the colour rather than the whole row.
-                $sheet->getStyle("Q{$row}")->getFill()->setFillType(Fill::FILL_SOLID)
+                $sheet->getStyle("T{$row}")->getFill()->setFillType(Fill::FILL_SOLID)
                     ->getStartColor()->setRGB($colour);
 
                 // Where our copy came from, coloured too: an authorship problem
                 // on a PD-imported record means something different from one on
                 // a record somebody entered here.
-                $sheet->getStyle("O{$row}")->getFill()->setFillType(Fill::FILL_SOLID)
+                $sheet->getStyle("R{$row}")->getFill()->setFillType(Fill::FILL_SOLID)
                     ->getStartColor()->setRGB($this->sourceColour($publication));
 
                 // A disagreement about who came first changes the incentive
                 // split, so both names are marked, not just the verdict.
                 if ($authorship['status'] === AuthorshipComparison::FIRST_AUTHOR_DIFFERS) {
-                    $sheet->getStyle("S{$row}:T{$row}")->getFill()->setFillType(Fill::FILL_SOLID)
+                    $sheet->getStyle("V{$row}:W{$row}")->getFill()->setFillType(Fill::FILL_SOLID)
                         ->getStartColor()->setRGB('F8BBD0');
                 }
             } else {
-                $sheet->getStyle("K{$row}")->getFill()->setFillType(Fill::FILL_SOLID)
+                $sheet->getStyle("N{$row}")->getFill()->setFillType(Fill::FILL_SOLID)
+                    ->getStartColor()->setRGB('FFF2CC');
+            }
+
+            // Nothing named a corresponding author, which is the case a reviewer
+            // has to fill in by hand — 10% of the July export.
+            if (($paper['corresponding_positions'] ?? []) === []) {
+                $sheet->getStyle("L{$row}")->getFill()->setFillType(Fill::FILL_SOLID)
                     ->getStartColor()->setRGB('FFF2CC');
             }
 
@@ -399,6 +428,35 @@ class ReviewWorkbook
      * PD-imported record is an import that did not match a name, while the same
      * on a record somebody entered here is somebody's mistake.
      */
+    /**
+     * The corresponding authors, by name rather than by position.
+     *
+     * A reviewer reading "3; 7" would have to count along the author list to
+     * check it, and counting is the part people get wrong. The override column
+     * beside this one is read back the same way — names, matched by the same
+     * rules the correspondence address is.
+     *
+     * @param  array<string, mixed>  $paper
+     */
+    protected function correspondingNames(array $paper): string
+    {
+        $positions = $paper['corresponding_positions'] ?? [];
+
+        if ($positions === []) {
+            return '';
+        }
+
+        $names = array_values(array_filter(
+            array_map('trim', explode(';', (string) ($paper['all_authors'] ?? ''))),
+            'strlen',
+        ));
+
+        return implode('; ', array_filter(array_map(
+            fn ($position) => $names[$position] ?? null,
+            $positions,
+        )));
+    }
+
     protected function sourceOf($publication): string
     {
         if ($publication === null) {
