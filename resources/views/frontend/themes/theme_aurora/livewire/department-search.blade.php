@@ -37,13 +37,6 @@
         'admin' => $this->adminRoleId,
     ], 'filled');
 
-    // Where you are, for the parked bar on a small screen — see the note in
-    // teacher-search.
-    $scope = collect([
-        $this->department?->faculty?->short_name,
-        $this->department?->code ? strtoupper($this->department->code) : null,
-    ])->filter()->implode(' · ') ?: 'All faculties';
-
     $deptRoute = ($this->department && $this->department->faculty)
         ? [
             'faculty_short_name' => strtolower($this->department->faculty->short_name),
@@ -146,9 +139,6 @@
                     </button>
                 @endif
 
-                {{-- Only visible once the bar parks itself on a small screen. --}}
-                <span class="command-scope" title="Showing: {{ $scope }}">{{ $scope }}</span>
-
                 <span class="numeral hidden sm:block shrink-0 pl-1">{{ number_format($totalResults) }}</span>
 
                 @if($hasDrawer)
@@ -164,6 +154,18 @@
                         @endif
                     </button>
                 @endif
+
+                {{-- Fold the whole bar away into a bubble that can be dragged wherever
+                     the reader's thumb is, and tapped to bring the bar back. Small
+                     screens only; see .command-bubble in theme.css and the fold module
+                     in theme.js, which owns the bubble, its place and the drag. --}}
+                <button type="button" data-command-fold class="btn-icon command-fold shrink-0"
+                        aria-label="Hide search and filters" title="Hide search and filters">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/>
+                    </svg>
+                </button>
             </div>
         @endif
 
@@ -199,7 +201,7 @@
                        ], $carry)) }}" wire:navigate role="listitem"
                        class="chip {{ $dept->id === $this->department->id ? 'is-active' : '' }}"
                        style="font-weight: 500;">
-                        {{ $dept->name }}
+                        {{ $dept->short_name }}
                     </a>
                 @endforeach
             </div>

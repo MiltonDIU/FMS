@@ -48,23 +48,6 @@
         'designation' => $this->designationId,
         'admin' => $this->adminRoleId,
     ], 'filled');
-
-    /*
-     * Where you are, in as few characters as possible.
-     *
-     * On a small screen the parked bar hides the chip rails to win back the
-     * screen, and those chips were the only thing saying which faculty and
-     * department the list belonged to. This goes in the search row, which is
-     * there either way, so it costs no height.
-     */
-    $activeDepartment = $this->departmentId
-        ? $this->departments->firstWhere('id', (int) $this->departmentId)
-        : null;
-
-    $scope = collect([
-        $this->selectedFaculty?->short_name ?: $this->selectedFaculty?->name,
-        $activeDepartment?->code ? strtoupper($activeDepartment->code) : null,
-    ])->filter()->implode(' · ') ?: 'All faculties';
 @endphp
 
 <div>
@@ -141,10 +124,6 @@
                 </button>
             @endif
 
-            {{-- Only visible once the bar parks itself on a small screen; see
-                 .command-scope in theme.css. --}}
-            <span class="command-scope" title="Showing: {{ $scope }}">{{ $scope }}</span>
-
             <span class="numeral hidden sm:block shrink-0 pl-1">{{ number_format($totalResults) }}</span>
 
             @if($hasDrawer)
@@ -160,6 +139,18 @@
                     @endif
                 </button>
             @endif
+
+            {{-- Fold the whole bar away into a bubble that can be dragged wherever
+                 the reader's thumb is, and tapped to bring the bar back. Small
+                 screens only; see .command-bubble in theme.css and the fold module
+                 in theme.js, which owns the bubble, its place and the drag. --}}
+            <button type="button" data-command-fold class="btn-icon command-fold shrink-0"
+                    aria-label="Hide search and filters" title="Hide search and filters">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/>
+                </svg>
+            </button>
         </div>
 
         {{-- Faculties. Real links rather than component state, so a faculty is
@@ -198,7 +189,7 @@
                        ], $carry)) }}" wire:navigate role="listitem"
                        class="chip {{ (string) $dept->id === (string) $this->departmentId ? 'is-active' : '' }}"
                        style="font-weight: 500;">
-                        {{ $dept->name }}
+                        {{ $dept->short_name }}
                     </a>
                 @endforeach
             </div>
