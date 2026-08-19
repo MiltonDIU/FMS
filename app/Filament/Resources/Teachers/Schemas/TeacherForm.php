@@ -134,11 +134,79 @@ class TeacherForm
                             ->icon('heroicon-o-user')
                             ->schema([
                                 Grid::make(3)->schema([
+                                    /*
+                                     * The photograph is stored exactly as it
+                                     * was taken.
+                                     *
+                                     * avatar() is not a styling helper. It
+                                     * calls imageAspectRatio('1:1'),
+                                     * automaticallyCropImagesToAspectRatio()
+                                     * and automaticallyResizeImagesTo
+                                     * Width/Height('500') — and FilePond runs
+                                     * all of that in the browser, before the
+                                     * upload. A studio portrait shot at 3:4,
+                                     * shoulders and hands in frame, arrived
+                                     * here as a 500x500 square: not cropped
+                                     * for display, cropped away. Three
+                                     * separate uploads of the same picture
+                                     * landed at the same 88,697 bytes, because
+                                     * the 600x800 file never left the browser.
+                                     *
+                                     * No conversion can answer that. Media
+                                     * conversions run on the server, on
+                                     * whatever arrived, and there is no way
+                                     * back to pixels that were never sent.
+                                     *
+                                     * So the panel keeps its round, compact
+                                     * look — that part of avatar() is welcome
+                                     * — and the four settings that touch the
+                                     * file are turned off again immediately
+                                     * below. Every square this application
+                                     * wants is cut afterwards, by the avatar
+                                     * and avatar-sm conversions in the Teacher
+                                     * model, from a master that still has the
+                                     * whole person in it.
+                                     *
+                                     * The editor stays, so a badly framed shot
+                                     * can still be straightened by hand, with
+                                     * 4:5 offered as a preset because that is
+                                     * the frame the themes draw faces in. What
+                                     * is gone is the crop nobody asked for.
+                                     *
+                                     * conversion('avatar') is the other half of
+                                     * that bargain. The panel is a small circle
+                                     * and the master is now a 600x800 portrait,
+                                     * so showing the master here would push a
+                                     * whole studio photograph down the wire to
+                                     * fill a disc — and a 3:4 picture in a
+                                     * round frame is mostly the wrong parts of
+                                     * it. The square is cut by the conversion
+                                     * instead, on the server, from a file that
+                                     * still has the whole person in it.
+                                     *
+                                     * Safe on the 1,843 photographs that have
+                                     * never been through these conversions: the
+                                     * component checks hasGeneratedConversion
+                                     * and falls back to the original.
+                                     *
+                                     * One field, three pages — Edit, View and
+                                     * My Profile all render this schema, and
+                                     * the resource declares no infolist, so the
+                                     * view page is this form with its controls
+                                     * switched off.
+                                     */
                                     SpatieMediaLibraryFileUpload::make('photo')
                                         ->collection('avatar')
                                         ->disk('public')
+                                        ->conversion('avatar')
                                         ->avatar()
-                                        ->circleCropper()
+                                        ->imageAspectRatio(null)
+                                        ->automaticallyCropImagesToAspectRatio(false)
+                                        ->automaticallyResizeImagesToWidth(null)
+                                        ->automaticallyResizeImagesToHeight(null)
+                                        ->imageEditor()
+                                        ->imageEditorAspectRatios([null, '4:5', '1:1'])
+                                        ->helperText('The full frame is kept. Crop only to fix a badly framed shot.')
                                         ->columnSpanFull()
                                         ->alignCenter(),
                                     Select::make('user_id')

@@ -788,6 +788,65 @@ body {
 }
 
 /*
+ * The profile portrait: bigger than a tile, and shaped like the photograph
+ * rather than like the grid.
+ *
+ * 3:4 because that is what comes out of the studio session. Every other frame
+ * on the site is 4:5, which cropped about 7.5% off the height of a 3:4 picture
+ * — a sliver of jacket, nothing important, but there is no reason to lose it on
+ * the one page that is about this person alone. At 3:4 the cover crop is
+ * exactly nothing and object-position has nothing left to decide.
+ *
+ * Legacy photographs are all shapes, some of them nearly square; those still
+ * fill the frame the way they always did.
+ *
+ * Three widths, for three shapes of screen.
+ *
+ * On a phone the directory grid falls to a single column, so a face on the
+ * listing is as wide as the page — and then opening that person shrank their
+ * photograph to a 184px stamp. The page about one human being was showing them
+ * smaller than the page listing two thousand. So below sm the portrait takes
+ * the column, the way a tile does. The 24rem cap is for the wide end of that
+ * range, around 600px, where an uncapped frame would stand nearly 700px tall
+ * and push the name off the screen entirely.
+ *
+ * From sm it goes back to sitting beside the name rather than above it, and the
+ * panel is only about 32.5rem wide inside its padding there — 15rem would leave
+ * the name under 16rem and break display-lg over three lines. So the growth
+ * waits for lg.
+ *
+ * Kept here rather than in the inline style it replaced, so the frame and the
+ * grid column that has to match it are one decision made in one place.
+ *
+ * No shadow, and no lift on hover. A tile in the grid is a link — the shadow is
+ * what says it can be pressed. This one is a photograph of the person whose
+ * page you are already on, so it is not going anywhere, and a coloured glow
+ * under it was decoration doing no work. pointer-events sits here rather than
+ * inline for the same reason the width does: it belongs to what this frame is,
+ * not to one caller.
+ */
+.tile-portrait {
+    width: 100%;
+    max-width: 24rem;
+    aspect-ratio: 3 / 4;
+    box-shadow: none;
+    pointer-events: none;
+}
+
+@media (min-width: 40rem) {
+    .tile-portrait {
+        width: 11.5rem;
+        max-width: none;
+    }
+}
+
+@media (min-width: 64rem) {
+    .tile-portrait {
+        width: 15rem;
+    }
+}
+
+/*
  * 139 of about 2,000 faculty have no photograph on file. At tile size an empty
  * grey box is conspicuous, so the fallback is initials on the brand gradient —
  * something that reads as chosen rather than as missing.

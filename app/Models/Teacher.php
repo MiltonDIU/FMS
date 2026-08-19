@@ -14,6 +14,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
+use Spatie\Image\Enums\Constraint;
+use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -170,7 +172,20 @@ class Teacher extends Model implements HasMedia
     public function getPhotoUrlAttribute(): ?string
     {
         if ($this->exists && ($media = $this->getFirstMedia('avatar')) !== null) {
-            return $media->getUrl();
+            /*
+             * The 600px copy, not the master: a directory page shows two dozen
+             * faces at once and the original is whatever the photographer
+             * delivered.
+             *
+             * getAvailableUrl rather than getUrl('profile'), because getUrl
+             * builds an address whether or not the file behind it exists. Of
+             * 1,861 photographs on file only 18 have been through the current
+             * conversions — the rest were imported before these existed — so
+             * naming the conversion directly would answer 1,843 profiles with a
+             * broken image instead of the picture sitting right there.
+             * Regenerating them is a command, not a prerequisite.
+             */
+            return $media->getAvailableUrl(['profile']);
         }
 
         // Uploads made before the photographs moved wrote the media URL into
@@ -180,6 +195,23 @@ class Teacher extends Model implements HasMedia
         return filled($photo) && Str::startsWith($photo, ['http://', 'https://'])
             ? $photo
             : null;
+    }
+
+    /**
+     * The same photograph, for somewhere small.
+     *
+     * A byline strip draws a face at 3.75rem and the department contact list at
+     * 3.25rem; handing those the 600px copy is eight times the pixels anyone
+     * can see. Same guard as photo_url, and it falls through to the larger
+     * conversion and then the original, so a picture always appears.
+     */
+    public function getPhotoThumbUrlAttribute(): ?string
+    {
+        if ($this->exists && ($media = $this->getFirstMedia('avatar')) !== null) {
+            return $media->getAvailableUrl(['list', 'profile']);
+        }
+
+        return $this->photo_url;
     }
 
     /**
@@ -695,19 +727,82 @@ class Teacher extends Model implements HasMedia
     }
 
     /**
-     * Register media conversions.
+     * The photograph as a page should download it.
+     *
+     * The original is the master: whatever the photographer delivered, at
+     * whatever size, uncropped. That is the right thing to keep and the wrong
+     * thing to put in an <img>, because a directory page shows twenty-four of
+     * them at once and a studio JPEG is measured in megabytes.
+     *
+     * Width only. Setting both dimensions is what a conversion does to crop,
+     * and cropping here would undo the whole point of storing the original
+     * untouched — the framing is the theme's decision, made in CSS, where it
+     * can be changed without asking anyone to sit for another photograph.
+     *
+     * 600px because that is twice the widest a face is ever drawn: tiles start
+     * at 14rem and the profile portrait is 11.5rem, so this is still sharp on a
+     * retina screen with room to spare. The studio files are 600px wide to
+     * begin with, which makes this a no-op for them and a real saving for
+     * anything larger.
+     *
+     * DoNotUpsize, because most of what is on file is not a studio file. The
+     * 1,048 photographs pulled off the old faculty site are a few kilobytes
+     * each, and blowing those up to 600px would hand every visitor a bigger,
+     * blurrier copy of a small picture. Named arguments, so the constraints
+     * survive being written to the media row and read back — the transform that
+     * restores these enums looks for them by name.
+     *
+     * Not queued: it is one resize, it runs while the upload request is still
+     * open, and a queue that is not running would otherwise leave every new
+     * photograph without one. Missing conversions are survivable anyway — see
+     * photo_url, which falls back to the original.
+     *
+     * Replaces a 100x100 `thumb` and a 300x300 `medium` that nothing ever
+     * asked for, and that were square for the same mistaken reason the uploader
+     * was.
      */
+
+
     public function registerMediaConversions(?Media $media = null): void
     {
-        $this->addMediaConversion('thumb')
-            ->width(100)
-            ->height(100)
-            ->sharpen(10)
-            ->performOnCollections('avatar');
+        // Full teacher profile
+        $this->addMediaConversion('profile')
+            ->width(
+                width: 600,
+                constraints: [
+                    Constraint::PreserveAspectRatio,
+                    Constraint::DoNotUpsize,
+                ]
+            )
+            ->quality(90)
+            ->performOnCollections('avatar')
+            ->nonQueued();
 
-        $this->addMediaConversion('medium')
-            ->width(300)
-            ->height(300)
-            ->performOnCollections('avatar');
+        // Teacher directory / list
+        $this->addMediaConversion('list')
+            ->width(
+                width: 300,
+                constraints: [
+                    Constraint::PreserveAspectRatio,
+                    Constraint::DoNotUpsize,
+                ]
+            )
+            ->quality(85)
+            ->performOnCollections('avatar')
+            ->nonQueued();
+
+        // Square avatar
+        $this->addMediaConversion('avatar')
+            ->fit(Fit::Crop, 200, 200)
+            ->quality(85)
+            ->performOnCollections('avatar')
+            ->nonQueued();
+
+        // Small avatar
+        $this->addMediaConversion('avatar-sm')
+            ->fit(Fit::Crop, 100, 100)
+            ->quality(85)
+            ->performOnCollections('avatar')
+            ->nonQueued();
     }
 }
