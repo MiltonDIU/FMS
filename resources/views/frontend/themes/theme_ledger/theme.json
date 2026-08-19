@@ -1,0 +1,7 @@
+{
+    "name": "Ledger",
+    "description": "A printed-index directory. People are ruled rows rather than cards, with designation, department and publication count in columns you can read straight down; numbers are set in tabular mono, structure is carried by hairlines instead of boxes, and a profile is a ledger sheet with the identity on the left and every dated record hanging off a year gutter on the right.",
+    "author": "Daffodil International University",
+    "version": "1.0.0",
+    "screenshot": "screenshot.svg"
+}

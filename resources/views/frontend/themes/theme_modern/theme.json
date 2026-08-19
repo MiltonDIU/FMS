@@ -2,5 +2,6 @@
     "name": "Modern",
     "description": "A lighter, card-led take on the default: softer surfaces, more whitespace and a compact profile header.",
     "author": "Daffodil International University",
-    "version": "1.0.0"
+    "version": "1.0.0",
+    "screenshot": "screenshot.svg"
 }

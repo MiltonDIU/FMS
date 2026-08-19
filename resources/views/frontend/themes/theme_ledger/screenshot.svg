@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Ledger's entry in the Active Theme picker.
+
+    Drawn rather than photographed so it stays sharp at any size, weighs a few
+    kilobytes, and never goes stale against a browser or a screen resolution.
+    It shows the two things that make this theme different from the other three:
+    people are ruled rows with their facts in columns rather than cards in a
+    grid, and the page is built from hairlines and tabular figures rather than
+    from boxes.
+
+    Colours are Ledger's own light defaults rather than CSS variables — an <img>
+    is a separate document and cannot read the page's custom properties.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" width="1200" height="750"
+     role="img" aria-label="Ledger theme preview: a faculty directory set as a ruled index of rows with columns for designation, department and publication count">
+
+    <rect width="1200" height="750" fill="#faf9f6"/>
+
+    <!-- Masthead: colophon line, then the name, closed by a double rule. -->
+    <text x="60" y="34" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1.4" fill="#97918a">SMART CITY CAMPUS · ASHULIA, SAVAR, DHAKA</text>
+    <text x="1140" y="34" text-anchor="end" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1.4" fill="#97918a">9 FACULTIES · 30 DEPARTMENTS · 1,861 PROFILES</text>
+    <line x1="60" y1="46" x2="1140" y2="46" stroke="#1a1815" stroke-opacity="0.075"/>
+
+    <rect x="60" y="62" width="30" height="30" fill="#1a1815"/>
+    <text x="75" y="83" text-anchor="middle" font-family="Montserrat, sans-serif" font-size="15" font-weight="800" fill="#faf9f6">D</text>
+    <text x="102" y="84" font-family="Montserrat, sans-serif" font-size="17" font-weight="800" letter-spacing="-0.3" fill="#1a1815">DAFFODIL</text>
+    <text x="196" y="83" font-family="ui-monospace, monospace" font-size="11" letter-spacing="1.6" fill="#97918a">DIRECTORY</text>
+
+    <rect x="1046" y="62" width="94" height="30" fill="#1a1815"/>
+    <text x="1093" y="82" text-anchor="middle" font-family="Manrope, sans-serif" font-size="12" font-weight="700" fill="#faf9f6">Teacher Login</text>
+
+    <line x1="60" y1="106" x2="1140" y2="106" stroke="#1a1815" stroke-opacity="0.32"/>
+    <line x1="60" y1="109" x2="1140" y2="109" stroke="#1a1815" stroke-opacity="0.32"/>
+
+    <!-- The finder: a writing line, not a boxed input. -->
+    <circle cx="68" cy="150" r="6" fill="none" stroke="#97918a" stroke-width="1.6"/>
+    <line x1="72" y1="154" x2="76" y2="158" stroke="#97918a" stroke-width="1.6" stroke-linecap="round"/>
+    <text x="92" y="156" font-family="Manrope, sans-serif" font-size="15" fill="#97918a">Search by name, employee ID, designation, department or faculty</text>
+    <text x="1074" y="155" font-family="ui-monospace, monospace" font-size="12" fill="#97918a">1,861</text>
+    <rect x="1098" y="140" width="42" height="21" fill="none" stroke="#1a1815" stroke-opacity="0.14"/>
+    <text x="1119" y="155" text-anchor="middle" font-family="Manrope, sans-serif" font-size="11" font-weight="600" fill="#6f6a61">Refine</text>
+    <line x1="60" y1="170" x2="1140" y2="170" stroke="#1a1815" stroke-opacity="0.32"/>
+
+    <!-- The faculty index rail. "All" is the one carrying the brand underline. -->
+    <text x="60" y="196" font-family="Manrope, sans-serif" font-size="13" font-weight="600" fill="#1a1815">All</text>
+    <line x1="60" y1="202" x2="84" y2="202" stroke="#034ea2" stroke-width="2"/>
+    <text x="104" y="196" font-family="Manrope, sans-serif" font-size="13" font-weight="600" fill="#6f6a61">FSIT</text>
+    <text x="140" y="196" font-family="ui-monospace, monospace" font-size="11" fill="#97918a">412</text>
+    <text x="184" y="196" font-family="Manrope, sans-serif" font-size="13" font-weight="600" fill="#6f6a61">FE</text>
+    <text x="208" y="196" font-family="ui-monospace, monospace" font-size="11" fill="#97918a">327</text>
+    <text x="252" y="196" font-family="Manrope, sans-serif" font-size="13" font-weight="600" fill="#6f6a61">FBE</text>
+    <text x="283" y="196" font-family="ui-monospace, monospace" font-size="11" fill="#97918a">288</text>
+    <text x="327" y="196" font-family="Manrope, sans-serif" font-size="13" font-weight="600" fill="#6f6a61">FAHS</text>
+    <text x="367" y="196" font-family="ui-monospace, monospace" font-size="11" fill="#97918a">241</text>
+    <text x="411" y="196" font-family="Manrope, sans-serif" font-size="13" font-weight="600" fill="#6f6a61">FSC</text>
+    <text x="443" y="196" font-family="ui-monospace, monospace" font-size="11" fill="#97918a">196</text>
+
+    <!-- Heading over the index. -->
+    <text x="60" y="256" font-family="Montserrat, sans-serif" font-size="30" font-weight="800" letter-spacing="-0.6" fill="#1a1815">Everyone at DIU</text>
+    <text x="1140" y="255" text-anchor="end" font-family="ui-monospace, monospace" font-size="12" fill="#97918a">1,861 results of 1,861</text>
+
+    <!-- The ledger: column header, then rows. -->
+    <line x1="60" y1="280" x2="1140" y2="280" stroke="#1a1815" stroke-opacity="0.32"/>
+    <text x="88" y="298" text-anchor="end" font-family="ui-monospace, monospace" font-size="10" letter-spacing="1.4" fill="#97918a">#</text>
+    <text x="146" y="298" font-family="ui-monospace, monospace" font-size="10" letter-spacing="1.4" fill="#97918a">NAME</text>
+    <text x="740" y="298" font-family="ui-monospace, monospace" font-size="10" letter-spacing="1.4" fill="#97918a">DESIGNATION</text>
+    <text x="960" y="298" font-family="ui-monospace, monospace" font-size="10" letter-spacing="1.4" fill="#97918a">DEPT</text>
+    <text x="1140" y="298" text-anchor="end" font-family="ui-monospace, monospace" font-size="10" letter-spacing="1.4" fill="#97918a">PUB</text>
+    <line x1="60" y1="310" x2="1140" y2="310" stroke="#1a1815" stroke-opacity="0.14"/>
+
+    <!-- The administration band. -->
+    <rect x="60" y="310" width="1080" height="30" fill="#1a1815" fill-opacity="0.035"/>
+    <text x="70" y="330" font-family="ui-monospace, monospace" font-size="10" letter-spacing="1.6" fill="#4a463f">ADMINISTRATION</text>
+    <text x="1130" y="330" text-anchor="end" font-family="ui-monospace, monospace" font-size="11" fill="#97918a">4</text>
+    <line x1="60" y1="340" x2="1140" y2="340" stroke="#1a1815" stroke-opacity="0.14"/>
+
+    <g font-family="Manrope, sans-serif">
+        <!-- One row, drawn eight times. Every element in it is either type on a
+             baseline or a hairline; there is not a single box. -->
+        <g>
+            <text x="88" y="372" text-anchor="end" font-family="ui-monospace, monospace" font-size="11" fill="#97918a">1</text>
+            <rect x="102" y="354" width="32" height="32" fill="#f2f0ea"/>
+            <text x="146" y="373" font-size="14" font-weight="600" fill="#1a1815">Md. Sabur Khan</text>
+            <rect x="272" y="360" width="46" height="15" fill="none" stroke="#1a1815" stroke-opacity="0.14"/>
+            <text x="295" y="371" text-anchor="middle" font-family="ui-monospace, monospace" font-size="8" letter-spacing="0.8" fill="#6f6a61">DEAN</text>
+            <text x="740" y="373" font-size="13" fill="#6f6a61">Professor</text>
+            <text x="960" y="372" font-family="ui-monospace, monospace" font-size="11" letter-spacing="0.8" fill="#97918a">CSE</text>
+            <text x="1140" y="372" text-anchor="end" font-family="ui-monospace, monospace" font-size="12" fill="#97918a">42</text>
+            <line x1="60" y1="394" x2="1140" y2="394" stroke="#1a1815" stroke-opacity="0.075"/>
+        </g>
+        <g>
+            <text x="88" y="426" text-anchor="end" font-family="ui-monospace, monospace" font-size="11" fill="#97918a">2</text>
+            <rect x="102" y="408" width="32" height="32" fill="#f2f0ea"/>
+            <text x="146" y="427" font-size="14" font-weight="600" fill="#1a1815">Fatema Nasrin Jahan</text>
+            <rect x="308" y="414" width="76" height="15" fill="none" stroke="#1a1815" stroke-opacity="0.14"/>
+            <text x="346" y="425" text-anchor="middle" font-family="ui-monospace, monospace" font-size="8" letter-spacing="0.8" fill="#6f6a61">HEAD OF DEPT</text>
+            <text x="740" y="427" font-size="13" fill="#6f6a61">Associate Professor</text>
+            <text x="960" y="426" font-family="ui-monospace, monospace" font-size="11" letter-spacing="0.8" fill="#97918a">EEE</text>
+            <text x="1140" y="426" text-anchor="end" font-family="ui-monospace, monospace" font-size="12" fill="#97918a">27</text>
+            <line x1="60" y1="448" x2="1140" y2="448" stroke="#1a1815" stroke-opacity="0.075"/>
+        </g>
+
+        <!-- The second band, and the general list under it. -->
+        <rect x="60" y="448" width="1080" height="30" fill="#1a1815" fill-opacity="0.035"/>
+        <text x="70" y="468" font-family="ui-monospace, monospace" font-size="10" letter-spacing="1.6" fill="#4a463f">FACULTY MEMBERS</text>
+        <text x="1130" y="468" text-anchor="end" font-family="ui-monospace, monospace" font-size="11" fill="#97918a">1,857</text>
+        <line x1="60" y1="478" x2="1140" y2="478" stroke="#1a1815" stroke-opacity="0.14"/>
+
+        <g>
+            <text x="88" y="510" text-anchor="end" font-family="ui-monospace, monospace" font-size="11" fill="#97918a">3</text>
+            <rect x="102" y="492" width="32" height="32" fill="#f2f0ea"/>
+            <text x="146" y="511" font-size="14" font-weight="600" fill="#1a1815">Abdullah Al Mamun</text>
+            <text x="740" y="511" font-size="13" fill="#6f6a61">Professor</text>
+            <text x="960" y="510" font-family="ui-monospace, monospace" font-size="11" letter-spacing="0.8" fill="#97918a">CSE</text>
+            <text x="1140" y="510" text-anchor="end" font-family="ui-monospace, monospace" font-size="12" fill="#97918a">31</text>
+            <line x1="60" y1="532" x2="1140" y2="532" stroke="#1a1815" stroke-opacity="0.075"/>
+        </g>
+        <g>
+            <text x="88" y="564" text-anchor="end" font-family="ui-monospace, monospace" font-size="11" fill="#97918a">4</text>
+            <rect x="102" y="546" width="32" height="32" fill="#f2f0ea"/>
+            <text x="146" y="565" font-size="14" font-weight="600" fill="#1a1815">Nusrat Jahan Bushra</text>
+            <text x="740" y="565" font-size="13" fill="#6f6a61">Assistant Professor</text>
+            <text x="960" y="564" font-family="ui-monospace, monospace" font-size="11" letter-spacing="0.8" fill="#97918a">SWE</text>
+            <text x="1140" y="564" text-anchor="end" font-family="ui-monospace, monospace" font-size="12" fill="#97918a">14</text>
+            <line x1="60" y1="586" x2="1140" y2="586" stroke="#1a1815" stroke-opacity="0.075"/>
+        </g>
+        <g>
+            <text x="88" y="618" text-anchor="end" font-family="ui-monospace, monospace" font-size="11" fill="#97918a">5</text>
+            <rect x="102" y="600" width="32" height="32" fill="#f2f0ea"/>
+            <text x="146" y="619" font-size="14" font-weight="600" fill="#1a1815">Tanvir Ahmed Chowdhury</text>
+            <text x="740" y="619" font-size="13" fill="#6f6a61">Lecturer</text>
+            <text x="960" y="618" font-family="ui-monospace, monospace" font-size="11" letter-spacing="0.8" fill="#97918a">ICE</text>
+            <text x="1140" y="618" text-anchor="end" font-family="ui-monospace, monospace" font-size="12" fill="#97918a">3</text>
+            <line x1="60" y1="640" x2="1140" y2="640" stroke="#1a1815" stroke-opacity="0.075"/>
+        </g>
+        <g>
+            <text x="88" y="672" text-anchor="end" font-family="ui-monospace, monospace" font-size="11" fill="#97918a">6</text>
+            <rect x="102" y="654" width="32" height="32" fill="#f2f0ea"/>
+            <text x="146" y="673" font-size="14" font-weight="600" fill="#1a1815">Sharmin Akter Rimi</text>
+            <text x="740" y="673" font-size="13" fill="#6f6a61">Senior Lecturer</text>
+            <text x="960" y="672" font-family="ui-monospace, monospace" font-size="11" letter-spacing="0.8" fill="#97918a">TE</text>
+            <text x="1140" y="672" text-anchor="end" font-family="ui-monospace, monospace" font-size="12" fill="#97918a">8</text>
+            <line x1="60" y1="694" x2="1140" y2="694" stroke="#1a1815" stroke-opacity="0.075"/>
+        </g>
+    </g>
+
+    <!-- The ledger foot: which rows, not only which page. -->
+    <text x="60" y="722" font-family="ui-monospace, monospace" font-size="11" fill="#97918a">1–12 of 1,861</text>
+    <rect x="1024" y="708" width="34" height="19" fill="#1a1815"/>
+    <text x="1041" y="722" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#faf9f6">1</text>
+    <rect x="1064" y="708" width="34" height="19" fill="none" stroke="#1a1815" stroke-opacity="0.14"/>
+    <text x="1081" y="722" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#6f6a61">2</text>
+    <rect x="1104" y="708" width="34" height="19" fill="none" stroke="#1a1815" stroke-opacity="0.14"/>
+    <text x="1121" y="722" text-anchor="middle" font-family="ui-monospace, monospace" font-size="11" fill="#6f6a61">3</text>
+</svg>
