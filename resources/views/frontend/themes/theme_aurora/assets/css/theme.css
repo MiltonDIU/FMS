@@ -1030,6 +1030,80 @@ a.record:hover .record-what {
 }
 
 /* ---------------------------------------------------------------------------
+   Records gathered under their year
+   ---------------------------------------------------------------------------
+ * A record used to carry its own year in the left gutter, which meant a
+ * bibliography of sixty papers printed "2024" sixty times and still left the
+ * reader counting to work out how many of them were from last year.
+ *
+ * The year moves out of the row and becomes the heading for the rows under it,
+ * in the same 5rem gutter the dates already occupied — so the column of figures
+ * down the left is unchanged in position and weight, there is just one of each
+ * now. Newest year first, everywhere. An academic record is read from what
+ * someone is doing now backwards, not from what they did first forwards.
+ *
+ * The mark is sticky because these lists are long: scrolling into the middle of
+ * a hundred publications with no year in sight is exactly the problem grouping
+ * was meant to solve. It parks under the header, and the next year pushes it
+ * out of the way.
+ *
+ * Records with no year at all group under an em dash, last — put at the end by
+ * the sort in each partial rather than by anything here.
+ */
+.year-list {
+    border-bottom: 1px solid var(--hairline-soft);
+}
+
+.year-group {
+    display: grid;
+    grid-template-columns: 5rem minmax(0, 1fr);
+    gap: 0 1.25rem;
+}
+
+.year-mark {
+    position: sticky;
+    top: calc(var(--header-h) + 1rem);
+    align-self: start;
+    /* Matches .record's top padding, so the year sits on the same line as the
+       title of the first record under it rather than above it. */
+    padding-top: 0.9375rem;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.6;
+    font-variant-numeric: tabular-nums;
+    color: var(--brand-ink);
+    white-space: nowrap;
+}
+
+/* The year is the heading now, so the rows beneath it give their gutter back to
+   the text. */
+.year-group .record {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+/* .record:last-child closes a list with a rule. Inside a group that fires at
+   the end of every year and lands on top of the next year's opening rule, so
+   the list closes itself once instead — see .year-list. */
+.year-group .record:last-child {
+    border-bottom: none;
+}
+
+@media (max-width: 40rem) {
+    .year-group {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* Above its records rather than beside them, and no longer sticky: there is
+       nothing left of the row for it to sit alongside. */
+    .year-mark {
+        position: static;
+        padding-top: 1.25rem;
+        padding-bottom: 0.25rem;
+    }
+}
+
+/* ---------------------------------------------------------------------------
    The publication article
    ---------------------------------------------------------------------------
    Two columns: the paper on the left, and on the right what someone came to

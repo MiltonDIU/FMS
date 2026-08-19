@@ -6,6 +6,27 @@
     rendering them, which meant a teacher could record a credential in the
     admin panel and never see it appear on their own page.
 --}}
+@php
+    /*
+     * Both halves are gathered under their year, newest first — see
+     * publications for why sorting before grouping is all that takes.
+     *
+     * Training carries a plain year column; a certification carries the date it
+     * was issued, so that one is reduced to its year to sit in the same gutter.
+     */
+    $trainingYears = $teacher->trainingExperiences
+        ->sortByDesc(fn ($trn) => (int) $trn->year)
+        ->groupBy(fn ($trn) => $trn->year ?: '—');
+
+    $certYear = fn ($cert) => $cert->issue_date
+        ? \Illuminate\Support\Carbon::parse($cert->issue_date)->format('Y')
+        : null;
+
+    $certificationYears = $teacher->certifications
+        ->sortByDesc(fn ($cert) => (int) $certYear($cert))
+        ->groupBy(fn ($cert) => $certYear($cert) ?: '—');
+@endphp
+
 <section id="training" class="doc-section">
 
     <div class="flex items-baseline justify-between mb-3">
@@ -15,37 +36,43 @@
 
     {{-- Either half can be empty: the section is on the page when there is at
          least one of the two, which is the count the rail shows. --}}
-    <div>
-        @foreach($teacher->trainingExperiences as $trn)
-            @php
-                $org = $trn->organization ?: optional($trn->organizationRelation)->name;
+    <div class="year-list">
+        @foreach($trainingYears as $year => $sessions)
+            <div class="year-group">
+                <p class="year-mark">{{ $year }}</p>
 
-                $facts = array_filter([
-                    $trn->category,
-                    $trn->duration_days ? $trn->duration_days . ' days' : null,
-                    $trn->is_online ? 'Online' : null,
-                    $trn->country,
-                ], 'filled');
-            @endphp
+                <div>
+                    @foreach($sessions as $trn)
+                        @php
+                            $org = $trn->organization ?: optional($trn->organizationRelation)->name;
 
-            <div class="record">
-                <span class="record-when">{{ $trn->year ?: '—' }}</span>
+                            $facts = array_filter([
+                                $trn->category,
+                                $trn->duration_days ? $trn->duration_days . ' days' : null,
+                                $trn->is_online ? 'Online' : null,
+                                $trn->country,
+                            ], 'filled');
+                        @endphp
 
-                <span>
-                    <span class="record-what block">{{ $trn->title }}</span>
+                        <div class="record">
+                            <span>
+                                <span class="record-what block">{{ $trn->title }}</span>
 
-                    @if($org)
-                        <span class="record-sub block">{{ $org }}</span>
-                    @endif
+                                @if($org)
+                                    <span class="record-sub block">{{ $org }}</span>
+                                @endif
 
-                    @if($facts)
-                        <span class="record-note block">{{ implode(' · ', $facts) }}</span>
-                    @endif
+                                @if($facts)
+                                    <span class="record-note block">{{ implode(' · ', $facts) }}</span>
+                                @endif
 
-                    @if($trn->description)
-                        <span class="record-note block">{{ $trn->description }}</span>
-                    @endif
-                </span>
+                                @if($trn->description)
+                                    <span class="record-note block">{{ $trn->description }}</span>
+                                @endif
+                            </span>
+                        </div>
+                    @endforeach
+                </div>
             </div>
         @endforeach
     </div>
@@ -54,49 +81,53 @@
         <div class="{{ $teacher->trainingExperiences->isNotEmpty() ? 'mt-9' : '' }}">
             <p class="eyebrow-quiet mb-2">Certifications</p>
 
-            @foreach($teacher->certifications as $cert)
-                @php
-                    $issued = $cert->issue_date ? \Illuminate\Support\Carbon::parse($cert->issue_date)->format('Y') : null;
+            <div class="year-list">
+                @foreach($certificationYears as $year => $certifications)
+                    <div class="year-group">
+                        <p class="year-mark">{{ $year }}</p>
 
-                    // The column, not the organisation relation the CV builder
-                    // reaches for: issuing_authority is not nullable, and the
-                    // profile controller does not eager-load that relation, so
-                    // asking for it here would be a query per certification for
-                    // a fallback that can never fire.
-                    $issuer = $cert->issuing_authority;
-                @endphp
+                        <div>
+                            @foreach($certifications as $cert)
+                                @php
+                                    // The column, not the organisation relation the CV builder
+                                    // reaches for: issuing_authority is not nullable, and the
+                                    // profile controller does not eager-load that relation, so
+                                    // asking for it here would be a query per certification for
+                                    // a fallback that can never fire.
+                                    $issuer = $cert->issuing_authority;
 
-                <div class="record">
-                    <span class="record-when">{{ $issued ?: '—' }}</span>
+                                    $certFacts = array_filter([
+                                        $cert->type,
+                                        $cert->credential_id ? 'ID ' . $cert->credential_id : null,
+                                        $cert->expiry_date
+                                            ? 'Expires ' . \Illuminate\Support\Carbon::parse($cert->expiry_date)->format('M Y')
+                                            : null,
+                                    ], 'filled');
+                                @endphp
 
-                    <span>
-                        <span class="record-what block">{{ $cert->title }}</span>
+                                <div class="record">
+                                    <span>
+                                        <span class="record-what block">{{ $cert->title }}</span>
 
-                        @if($issuer)
-                            <span class="record-sub block">{{ $issuer }}</span>
-                        @endif
+                                        @if($issuer)
+                                            <span class="record-sub block">{{ $issuer }}</span>
+                                        @endif
 
-                        @php
-                            $certFacts = array_filter([
-                                $cert->type,
-                                $cert->credential_id ? 'ID ' . $cert->credential_id : null,
-                                $cert->expiry_date
-                                    ? 'Expires ' . \Illuminate\Support\Carbon::parse($cert->expiry_date)->format('M Y')
-                                    : null,
-                            ], 'filled');
-                        @endphp
+                                        @if($certFacts)
+                                            <span class="record-note block">{{ implode(' · ', $certFacts) }}</span>
+                                        @endif
 
-                        @if($certFacts)
-                            <span class="record-note block">{{ implode(' · ', $certFacts) }}</span>
-                        @endif
-
-                        @if($cert->credential_url)
-                            <a href="{{ $cert->credential_url }}" target="_blank" rel="noopener noreferrer"
-                               class="link-brand inline-block mt-1 text-[12px]">Verify credential &rarr;</a>
-                        @endif
-                    </span>
-                </div>
-            @endforeach
+                                        @if($cert->credential_url)
+                                            <a href="{{ $cert->credential_url }}" target="_blank" rel="noopener noreferrer"
+                                               class="link-brand inline-block mt-1 text-[12px]">Verify credential &rarr;</a>
+                                        @endif
+                                    </span>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endforeach
+            </div>
         </div>
     @endif
 </section>
