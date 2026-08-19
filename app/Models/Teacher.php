@@ -248,6 +248,46 @@ class Teacher extends Model implements HasMedia
     }
 
     /**
+     * The photograph as a file on this machine, for the PDF renderer.
+     *
+     * The CV used to hand dompdf the same absolute URL the browser gets, and
+     * for a photograph in our own storage that address points back at this
+     * application. So generating a CV made the server issue an HTTP request to
+     * itself and wait for the answer — and `artisan serve` runs a single
+     * worker, which is already busy generating that CV. The request could never
+     * be served, the PDF never finished, and the server stayed wedged for every
+     * visitor afterwards: seventeen connections were queued behind one download
+     * when this was found.
+     *
+     * Behind a multi-worker server it completes, but it is still a network
+     * round trip, a second full request through the middleware stack, and a
+     * timeout waiting to happen, to read a file that is sitting on the disk.
+     *
+     * So: our own photographs are read from the disk. Only the legacy host's
+     * are fetched, by serverFetchablePhotoUrl, which is what that vetting was
+     * written for.
+     *
+     * dompdf resolves local paths against its chroot, which the package sets to
+     * base_path(); everything the media library writes lives under it.
+     */
+    public function localPhotoPath(): ?string
+    {
+        if (! $this->exists) {
+            return null;
+        }
+
+        $media = $this->getFirstMedia('avatar');
+
+        if ($media === null) {
+            return null;
+        }
+
+        $path = $media->getPath();
+
+        return is_file($path) ? $path : null;
+    }
+
+    /**
      * Only the teachers the public is allowed to see.
      *
      * The website has always applied these two conditions by hand in each

@@ -163,10 +163,20 @@
                  photo_url gives the address they are actually served from, and
                  the controller enables remote images for dompdf. --}}
             @php
-                // dompdf runs with isRemoteEnabled, so it is the server that
-                // fetches this. serverFetchablePhotoUrl() refuses addresses that
-                // resolve inside the network; see the accessor for why.
-                $cvPhotoUrl = $teacher->serverFetchablePhotoUrl();
+                /*
+                 * Our own photographs are read off the disk; only the legacy
+                 * host's are fetched over the network.
+                 *
+                 * Handing dompdf the browser's URL made the server request the
+                 * image from itself, which under a single-worker server can
+                 * never be answered — the worker is busy building this very PDF.
+                 * The download hung forever and left the site unable to serve
+                 * anyone else. See Teacher::localPhotoPath().
+                 *
+                 * serverFetchablePhotoUrl() still vets the remote case: it
+                 * refuses addresses that resolve inside the network.
+                 */
+                $cvPhotoUrl = $teacher->localPhotoPath() ?? $teacher->serverFetchablePhotoUrl();
             @endphp
             @if($cvPhotoUrl)
                 <img class="photo" src="{{ $cvPhotoUrl }}">
