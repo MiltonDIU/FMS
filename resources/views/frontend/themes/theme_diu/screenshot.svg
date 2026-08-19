@@ -37,6 +37,13 @@
         <pattern id="diu-mesh" width="9" height="9" patternUnits="userSpaceOnUse">
             <circle cx="1" cy="1" r="0.9" fill="#ffffff" fill-opacity="0.55"/>
         </pattern>
+        <!-- Tailwind's shadow-sm, which the cards carry:
+             0 1px 3px rgb(0 0 0 / .1), 0 1px 2px -1px rgb(0 0 0 / .1).
+             Tight and close to the card — theme_modern's is the wide soft one,
+             and that contrast is the point of the pair of drawings. -->
+        <filter id="diu-shadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-color="#000000" flood-opacity="0.1"/>
+        </filter>
     </defs>
 
     <!-- The page. Cool blue-grey, with the faint brand washes body carries. -->
@@ -174,7 +181,7 @@
     <g>
         <!-- Card 1 -->
         <g>
-            <rect x="355" y="352" width="247" height="300" rx="16" fill="#ffffff" stroke="#e2e8f0"/>
+            <rect x="355" y="352" width="247" height="300" rx="16" fill="#ffffff" stroke="#e2e8f0" filter="url(#diu-shadow)"/>
             <path d="M355 368a16 16 0 0 1 16-16h215a16 16 0 0 1 16 16v28H355z" fill="url(#diu-card-top-accent)"/>
             <rect x="355" y="352" width="247" height="44" fill="url(#diu-mesh)" fill-opacity="0.35"/>
             <rect x="373" y="374" width="44" height="44" rx="9" fill="#ffffff" stroke="#e2e8f0"/>
@@ -214,7 +221,7 @@
 
         <!-- Card 2 -->
         <g>
-            <rect x="624" y="352" width="247" height="300" rx="16" fill="#ffffff" stroke="#e2e8f0"/>
+            <rect x="624" y="352" width="247" height="300" rx="16" fill="#ffffff" stroke="#e2e8f0" filter="url(#diu-shadow)"/>
             <path d="M624 368a16 16 0 0 1 16-16h215a16 16 0 0 1 16 16v28H624z" fill="url(#diu-card-top-accent)"/>
             <rect x="624" y="352" width="247" height="44" fill="url(#diu-mesh)" fill-opacity="0.35"/>
             <rect x="642" y="374" width="44" height="44" rx="9" fill="#ffffff" stroke="#e2e8f0"/>
@@ -255,7 +262,7 @@
         <!-- Card 3: no administrative role, so the primary-blue banner and no
              badge. -->
         <g>
-            <rect x="893" y="352" width="247" height="300" rx="16" fill="#ffffff" stroke="#e2e8f0"/>
+            <rect x="893" y="352" width="247" height="300" rx="16" fill="#ffffff" stroke="#e2e8f0" filter="url(#diu-shadow)"/>
             <path d="M893 368a16 16 0 0 1 16-16h215a16 16 0 0 1 16 16v28H893z" fill="url(#diu-card-top)"/>
             <rect x="893" y="352" width="247" height="44" fill="url(#diu-mesh)" fill-opacity="0.35"/>
             <rect x="911" y="374" width="44" height="44" rx="9" fill="#ffffff" stroke="#e2e8f0"/>
@@ -294,11 +301,11 @@
 
     <!-- The next row, cropped by the frame: a grid continues past the fold. -->
     <g opacity="0.9">
-        <path d="M355 690a16 16 0 0 1 16-16h215a16 16 0 0 1 16 16v60H355z" fill="#ffffff" stroke="#e2e8f0"/>
+        <path d="M355 690a16 16 0 0 1 16-16h215a16 16 0 0 1 16 16v60H355z" fill="#ffffff" stroke="#e2e8f0" filter="url(#diu-shadow)"/>
         <path d="M355 690a16 16 0 0 1 16-16h215a16 16 0 0 1 16 16v18H355z" fill="url(#diu-card-top)"/>
-        <path d="M624 690a16 16 0 0 1 16-16h215a16 16 0 0 1 16 16v60H624z" fill="#ffffff" stroke="#e2e8f0"/>
+        <path d="M624 690a16 16 0 0 1 16-16h215a16 16 0 0 1 16 16v60H624z" fill="#ffffff" stroke="#e2e8f0" filter="url(#diu-shadow)"/>
         <path d="M624 690a16 16 0 0 1 16-16h215a16 16 0 0 1 16 16v18H624z" fill="url(#diu-card-top)"/>
-        <path d="M893 690a16 16 0 0 1 16-16h215a16 16 0 0 1 16 16v60H893z" fill="#ffffff" stroke="#e2e8f0"/>
+        <path d="M893 690a16 16 0 0 1 16-16h215a16 16 0 0 1 16 16v60H893z" fill="#ffffff" stroke="#e2e8f0" filter="url(#diu-shadow)"/>
         <path d="M893 690a16 16 0 0 1 16-16h215a16 16 0 0 1 16 16v18H893z" fill="url(#diu-card-top)"/>
     </g>
 </svg>

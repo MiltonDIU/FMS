@@ -12,8 +12,15 @@
 
     What differs, and what this drawing has to show: a frosted translucent
     masthead instead of a solid white one, a page tinted with soft brand washes,
-    much rounder cards carrying a real shadow rather than a hard slate border,
-    pill-shaped tags instead of square ones, and lighter hairlines throughout.
+    a wider and softer card shadow (the shadow-card token: 0 4px 16px at 6%, against
+    DIU's tight Tailwind shadow-sm), pill-shaped tags where DIU squares them,
+    rounder avatar frames and buttons, and lighter hairlines throughout.
+
+    What does NOT differ, and an earlier draft of this drawing got wrong: the
+    card corner. The markup asks for rounded-3xl, but .card is written outside
+    any cascade layer and Tailwind's utilities live inside @layer utilities —
+    unlayered wins, so .card's own border-radius: 1rem is what actually paints.
+    Both themes' cards are 16px, and both carry a 1px border under the shadow.
 
     Colours are the theme's own light defaults (#034ea2 primary, #0072bc accent,
     #f6f7f9 page) rather than CSS variables — an <img> is a separate document
@@ -39,9 +46,13 @@
         <pattern id="mod-mesh" width="9" height="9" patternUnits="userSpaceOnUse">
             <circle cx="1" cy="1" r="0.9" fill="#ffffff" fill-opacity="0.55"/>
         </pattern>
-        <!-- The soft card shadow this theme leans on in place of a border. -->
+        <!-- The shadow-card token, as the theme declares it in light mode:
+             0 1px 2px rgba(16,24,40,.04), 0 4px 16px rgba(16,24,40,.06).
+             Two feDropShadows because it is two shadows: a wide soft one and a
+             tight contact one. -->
         <filter id="mod-shadow" x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="0" dy="6" stdDeviation="9" flood-color="#101828" flood-opacity="0.09"/>
+            <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#101828" flood-opacity="0.06"/>
+            <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#101828" flood-opacity="0.04"/>
         </filter>
     </defs>
 
@@ -182,10 +193,10 @@
     <g>
         <!-- Card 1 -->
         <g filter="url(#mod-shadow)">
-            <rect x="355" y="352" width="247" height="300" rx="24" fill="#ffffff"/>
+            <rect x="355" y="352" width="247" height="300" rx="16" fill="#ffffff" stroke="#eceef1"/>
         </g>
         <g>
-            <path d="M355 376a24 24 0 0 1 24-24h199a24 24 0 0 1 24 24v20H355z" fill="url(#mod-card-top-accent)"/>
+            <path d="M355 368a16 16 0 0 1 16-16h215a16 16 0 0 1 16 16v28H355z" fill="url(#mod-card-top-accent)"/>
             <rect x="355" y="352" width="247" height="44" fill="url(#mod-mesh)" fill-opacity="0.35"/>
             <rect x="373" y="374" width="44" height="44" rx="13" fill="#ffffff"/>
             <rect x="376" y="377" width="38" height="38" rx="10" fill="#0072bc"/>
@@ -214,7 +225,7 @@
             <rect x="373" y="570" width="66" height="14" rx="7" fill="#034ea2" fill-opacity="0.1"/>
             <text x="406" y="580" text-anchor="middle" font-family="Manrope, sans-serif" font-size="8" font-weight="500" fill="#034ea2">Capital Markets</text>
 
-            <path d="M355 610h247v18a24 24 0 0 1-24 24H379a24 24 0 0 1-24-24z" fill="#f3f4f6"/>
+            <path d="M355 610h247v26a16 16 0 0 1-16 16H371a16 16 0 0 1-16-16z" fill="#f3f4f6"/>
             <line x1="355" y1="610" x2="602" y2="610" stroke="#f1f3f6"/>
             <path d="M377 630v-3M373 628l4.5-2.5 4.5 2.5-4.5 2.5z" fill="none" stroke="#034ea2" stroke-width="1.3" stroke-linejoin="round"/>
             <text x="390" y="632" font-family="Manrope, sans-serif" font-size="8.5" font-weight="600" letter-spacing="0.5" fill="#7b828c">42 PUBLICATIONS</text>
@@ -224,10 +235,10 @@
 
         <!-- Card 2 -->
         <g filter="url(#mod-shadow)">
-            <rect x="624" y="352" width="247" height="300" rx="24" fill="#ffffff"/>
+            <rect x="624" y="352" width="247" height="300" rx="16" fill="#ffffff" stroke="#eceef1"/>
         </g>
         <g>
-            <path d="M624 376a24 24 0 0 1 24-24h199a24 24 0 0 1 24 24v20H624z" fill="url(#mod-card-top-accent)"/>
+            <path d="M624 368a16 16 0 0 1 16-16h215a16 16 0 0 1 16 16v28H624z" fill="url(#mod-card-top-accent)"/>
             <rect x="624" y="352" width="247" height="44" fill="url(#mod-mesh)" fill-opacity="0.35"/>
             <rect x="642" y="374" width="44" height="44" rx="13" fill="#ffffff"/>
             <rect x="645" y="377" width="38" height="38" rx="10" fill="#0072bc"/>
@@ -256,7 +267,7 @@
             <rect x="642" y="570" width="74" height="14" rx="7" fill="#034ea2" fill-opacity="0.1"/>
             <text x="679" y="580" text-anchor="middle" font-family="Manrope, sans-serif" font-size="8" font-weight="500" fill="#034ea2">Smart Grid Design</text>
 
-            <path d="M624 610h247v18a24 24 0 0 1-24 24H648a24 24 0 0 1-24-24z" fill="#f3f4f6"/>
+            <path d="M624 610h247v26a16 16 0 0 1-16 16H640a16 16 0 0 1-16-16z" fill="#f3f4f6"/>
             <line x1="624" y1="610" x2="871" y2="610" stroke="#f1f3f6"/>
             <path d="M646 630v-3M642 628l4.5-2.5 4.5 2.5-4.5 2.5z" fill="none" stroke="#034ea2" stroke-width="1.3" stroke-linejoin="round"/>
             <text x="659" y="632" font-family="Manrope, sans-serif" font-size="8.5" font-weight="600" letter-spacing="0.5" fill="#7b828c">27 PUBLICATIONS</text>
@@ -267,10 +278,10 @@
         <!-- Card 3: no administrative role, so the primary-blue banner and no
              badge. -->
         <g filter="url(#mod-shadow)">
-            <rect x="893" y="352" width="247" height="300" rx="24" fill="#ffffff"/>
+            <rect x="893" y="352" width="247" height="300" rx="16" fill="#ffffff" stroke="#eceef1"/>
         </g>
         <g>
-            <path d="M893 376a24 24 0 0 1 24-24h199a24 24 0 0 1 24 24v20H893z" fill="url(#mod-card-top)"/>
+            <path d="M893 368a16 16 0 0 1 16-16h215a16 16 0 0 1 16 16v28H893z" fill="url(#mod-card-top)"/>
             <rect x="893" y="352" width="247" height="44" fill="url(#mod-mesh)" fill-opacity="0.35"/>
             <rect x="911" y="374" width="44" height="44" rx="13" fill="#ffffff"/>
             <rect x="914" y="377" width="38" height="38" rx="10" fill="#034ea2"/>
@@ -297,7 +308,7 @@
             <rect x="911" y="570" width="88" height="14" rx="7" fill="#034ea2" fill-opacity="0.1"/>
             <text x="955" y="580" text-anchor="middle" font-family="Manrope, sans-serif" font-size="8" font-weight="500" fill="#034ea2">Distributed Systems</text>
 
-            <path d="M893 610h247v18a24 24 0 0 1-24 24H917a24 24 0 0 1-24-24z" fill="#f3f4f6"/>
+            <path d="M893 610h247v26a16 16 0 0 1-16 16H909a16 16 0 0 1-16-16z" fill="#f3f4f6"/>
             <line x1="893" y1="610" x2="1140" y2="610" stroke="#f1f3f6"/>
             <path d="M915 630v-3M911 628l4.5-2.5 4.5 2.5-4.5 2.5z" fill="none" stroke="#034ea2" stroke-width="1.3" stroke-linejoin="round"/>
             <text x="928" y="632" font-family="Manrope, sans-serif" font-size="8.5" font-weight="600" letter-spacing="0.5" fill="#7b828c">31 PUBLICATIONS</text>
@@ -308,11 +319,11 @@
 
     <!-- The next row, cropped by the frame: a grid continues past the fold. -->
     <g opacity="0.9">
-        <path d="M355 698a24 24 0 0 1 24-24h199a24 24 0 0 1 24 24v52H355z" fill="#ffffff"/>
-        <path d="M355 698a24 24 0 0 1 24-24h199a24 24 0 0 1 24 24v10H355z" fill="url(#mod-card-top)"/>
-        <path d="M624 698a24 24 0 0 1 24-24h199a24 24 0 0 1 24 24v52H624z" fill="#ffffff"/>
-        <path d="M624 698a24 24 0 0 1 24-24h199a24 24 0 0 1 24 24v10H624z" fill="url(#mod-card-top)"/>
-        <path d="M893 698a24 24 0 0 1 24-24h199a24 24 0 0 1 24 24v52H893z" fill="#ffffff"/>
-        <path d="M893 698a24 24 0 0 1 24-24h199a24 24 0 0 1 24 24v10H893z" fill="url(#mod-card-top)"/>
+        <path d="M355 690a16 16 0 0 1 16-16h215a16 16 0 0 1 16 16v60H355z" fill="#ffffff" stroke="#eceef1"/>
+        <path d="M355 690a16 16 0 0 1 16-16h215a16 16 0 0 1 16 16v18H355z" fill="url(#mod-card-top)"/>
+        <path d="M624 690a16 16 0 0 1 16-16h215a16 16 0 0 1 16 16v60H624z" fill="#ffffff" stroke="#eceef1"/>
+        <path d="M624 690a16 16 0 0 1 16-16h215a16 16 0 0 1 16 16v18H624z" fill="url(#mod-card-top)"/>
+        <path d="M893 690a16 16 0 0 1 16-16h215a16 16 0 0 1 16 16v60H893z" fill="#ffffff" stroke="#eceef1"/>
+        <path d="M893 690a16 16 0 0 1 16-16h215a16 16 0 0 1 16 16v18H893z" fill="url(#mod-card-top)"/>
     </g>
 </svg>
