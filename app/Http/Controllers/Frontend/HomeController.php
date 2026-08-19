@@ -49,7 +49,18 @@ class HomeController extends Controller
         }
 
         $totalTeachers   = Teacher::where('is_active', true)->where('is_archived', false)->count();
-        $totalDepartments = Department::where('is_active', true)->count();
+
+        /*
+         * A department is only reachable when its faculty is published too:
+         * DepartmentController resolves the faculty first and answers 404 when
+         * it is switched off. One department hangs off "System - Unassigned
+         * Faculty", the holding pen for teachers with no department set, and
+         * counting it advertised a thirty-first department nobody can open.
+         */
+        $totalDepartments = Department::where('is_active', true)
+            ->whereHas('faculty', fn ($query) => $query->where('is_active', true))
+            ->count();
+
         $totalFaculties  = $faculties->count();
         $totalPublications = Publication::count();
 

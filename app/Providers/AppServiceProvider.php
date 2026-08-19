@@ -37,12 +37,31 @@ class AppServiceProvider extends ServiceProvider
          */
         Gate::policy(\App\Models\Activity::class, \App\Policies\ActivityPolicy::class);
 
-        // Share header statistics with every theme's header partial so the
-        // view no longer runs database queries itself.
+        /*
+         * Header statistics, shared with every theme's header partial so the
+         * view no longer runs database queries itself.
+         *
+         * All three count only what a visitor can actually reach. The teacher
+         * count always did; the other two counted every row, so the header
+         * advertised six faculties while the page beneath it listed five — the
+         * sixth being "System - Unassigned Faculty", the holding pen for
+         * teachers with no department set, switched off precisely so it is not
+         * shown.
+         *
+         * Departments carry the faculty condition as well, because a department
+         * is only reachable when its faculty is published: DepartmentController
+         * resolves the faculty first and answers 404 when it is not. One
+         * department sits under that unassigned faculty.
+         *
+         * The conditions match what HomeController counts, so a number in the
+         * header and the same number on the page cannot disagree.
+         */
         View::composer('frontend.themes.*.partials.header', function ($view) {
             $view->with([
-                'facultiesCount' => Faculty::count(),
-                'departmentsCount' => Department::count(),
+                'facultiesCount' => Faculty::where('is_active', true)->count(),
+                'departmentsCount' => Department::where('is_active', true)
+                    ->whereHas('faculty', fn ($query) => $query->where('is_active', true))
+                    ->count(),
                 'teachersCount' => Teacher::where('is_active', true)->where('is_archived', false)->count(),
             ]);
         });
