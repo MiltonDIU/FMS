@@ -19,24 +19,55 @@
 
         /* ---------- Header ---------- */
         .header {
-            display: flex;
-            align-items: center;
-            gap: 18px;
             border-bottom: 3px solid #034ea2;
             padding-bottom: 16px;
             margin-bottom: 18px;
             page-break-inside: avoid;
             break-inside: avoid;
         }
+        /*
+         * Width only, and no object-fit: dompdf implements neither object-fit
+         * nor aspect-ratio, so giving it both dimensions does not crop a
+         * photograph — it stretches one. A 600x806 studio portrait squeezed
+         * into a 78px square came out as a squashed avatar, which is not what
+         * anybody photographed.
+         *
+         * With the height left to follow, every picture keeps its own shape:
+         * the new 3:4 portraits stand 104px, and the older imports, which are
+         * all sorts of ratios, are no longer distorted either.
+         */
+        /*
+         * A table, not flex.
+         *
+         * dompdf 3.1 accepts `display: flex` and then lays the items out its
+         * own way: a flex-grow on the text block took the whole width and
+         * dropped the photograph onto the next line, under the name rather than
+         * beside it. Two table cells put it where it is meant to be in every
+         * renderer, and a fixed-width last cell in a full-width table is
+         * exactly what "against the right margin" means.
+         */
+        .header-grid {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .header-grid td {
+            padding: 0;
+            /* Top, not middle: the photograph is taller than the name block,
+               and centring left the name floating in the middle of the header
+               instead of starting level with the top of the picture. */
+            vertical-align: top;
+        }
+        .header-photo {
+            width: 78px;
+            padding-left: 18px;
+        }
         .photo {
-            width: 78px; height: 78px;
+            width: 78px;
             border-radius: 10px;
-            object-fit: cover;
             border: 2px solid #e5e7eb;
-            flex-shrink: 0;
         }
         .photo-fallback {
-            width: 78px; height: 78px;
+            width: 78px; height: 104px;
             border-radius: 10px;
             background: #034ea2;
             color: #fff;
@@ -176,14 +207,23 @@
                  * serverFetchablePhotoUrl() still vets the remote case: it
                  * refuses addresses that resolve inside the network.
                  */
+                // localPhotoPath() hands back the profile conversion when there
+                // is one — the same 600px copy the profile page shows, rather
+                // than a full studio master resized down for an 80px slot.
                 $cvPhotoUrl = $teacher->localPhotoPath() ?? $teacher->serverFetchablePhotoUrl();
             @endphp
-            @if($cvPhotoUrl)
-                <img class="photo" src="{{ $cvPhotoUrl }}">
-            @else
-                <div class="photo-fallback">{{ strtoupper(substr($teacher->first_name ?? '?', 0, 1)) }}</div>
-            @endif
-            <div>
+            {{-- Name first, photograph on the right.
+
+                 The name now starts at the left margin, on the same line every
+                 section heading below it starts on — with the photograph
+                 leading, the whole header sat 96px in and nothing in the
+                 document lined up with anything else. It also puts the first
+                 thing read where reading starts: a CV is a document about a
+                 person, and the person's name is its headline, not their
+                 passport picture. --}}
+            <table class="header-grid">
+            <tr>
+            <td class="header-text">
                 <div class="name">{{ $teacher->full_name }}</div>
                 @if($teacher->designation?->name)
                     <div class="title">{{ $teacher->designation->name }}</div>
@@ -205,7 +245,17 @@
                         <span>Room: {{ $teacher->office_room }}</span>
                     @endif
                 </div>
-            </div>
+            </td>
+
+            <td class="header-photo">
+                @if($cvPhotoUrl)
+                    <img class="photo" src="{{ $cvPhotoUrl }}">
+                @else
+                    <div class="photo-fallback">{{ strtoupper(substr($teacher->first_name ?? '?', 0, 1)) }}</div>
+                @endif
+            </td>
+            </tr>
+            </table>
         @endif
     </div>
 

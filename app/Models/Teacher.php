@@ -314,6 +314,27 @@ class Teacher extends Model implements HasMedia
             return null;
         }
 
+        /*
+         * The same 600px copy the profile page shows, not the master.
+         *
+         * A CV draws the photograph about 80px wide. Handing dompdf whatever
+         * the photographer delivered means decoding a full studio JPEG to
+         * produce a thumbnail, once per download, in the request. The profile
+         * conversion is already the right size and is already on disk.
+         *
+         * Asked for by name only when it exists: 1,843 of the photographs on
+         * file predate these conversions, and getPath() on an ungenerated one
+         * points at nothing. Those fall through to the master, which is what
+         * this method has always returned.
+         */
+        if ($media->hasGeneratedConversion('profile')) {
+            $conversion = $media->getPath('profile');
+
+            if (is_file($conversion)) {
+                return $conversion;
+            }
+        }
+
         $path = $media->getPath();
 
         return is_file($path) ? $path : null;
