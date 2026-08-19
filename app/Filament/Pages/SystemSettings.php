@@ -74,12 +74,8 @@ class SystemSettings extends Page
 
         // Explicitly cast custom boolean settings
         $boolKeys = ['export_overwrite', 'import_dry_run', 'import_skip_existing'];
-        foreach (array_keys(\App\Helpers\Theme::allOptions()) as $slug) {
+        foreach (array_keys(static::getAvailableThemes()) as $slug) {
             $boolKeys[] = \App\Helpers\FontManager::settingKey($slug, 'footer_match_theme');
-            $boolKeys[] = "theme_{$slug}_enabled";
-            if (! isset($settings["theme_{$slug}_enabled"])) {
-                $settings["theme_{$slug}_enabled"] = true;
-            }
         }
         foreach ($boolKeys as $bk) {
             if (isset($settings[$bk])) {
