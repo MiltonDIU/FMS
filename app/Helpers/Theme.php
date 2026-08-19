@@ -122,8 +122,14 @@ class Theme
         return array_keys(static::installed());
     }
 
-    /** Slug => display name, for a settings dropdown. */
+    /** Slug => display name, for a settings dropdown (only enabled themes). */
     public static function options(): array
+    {
+        return array_map(fn (array $meta) => $meta['name'], static::enabled());
+    }
+
+    /** All installed themes (enabled or disabled), slug => display name. */
+    public static function allOptions(): array
     {
         return array_map(fn (array $meta) => $meta['name'], static::installed());
     }
@@ -131,6 +137,24 @@ class Theme
     public static function isInstalled(string $slug): bool
     {
         return array_key_exists($slug, static::installed());
+    }
+
+    /** Check if a theme is installed and enabled in settings. */
+    public static function isEnabled(string $slug): bool
+    {
+        if (! static::isInstalled($slug)) {
+            return false;
+        }
+
+        $setting = Setting::get("theme_{$slug}_enabled", true);
+
+        return filter_var($setting, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    /** All installed and enabled themes. */
+    public static function enabled(): array
+    {
+        return array_filter(static::installed(), fn (array $meta, string $slug) => static::isEnabled($slug), ARRAY_FILTER_USE_BOTH);
     }
 
     /**
@@ -171,18 +195,20 @@ class Theme
 
         $stored = trim((string) Setting::get('active_theme', static::FALLBACK));
 
-        if (static::isInstalled($stored)) {
+        if (static::isInstalled($stored) && static::isEnabled($stored)) {
             return $stored;
         }
 
-        $fallback = static::isInstalled(static::FALLBACK)
+        $enabledSlugs = array_keys(static::enabled());
+
+        $fallback = (static::isInstalled(static::FALLBACK) && static::isEnabled(static::FALLBACK))
             ? static::FALLBACK
-            : (static::slugs()[0] ?? '');
+            : ($enabledSlugs[0] ?? (static::slugs()[0] ?? ''));
 
         if ($stored !== '' && ! static::$warned) {
             static::$warned = true;
 
-            Log::warning('Active theme is not installed; falling back.', [
+            Log::warning('Active theme is not installed or is disabled; falling back.', [
                 'requested' => $stored,
                 'using' => $fallback ?: '(none installed)',
             ]);

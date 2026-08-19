@@ -4,16 +4,17 @@
 
     $showAdminRole = $showAdminRole ?? true;
     $adminRole = null;
-    if ($teacher->administrativeRoles->isNotEmpty()) {
-        $roles = $teacher->administrativeRoles;
-        if ($pageDeptId && $roles->where('department_id', $pageDeptId)->isNotEmpty()) {
-            $adminRole = $roles->where('department_id', $pageDeptId)->first();
-        } elseif ($pageFacId) {
-            $adminRole = $roles->where('faculty_id', $pageFacId)->where('department_id', null)->first();
-        } else {
-            $adminRole = $roles->first();
-        }
-    }
+    // The role belonging to the page being looked at, then one held across the
+    // faculty, then whatever they hold. The last try is the fix: $pageFacId is
+    // always set here, so the old else could never run, and an assignment
+    // naming neither a faculty nor a department — nine of the forty-one on file
+    // — matched nothing. Those teachers appeared in Administration with no
+    // badge and, here, without the admin styling either.
+    $roles = $teacher->administrativeRoles;
+
+    $adminRole = ($pageDeptId ? $roles->firstWhere('department_id', $pageDeptId) : null)
+        ?: ($pageFacId ? $roles->first(fn ($r) => $r->department_id === null && (int) $r->faculty_id === (int) $pageFacId) : null)
+        ?: $roles->first();
     $isAdmin = $showAdminRole && ! is_null($adminRole);
     $adminRoleName = $adminRole?->administrativeRole?->name;
 

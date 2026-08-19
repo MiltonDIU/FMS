@@ -9,8 +9,23 @@
             <p class="text-xs text-slate-500 font-medium">No academic degrees have been added yet.</p>
         </div>
     @else
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            @foreach($teacher->educations as $edu)
+        {{-- Newest degree first, under the year it was finished. --}}
+        @php
+            $years = $teacher->educations
+                ->sortByDesc(fn ($edu) => (int) $edu->passing_year)
+                ->groupBy(fn ($edu) => $edu->passing_year ?: '—');
+        @endphp
+
+        <div class="space-y-6">
+          @foreach($years as $year => $rows)
+            <div class="space-y-3">
+                <div class="flex items-center gap-3">
+                    <span class="text-[11px] font-sans font-black text-diu-primary tracking-wider tabular-nums">{{ $year }}</span>
+                    <span class="h-px flex-1 bg-slate-200"></span>
+                    <span class="text-[10px] font-sans font-bold text-slate-400 tabular-nums">{{ $rows->count() }}</span>
+                </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            @foreach($rows as $edu)
                 @php
                     $degreeName = optional($edu->degreeType)->name ?? optional($edu->degreeLevel)->name ?? 'Degree';
                     $degreeTitle = $degreeName . ($edu->major ? ' in ' . $edu->major : '');
@@ -32,14 +47,16 @@
                     $resultString = implode(' | ', $resultParts);
                 @endphp
                 <div class="p-4 rounded-2xl border border-slate-200 ring-1 ring-slate-900/5">
-                    <span class="bg-diu-primary/10 text-diu-primary text-[9px] font-sans font-black uppercase px-2 py-0.5 rounded-xs">Year: {{ $edu->passing_year ?? 'N/A' }}</span>
-                    <h4 class="text-sm font-bold text-slate-800 mt-2 font-display">{{ $degreeTitle }}</h4>
+                    <h4 class="text-sm font-bold text-slate-800 font-display">{{ $degreeTitle }}</h4>
                     <p class="text-xs text-slate-600 mt-0.5 font-medium">{{ $institution }}</p>
                     @if($resultString)
                         <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-2 bg-slate-50 border border-slate-100 rounded-sm inline-block px-1.5 py-0.5">Result: {{ $resultString }}</p>
                     @endif
                 </div>
             @endforeach
+            </div>
+            </div>
+          @endforeach
         </div>
     @endif
 </div>

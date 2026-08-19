@@ -10,8 +10,25 @@
             <p class="text-sm text-slate-500 font-sans font-medium">No publications added yet for this teacher.</p>
         </div>
     @else
-        <div class="space-y-3">
-            @foreach($teacher->publications as $pub)
+        {{-- Gathered under their year, newest first. Sorted before it is
+             grouped: groupBy keeps the order the keys are first seen in, so one
+             sortByDesc orders both the years and the papers inside each year.
+             Anything undated falls to 0 and lands at the bottom. --}}
+        @php
+            $years = $teacher->publications
+                ->sortByDesc(fn ($pub) => (int) $pub->publication_year)
+                ->groupBy(fn ($pub) => $pub->publication_year ?: '—');
+        @endphp
+
+        <div class="space-y-6">
+          @foreach($years as $year => $rows)
+            <div class="space-y-3">
+                <div class="flex items-center gap-3">
+                    <span class="text-[11px] font-sans font-black text-diu-primary tracking-wider tabular-nums">{{ $year }}</span>
+                    <span class="h-px flex-1 bg-slate-200"></span>
+                    <span class="text-[10px] font-sans font-bold text-slate-400 tabular-nums">{{ $rows->count() }}</span>
+                </div>
+            @foreach($rows as $pub)
                 @php
                     $pubUrl = ($faculty->short_name && $teacher->webpage)
                         ? route('publication.show', ['faculty_short_name' => strtolower($faculty->short_name), 'department_code' => strtolower($department->code), 'teacher_webpage' => $teacher->webpage, 'publication_slug' => $pub->slug ?: \Illuminate\Support\Str::slug($pub->title)])
@@ -26,7 +43,6 @@
                             <span class="text-[9px] font-sans font-bold px-1.5 py-0.5 rounded-xs {{ stripos($pub->type?->name ?? '', 'journal') !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-indigo-50 text-indigo-700 border border-indigo-100' }}">
                                 {{ $pub->type?->name ?? 'Research Paper' }}
                             </span>
-                            <span class="text-[10px] text-slate-400 font-semibold font-sans">{{ $pub->publication_year ?? 'N/A' }}</span>
                         </div>
                         <h4 class="text-sm font-semibold text-slate-800 tracking-tight leading-snug group-hover:text-diu-primary transition-colors">{{ $pub->title }}</h4>
                         <p class="text-xs text-slate-500 mt-1 italic font-sans">{{ $pub->journal_name ?? '' }}</p>
@@ -38,6 +54,8 @@
                     </div>
                 </div>
             @endforeach
+            </div>
+          @endforeach
         </div>
     @endif
 </div>

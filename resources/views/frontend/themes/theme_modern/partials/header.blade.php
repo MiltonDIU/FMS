@@ -34,10 +34,22 @@
 
             <!-- Branded Logo and Title -->
             <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-3 cursor-pointer select-none">
-                @if($brand['use_image_logo'])
-                    <div class="relative flex items-center justify-center w-11 h-11 rounded-2xl shadow-md overflow-hidden border-2 border-diu-accent bg-white">
-                        <img src="{{ $brand['logo_url'] }}" alt="{{ $brand['site_name'] }}" class="w-full h-full object-contain p-1" />
-                    </div>
+                {{-- An uploaded logo is a wordmark, not a monogram.
+
+                     Both were being poured into the same 44px square: the
+                     configured logo is 226x60, so object-contain inside a box
+                     with p-1 padding drew it at 36x9.5px — nine pixels of
+                     institution floating in a bordered box built for a single
+                     letter. The frame belongs to the monogram, which is the
+                     only thing shaped like it.
+
+                     So the image gets a height and its own width, and no box.
+                     The max-width is the guard: nothing stops someone
+                     uploading a 2000px banner, and the header should bend
+                     before it breaks. --}}
+                @if($brand['use_image_logo'] && $brand['logo_url'])
+                    <img src="{{ $brand['logo_url'] }}" alt="{{ $brand['site_name'] }}"
+                         class="h-8 sm:h-10 w-auto max-w-[10rem] sm:max-w-[12rem] shrink-0" />
                 @else
                     <div class="relative flex items-center justify-center w-11 h-11 bg-diu-primary text-white font-display font-extrabold text-2xl rounded-2xl shadow-md overflow-hidden border-2 border-diu-accent">
                         <div class="absolute -top-1 -right-1 w-4 h-4 bg-diu-accent rotate-45"></div>

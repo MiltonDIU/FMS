@@ -27,18 +27,25 @@
      * A dean who also heads a department holds more than one role, so the one
      * shown is the one belonging to the page being looked at rather than
      * whichever the database returned first.
+     *
+     * Three tries rather than two branches, and the third is the point. This
+     * was an if / elseif / else whose else could never run: the card is handed
+     * the teacher's own faculty, so $pageFacId is always set and the fallback
+     * was unreachable. An assignment naming neither a faculty nor a department
+     * then matched neither test and the badge simply vanished — while the same
+     * person's profile page, which takes the first role and asks no questions,
+     * said "Head of Department" plainly. Nine of the forty-one assignments on
+     * file are that shape: seven heads, a dean and an associate dean, standing
+     * in the Administration group with nothing on them to say why.
+     *
+     * A role that names no faculty and no department is still a role held. It
+     * is tried last, so a more specific one wins wherever there is one.
      */
-    if ($teacher->administrativeRoles->isNotEmpty()) {
-        $roles = $teacher->administrativeRoles;
+    $roles = $teacher->administrativeRoles;
 
-        if ($pageDeptId && $roles->where('department_id', $pageDeptId)->isNotEmpty()) {
-            $adminRole = $roles->where('department_id', $pageDeptId)->first();
-        } elseif ($pageFacId) {
-            $adminRole = $roles->where('faculty_id', $pageFacId)->where('department_id', null)->first();
-        } else {
-            $adminRole = $roles->first();
-        }
-    }
+    $adminRole = ($pageDeptId ? $roles->firstWhere('department_id', $pageDeptId) : null)
+        ?: ($pageFacId ? $roles->first(fn ($r) => $r->department_id === null && (int) $r->faculty_id === (int) $pageFacId) : null)
+        ?: $roles->first();
 
     $adminRoleName = ($showAdminRole && $adminRole) ? $adminRole->administrativeRole?->name : null;
 
