@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Aurora's entry in the Active Theme picker.
+
+    Drawn rather than photographed so it stays sharp at any size, weighs a few
+    kilobytes, and never goes stale against a browser or a screen resolution.
+    It shows the three things that make this theme different from the other
+    four: the aurora field behind everything, the command bar across the top
+    instead of a left sidebar, and faces as full-bleed tiles under a nameplate.
+
+    Colours are Aurora's own defaults rather than CSS variables — an <img> is
+    a separate document and cannot read the page's custom properties.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" width="1200" height="750"
+     role="img" aria-label="Aurora theme preview: an aurora-lit faculty directory with a command bar and a grid of portrait tiles">
+
+    <defs>
+        <linearGradient id="brand" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#034ea2"/>
+            <stop offset="100%" stop-color="#4dc3e6"/>
+        </linearGradient>
+
+        <radialGradient id="glowA">
+            <stop offset="0%" stop-color="#034ea2" stop-opacity="0.85"/>
+            <stop offset="100%" stop-color="#034ea2" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="glowB">
+            <stop offset="0%" stop-color="#4dc3e6" stop-opacity="0.6"/>
+            <stop offset="100%" stop-color="#4dc3e6" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="glowC">
+            <stop offset="0%" stop-color="#0072bc" stop-opacity="0.55"/>
+            <stop offset="100%" stop-color="#0072bc" stop-opacity="0"/>
+        </radialGradient>
+
+        <linearGradient id="veil" x1="0" y1="1" x2="0" y2="0">
+            <stop offset="0%" stop-color="#040914" stop-opacity="0.92"/>
+            <stop offset="45%" stop-color="#040914" stop-opacity="0.35"/>
+            <stop offset="100%" stop-color="#040914" stop-opacity="0"/>
+        </linearGradient>
+
+        <linearGradient id="face" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#1c3a63"/>
+            <stop offset="100%" stop-color="#2f6d94"/>
+        </linearGradient>
+
+        <clipPath id="tile0"><rect x="60"  y="330" width="204" height="255" rx="16"/></clipPath>
+        <clipPath id="tile1"><rect x="292" y="330" width="204" height="255" rx="16"/></clipPath>
+        <clipPath id="tile2"><rect x="524" y="330" width="204" height="255" rx="16"/></clipPath>
+        <clipPath id="tile3"><rect x="756" y="330" width="204" height="255" rx="16"/></clipPath>
+        <clipPath id="tile4"><rect x="988" y="330" width="152" height="255" rx="16"/></clipPath>
+    </defs>
+
+    <!-- The midnight ground -->
+    <rect width="1200" height="750" fill="#05080f"/>
+
+    <!-- The aurora field -->
+    <g>
+        <ellipse cx="140" cy="60"  rx="470" ry="380" fill="url(#glowA)"/>
+        <ellipse cx="1080" cy="20" rx="420" ry="330" fill="url(#glowB)"/>
+        <ellipse cx="700" cy="470" rx="400" ry="300" fill="url(#glowC)"/>
+        <ellipse cx="60"  cy="760" rx="430" ry="300" fill="url(#glowA)" opacity="0.6"/>
+    </g>
+
+    <!-- Header -->
+    <rect x="0" y="0" width="1200" height="64" fill="#05080f" opacity="0.55"/>
+    <line x1="0" y1="64" x2="1200" y2="64" stroke="#ffffff" stroke-opacity="0.09"/>
+    <rect x="60" y="17" width="30" height="30" rx="9" fill="url(#brand)"/>
+    <text x="102" y="30" font-family="Montserrat, sans-serif" font-size="14" font-weight="800" fill="#f1f5f9">DAFFODIL</text>
+    <text x="102" y="45" font-family="Manrope, sans-serif" font-size="10" fill="#74839a">International University, Bangladesh</text>
+    <rect x="1030" y="16" width="110" height="32" rx="9" fill="url(#brand)"/>
+    <text x="1085" y="36" font-family="Manrope, sans-serif" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">Teacher Login</text>
+
+    <!-- Headline -->
+    <text x="60" y="128" font-family="Montserrat, sans-serif" font-size="13" font-weight="700"
+          letter-spacing="2.4" fill="#4dc3e6">DIU · FACULTY DIRECTORY</text>
+    <text x="60" y="182" font-family="Montserrat, sans-serif" font-size="46" font-weight="800"
+          letter-spacing="-1.6" fill="#f1f5f9">Every scholar at</text>
+    <text x="60" y="230" font-family="Montserrat, sans-serif" font-size="46" font-weight="800"
+          letter-spacing="-1.6" fill="url(#brand)">Daffodil International University</text>
+
+    <!-- Command bar -->
+    <rect x="60" y="256" width="1080" height="52" rx="18" fill="#ffffff" fill-opacity="0.05"
+          stroke="#ffffff" stroke-opacity="0.11"/>
+    <circle cx="90" cy="282" r="7" fill="none" stroke="#4dc3e6" stroke-width="2"/>
+    <line x1="95" y1="287" x2="100" y2="292" stroke="#4dc3e6" stroke-width="2" stroke-linecap="round"/>
+    <text x="116" y="287" font-family="Manrope, sans-serif" font-size="14" fill="#74839a">Search by name, designation, department or faculty</text>
+    <rect x="852" y="268" width="86" height="28" rx="14" fill="url(#brand)"/>
+    <text x="895" y="286" font-family="Manrope, sans-serif" font-size="11" font-weight="700" fill="#ffffff" text-anchor="middle">All faculties</text>
+    <rect x="946" y="268" width="60" height="28" rx="14" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.11"/>
+    <text x="976" y="286" font-family="Manrope, sans-serif" font-size="11" font-weight="600" fill="#9fadc2" text-anchor="middle">FSIT</text>
+    <rect x="1014" y="268" width="60" height="28" rx="14" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.11"/>
+    <text x="1044" y="286" font-family="Manrope, sans-serif" font-size="11" font-weight="600" fill="#9fadc2" text-anchor="middle">FBE</text>
+    <rect x="1082" y="268" width="34" height="28" rx="14" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.11"/>
+    <line x1="1091" y1="278" x2="1107" y2="278" stroke="#9fadc2" stroke-width="2" stroke-linecap="round"/>
+    <line x1="1094" y1="283" x2="1104" y2="283" stroke="#9fadc2" stroke-width="2" stroke-linecap="round"/>
+    <line x1="1097" y1="288" x2="1101" y2="288" stroke="#9fadc2" stroke-width="2" stroke-linecap="round"/>
+
+    <!-- Tiles: the photograph is the card, the name sits on a plate over it -->
+    <g>
+        <g clip-path="url(#tile0)">
+            <rect x="60" y="330" width="204" height="255" fill="url(#face)"/>
+            <circle cx="162" cy="415" r="46" fill="#ffffff" fill-opacity="0.16"/>
+            <path d="M96 585c0-40 30-66 66-66s66 26 66 66z" fill="#ffffff" fill-opacity="0.16"/>
+            <rect x="60" y="330" width="204" height="255" fill="url(#veil)"/>
+        </g>
+        <rect x="60" y="330" width="204" height="255" rx="16" fill="none" stroke="#ffffff" stroke-opacity="0.12"/>
+        <rect x="72" y="342" width="86" height="20" rx="6" fill="#040914" fill-opacity="0.6"/>
+        <text x="80" y="356" font-family="Manrope, sans-serif" font-size="9" font-weight="700" letter-spacing="0.8" fill="#ffffff">DEAN</text>
+        <text x="76" y="546" font-family="Montserrat, sans-serif" font-size="14" font-weight="700" fill="#ffffff">Prof. Dr. A. Rahman</text>
+        <text x="76" y="564" font-family="Manrope, sans-serif" font-size="11" fill="#ffffff" fill-opacity="0.82">Professor</text>
+
+        <g clip-path="url(#tile1)">
+            <rect x="292" y="330" width="204" height="255" fill="url(#face)"/>
+            <circle cx="394" cy="415" r="46" fill="#ffffff" fill-opacity="0.16"/>
+            <path d="M328 585c0-40 30-66 66-66s66 26 66 66z" fill="#ffffff" fill-opacity="0.16"/>
+            <rect x="292" y="330" width="204" height="255" fill="url(#veil)"/>
+        </g>
+        <rect x="292" y="330" width="204" height="255" rx="16" fill="none" stroke="#ffffff" stroke-opacity="0.12"/>
+        <text x="308" y="546" font-family="Montserrat, sans-serif" font-size="14" font-weight="700" fill="#ffffff">Dr. S. Akter</text>
+        <text x="308" y="564" font-family="Manrope, sans-serif" font-size="11" fill="#ffffff" fill-opacity="0.82">Associate Professor</text>
+
+        <!-- No photograph on file: initials on the brand gradient -->
+        <g clip-path="url(#tile2)">
+            <rect x="524" y="330" width="204" height="255" fill="url(#brand)" opacity="0.55"/>
+            <text x="626" y="470" font-family="Montserrat, sans-serif" font-size="52" font-weight="800"
+                  fill="#ffffff" fill-opacity="0.92" text-anchor="middle">MH</text>
+            <rect x="524" y="330" width="204" height="255" fill="url(#veil)"/>
+        </g>
+        <rect x="524" y="330" width="204" height="255" rx="16" fill="none" stroke="#ffffff" stroke-opacity="0.12"/>
+        <text x="540" y="546" font-family="Montserrat, sans-serif" font-size="14" font-weight="700" fill="#ffffff">M. Hasan</text>
+        <text x="540" y="564" font-family="Manrope, sans-serif" font-size="11" fill="#ffffff" fill-opacity="0.82">Assistant Professor</text>
+
+        <g clip-path="url(#tile3)">
+            <rect x="756" y="330" width="204" height="255" fill="url(#face)"/>
+            <circle cx="858" cy="415" r="46" fill="#ffffff" fill-opacity="0.16"/>
+            <path d="M792 585c0-40 30-66 66-66s66 26 66 66z" fill="#ffffff" fill-opacity="0.16"/>
+            <rect x="756" y="330" width="204" height="255" fill="url(#veil)"/>
+        </g>
+        <rect x="756" y="330" width="204" height="255" rx="16" fill="none" stroke="#ffffff" stroke-opacity="0.12"/>
+        <text x="772" y="546" font-family="Montserrat, sans-serif" font-size="14" font-weight="700" fill="#ffffff">T. Islam</text>
+        <text x="772" y="564" font-family="Manrope, sans-serif" font-size="11" fill="#ffffff" fill-opacity="0.82">Lecturer</text>
+
+        <!-- The grid runs off the edge: it reflows by width, not by breakpoint -->
+        <g clip-path="url(#tile4)" opacity="0.75">
+            <rect x="988" y="330" width="152" height="255" fill="url(#face)"/>
+            <circle cx="1090" cy="415" r="46" fill="#ffffff" fill-opacity="0.16"/>
+            <rect x="988" y="330" width="152" height="255" fill="url(#veil)"/>
+        </g>
+        <rect x="988" y="330" width="152" height="255" rx="16" fill="none" stroke="#ffffff" stroke-opacity="0.12"/>
+    </g>
+
+    <!-- Second row, fading out to show the page continues -->
+    <g opacity="0.4">
+        <rect x="60"  y="613" width="204" height="120" rx="16" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.1"/>
+        <rect x="292" y="613" width="204" height="120" rx="16" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.1"/>
+        <rect x="524" y="613" width="204" height="120" rx="16" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.1"/>
+        <rect x="756" y="613" width="204" height="120" rx="16" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.1"/>
+        <rect x="988" y="613" width="152" height="120" rx="16" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.1"/>
+    </g>
+</svg>

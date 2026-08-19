@@ -1,0 +1,1171 @@
+@import 'tailwindcss';
+
+/*
+ * ===========================================================================
+ * Aurora
+ * ===========================================================================
+ *
+ * The other four themes are variations on one idea: a white page, a coloured
+ * bar at the top, and people shown as cards with a small round photograph
+ * beside some text. Aurora is built from a different starting point.
+ *
+ *  - One field of light. A slow aurora — four blurred washes drawn from the
+ *    configured brand palette — sits behind the entire site rather than only
+ *    behind a hero banner. Everything else on the page is glass or hairline,
+ *    so the colour is the ground and the content floats on it.
+ *
+ *  - Faces are tiles. The photograph fills the card and the name sits on a
+ *    glass plate over the bottom of it, instead of being a 40px disc beside
+ *    two lines of text.
+ *
+ *  - Filtering lives across the top. Every other theme parks faculties,
+ *    departments, designations and roles in a left column that costs a quarter
+ *    of the width on every page. Here it is a command bar: one search field,
+ *    a scrolling row of chips, and a drawer for the rest.
+ *
+ *  - A profile is a document. One continuous read with a section rail beside
+ *    it, not nine tabs that hide eight-ninths of a person at a time.
+ *
+ * Nothing outside theme_aurora/ is required to render this theme, which is the
+ * rule the theme system is built on: a theme is one droppable, deletable unit.
+ *
+ * The colours are never hardcoded. Everything is mixed from the
+ * --color-diu-* custom properties that App\Helpers\ColorPalette writes into
+ * <head>, so changing the palette in System Settings restyles the aurora,
+ * the chips, the rings and the fallback portraits together.
+ */
+
+/* Dark mode is driven by the `.dark` class that App\Helpers\Appearance stamps
+   on <html>, not by the OS media query Tailwind v4 defaults to. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Scan this theme's own Blade files, plus the shared components it renders
+   (x-teacher-status brings its own amber/sky/indigo/rose tone classes). Scoped
+   deliberately: a theme should not pay to scan the other themes' markup. */
+@source '../../**/*.blade.php';
+@source '../../../../../components/**/*.blade.php';
+@source '../js';
+
+@theme {
+    /*
+     * Build-time font defaults. FontManager::cssBlock() re-declares these on
+     * :root further down <head>, so the per-theme picker in System Settings is
+     * what actually wins at runtime; these only decide what an unseeded install
+     * looks like. Bangla trails the Latin family so mixed text falls back per
+     * glyph rather than switching the whole run.
+     */
+    --font-sans: 'Manrope', 'Mina', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Montserrat', 'Mina', ui-sans-serif, system-ui, sans-serif;
+    --font-bangla: 'Mina', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+    /* Brand palette. Overwritten at runtime by ColorPalette::cssRootBlock(). */
+    --color-diu-primary-dark: #002652;
+    --color-diu-primary: #034ea2;
+    --color-diu-primary-light: #0072bc;
+    --color-diu-primary-hover: #023b7a;
+    --color-diu-secondary-dark: #002652;
+    --color-diu-secondary: #034ea2;
+    --color-diu-secondary-light: #0072bc;
+    --color-diu-accent: #0072bc;
+    --color-diu-accent-light: #4dc3e6;
+    --color-diu-accent-hover: #005fa3;
+
+    /* The shell. Wider than the other themes because the sidebar is gone and
+       the tiles want the room. */
+    --shell-max: 84rem;
+
+    /* Height of the sticky header. The command bar and the profile rail both
+       park underneath it, so the number is shared rather than guessed twice. */
+    --header-h: 4.25rem;
+
+    /*
+     * The publication page's sidebar, and the space beside it.
+     *
+     * Named because two things need the same number: the grid that places the
+     * sidebar, and the heading above the grid, which has to stop where the
+     * article column stops or the title and the abstract end at two different
+     * places.
+     */
+    --aside-w: 22rem;
+    --aside-gap: 3.5rem;
+
+    /* Portrait tile geometry. 4:5 matches how the source photographs are shot,
+       so nothing is cropped through a face. */
+    --tile-min: 14rem;
+    --tile-ratio: 4 / 5;
+
+    --radius-panel: 1.25rem;
+    --radius-tile: 1rem;
+}
+
+/* ---------------------------------------------------------------------------
+   Semantic tokens
+   ---------------------------------------------------------------------------
+   Light is a cool paper white with the aurora barely showing through. Dark is
+   a true midnight — not slate — so the same aurora reads as light in a night
+   sky rather than as a stain on grey.
+*/
+:root {
+    --page: #f6f8fc;
+    --panel: rgba(255, 255, 255, 0.72);
+    --panel-solid: #ffffff;
+    --panel-raised: rgba(255, 255, 255, 0.9);
+    --hairline: rgba(15, 23, 42, 0.09);
+    --hairline-soft: rgba(15, 23, 42, 0.055);
+    --hairline-strong: rgba(15, 23, 42, 0.16);
+
+    --ink: #0b1220;
+    --ink-2: #334155;
+    --ink-3: #55637a;
+    --ink-4: #7c889c;
+
+    /*
+     * Brand colour used as ink rather than as a fill.
+     *
+     * #034ea2 sits at about 1.7:1 on the midnight ground, which would make
+     * every eyebrow and link on the site close to invisible with the lights
+     * off. Dark mode swaps in the light accent, which clears 7:1 on the same
+     * ground. Fills keep using --color-diu-primary; only text moves.
+     */
+    --brand-ink: var(--color-diu-primary);
+
+    --tile-veil: linear-gradient(
+        to top,
+        rgba(4, 9, 20, 0.92) 0%,
+        rgba(4, 9, 20, 0.55) 38%,
+        rgba(4, 9, 20, 0.05) 68%,
+        rgba(4, 9, 20, 0) 100%
+    );
+
+    /* How strongly the aurora shows through the page. */
+    --aurora-strength: 0.5;
+    --glass-blur: 18px;
+
+    color-scheme: light;
+}
+
+.dark {
+    --page: #05080f;
+    --panel: rgba(255, 255, 255, 0.045);
+    --panel-solid: #0b1120;
+    --panel-raised: rgba(255, 255, 255, 0.07);
+    --hairline: rgba(255, 255, 255, 0.1);
+    --hairline-soft: rgba(255, 255, 255, 0.06);
+    --hairline-strong: rgba(255, 255, 255, 0.2);
+
+    --ink: #f1f5f9;
+    --ink-2: #cbd5e1;
+    --ink-3: #9fadc2;
+    --ink-4: #74839a;
+
+    --brand-ink: var(--color-diu-accent-light);
+
+    --aurora-strength: 1;
+
+    color-scheme: dark;
+}
+
+/* ---------------------------------------------------------------------------
+   The aurora itself
+   ---------------------------------------------------------------------------
+   Four blurred washes fixed behind the page. They are painted on a dedicated
+   element rather than on <body> so the blur never rasterises the text sitting
+   above it, and so `position: fixed` keeps them still while the page scrolls —
+   the light should feel like a room the content moves through.
+*/
+body {
+    background-color: var(--page);
+    color: var(--ink-2);
+    min-height: 100vh;
+}
+
+.aurora-field {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+    opacity: var(--aurora-strength);
+}
+
+.aurora-field span {
+    position: absolute;
+    display: block;
+    border-radius: 50%;
+    filter: blur(90px);
+    will-change: transform;
+}
+
+.aurora-field span:nth-child(1) {
+    top: -22%;
+    left: -10%;
+    width: 62vw;
+    height: 62vw;
+    background: radial-gradient(circle, color-mix(in oklab, var(--color-diu-primary) 55%, transparent), transparent 68%);
+    animation: aurora-drift-a 34s ease-in-out infinite alternate;
+}
+
+.aurora-field span:nth-child(2) {
+    top: -30%;
+    right: -14%;
+    width: 55vw;
+    height: 55vw;
+    background: radial-gradient(circle, color-mix(in oklab, var(--color-diu-accent-light) 45%, transparent), transparent 70%);
+    animation: aurora-drift-b 42s ease-in-out infinite alternate;
+}
+
+.aurora-field span:nth-child(3) {
+    top: 32%;
+    left: 44%;
+    width: 48vw;
+    height: 48vw;
+    background: radial-gradient(circle, color-mix(in oklab, var(--color-diu-accent) 38%, transparent), transparent 72%);
+    animation: aurora-drift-c 38s ease-in-out infinite alternate;
+}
+
+.aurora-field span:nth-child(4) {
+    bottom: -26%;
+    left: -6%;
+    width: 58vw;
+    height: 58vw;
+    background: radial-gradient(circle, color-mix(in oklab, var(--color-diu-primary-light) 32%, transparent), transparent 72%);
+    animation: aurora-drift-a 46s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes aurora-drift-a {
+    from { transform: translate3d(0, 0, 0) scale(1); }
+    to   { transform: translate3d(6vw, 5vh, 0) scale(1.12); }
+}
+
+@keyframes aurora-drift-b {
+    from { transform: translate3d(0, 0, 0) scale(1.08); }
+    to   { transform: translate3d(-7vw, 6vh, 0) scale(0.94); }
+}
+
+@keyframes aurora-drift-c {
+    from { transform: translate3d(0, 0, 0) scale(0.95); }
+    to   { transform: translate3d(-5vw, -7vh, 0) scale(1.15); }
+}
+
+/* A slow drift is atmosphere for most people and a problem for some. Held
+   still — not removed — for anyone who has asked the system for less motion. */
+@media (prefers-reduced-motion: reduce) {
+    .aurora-field span {
+        animation: none !important;
+    }
+
+    * {
+        scroll-behavior: auto !important;
+    }
+}
+
+/* ---------------------------------------------------------------------------
+   Structure
+   --------------------------------------------------------------------------- */
+.shell {
+    width: 100%;
+    max-width: var(--shell-max);
+    margin-inline: auto;
+    padding-inline: 1.25rem;
+}
+
+@media (min-width: 640px) {
+    .shell { padding-inline: 2rem; }
+}
+
+/*
+ * Glass. Two levels: `glass` for the things that float over the aurora
+ * (header, command bar, panels) and `glass-soft` for surfaces inside them,
+ * which would otherwise stack blur on blur and turn milky.
+ */
+.glass {
+    background: var(--panel);
+    backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+    border: 1px solid var(--hairline);
+}
+
+.glass-soft {
+    background: var(--panel-raised);
+    border: 1px solid var(--hairline-soft);
+}
+
+/* ---------------------------------------------------------------------------
+   Type
+   --------------------------------------------------------------------------- */
+.eyebrow {
+    font-family: var(--font-display);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--brand-ink);
+}
+
+.eyebrow-quiet {
+    font-family: var(--font-display);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-4);
+}
+
+/*
+ * The heading over one group in the department index.
+ *
+ * Deliberately not .eyebrow. That is uppercase with wide tracking, which suits
+ * a two-word label and is tiring across "Science and Information Technology".
+ *
+ * The chip rail at the top of the page is for someone who already knows where
+ * they are going, so it can speak in abbreviations. This index is the map for
+ * someone who does not — and a heading reading "FHLS" tells that person
+ * nothing, is not a search term, and is read out as four letters by a screen
+ * reader. So the faculty's real name leads and the code follows it quietly:
+ * the chips teach the abbreviation, this teaches what it stands for.
+ */
+.group-title {
+    font-family: var(--font-display);
+    font-size: 0.875rem;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+    color: var(--brand-ink);
+}
+
+.display-xl {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: clamp(2.5rem, 6.5vw, 5rem);
+    line-height: 0.94;
+    letter-spacing: -0.035em;
+    text-wrap: balance;
+    color: var(--ink);
+}
+
+.display-lg {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: clamp(1.75rem, 3.4vw, 2.75rem);
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    text-wrap: balance;
+    color: var(--ink);
+}
+
+.display-md {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(1.25rem, 2.2vw, 1.625rem);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+}
+
+/*
+ * A heading that should fill its measure instead of being balanced.
+ *
+ * `text-wrap: balance` evens out the lines of a heading, which is right for a
+ * person's name or a department — two or three words that would otherwise
+ * leave one stranded on a line of its own. A publication title is a sentence,
+ * and balancing it stopped every line a hundred pixels short of the abstract
+ * beneath, which reads as exactly the ragged right edge the rest of this page
+ * was just straightened out to avoid.
+ *
+ * `pretty` rather than plain wrapping: lines fill, but the last one is still
+ * protected from ending on a single orphaned word.
+ *
+ * Must stay below .display-lg. Both set text-wrap with one class of
+ * specificity, so the later rule is the one that wins.
+ */
+.display-fill {
+    text-wrap: pretty;
+}
+
+/*
+ * The one piece of colour allowed inside running text: the gradient runs
+ * through the headline so the aurora reads as part of the writing rather than
+ * as wallpaper behind it.
+ */
+.display-spectrum {
+    background: linear-gradient(
+        100deg,
+        var(--color-diu-primary) 0%,
+        var(--color-diu-accent) 42%,
+        var(--color-diu-accent-light) 82%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    /* Safari paints nothing at all if the run wraps mid-gradient without this. */
+    -webkit-text-fill-color: transparent;
+}
+
+.dark .display-spectrum {
+    background: linear-gradient(
+        100deg,
+        var(--color-diu-accent-light) 0%,
+        var(--color-diu-accent) 45%,
+        color-mix(in oklab, var(--color-diu-primary-light) 80%, white) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+.lede {
+    font-size: 1.0625rem;
+    line-height: 1.7;
+    color: var(--ink-3);
+    max-width: 42rem;
+}
+
+/*
+ * Running text. Deliberately no max-width of its own.
+ *
+ * It used to cap itself at 68ch, which left a biography stopping a couple of
+ * hundred pixels short of the record rows underneath it — one page with two
+ * different right edges. Prose now fills its column like everything else in
+ * it, and the column is what decides the width.
+ *
+ * The line is longer than a typographer would choose for a novel. That is a
+ * deliberate trade for a single edge down the page, on columns that carry
+ * dated record rows and two-column lists as much as they carry paragraphs.
+ */
+.prose-body {
+    font-size: 0.9375rem;
+    line-height: 1.75;
+    color: var(--ink-2);
+}
+
+/* Numerals shown beside a heading. Tabular so columns of them line up. */
+.numeral {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-4);
+}
+
+/* ---------------------------------------------------------------------------
+   Chips — the command bar's filter controls
+   ---------------------------------------------------------------------------
+   Active state is `.is-active` rather than a class string built inside a Blade
+   ternary. Tailwind's scanner cannot see classes hidden in PHP expressions, so
+   the other themes carry a hand-maintained @source inline(...) safelist to
+   force them into the build. A plain CSS class needs no safelist and cannot
+   silently stop existing.
+*/
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4375rem 0.875rem;
+    border-radius: 999px;
+    border: 1px solid var(--hairline);
+    background: var(--panel);
+    color: var(--ink-3);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color 160ms ease, border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.chip:hover {
+    color: var(--ink);
+    border-color: var(--hairline-strong);
+}
+
+.chip.is-active {
+    color: #fff;
+    border-color: transparent;
+    background: linear-gradient(120deg, var(--color-diu-primary), var(--color-diu-accent));
+    box-shadow: 0 6px 18px -8px color-mix(in oklab, var(--color-diu-primary) 70%, transparent);
+}
+
+.chip-count {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-variant-numeric: tabular-nums;
+    opacity: 0.65;
+}
+
+/* A horizontal chip row that scrolls rather than wrapping to four lines. The
+   scrollbar is hidden because the row is short and the overflow is obvious
+   from the chips running to the edge. */
+.chip-rail {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-block: 0.125rem;
+    -webkit-overflow-scrolling: touch;
+}
+
+.chip-rail::-webkit-scrollbar { display: none; }
+
+/* ---------------------------------------------------------------------------
+   The command bar
+   --------------------------------------------------------------------------- */
+/*
+ * The command bar owns its whole appearance rather than borrowing `.glass`,
+ * because it is the one panel on the site that has to stay readable with
+ * photographs sliding underneath it.
+ *
+ * Two things were wrong while it was stuck. It sat half a rem below the header,
+ * so a sliver of the page scrolled through the gap between the two; and at 72%
+ * white (4.5% white in the dark) a face passing behind it came through the
+ * search field and the chips. It is flush to the header now, and dense enough
+ * that what is behind it reads as texture rather than as content.
+ *
+ * Readability does not depend on JavaScript. The resting surface is already
+ * dense enough to read a chip against a photograph — `.is-stuck`, set from
+ * theme.js because CSS cannot ask whether a sticky element is currently stuck,
+ * only deepens it slightly and adds the shadow that lifts it off the page. If
+ * that class never arrives the bar is still legible; it just does not cast.
+ */
+.command {
+    position: sticky;
+    top: var(--header-h);
+    z-index: 30;
+    border-radius: var(--radius-panel);
+    padding: 0.875rem;
+    border: 1px solid var(--hairline);
+    background: color-mix(in oklab, var(--page) 94%, transparent);
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    transition: background-color 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+}
+
+.command.is-stuck {
+    background: color-mix(in oklab, var(--page) 99%, transparent);
+    border-color: var(--hairline-strong);
+    box-shadow: 0 16px 34px -24px rgba(4, 9, 20, 0.6);
+    /* Parked against the header, so it stops being a floating card and becomes
+       part of the top of the window. Rounded corners against a flat edge read
+       as a gap that is not there. */
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
+.dark .command.is-stuck {
+    box-shadow: 0 16px 34px -20px rgba(0, 0, 0, 0.85);
+}
+
+/*
+ * Parked on a small screen, the bar keeps the search field and a note of where
+ * you are.
+ *
+ * Measured at 520px with the drawer open it stood 437px tall; with the header
+ * above that is 505px of a roughly 700px phone — about seventy per cent of the
+ * screen held permanently, leaving less than one row of faces to actually read.
+ *
+ * The chip rails are for choosing where to look. Once you are scrolling results
+ * you have finished choosing, so they go, and they come back the moment the bar
+ * unsticks at the top of the page.
+ *
+ * But hiding them took the answer with the question: which faculty and
+ * department you were filtered to lived only in those chips, so collapsing the
+ * bar left you reading a list with no idea what it was a list of. Hence
+ * .command-scope, which costs no height because it sits in the row that is
+ * already there.
+ *
+ * Only the rails are handled here. The drawer's visibility belongs to Alpine,
+ * and hiding it from CSS would mean fighting the inline style x-show writes —
+ * inline beats a class, which is the trap that once put the whole profile
+ * document into the rail's column. theme.js closes it properly instead.
+ *
+ * .command-collapsible marks a bar that has a search field to fall back to. The
+ * department contacts view has only the rails, and collapsing those would leave
+ * an empty box pinned under the header.
+ */
+.command-scope {
+    display: none;
+}
+
+@media (max-width: 63.99rem) {
+    .command.command-collapsible.is-stuck .chip-rail {
+        display: none;
+    }
+
+    .command.is-stuck .command-scope {
+        display: block;
+        flex: none;
+        max-width: 45%;
+        padding: 0.25rem 0.5rem;
+        border-radius: 999px;
+        background: color-mix(in oklab, var(--color-diu-primary) 12%, transparent);
+        color: var(--brand-ink);
+        font-family: var(--font-mono);
+        font-size: 0.6875rem;
+        font-weight: 600;
+        line-height: 1.4;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
+.field {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+}
+
+.field input {
+    flex: 1 1 auto;
+    min-width: 0;
+    background: transparent;
+    border: 0;
+    outline: 0;
+    font-size: 1rem;
+    color: var(--ink);
+    padding-block: 0.375rem;
+}
+
+.field input::placeholder {
+    color: var(--ink-4);
+}
+
+/* ---------------------------------------------------------------------------
+   Person tiles
+   --------------------------------------------------------------------------- */
+.tile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(var(--tile-min), 100%), 1fr));
+    gap: 1.25rem;
+}
+
+.tile {
+    position: relative;
+    display: block;
+    aspect-ratio: var(--tile-ratio);
+    border-radius: var(--radius-tile);
+    overflow: hidden;
+    isolation: isolate;
+    border: 1px solid var(--hairline);
+    background: linear-gradient(
+        150deg,
+        color-mix(in oklab, var(--color-diu-primary) 22%, var(--page)),
+        color-mix(in oklab, var(--color-diu-accent-light) 26%, var(--page))
+    );
+    transition: transform 320ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 320ms ease, border-color 320ms ease;
+}
+
+.tile:hover,
+.tile:focus-visible {
+    transform: translateY(-4px);
+    border-color: color-mix(in oklab, var(--color-diu-accent) 55%, transparent);
+    box-shadow:
+        0 22px 40px -24px color-mix(in oklab, var(--color-diu-primary) 85%, transparent),
+        0 0 0 1px color-mix(in oklab, var(--color-diu-accent) 30%, transparent);
+    outline: none;
+}
+
+.tile img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* Faces sit high in a portrait; centring crops foreheads. */
+    object-position: center 20%;
+    transition: transform 520ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.tile:hover img {
+    transform: scale(1.05);
+}
+
+/* The veil the nameplate sits on. Without it a white shirt and white type meet
+   and the name disappears. */
+.tile::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--tile-veil);
+    pointer-events: none;
+}
+
+/*
+ * The same frame without the veil, for the profile head — there is no name
+ * plate over that one, so the gradient was darkening the bottom half of a
+ * portrait for nothing.
+ */
+.tile-plain::after {
+    content: none;
+}
+
+/*
+ * 139 of about 2,000 faculty have no photograph on file. At tile size an empty
+ * grey box is conspicuous, so the fallback is initials on the brand gradient —
+ * something that reads as chosen rather than as missing.
+ */
+.tile-initials {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 2.75rem;
+    letter-spacing: 0.02em;
+    color: rgba(255, 255, 255, 0.92);
+    text-shadow: 0 2px 12px rgba(4, 9, 20, 0.35);
+}
+
+.tile-plate {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 1;
+    padding: 0.875rem 0.9375rem 1rem;
+}
+
+.tile-name {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.9375rem;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    color: #fff;
+    text-shadow: 0 1px 10px rgba(4, 9, 20, 0.5);
+}
+
+.tile-meta {
+    margin-top: 0.1875rem;
+    font-size: 0.75rem;
+    line-height: 1.35;
+    color: rgba(255, 255, 255, 0.82);
+    text-shadow: 0 1px 8px rgba(4, 9, 20, 0.5);
+}
+
+.tile-badge {
+    position: absolute;
+    top: 0.625rem;
+    left: 0.625rem;
+    z-index: 1;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+    background: rgba(4, 9, 20, 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #fff;
+}
+
+/* Where a tile carries the leave / deputation notice. Sits opposite the role
+   badge so the two never collide. */
+.tile-status {
+    position: absolute;
+    top: 0.625rem;
+    right: 0.625rem;
+    z-index: 1;
+}
+
+/*
+ * A small portrait, for the department contact list and anywhere else a face
+ * appears at thumbnail size. Same 4:5 frame as the tiles rather than a circle:
+ * nothing on this site gets cropped into a disc.
+ */
+.mugshot {
+    position: relative;
+    width: 3.25rem;
+    aspect-ratio: var(--tile-ratio);
+    flex: none;
+    border-radius: 0.625rem;
+    overflow: hidden;
+    background: linear-gradient(
+        150deg,
+        color-mix(in oklab, var(--color-diu-primary) 24%, var(--page)),
+        color-mix(in oklab, var(--color-diu-accent-light) 28%, var(--page))
+    );
+}
+
+.mugshot img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 20%;
+}
+
+.mugshot span {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 1.125rem;
+    color: rgba(255, 255, 255, 0.92);
+}
+
+/* ---------------------------------------------------------------------------
+   Records — the repeating shape inside a profile
+   ---------------------------------------------------------------------------
+   A profile is mostly dated facts: degrees, posts, papers, awards. They read
+   fastest when the dates line up in a column of their own, so every section
+   uses this one shape instead of nine kinds of card.
+*/
+.record {
+    display: grid;
+    grid-template-columns: 5rem minmax(0, 1fr);
+    gap: 0.25rem 1.25rem;
+    padding: 0.9375rem 0;
+    border-top: 1px solid var(--hairline-soft);
+}
+
+.record:last-child {
+    border-bottom: 1px solid var(--hairline-soft);
+}
+
+a.record {
+    transition: background-color 160ms ease;
+    border-radius: 0.5rem;
+    padding-inline: 0.625rem;
+    margin-inline: -0.625rem;
+}
+
+a.record:hover {
+    background: var(--panel-raised);
+}
+
+.record-when {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    line-height: 1.6;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-4);
+    white-space: nowrap;
+}
+
+.record-what {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 0.9375rem;
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+}
+
+a.record:hover .record-what {
+    color: var(--brand-ink);
+}
+
+.record-sub {
+    margin-top: 0.25rem;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--ink-3);
+}
+
+.record-note {
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+    line-height: 1.55;
+    color: var(--ink-4);
+}
+
+@media (max-width: 40rem) {
+    .record {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* ---------------------------------------------------------------------------
+   The publication article
+   ---------------------------------------------------------------------------
+   Two columns: the paper on the left, and on the right what someone came to
+   take away — whose work it is, the record, the citations.
+
+   The title is a child of the left column, not a banner above both, so it is
+   sized by the grid like everything else in that column. There was briefly an
+   .article-measure class that capped a heading outside the grid to
+   `100% - sidebar - gap`; it lined the edges up correctly and left a dead
+   rectangle beside the title, holding space for a sidebar that only began
+   below it. Putting the heading in the column removed the need for the class
+   and the hole at the same time.
+*/
+.article-layout {
+    display: grid;
+    gap: 2.5rem;
+}
+
+@media (min-width: 64rem) {
+    .article-layout {
+        grid-template-columns: minmax(0, 1fr) var(--aside-w);
+        gap: var(--aside-gap);
+    }
+}
+
+/* ---------------------------------------------------------------------------
+   The profile section rail
+   ---------------------------------------------------------------------------
+   Replaces the tab strip the other themes use. Every section of a profile is
+   on the page at once — one document, printable, linkable, searchable by the
+   browser's own find — and the rail says where you are in it.
+*/
+/*
+ * Which of the two the reader gets is decided here rather than with Tailwind's
+ * `hidden` / `lg:hidden` in the markup.
+ *
+ * Both of these set `display` themselves, and a plain class and a utility class
+ * have identical specificity — so whichever is written later in the stylesheet
+ * wins, and everything in this file is written after the utilities. `lg:hidden`
+ * lost silently: the strip stayed visible on desktop, took the second grid
+ * column, and pushed the whole profile into the 13rem rail column.
+ *
+ * Owning the breakpoint here means there is nothing left to race. 64rem is
+ * Tailwind's `lg`, kept in step by hand because there is one of them.
+ */
+.rail {
+    display: none;
+    position: sticky;
+    top: calc(var(--header-h) + 1.5rem);
+    align-self: start;
+}
+
+@media (min-width: 64rem) {
+    .rail { display: block; }
+}
+
+.rail-link {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.4375rem 0 0.4375rem 0.875rem;
+    border-left: 2px solid var(--hairline);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--ink-4);
+    transition: color 160ms ease, border-color 160ms ease;
+}
+
+.rail-link:hover {
+    color: var(--ink-2);
+}
+
+.rail-link.is-active {
+    color: var(--brand-ink);
+    border-left-color: var(--brand-ink);
+}
+
+/* Below the rail's breakpoint it becomes a scrolling strip under the header. */
+.rail-strip {
+    position: sticky;
+    top: var(--header-h);
+    z-index: 20;
+    display: flex;
+    /* Without this the links stretch to the height of the grid row they sit in,
+       and the active pill becomes a column-tall slab of brand colour. */
+    align-items: center;
+    align-self: start;
+    gap: 0.25rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 0.5rem 0;
+    /* Dense for the same reason the command bar is: a profile scrolls under
+       this the whole way down the page, and a half-transparent strip makes the
+       one thing it exists to say — which section you are in — the hardest thing
+       on it to read. */
+    background: color-mix(in oklab, var(--page) 96%, transparent);
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+    border-bottom: 1px solid var(--hairline);
+}
+
+@media (min-width: 64rem) {
+    .rail-strip { display: none; }
+}
+
+.rail-strip::-webkit-scrollbar { display: none; }
+
+.rail-strip a {
+    padding: 0.375rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+    color: var(--ink-4);
+}
+
+.rail-strip a.is-active {
+    color: #fff;
+    background: linear-gradient(120deg, var(--color-diu-primary), var(--color-diu-accent));
+}
+
+/* Anchored sections must clear the sticky header when jumped to. */
+.doc-section {
+    scroll-margin-top: calc(var(--header-h) + 4.5rem);
+    padding-top: 2.5rem;
+}
+
+.doc-section:first-of-type {
+    padding-top: 0;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+/* ---------------------------------------------------------------------------
+   Controls
+   --------------------------------------------------------------------------- */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.625rem;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+
+.btn-primary {
+    color: #fff;
+    border: 1px solid transparent;
+    background: linear-gradient(120deg, var(--color-diu-primary), var(--color-diu-accent));
+    box-shadow: 0 8px 22px -12px color-mix(in oklab, var(--color-diu-primary) 90%, transparent);
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 26px -12px color-mix(in oklab, var(--color-diu-primary) 90%, transparent);
+}
+
+.btn-ghost {
+    color: var(--ink-2);
+    border: 1px solid var(--hairline);
+    background: var(--panel);
+}
+
+.btn-ghost:hover {
+    color: var(--ink);
+    border-color: var(--hairline-strong);
+}
+
+.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 0.625rem;
+    color: var(--ink-3);
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+
+.btn-icon:hover {
+    color: var(--ink);
+    background: var(--panel-raised);
+    border-color: var(--hairline);
+}
+
+.nav-link {
+    color: var(--ink-3);
+    transition: color 160ms ease;
+}
+
+.nav-link:hover {
+    color: var(--ink);
+}
+
+/* A line in a plain list that happens to be a link — department indexes, the
+   "more from this author" list. Quiet until pointed at. */
+.row-link {
+    color: var(--ink-2);
+    transition: color 160ms ease;
+}
+
+.row-link:hover {
+    color: var(--brand-ink);
+}
+
+.link-brand {
+    color: var(--brand-ink);
+    font-weight: 600;
+    text-decoration-color: color-mix(in oklab, var(--brand-ink) 40%, transparent);
+    text-underline-offset: 3px;
+}
+
+.link-brand:hover {
+    text-decoration: underline;
+}
+
+/* ---------------------------------------------------------------------------
+   Odds and ends
+   --------------------------------------------------------------------------- */
+
+/* A label / value pair on a hairline. Contact details, publication facts. */
+.pair {
+    display: grid;
+    grid-template-columns: 5.5rem minmax(0, 1fr);
+    gap: 0.75rem;
+    padding: 0.6875rem 0;
+    border-top: 1px solid var(--hairline-soft);
+    font-size: 0.8125rem;
+}
+
+.pair dt {
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-4);
+    padding-top: 0.125rem;
+}
+
+.pair dd {
+    color: var(--ink-2);
+    overflow-wrap: anywhere;
+}
+
+/* The empty state. One shape for "no results" everywhere on the site. */
+.empty {
+    border-radius: var(--radius-panel);
+    padding: 3rem 1.5rem;
+    text-align: center;
+    border: 1px dashed var(--hairline-strong);
+    color: var(--ink-4);
+}
+
+.divider {
+    border: 0;
+    border-top: 1px solid var(--hairline-soft);
+}
+
+[x-cloak] {
+    display: none !important;
+}
+
+/* Keyboard users get the brand ring; mouse users get nothing, as they should. */
+:where(a, button, input, [tabindex]):focus-visible {
+    outline: 2px solid var(--brand-ink);
+    outline-offset: 2px;
+    border-radius: 0.375rem;
+}
+
+/* Livewire is mid-flight. Dim rather than blank: the previous results staying
+   put is less jarring than the page emptying and refilling on every keystroke. */
+[wire\:loading\.class] { transition: opacity 160ms ease; }
+
+.is-busy {
+    opacity: 0.45;
+    pointer-events: none;
+}

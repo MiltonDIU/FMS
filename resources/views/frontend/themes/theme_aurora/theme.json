@@ -1,0 +1,7 @@
+{
+    "name": "Aurora",
+    "description": "A spectrum-led directory. One aurora field of light runs behind the whole site, faces are shown as full-bleed tiles under a glass nameplate, filtering happens in a command bar across the top instead of a sidebar, and a profile is one continuous document with a section rail rather than nine tabs.",
+    "author": "Daffodil International University",
+    "version": "1.0.0",
+    "screenshot": "screenshot.svg"
+}
