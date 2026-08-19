@@ -583,10 +583,19 @@ body {
         padding: 0.625rem 0.75rem;
     }
 
-    .command.command-collapsible.is-stuck .chip-rail {
+    /* .chip-rail-row is the flex row the first rail shares with the contacts
+       view's fold button — it carries the rail's top margin, so the compaction
+       has to reach it too or the first rail would not tighten with the rest. */
+    .command.command-collapsible.is-stuck .chip-rail,
+    .command.command-collapsible.is-stuck .chip-rail-row {
         margin-top: 0.5rem;
         padding-block: 0;
         gap: 0.375rem;
+    }
+
+    /* Already spaced by the row above it. */
+    .command.command-collapsible.is-stuck .chip-rail-row .chip-rail {
+        margin-top: 0;
     }
 
     .command.command-collapsible.is-stuck .chip-rail .chip {

@@ -735,20 +735,50 @@ function centreInRail(rail, child, behavior) {
 
     /* ── building and removing it ──────────────────────────────────────────── */
 
+    /*
+     * What the bubble offers is whatever the bar it replaced held, and that is
+     * not the same on every page: the directory and a department's people are
+     * searched and filtered, a department's contacts are only navigated. A
+     * magnifier floating over a page with no search field promises something
+     * that is not there.
+     *
+     * So the fold button says what its bar is for — data-command-glyph and
+     * data-command-restore, see department-search — and the bubble wears it.
+     * Nothing set means the search bar, which is every other page.
+     */
+    var GLYPHS = {
+        search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+        nav: '<path d="M4 6h16M4 12h16M4 18h16"/>'
+    };
+
+    /* Inside the bar, so it survives being folded — display:none still answers
+       querySelector — but not a wire:navigate, hence the re-read below. */
+    function trigger() { return document.querySelector('[data-command-fold]'); }
+
+    /*
+     * Applied on every apply(), not only when the bubble is built: the bubble
+     * outlives navigation on purpose, so the same one can be left over a page
+     * that wants it to say something else.
+     */
+    function dress(el) {
+        var button = trigger();
+        var label = (button && button.getAttribute('data-command-restore')) || 'Show search and filters';
+        var glyph = GLYPHS[button && button.getAttribute('data-command-glyph')] || GLYPHS.search;
+
+        el.setAttribute('aria-label', label);
+        el.title = label;
+
+        el.innerHTML =
+            '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
+            ' stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+            glyph + '</svg>';
+    }
+
     function build() {
         var el = document.createElement('button');
 
         el.type = 'button';
         el.className = 'command-bubble';
-        el.setAttribute('aria-label', 'Show search and filters');
-        el.title = 'Search and filters';
-
-        // The same magnifier the search field carries, so the bubble says what
-        // opening it gives back.
-        el.innerHTML =
-            '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
-            ' stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-            '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>';
 
         el.addEventListener('pointerdown', onDown);
         el.addEventListener('pointermove', onMove);
@@ -822,6 +852,7 @@ function centreInRail(rail, child, behavior) {
         if (away) {
             if (!bubble) bubble = build();
 
+            dress(bubble);
             place(pos || recallPlace() || restingPlace());
         } else {
             remove();

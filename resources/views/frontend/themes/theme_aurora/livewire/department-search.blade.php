@@ -169,27 +169,51 @@
             </div>
         @endif
 
-        <div class="chip-rail {{ $this->view === 'contact' ? '' : 'mt-3' }}" role="list" aria-label="Faculties">
-            <a href="{{ route('home', $carry) }}" wire:navigate role="listitem" class="chip">All faculties</a>
+        {{-- The fold control lives in the search row, and the contacts view has
+             no search row — which left the one page whose bar is nothing but
+             navigation as the one page a phone reader could not put the bar
+             away on. It rides alongside the faculty rail here instead, so it
+             costs no row of its own. --}}
+        <div class="chip-rail-row flex items-center gap-2 {{ $this->view === 'contact' ? '' : 'mt-3' }}">
+            <div class="chip-rail min-w-0 flex-1" role="list" aria-label="Faculties">
+                <a href="{{ route('home', $carry) }}" wire:navigate role="listitem" class="chip">All faculties</a>
 
-            @foreach($this->facultyList as $fac)
-                {{-- Built here rather than through $fac->url, which takes no
-                     query parameters. Same fallback as the accessor, since
-                     short_name is nullable and route() would throw. --}}
-                @php
-                    $facUrl = $fac->short_name
-                        ? route('faculty.show', array_merge(
-                            ['faculty_short_name' => strtolower($fac->short_name)],
-                            $carry,
-                        ))
-                        : route('home', $carry);
-                @endphp
+                @foreach($this->facultyList as $fac)
+                    {{-- Built here rather than through $fac->url, which takes no
+                         query parameters. Same fallback as the accessor, since
+                         short_name is nullable and route() would throw. --}}
+                    @php
+                        $facUrl = $fac->short_name
+                            ? route('faculty.show', array_merge(
+                                ['faculty_short_name' => strtolower($fac->short_name)],
+                                $carry,
+                            ))
+                            : route('home', $carry);
+                    @endphp
 
-                <a href="{{ $facUrl }}" wire:navigate role="listitem"
-                   class="chip {{ (! $this->all && $this->department && $fac->id === $this->department->faculty_id) ? 'is-active' : '' }}">
-                    {{ $fac->short_name ?: $fac->name }}
-                </a>
-            @endforeach
+                    <a href="{{ $facUrl }}" wire:navigate role="listitem"
+                       class="chip {{ (! $this->all && $this->department && $fac->id === $this->department->faculty_id) ? 'is-active' : '' }}">
+                        {{ $fac->short_name ?: $fac->name }}
+                    </a>
+                @endforeach
+            </div>
+
+            {{-- Same button, same place on the screen, same session-remembered
+                 state as the one in the search row above; what the bubble it
+                 folds into offers to give back is all that differs, hence the
+                 two data attributes — see the fold module in theme.js. --}}
+            @if($this->view === 'contact')
+                <button type="button" data-command-fold
+                        data-command-restore="Show department navigation"
+                        data-command-glyph="nav"
+                        class="btn-icon command-fold shrink-0"
+                        aria-label="Hide department navigation" title="Hide department navigation">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/>
+                    </svg>
+                </button>
+            @endif
         </div>
 
         @if($this->departmentList->isNotEmpty() && $this->department?->faculty)
