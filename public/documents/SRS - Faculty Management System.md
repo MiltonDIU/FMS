@@ -6,9 +6,9 @@
 |---|---|
 | **Document** | Software Requirements Specification |
 | **System** | Faculty Management System (FMS) |
-| **Version** | 2.0 |
-| **Date** | 2026-08-01 |
-| **Status** | Rewritten against the delivered system |
+| **Version** | 2.1 |
+| **Date** | 2026-08-30 |
+| **Status** | Revised against the delivered system |
 | **Supersedes** | *Software Requirements Specification - SRS (Final)* |
 | **Companion** | *BRD - Faculty Management System.md* |
 
@@ -134,18 +134,19 @@ a queue worker for mail, and outbound HTTPS for the ERP and contacts endpoints.
 
 ### 3.2 Administrative interface
 
-Filament panel at `/admin`: **39 resources**, **6 custom pages** (Dashboard,
-Teacher Dashboard, My Profile, Team Directory, Import Teachers, System
-Settings), **25 dashboard widgets**.
+Filament panel at `/admin`: **40 resources**, **8 custom pages** (Dashboard,
+Teacher Dashboard, My Profile, Team Directory, Import Teachers, Scopus Review,
+Institution Identity, System Settings), **26 dashboard widgets**.
 
 ### 3.3 Outbound integrations
 
 | Interface | Direction | Purpose | State |
 |---|---|---|---|
-| ERP employee endpoint | Outbound HTTP | Fetch verified staff data by employee ID | Configurable; not live |
+| DIU HR/ERP employee API | Outbound HTTPS | Three endpoints used when a teacher is created: an OAuth (Keycloak) token, employee search, and employee profile by employee ID | Client built and exercised against the live directory; production credentials not entered |
 | University contacts API | Outbound HTTP | Department Dean/Head office contacts | In use, cached 6 hours |
 | SMTP | Outbound | Activation and templated bulk email | Configured; not exercised at volume |
-| Legacy image host | Outbound | Teacher photographs | In use |
+| Legacy image host | Outbound | Teacher photographs | Retired — 1,861 images copied into local storage and served from there |
+| Scopus export | File import, no network | Publication records reviewed and merged from a Scopus CSV or workbook export | In use — 1 import processed |
 
 ### 3.4 Interface constraints
 
@@ -166,9 +167,9 @@ Settings), **25 dashboard widgets**.
 |---|---|---|
 | FR-001 | The system shall authenticate users by email and password | D |
 | FR-002 | Failed sign-in attempts shall be rate limited | D — 5 attempts |
-| FR-003 | Permissions shall be defined per model and per action | D — 528 permissions |
+| FR-003 | Permissions shall be defined per model and per action | D — 536 permissions |
 | FR-004 | A user may hold multiple roles; effective permission is the union | D |
-| FR-005 | Every model reachable through the panel shall have a policy; unmatched actions shall be denied | D — 41 policies, strict mode on |
+| FR-005 | Every model reachable through the panel shall have a policy; unmatched actions shall be denied | D — 42 policies, strict mode on |
 | FR-006 | A teacher shall reach only their own profile and their own dashboard | D |
 | FR-007 | A migrated teacher shall gain first access through a one-time emailed link | B |
 | FR-008 | An activation link shall expire after a configurable number of days (default 7) | B |
@@ -202,6 +203,8 @@ Settings), **25 dashboard widgets**.
 | FR-038 | Research projects shall be recordable with funding, role and period | B — no records entered |
 | FR-039 | The system shall score profile completeness and name what is missing | D |
 | FR-040 | Profile views shall be counted, at most once per session per hour | D |
+| FR-041 | Research interests shall be individual records rather than one comma-separated field | D — 854 |
+| FR-042 | Teacher photographs shall be held and served by the system's own storage rather than fetched from the legacy host, including in CVs and share cards | D — 1,861 images |
 
 ### 4.4 Approval and versioning
 
@@ -220,9 +223,8 @@ Settings), **25 dashboard widgets**.
 | FR-060 | Approval authority shall be checked per section against the reviewer's permissions | D |
 | FR-061 | Rejected and superseded versions shall be retained | D |
 
-> **Operational note.** The machinery is complete and unit-verified, but only 4
-> versions exist in the live database. It has not met 2,000 teachers yet.
-> See BRD risk RK-1.
+> **Operational note.** The machinery is complete, but only 2 versions exist in
+> the live database. It has not met 2,000 teachers yet. See BRD risk RK-1.
 
 ### 4.5 Publications
 
@@ -243,6 +245,10 @@ Settings), **25 dashboard widgets**.
 | FR-084 | A publication shall appear on its authors' public profiles without separate entry | D |
 | FR-078 | Publications shall be exportable to spreadsheet with the applied filters | D |
 | FR-079 | Each publication shall have its own public page with APA, IEEE and BibTeX citations | D |
+| FR-085 | Each author on a publication shall be marked as first author, corresponding author or co-author | D — 293 corresponding-author attributions |
+| FR-086 | The affiliation an author published under shall be recorded, together with whether it was the university's own | D — column populated by review; no rows flagged as ours yet |
+| FR-087 | The publication list shall show whether a record arrived from an external source or was created in FMS | D |
+| FR-088 | Publications on a profile shall be grouped by year | D |
 
 ### 4.6 The public directory
 
@@ -264,14 +270,14 @@ Settings), **25 dashboard widgets**.
 
 | ID | Requirement | Status |
 |---|---|---|
-| FR-110 | The public site shall be rendered by a selectable theme | D — 4 themes |
+| FR-110 | The public site shall be rendered by a selectable theme | D — 4 installed: DIU, Modern, Ledger, Aurora |
 | FR-111 | A theme shall be a self-contained folder, addable by dropping it in | D |
 | FR-112 | A theme shall be listed as available only if it ships every view the site needs | D — 14 required views |
 | FR-113 | If the selected theme is removed, the site shall fall back to an installed one | D |
 | FR-114 | If no theme is installed, public routes shall return 503 with an explanation, and the panel shall stay reachable | D |
 | FR-115 | A theme shall describe itself through a `theme.json` and may ship a screenshot | D |
 | FR-116 | An administrator shall preview a theme on the live site without switching it for visitors | D |
-| FR-117 | Branding, colour palette and typography shall be configurable from settings | D — 149 settings |
+| FR-117 | Branding, colour palette and typography shall be configurable from settings | D — 160 settings |
 | FR-118 | The site shall support light and dark appearance | D |
 
 ### 4.8 Search-engine visibility and sharing
@@ -303,15 +309,32 @@ Settings), **25 dashboard widgets**.
 | ID | Requirement | Status |
 |---|---|---|
 | FR-170 | An administrator shall create a teacher and its user account together | D |
-| FR-171 | A teacher record shall be creatable from an ERP lookup by employee ID | B |
+| FR-171 | A teacher record shall be creatable from an ERP lookup by employee ID | B — client built (token, search, profile-by-id); credentials not entered |
 | FR-172 | Field mapping between ERP and FMS shall be configurable | D |
 | FR-173 | Teachers shall be importable in bulk from a file | D |
-| FR-174 | Duplicate teacher records shall be detectable | D |
+| FR-174 | Duplicate teacher records shall be detectable | D — comparison assisted by Vertex AI (Gemini 2.5 Flash) |
+| FR-180 | Re-importing a teacher the system already holds shall merge into the existing record rather than overwrite it | D |
 | FR-175 | Email templates shall be editable in the panel | D — 4 templates |
 | FR-176 | Bulk email shall be sendable to a selected set of teachers using a template | B |
 | FR-177 | Mail transport shall be configurable in the panel | D |
 | FR-178 | Long-running work shall run on a queue | D |
 | FR-179 | An administrator shall assign roles within the limits of their own authority | D |
+
+### 4.11 Scopus review and merge
+
+Requested by the research team. A Scopus export is a file, not a feed: this
+subsystem makes no network call and there is no Scopus API in the system.
+
+| ID | Requirement | Status |
+|---|---|---|
+| FR-190 | A Scopus export shall be uploadable as CSV or workbook and read without a network call | D — 1 import processed |
+| FR-191 | The institution's own affiliation shall be recognised by configurable patterns, with explicit exclusions for similarly named institutions | D — maintained on the Institution Identity page |
+| FR-192 | Each incoming record shall be resolved against the existing publication record and reported as new, already held, or ambiguous | D |
+| FR-193 | An incoming author shall be matched to a teacher where possible and recorded as an external author where not | D |
+| FR-194 | The corresponding author shall be identified from the export | D — 293 attributions |
+| FR-195 | A reviewer shall accept or reject each record in the browser, and accepted decisions shall be applied on a queue | D |
+| FR-196 | The uploaded file, the matching options used and the decisions taken shall be retained so a review is reproducible | D |
+| FR-197 | An external author later identified as a DIU teacher shall be mergeable into that teacher | D |
 
 ---
 
@@ -328,27 +351,39 @@ Quartiles · Linkages · Grant types · Research collaborations · Publication
 incentives · Incentive logs · Organizations · Positions · Majors · Degree types ·
 Degree levels · Result types · Countries · Religions · Blood groups · Genders ·
 Membership types · Email templates · Integration mappings · Notification
-routings · Settings.
+routings · Research interests · Scopus imports · Scopus author IDs · Settings.
 
 ### 5.2 Volumes
 
+Read from the production database on 2026-08-30.
+
 | Entity | Records |
 |---|---|
+| Publication authors | 25,485 |
 | Publications | 17,510 |
 | Training experiences | 5,032 |
 | Teaching areas | 4,584 |
-| Organizations | 4,423 |
+| Organizations | 4,422 |
 | Awards | 2,486 |
 | Users | 2,016 |
-| Teachers | 2,000 (1,128 published) |
+| Teachers | 2,000 (1,128 approved, 872 archived) |
+| Activity log entries | 2,017 |
 | Job experiences | 1,952 |
+| Photographs held as media | 1,861 |
 | Educations | 1,831 |
-| Authors (non-teacher) | 1,600 |
 | Publication incentives | 1,759 |
+| Authors (non-teacher) | 1,600 |
 | Memberships | 905 |
-| Settings | 149 |
+| Research interests | 854 |
+| Permissions | 536 |
+| Settings | 160 |
 | Departments | 31 |
+| Approval sections | 15 |
+| Administrative roles | 11 |
+| Roles | 9 |
 | Faculties | 6 |
+| Scopus imports | 1 |
+| Teacher versions | 2 |
 
 ### 5.3 Provenance: what the legacy schema looked like
 
@@ -389,7 +424,7 @@ not part of the running application.
 | `publication_date` | 1,465 of 17,510 | Date-range reporting falls back to year (FR-076) |
 | `publication_year` | 17,003 of 17,510 (97%) | The practical basis for reporting |
 | Publication abstract | 7,053 of 17,510 (40%) | Only abstracted papers are suggested (FR-134) |
-| Teacher photograph | 80 of 1,128 published teachers have none | Initials block shown instead |
+| Teacher photograph | 1,861 images now held locally; 80 of 1,128 published teachers have none | Initials block shown instead; the migrated files are the legacy 90–120px thumbnails |
 | Employment status | 219 on study leave, 31 on leave | Surfaced publicly (FR-095) |
 
 ### 5.5 Retention
@@ -442,10 +477,10 @@ business decision (BRD DEC-5).
 
 | ID | Requirement | Status |
 |---|---|---|
-| NFR-40 | An automated test suite shall cover the behaviour that has previously broken | D — 84 tests, 764 assertions |
-| NFR-41 | Themes shall be verifiable as independent of one another | D — enforced by test |
+| NFR-40 | An automated test suite shall cover the behaviour that has previously broken | **N** — the suite reported in revision 2.0 (84 tests, 764 assertions) is not in the repository: `tests/` is absent from both the working tree and version control. PHPUnit is still configured and points at `tests/Unit` and `tests/Feature`. See OI-7. |
+| NFR-41 | Themes shall be verifiable as independent of one another | B — the rule holds by construction (a theme resolves only its own views, with a documented fallback), but the test that enforced it went with the suite |
 | NFR-42 | Shared logic shall not be duplicated per theme | D |
-| NFR-43 | Configuration shall be changeable without deployment | D — 149 settings |
+| NFR-43 | Configuration shall be changeable without deployment | D — 160 settings |
 
 ### 6.5 Usability and accessibility
 
@@ -455,6 +490,7 @@ business decision (BRD DEC-5).
 | NFR-51 | Light and dark appearance shall both be legible | D — contrast verified |
 | NFR-52 | Long lists shall remain navigable — sticky tabs, sticky filters | D |
 | NFR-53 | Bengali and English shall render together | D — font fallback configured |
+| NFR-54 | On a phone, the directory search and filter bar shall collapse rather than consume the screen | D |
 
 ---
 
@@ -477,12 +513,15 @@ business decision (BRD DEC-5).
 | BR-40…BR-42 | FR-150…FR-155 |
 | BR-43 | FR-076 |
 | BR-50…BR-52 | FR-007…FR-010 |
-| BR-53 | FR-171, FR-172 |
+| BR-53 | FR-171, FR-172, FR-180 |
 | BR-54, BR-56 | FR-070…FR-073 |
 | BR-55 | FR-175, FR-176 |
 | BR-57 | FR-084 |
 | BR-58 | FR-077, FR-080, FR-081 |
 | BR-59 | FR-082, FR-083 |
+| BR-60 | FR-190, FR-192, FR-195, FR-196 |
+| BR-61 | FR-191 |
+| BR-62 | FR-193, FR-197 |
 
 ---
 
@@ -503,12 +542,15 @@ business decision (BRD DEC-5).
 
 | ID | Item |
 |---|---|
-| OI-1 | Approval workflow unproven at scale — 4 versions to date |
+| OI-1 | Approval workflow unproven at scale — 2 versions to date |
 | OI-2 | Activation email never sent at volume |
-| OI-3 | ERP endpoint unavailable |
-| OI-4 | Photographs remain on the legacy host at thumbnail resolution |
-| OI-5 | Code style has never been normalised — 381 formatting deviations, no functional effect |
-| OI-6 | The system has been verified by rendering and testing, not by human visual review of every page |
+| OI-3 | ERP credentials not issued. The base and token URLs are configured; client ID, username and password are empty, so the client reports itself unconfigured |
+| OI-4 | **Closed.** Photographs migrated into local storage (1,861 images); what was copied remains at the legacy thumbnail resolution |
+| OI-5 | Code style has never been normalised — no functional effect |
+| OI-6 | The system has been verified by rendering, not by human visual review of every page |
+| OI-7 | The automated test suite is absent from the repository (NFR-40); PHPUnit configuration still expects it |
+| OI-8 | `active_theme` is set to `theme_diu_vanguard`, which ships no `layouts/app.blade.php` and is therefore not an installed theme. The site is serving the fallback (FR-113 working as specified), but the setting should be pointed at a real theme |
+| OI-9 | Scopus review has one import behind it; `used_our_affiliation` and `scopus_author_ids` carry no rows yet |
 
 ---
 
@@ -516,13 +558,14 @@ business decision (BRD DEC-5).
 
 | Method | Coverage |
 |---|---|
-| Automated tests | 84 tests, 764 assertions — routing, authorisation, theming, SEO, CV content, publication date ranges, employment status, SSRF guard, share cards |
-| Rendered-output checks | Every public route rendered under every theme, including with the active theme deleted |
+| Automated tests | **Not currently available** — the suite reported in revision 2.0 is not in the repository (OI-7) |
+| Rendered-output checks | Every public route rendered under every installed theme, including with the active theme deleted |
 | Measured performance | Timings and query counts recorded per page (§6.1) |
 | Dependency audit | `composer audit` clean |
-| Static checks | PHP syntax across 596 files; all 131 Blade templates compile |
+| Static checks | PHP syntax across 497 application files; all 152 Blade templates compile |
+| Live data check | Every record count in §5.2 read directly from the production database on 2026-08-30 |
 
 ---
 
-*This specification describes the system as delivered on 2026-08-01. Figures
+*This specification describes the system as delivered on 2026-08-30. Figures
 were measured from the running system rather than estimated.*

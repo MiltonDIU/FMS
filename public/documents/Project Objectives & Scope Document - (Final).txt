@@ -1,8 +1,24 @@
-# Faculty Management System (FMS) 
+# Faculty Management System (FMS)
 
 ## Project Objectives & Scope Document - (Final)
 
 ---
+
+> ## Reconciliation note — 2026-08-30
+>
+> This is a **Milestone-1 baseline document**, written before development and approved as the plan. It is kept unchanged in intent as the record of what was agreed. Since it was written, the system has been built, so the points below have been corrected in place and the current description now lives in:
+>
+> - *BRD - Faculty Management System.md* (revision 2.1)
+> - *SRS - Faculty Management System.md* (revision 2.1)
+>
+> **Where this document diverged from the built system:**
+>
+> - **Phase-2 (ERP) and Phase-3 (Research & Publications) were both scoped as optional. Both were built**, alongside Phase-1 rather than after it.
+> - **"ERP-based author identity verification" (section 7) is not how publications resolve authors.** Identity is settled by the Scopus export review and the author-to-teacher merge.
+> - **The document status line claimed alignment with the latest SRS.** That SRS has since been rewritten twice; this document is now the historical scope baseline.
+
+---
+
 
 ## 1. Introduction
 
@@ -100,7 +116,7 @@ The system architecture will support the following enhancements without impactin
 
 ---
 
-## 6. Phase-2 Scope: ERP-Based Profile Automation (Optional)
+## 6. Phase-2 Scope: ERP-Based Profile Automation (approved as optional — since built)
 
 Phase-2 focuses on **reducing manual data entry** through ERP integration. This phase is dependent on ERP system readiness and approval.
 
@@ -115,7 +131,7 @@ Phase-2 focuses on **reducing manual data entry** through ERP integration. This 
 
 ---
 
-## 7. Phase-3 Scope: Research & Publication Alignment (Optional)
+## 7. Phase-3 Scope: Research & Publication Alignment (approved as optional — since built and in use)
 
 Phase-3 aligns faculty profiles with institutional research and publication management.
 
@@ -123,7 +139,8 @@ Phase-3 aligns faculty profiles with institutional research and publication mana
 
 * Centralized publication entry by Research Team
 * Automatic linking of publications to faculty profiles
-* ERP-based author identity verification
+* Author identity verification — *as built, this is done through the Scopus
+  export review and the author-to-teacher merge, not through ERP*
 * Support for non-teacher contributors (backend only)
 * Eliminate duplicate publication data entry across systems
 * Provide research dashboards and statistics
@@ -158,5 +175,6 @@ The Faculty Management System is designed as a **governance-driven, scalable, an
 
 ---
 
-**Document Status:** Updated (Aligned with Latest SRS)  
-**Purpose:** Management Approval, Project Planning, and Implementation Reference
+**Document Status:** Milestone-1 scope baseline — superseded for current scope
+by *BRD - Faculty Management System.md* §5 (revision 2.1, 2026-08-30)  
+**Purpose:** Historical record of the scope approved before development

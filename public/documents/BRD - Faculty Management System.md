@@ -7,9 +7,9 @@
 | **Document** | Business Requirements Document |
 | **System** | Faculty Management System (FMS) |
 | **Organisation** | Daffodil International University |
-| **Version** | 2.0 |
-| **Date** | 2026-08-01 |
-| **Status** | Rewritten against the delivered system |
+| **Version** | 2.1 |
+| **Date** | 2026-08-30 |
+| **Status** | Revised against the delivered system |
 | **Supersedes** | *Project Objectives & Scope Document (Final)* |
 | **Companion** | *SRS - Faculty Management System.md* |
 
@@ -30,6 +30,26 @@ did not:
 Every quantity in this document was measured from the working system on the date
 above, not estimated. Where a requirement is marked delivered, it is because it
 was exercised against the real data set of 2,000 teacher records.
+
+### What changed in revision 2.1
+
+Revision 2.0 described the system on 2026-08-01. Four things have moved since:
+
+1. **Publication intake became a reviewed process.** A Scopus export can now be
+   read, matched against the university's own affiliation, decided record by
+   record and merged into the central publication record (BO-11, BR-60 to BR-62).
+2. **Photographs came in-house.** 1,861 teacher photographs were moved off the
+   legacy host into the university's own storage and are served from there, which
+   closes risk RK-5 and the photograph constraint in section 11.
+3. **The ERP client was built.** On 2026-08-01 nothing in the system could reach
+   the HR/ERP service at all. It now can — token, employee search and employee
+   profile by employee ID — and has been exercised against the live directory.
+   What is still missing is production credentials, not code (BR-53).
+4. **Research interests became structured records**, joining the seven legacy
+   categories already normalised.
+
+All record counts below were re-read from the production database on
+2026-08-30.
 
 ---
 
@@ -55,7 +75,10 @@ separately.
 
 Phase-1 is complete and carries the university's live faculty data. The
 substantial parts of Phases 2 and 3 — ERP-assisted onboarding and centralised
-publication management — were built alongside it rather than after it.
+publication management — were built alongside it rather than after it. Since
+then the publication record has gained a reviewed intake path from Scopus
+exports, and teacher photographs have been brought into the university's own
+storage.
 
 ---
 
@@ -135,11 +158,12 @@ seven paragraphs.
 | BO-3 | Make academic data countable | Qualifications, publications, experience, awards, memberships, training and teaching areas each held in their own structured records | **Delivered** — 7 text columns per teacher parsed into 34,300 records |
 | BO-4 | Make every change reversible and attributable | Each submission stored as a version; prior versions restorable | **Delivered**, awaiting operational use |
 | BO-5 | Publish one authoritative directory | The public site renders from the approved record, with no separate maintenance | **Delivered** |
-| BO-6 | Give leadership figures without asking for them | Faculty-, department- and teacher-level dashboards | **Delivered** — 25 dashboard widgets |
-| BO-7 | Cut duplicate entry between systems | Faculty records fetched from ERP by employee ID; publications entered once centrally | **Built** — awaiting ERP go-live |
+| BO-6 | Give leadership figures without asking for them | Faculty-, department- and teacher-level dashboards | **Delivered** — 26 dashboard widgets |
+| BO-7 | Cut duplicate entry between systems | Faculty records fetched from ERP by employee ID; publications entered once centrally | **Built** — the HR/ERP client is complete and has been run against the live directory; awaiting production credentials |
 | BO-8 | Support accreditation and ranking submissions | Publication data queryable by year, quartile, type, funding and department | **Delivered** |
 | BO-9 | Give the research team ownership of the publication record, so what is published under the university's name is visible and accountable | Publications held centrally, attributed to authors, and shown on their profiles without separate entry | **Delivered** — 17,510 publications |
 | BO-10 | Make publication incentives traceable to the teacher who received them | Per-teacher and per-department incentive totals obtainable by filtering | **Delivered** — 1,759 incentive records |
+| BO-11 | Bring outside publication data in under review rather than by retyping | A Scopus export is read, matched against the university's own affiliation, decided record by record and merged | **Delivered** — 1 export processed; 293 corresponding-author attributions recorded |
 
 ---
 
@@ -173,13 +197,15 @@ seven paragraphs.
 | Profile outputs | CV as PDF, contact as vCard, social share card |
 | Dashboards | Role-specific dashboards for administrators, research team and teachers |
 | Onboarding | One-time activation links so migrated teachers can set their own password |
-| Presentation | Four selectable public themes; branding, colours and fonts configurable without a developer |
+| Publication intake | Scopus export review — a CSV or workbook is read, matched against the university's own affiliation patterns, decided record by record, and merged into the central publication record |
+| Photographs | Teacher photographs held in the university's own storage and served from it, including in CVs and share cards |
+| Presentation | Four installed public themes (DIU, Modern, Ledger, Aurora); branding, colours and fonts configurable without a developer |
 
 ### 5.2 Built and awaiting a business dependency
 
 | Area | Waiting on |
 |---|---|
-| ERP-assisted teacher creation | ERP endpoint availability and credentials |
+| ERP-assisted teacher creation | Production ERP credentials. The client is built and the base and token URLs are configured; the client ID, username and password are empty |
 | Research project records | Business process definition; no records entered yet |
 | Teacher activation email | Rollout decision; never sent at volume |
 
@@ -255,7 +281,7 @@ Status: **D** delivered · **B** built, not in operational use · **N** not buil
 | BR-50 | Migrated teachers shall gain first access by a one-time emailed link and set their own password | M | B |
 | BR-51 | Activation shall skip teachers who have already set a password | M | B |
 | BR-52 | The validity period of an activation link shall be configurable | S | B |
-| BR-53 | A teacher record shall be creatable from an ERP lookup by employee ID | S | B |
+| BR-53 | A teacher record shall be creatable from an ERP lookup by employee ID | S | B — client built and exercised; credentials not yet issued |
 | BR-55 | Bulk email to teachers shall use editable templates | S | B |
 
 ### 6.7 Publications and research incentives
@@ -269,6 +295,9 @@ Requested by the research team, who own this data.
 | BR-57 | A publication shall appear on its authors' public profiles without separate entry | M | D |
 | BR-58 | The incentive paid for a publication shall be recorded against it, with who approved and who paid | M | D |
 | BR-59 | The total incentive received by a teacher shall be obtainable by filtering, not by manual calculation | M | D |
+| BR-60 | Publication data published elsewhere shall be brought in from a Scopus export and reviewed before it joins the record | M | D |
+| BR-61 | The university shall define, without a developer, which affiliation strings count as its own and which similarly named institutions do not | M | D |
+| BR-62 | An outside contributor later identified as a DIU teacher shall be mergeable into that teacher's record | S | D |
 
 ---
 
@@ -295,9 +324,11 @@ Requested by the research team, who own this data.
 | The record became countable | Seven free-text columns per teacher became **34,300 individual records**: 17,510 publications, 5,032 training records, 4,584 teaching areas, 2,486 awards, 1,952 employment records, 1,831 qualifications, 905 memberships |
 | Accountability | Every submission attributable to a named person and reversible; the legacy shared department logins could attribute a change to a department at best |
 | One directory, not two | The public site and the authoritative record are the same data |
-| Institutional visibility | 25 dashboard widgets across administrative, research and teacher views |
+| Institutional visibility | 26 dashboard widgets across administrative, research and teacher views |
 | Incentive spending became answerable | 1,759 incentive records totalling BDT 23.5M, filterable by teacher, department, faculty, status and date — previously a manual calculation with no link between a publication and its author |
-| Presentation under university control | Four themes, branding, colour palette and typography configurable from settings |
+| Presentation under university control | Four installed themes, branding, colour palette and typography configurable from settings |
+| Photographs brought in-house | 1,861 teacher photographs moved off the legacy host into university storage, and used for profiles, CVs and share cards |
+| Outside publication data became reviewable | A Scopus export is read, matched and merged under review rather than retyped; 293 corresponding-author attributions recorded |
 
 ---
 
@@ -316,17 +347,21 @@ Requested by the research team, who own this data.
 
 | Dependency | Needed for | State |
 |---|---|---|
-| ERP employee endpoint | BR-53 | Not yet available |
+| ERP employee endpoint | BR-53 | Reachable and exercised; production credentials not yet issued |
 | Institutional mail relay | BR-50, BR-55 | Configurable; not yet exercised at volume |
 | University contacts API | Department office contacts | In use |
-| Photograph hosting | Profile and share images | Currently the legacy host; migration planned |
+| Photograph hosting | Profile and share images | Migrated — 1,861 images now held in the university's own storage |
+| Scopus export | BR-60 | Supplied manually as a file; there is no Scopus API in this system |
 
 ## 11. Constraints
 
 - Publication dates: the source export carries a full date for 1,465 of 12,423
   rows. The year is present for 97% of records and is what reporting relies on.
-- Photographs: the legacy host serves 90–120px thumbnails, which limits image
-  quality until the images are moved into local storage.
+- Photographs: the migration into local storage is done, but what was copied
+  are the legacy host's 90–120px thumbnails. Quality improves only as
+  replacements are uploaded.
+- Scopus data arrives as a file export, not a live feed, so the publication
+  record is as current as the last export supplied.
 - The system is browser-based and requires connectivity; there is no offline mode.
 
 ---
@@ -335,11 +370,12 @@ Requested by the research team, who own this data.
 
 | ID | Risk | Impact | Likelihood | Response |
 |---|---|---|---|---|
-| RK-1 | Approval workflow is unexercised — 4 versions recorded to date | Bottleneck or confusion discovered only at go-live | High | Pilot with one department before university-wide rollout |
+| RK-1 | Approval workflow is unexercised — 2 versions recorded to date | Bottleneck or confusion discovered only at go-live | High | Pilot with one department before university-wide rollout |
 | RK-2 | Activation emails have never been sent at volume | Delivery failures, spam classification, support load | Medium | Send in controlled batches; monitor bounces |
 | RK-3 | ERP endpoint may not arrive | BR-53 remains unrealised | Medium | Phase-1 does not depend on it; manual creation works |
 | RK-4 | 2,000 teachers arriving at once will produce a review queue | Reviewer overload | Medium | Stage onboarding by faculty |
-| RK-5 | Photograph quality limits presentation | Public perception | Low | Local storage migration planned; no code change needed |
+| RK-5 | Photograph quality limits presentation | Public perception | Low | **Closed** — images migrated into local storage; the remaining limit is the resolution of the inherited files |
+| RK-6 | The publication record is only as current as the last Scopus export supplied | Reporting understates recent output | Medium | Agree a refresh interval with the research office |
 
 ---
 
@@ -366,5 +402,5 @@ with the underlying records.
 ---
 
 *Prepared as a description of the system as delivered. Figures were measured
-from the running system on 2026-08-01. Requirement-level implementation detail
+from the running system on 2026-08-30. Requirement-level implementation detail
 is in the companion SRS.*

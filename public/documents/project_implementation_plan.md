@@ -1,5 +1,19 @@
 # Teacher Profile Management System - Implementation Plan
 
+> **Historical snapshot — written 2025-12-20, annotated 2026-08-30.**
+>
+> These are development notes from the first weeks of the project, kept for the
+> record. They describe the schema and the plan as they stood then, not the
+> system as it is now. For the current description see
+> *BRD - Faculty Management System.md* and
+> *SRS - Faculty Management System.md* (both revision 2.1).
+>
+> What has changed since: **18 tables became 72**, **18 models became 53**, the
+> panel runs on **Filament 5 / Laravel 13** rather than Filament v4, and the
+> system now carries 2,000 teachers and 17,510 publications in production.
+
+---
+
 ## User Clarifications ✅
 - **Fields**: Use only fields from our existing tables (not full ERP)
 - **Media**: Use Spatie Media Library for images/files
@@ -12,7 +26,7 @@
 
 ### Installation
 ```bash
-composer require filament/spatie-laravel-media-library-plugin:"^4.0" -W
+composer require filament/spatie-laravel-media-library-plugin:"^5.0" -W
 php artisan vendor:publish --provider="Spatie\MediaLibrary\MediaLibraryServiceProvider" --tag="medialibrary-migrations"
 php artisan migrate
 ```

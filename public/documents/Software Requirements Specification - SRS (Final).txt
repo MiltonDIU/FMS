@@ -4,6 +4,24 @@
 
 ---
 
+> ## Reconciliation note — 2026-08-30
+>
+> This is a **Milestone-1 baseline document**, written before development and approved as the plan. It is kept unchanged in intent as the record of what was agreed. Since it was written, the system has been built, so the points below have been corrected in place and the current description now lives in:
+>
+> - *BRD - Faculty Management System.md* (revision 2.1)
+> - *SRS - Faculty Management System.md* (revision 2.1)
+>
+> **Where this document diverged from the built system:**
+>
+> - **Phase-2 (ERP) and Phase-3 (Research & Publications) were treated as optional and are both built.** Phase-3 is in production use with 17,510 publications and 1,759 incentive records; Phase-2's client is complete and awaits production credentials.
+> - **"Backend: API-driven architecture" was not what was built.** The system is a server-rendered Laravel 13 / Filament 5 monolith. An early Next.js frontend and its API layer were removed; a token API remains only for the department directory apps.
+> - **The role list was incomplete.** Nine roles exist: super_admin, admin, registrar, teacher, dean, associate_dean, head, associate_head, research_team. There is no separate IT/Developer role.
+> - **FR-31 (author identity verified via ERP) is not how it works.** Author identity is resolved through the Scopus export review and the author-to-teacher merge, not through an ERP lookup.
+> - **Section and requirement numbering skipped.** Section 4 was missing between 3 and 5, and FR-4 to FR-24 were never issued. Both are marked below.
+
+---
+
+
 ## 1. Introduction
 
 ### 1.1 Purpose of the Document
@@ -46,16 +64,27 @@ FMS replaces manual, document-based faculty profile handling with a structured w
 | Admin               | Manages users, approvals, and system data        |
 | Registrar Office    | Verifies and approves faculty data               |
 | Teacher             | Manages own profile and views personal dashboard |
-| IT User (Developer) | Technical maintenance and support                |
+| Dean / Associate Dean | Faculty-level visibility (added during build) |
+| Head / Associate Head | Department-level visibility (added during build) |
+| Research Team       | Central publication and incentive management (added during build; was planned as Phase-3 only) |
 
 > A single user may hold **multiple roles simultaneously**.
+
+> **As built:** nine roles exist — `super_admin`, `admin`, `registrar`,
+> `teacher`, `dean`, `associate_dean`, `head`, `associate_head`,
+> `research_team`. The *IT User (Developer)* role named in the original draft
+> was never created; technical maintenance is carried out under `super_admin`.
 
 ### 2.3 Operating Environment
 
 * Web-based application
-* Modern browsers (Chrome, Firefox, Edge)
-* Backend: API-driven architecture
-* Database-driven, normalized schema
+* Modern browsers (Chrome, Firefox, Edge, Safari), desktop and mobile
+
+> **As built:** the architecture is a server-rendered **Laravel 13 / Filament 5
+> monolith on MySQL**, not the API-driven backend described here. An early
+> Next.js frontend and its API layer were removed. A token API survives only to
+> serve the department directory mobile apps. The normalised schema was
+> delivered as planned.
 
 ---
 
@@ -215,7 +244,15 @@ This section defines **what type of Create, Read, Update, Delete (CRUD) operatio
 
 ---
 
-(Optional – ERP Integration)
+## 4. Phase-2 Functional Requirements (ERP Integration)
+
+> *Section 4 was missing from the approved draft; the heading is restored here.
+> Requirements FR-4 to FR-24 were never issued.*
+>
+> **Status as built:** the HR/ERP client is complete and has been run against
+> the live DIU directory. It uses three endpoints — an OAuth (Keycloak) token,
+> employee search, and employee profile by employee ID — and auto-fills the new
+> teacher form. Production credentials have not yet been issued.
 
 **FR-25:** Admin users shall be able to search faculty records in ERP.
 
@@ -225,17 +262,25 @@ This section defines **what type of Create, Read, Update, Delete (CRUD) operatio
 
 **FR-28:** ERP synchronization shall be configurable and controlled.
 
-> Phase-2 is optional and does not affect Phase-1 operation.
+> Phase-2 was approved as optional and does not affect Phase-1 operation. It
+> has since been built.
 
 ---
 
-## 5. Phase-3 Functional Requirements (Optional – Research & Publications)
+## 5. Phase-3 Functional Requirements (Research & Publications)
+
+> **Status as built: delivered and in production use** — 17,510 publications,
+> 25,485 author attributions, 1,759 incentive records. What was approved as an
+> option became a working module owned by the research team.
 
 **FR-29:** Research Team users shall manage centralized publication entries.
 
 **FR-30:** Publications shall be linked to existing teacher profiles automatically.
 
 **FR-31:** Unknown authors shall be verified via ERP lookup.
+*(As built: author identity is resolved through the Scopus export review and the
+author-to-teacher merge, not through an ERP lookup. 1,600 contributors are held
+as external authors without a public profile.)*
 
 **FR-32:** Non-teacher contributors shall be stored internally without public profiles.
 
@@ -325,5 +370,6 @@ This section defines **what type of Create, Read, Update, Delete (CRUD) operatio
 
 ---
 
-**Document Status:** Draft SRS  
-**Purpose:** Development & Implementation Reference
+**Document Status:** Milestone-1 baseline — superseded for current behaviour by
+*SRS - Faculty Management System.md* (revision 2.1, 2026-08-30)  
+**Purpose:** Historical record of what was approved before development

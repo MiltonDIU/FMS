@@ -4,6 +4,25 @@
 
 ---
 
+> ## Reconciliation note — 2026-08-30
+>
+> This is a **Milestone-1 baseline document**, written before development and approved as the plan. It is kept unchanged in intent as the record of what was agreed. Since it was written, the system has been built, so the points below have been corrected in place and the current description now lives in:
+>
+> - *BRD - Faculty Management System.md* (revision 2.1)
+> - *SRS - Faculty Management System.md* (revision 2.1)
+>
+> **Where this document diverged from the built system:**
+>
+> - **The Research Team is no longer a future phase.** It is a live role operating the central publication and incentive modules.
+> - **The IT / Developer role was never created.** The nine roles that exist are super_admin, admin, registrar, teacher, dean, associate_dean, head, associate_head, research_team.
+> - **Dean and Head appear in the visibility rules (section 4) but not in the permission matrix (section 3).** They are real roles and the matrix has been extended.
+> - **"Edit own profile" was marked ❌ for every role but Teacher.** In the built system the rule is about the person, not the role: any user who also holds a teacher record edits that record.
+> - **Approval escalation (section 9) was not built.** Notifications on submission, rejection remarks and routing are in place; automatic escalation to Super Admin on a stalled approval is not.
+> - **"Optional Admin Review" (section 5.1) became per-section approval.** Fifteen profile sections are each configured as requiring approval or not, and a reviewer may decide section by section.
+
+---
+
+
 ## 1. Purpose of This Document
 
 This document defines the **Role-Based Access Control (RBAC)** structure and **core system workflows** for the Faculty Management System (FMS). It establishes authority boundaries, approval responsibilities, data visibility rules, and operational flows required for governance, security, and accountability.
@@ -46,7 +65,7 @@ This document is part of **Milestone-1: Planning & Design** and does not include
 * Views personal dashboard and statistics
 * Can view own publications and public faculty profiles
 
-### 2.5 Research Team (Future Phase)
+### 2.5 Research Team (delivered — was planned as a future phase)
 
 * Manages research and publication entries
 * Faculty & Department Wise statistics Dashboard
@@ -61,25 +80,39 @@ This document is part of **Milestone-1: Planning & Design** and does not include
 * Technical maintenance and system support
 * No access to academic or approval data
 
+> **As built:** this role was never created. The nine roles that exist are
+> `super_admin`, `admin`, `registrar`, `teacher`, `dean`, `associate_dean`,
+> `head`, `associate_head` and `research_team`. Technical maintenance is done
+> under `super_admin`, which does have access to academic and approval data —
+> the separation described above was not implemented.
+
 > A single user may hold **multiple roles simultaneously**.
 
 ---
 
 ## 3. High-Level Permission Matrix
 
-| Feature / Action                     | Super Admin | Admin | Registrar Office | Teacher | Research Team |
-| ------------------------------------ | ----------- | ----- | ---------------- | ------- | ------------- |
-| Edit own profile                     | ❌           | ❌     | ❌                | ✅       | ❌             |
-| Submit profile for approval          | ❌           | ❌     | ❌                | ✅       | ❌             |
-| Create/Optional Review profile       | ❌           | ✅     | ✅                | ❌       | ❌             |
-| Final profile approval               | ❌           | ❌     | ✅                | ❌       | ❌             |
-| Assign administrative roles          | ✅           | ✅     | ❌                | ❌       | ❌             |
-| View department statistics           | ✅           | ✅     | ✅                | ❌       | ✅             |
-| View faculty-wide statistics         | ✅           | ✅     | ✅                | ❌       | ✅             |
-| Manage publications                  | ✅           | ❌     | ❌                | ❌       | ✅             |
-| View individual teacher publications | ✅           | ✅     | ✅                | ✅       | ✅             |
-| Public faculty profiles              | ✅           | ✅     | ✅                | ✅       | ✅             |
-| Override approvals / rollback        | ✅           | ❌     | ❌                | ❌       | ❌             |
+| Feature / Action                     | Super Admin | Admin | Registrar Office | Dean / Assoc. Dean | Head / Assoc. Head | Teacher | Research Team |
+| ------------------------------------ | ----------- | ----- | ---------------- | ------------------ | ------------------ | ------- | ------------- |
+| Edit own profile                     | ✅*          | ✅*    | ✅*               | ✅*                 | ✅*                 | ✅       | ✅*            |
+| Submit profile for approval          | ✅*          | ✅*    | ✅*               | ✅*                 | ✅*                 | ✅       | ✅*            |
+| Create/Optional Review profile       | ✅           | ✅     | ✅                | ❌                  | ❌                  | ❌       | ❌             |
+| Final profile approval               | ✅           | ❌     | ✅                | ❌                  | ❌                  | ❌       | ❌             |
+| Assign administrative roles          | ✅           | ✅     | ❌                | ❌                  | ❌                  | ❌       | ❌             |
+| View department statistics           | ✅           | ✅     | ✅                | ✅ own faculty      | ✅ own department   | ❌       | ✅             |
+| View faculty-wide statistics         | ✅           | ✅     | ✅                | ✅ own faculty      | ❌                  | ❌       | ✅             |
+| Manage publications                  | ✅           | ✅     | ❌                | ❌                  | ❌                  | ❌       | ✅             |
+| Manage publication incentives        | ✅           | ❌     | ❌                | ❌                  | ❌                  | ❌       | ✅             |
+| Review and merge a Scopus export     | ✅           | ❌     | ❌                | ❌                  | ❌                  | ❌       | ✅             |
+| View individual teacher publications | ✅           | ✅     | ✅                | ✅                  | ✅                  | ✅       | ✅             |
+| Public faculty profiles              | ✅           | ✅     | ✅                | ✅                  | ✅                  | ✅       | ✅             |
+| Override approvals / rollback        | ✅           | ❌     | ❌                | ❌                  | ❌                  | ❌       | ❌             |
+
+> \* **As built**, editing a profile is not a role privilege but a matter of
+> whose record it is: any user who also holds a teacher record maintains that
+> record, whatever else they are. Every action is checked server-side by a
+> policy — 42 policies, 536 permissions, strict mode on, so a model without a
+> policy is denied rather than allowed.
 
 ---
 
@@ -107,6 +140,13 @@ Registrar Office Approval
       ↓
 Published Profile (Live)
 ```
+
+> **As built:** the flow is configured per section rather than per profile. The
+> profile is divided into **15 sections**, each independently marked as
+> requiring approval or not. A change to a section that needs approval creates a
+> pending version; a change to one that does not applies immediately. A reviewer
+> may approve or reject the whole version or an individual section, and a
+> rejection carries written remarks back to the teacher.
 
 * Teachers, Admin, or Registrar Office can update or add all teacher-related information, including personal info, education, publications, experience, membership, awards, and other relevant academic data.
 * All edits are saved as draft versions
@@ -156,6 +196,11 @@ Experience End Date Auto-Updated
 * Rejection feedback to teachers
 * Escalation to Super Admin if approval stalls
 
+> **As built:** submission notification, configurable notification routing and
+> rejection remarks are delivered. **Automatic escalation on a stalled approval
+> is not built** — it is listed under "Not built" in the current SRS, awaiting
+> operational experience of how long approvals actually take.
+
 ---
 
 ## 10. Exception & Override Rules
@@ -166,6 +211,7 @@ Experience End Date Auto-Updated
 
 ---
 
-**Document Status:** Draft  
+**Document Status:** Milestone-1 baseline — superseded for current behaviour by
+*SRS - Faculty Management System.md* §4.1 and §4.4 (revision 2.1, 2026-08-30)  
 **Milestone:** 1 – Planning & Design  
-**Purpose:** Governance, Role Definition & Workflow Reference
+**Purpose:** Historical record of the governance model as approved

@@ -1,28 +1,48 @@
 # FMS
+
+> **Historical snapshot — written 2025-12-20, annotated 2026-08-30.**
+>
+> These are development notes from the first weeks of the project, kept for the
+> record. They describe the schema and the plan as they stood then, not the
+> system as it is now. For the current description see
+> *BRD - Faculty Management System.md* and
+> *SRS - Faculty Management System.md* (both revision 2.1).
+>
+> What has changed since: **18 tables became 72**, **18 models became 53**, the
+> panel runs on **Filament 5 / Laravel 13** rather than Filament v4, and the
+> system now carries 2,000 teachers and 17,510 publications in production.
+
+---
+
 ### Teacher Profile Interface
 The Teacher Profile is now fully implemented with a comprehensive Tabbed Interface and integrated Relation Managers.
 
 #### Edit Form with Tabs
 The form is organized into logical sections using tabs: Basic Information, Contact & Address, Personal Details, Academic & Social, and Settings.
 
-![Teacher Edit Form Tabs](/C:/Users/Milton/.gemini/antigravity/brain/f29bb1fe-2465-434f-bdbb-1c054c531a1d/teacher_edit_top_tabs_1766234670627.png)
+*(Screenshot removed: the original link pointed at an absolute path on a
+developer machine and could never resolve for a reader of this public folder.)*
 
 #### Relation Managers
 At the bottom of the profile, 8 specialized subsystems are available for managing related records such as Educations, Publications, Job Experiences, etc.
 
-![Teacher Relation Managers](/C:/Users/Milton/.gemini/antigravity/brain/f29bb1fe-2465-434f-bdbb-1c054c531a1d/teacher_edit_bottom_relations_1766234743955.png)
+*(Screenshot removed: the original link pointed at an absolute path on a
+developer machine and could never resolve for a reader of this public folder.)*
 
 ### Changes Implemented
 - **TeacherResource**: Configured with `TeacherForm` schema and registered 8 relation managers.
 - **TeacherForm**: Created a Schema-based form layout using `Tabs`, `Grid`, and `Section` from `Filament\Schemas` namespace.
-- **Relation Managers**: Created and registered 8 relation managers (Educations, Publications, JobExperiences, Skills, Awards, SocialLinks, Versions, TeachingAreas) using correct Filament v4 `Actions` and `Tables` namespaces.
-- **Filament v4 Compatibility**: Resolved namespace conflicts by correctly mixing `Filament\Forms` (for inputs) and `Filament\Schemas` (for layouts).
+- **Relation Managers**: Created and registered 8 relation managers (Educations, Publications, JobExperiences, Skills, Awards, SocialLinks, Versions, TeachingAreas) using the `Actions` and `Tables` namespaces.
+- **Filament Compatibility**: Resolved namespace conflicts by correctly mixing `Filament\Forms` (for inputs) and `Filament\Schemas` (for layouts). *(Written against Filament v4; the panel now runs on Filament 5.)*
 
  - Walkthrough
 
 ## Summary
 
 Successfully implemented the Faculty Management System (FMS) database schema with **18 tables** and **18 Eloquent models** with full relationships.
+
+> **As it stands on 2026-08-30:** 72 tables and 53 Eloquent models. The 18 below
+> were the first cut.
 
 ---
 
@@ -48,7 +68,7 @@ Successfully implemented the Faculty Management System (FMS) database schema wit
 | 14 | `2025_12_20_000014_create_awards_table` | awards |
 | 15 | `2025_12_20_000015_create_job_experiences_table` | job_experiences |
 | 16 | `2025_12_20_000016_create_social_links_table` | social_links |
-| 17 | `2025_12_20_000017_create_teacher_administrative_roles_table` | teacher_administrative_roles |
+| 17 | `2025_12_20_000017_create_teacher_administrative_roles_table` | teacher_administrative_roles *(now `administrative_role_user`)* |
 | 18 | `2025_12_20_000018_create_teacher_versions_table` | teacher_versions |
 
 ---
@@ -93,7 +113,7 @@ Successfully implemented the Faculty Management System (FMS) database schema wit
 
 ---
 
-## Next Steps
+## Next Steps *(as written in December 2025 — all of these were completed)*
 
 1. Install activity log packages:
    ```bash

@@ -29,7 +29,7 @@ class ExportOldTeachersAwardsCommand extends Command
         'groq'       => 'llama-3.3-70b-versatile',
         'gemini'     => 'gemini-2.5-flash',
         'vertex'     => 'gemini-2.5-flash',
-        'openrouter' => 'google/gemini-3.5-flash',
+        'openrouter' => 'google/gemini-2.5-flash',
         'deepseek'   => 'deepseek-v4-flash',
     ];
 
