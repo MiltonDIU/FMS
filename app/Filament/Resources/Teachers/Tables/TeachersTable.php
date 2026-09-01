@@ -148,6 +148,31 @@ class TeachersTable
                     ->badge()
                     ->color('info')
                     ->sortable(),
+                /*
+                 * Awards and certifications are counted here so the System
+                 * Overview dashboard's top performer cards have a column to sort
+                 * by when they hand the reader over to this list.
+                 *
+                 * Not toggled off by default, deliberately. Filament only adds a
+                 * counts() sub-select for a column that is on screen, while the
+                 * sort clause is added either way — so hiding these produced
+                 * "Unknown column 'awards_count' in order clause" the moment the
+                 * dashboard link was followed.
+                 */
+                TextColumn::make('awards_count')
+                    ->counts('awards')
+                    ->label('Total Awards')
+                    ->badge()
+                    ->color('warning')
+                    ->sortable()
+                    ->toggleable(),
+                TextColumn::make('certifications_count')
+                    ->counts('certifications')
+                    ->label('Total Certifications')
+                    ->badge()
+                    ->color('gray')
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('departments.short_name')
                     ->label('Department List')
                     ->badge()
@@ -284,6 +309,91 @@ class TeachersTable
                     ->relationship('jobType', 'name')
                     ->label('Job Type')
                     ->preload(),
+
+                /*
+                 * Faculty, department, gender and the joining date range are here
+                 * so the System Overview dashboard can hand its filters over
+                 * intact when the reader follows "View All". Without a matching
+                 * filter the list would quietly widen the selection and show more
+                 * teachers than the dashboard was counting.
+                 */
+                SelectFilter::make('faculty_id')
+                    ->label('Faculty')
+                    ->searchable()
+                    ->options(fn () => \App\Models\Faculty::query()
+                        ->where('is_active', true)
+                        ->orderBy('name')
+                        ->pluck('name', 'id')
+                        ->toArray())
+                    ->query(function (Builder $query, array $data) {
+                        if (! empty($data['value'])) {
+                            $query->whereHas('department', function ($q) use ($data) {
+                                $q->where('faculty_id', $data['value']);
+                            });
+                        }
+                    }),
+                SelectFilter::make('department_id')
+                    ->relationship('department', 'name')
+                    ->label('Department')
+                    ->searchable()
+                    ->preload(),
+                SelectFilter::make('gender_id')
+                    ->relationship('gender', 'name')
+                    ->label('Gender')
+                    ->preload(),
+                Filter::make('joining_date')
+                    ->label('Joining Date')
+                    ->form([
+                        \Filament\Forms\Components\DatePicker::make('from')
+                            ->label('Joined From'),
+                        \Filament\Forms\Components\DatePicker::make('until')
+                            ->label('Joined To'),
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        $query
+                            ->when(
+                                $data['from'] ?? null,
+                                fn (Builder $q, $date) => $q->whereDate('joining_date', '>=', $date),
+                            )
+                            ->when(
+                                $data['until'] ?? null,
+                                fn (Builder $q, $date) => $q->whereDate('joining_date', '<=', $date),
+                            );
+                    })
+                    ->indicateUsing(function (array $data): array {
+                        $indicators = [];
+
+                        if ($data['from'] ?? null) {
+                            $indicators[] = 'Joined from ' . Carbon::parse($data['from'])->toFormattedDateString();
+                        }
+
+                        if ($data['until'] ?? null) {
+                            $indicators[] = 'Joined until ' . Carbon::parse($data['until'])->toFormattedDateString();
+                        }
+
+                        return $indicators;
+                    }),
+
+                /*
+                 * The dashboard's top performer cards only count teachers who have
+                 * at least one record, so following them through to this list has
+                 * to be able to say the same thing. Sorting alone would leave the
+                 * teachers with none sitting at the far end of the same list.
+                 */
+                TernaryFilter::make('has_publications')
+                    ->label('Has Publications')
+                    ->queries(
+                        true: fn (Builder $query): Builder => $query->has('publications'),
+                        false: fn (Builder $query): Builder => $query->doesntHave('publications'),
+                        blank: fn (Builder $query): Builder => $query,
+                    ),
+                TernaryFilter::make('has_awards')
+                    ->label('Has Awards')
+                    ->queries(
+                        true: fn (Builder $query): Builder => $query->has('awards'),
+                        false: fn (Builder $query): Builder => $query->doesntHave('awards'),
+                        blank: fn (Builder $query): Builder => $query,
+                    ),
                 SelectFilter::make('profile_status')
                     ->options([
                         'draft' => 'Draft',

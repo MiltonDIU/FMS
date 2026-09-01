@@ -3,8 +3,10 @@
 namespace App\Console\Commands;
 
 use App\Models\Teacher;
+use App\Support\TeacherMediaPathGenerator;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
@@ -34,7 +36,8 @@ class DownloadTeacherPhotosCommand extends Command
                             {--force : Fetch again for teachers who already have an avatar}
                             {--timeout=20 : Seconds to wait for one image}
                             {--teacher=* : Only these teacher ids}
-                            {--repair : Put back any avatar whose stored file has gone missing}';
+                            {--repair : Put back any avatar whose stored file has gone missing}
+                            {--reorganise : Move photographs already stored under the old flat layout into the joining-year folders, then stop}';
 
     protected $description = 'Download teacher photographs from the legacy faculty site into local storage';
 
@@ -60,6 +63,19 @@ class DownloadTeacherPhotosCommand extends Command
 
         if ($this->option('repair')) {
             $this->repairMissingFiles($dryRun);
+        }
+
+        /*
+         * Returns rather than falling through, unlike --repair. Repair exists to
+         * feed the fetch pass — it puts the legacy filename back so the pass
+         * below picks the teacher up again. Reorganising is housekeeping on
+         * files already held, and nobody asking for it wants 1,800 downloads to
+         * start behind it.
+         */
+        if ($this->option('reorganise')) {
+            $this->reorganiseStoredFiles($dryRun);
+
+            return self::SUCCESS;
         }
 
         $query = Teacher::query()
@@ -180,6 +196,136 @@ class DownloadTeacherPhotosCommand extends Command
         }
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Moves photographs stored under the old flat layout into the year folders.
+     *
+     * Everything fetched or uploaded before TeacherMediaPathGenerator was
+     * introduced sits in a directory named after its own media id, at the root
+     * of the disk. New arrivals go to teachers/{year}/{id}/ — so without this
+     * pass the storage directory holds both shapes at once, and the older half
+     * would break the moment anything recomputed their paths.
+     *
+     * The year is stamped onto the record first and the file follows it, in
+     * that order: the stamp is what the path is built from, so a run that
+     * stopped halfway leaves records pointing at files that are still there
+     * rather than at a folder nothing was moved into.
+     *
+     * Safe to run again — anything already in place is counted and skipped.
+     */
+    protected function reorganiseStoredFiles(bool $dryRun): void
+    {
+        $generator = new TeacherMediaPathGenerator();
+
+        $media = \Spatie\MediaLibrary\MediaCollections\Models\Media::query()
+            ->where('model_type', Teacher::class)
+            ->orderBy('id')
+            ->get();
+
+        if ($media->isEmpty()) {
+            $this->info('No teacher media on record, so there is nothing to reorganise.');
+
+            return;
+        }
+
+        $this->info($dryRun
+            ? "🔍 Dry run — {$media->count()} stored file(s) examined; nothing will be moved"
+            : "📁 Reorganising {$media->count()} stored file(s) into joining-year folders...");
+
+        $stats = ['moved' => 0, 'already' => 0, 'missing' => 0, 'failed' => 0];
+        $problems = [];
+
+        $bar = $this->output->createProgressBar($media->count());
+        $bar->start();
+
+        foreach ($media as $item) {
+            $bar->advance();
+
+            if (blank($item->getCustomProperty('storage_year'))) {
+                $item->setCustomProperty(
+                    'storage_year',
+                    TeacherMediaPathGenerator::yearForTeacherId($item->model_id),
+                );
+
+                if (! $dryRun) {
+                    $item->save();
+                }
+            }
+
+            // The shape the default generator left behind: the media id alone.
+            $from = (string) $item->getKey();
+            $to = rtrim($generator->getPath($item), '/');
+
+            $disk = Storage::disk($item->disk);
+
+            /*
+             * Checked before the source is, or a file an earlier run already
+             * carried across would be reported as one that had gone missing.
+             */
+            if ($disk->exists($to . '/' . $item->file_name)) {
+                $stats['already']++;
+
+                // A half-finished earlier run can leave the old directory behind
+                // with the photograph already copied out of it.
+                if (! $dryRun && $from !== $to && $disk->directoryExists($from)) {
+                    $disk->deleteDirectory($from);
+                }
+
+                continue;
+            }
+
+            if (! $disk->exists($from . '/' . $item->file_name)) {
+                /*
+                 * Not at the target and not at the source: the file is genuinely
+                 * gone, which is what --repair is for. Nothing to carry across.
+                 */
+                $stats['missing']++;
+                $problems[] = [$item->model_id, $item->file_name, 'nothing stored at ' . $from . '/ or ' . $to . '/'];
+
+                continue;
+            }
+
+            if ($dryRun) {
+                $stats['moved']++;
+
+                continue;
+            }
+
+            try {
+                // allFiles rather than the one photograph: the directory also
+                // holds the generated conversions, and they belong together.
+                foreach ($disk->allFiles($from) as $file) {
+                    $disk->move($file, $to . '/' . Str::after($file, $from . '/'));
+                }
+
+                $disk->deleteDirectory($from);
+
+                $stats['moved']++;
+            } catch (\Throwable $e) {
+                $stats['failed']++;
+                $problems[] = [$item->model_id, $item->file_name, Str::limit($e->getMessage(), 60)];
+            }
+        }
+
+        $bar->finish();
+        $this->newLine(2);
+
+        $this->table(['', 'Count'], [
+            [$dryRun ? 'Would move' : 'Moved', $stats['moved']],
+            ['Already in a year folder', $stats['already']],
+            ['File missing entirely (try --repair)', $stats['missing']],
+            ['Move failed', $stats['failed']],
+        ]);
+
+        if ($problems !== []) {
+            $this->warn(count($problems) . ' file(s) were left where they were:');
+            $this->table(['Teacher', 'File', 'Why'], array_slice($problems, 0, 30));
+
+            if (count($problems) > 30) {
+                $this->line('  … and ' . (count($problems) - 30) . ' more');
+            }
+        }
     }
 
     /**

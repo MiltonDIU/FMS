@@ -155,6 +155,16 @@ return [
         // Model::class => PathGenerator::class
         // or
         // 'model_morph_alias' => PathGenerator::class
+
+        /*
+         * Teacher files go under teachers/{joining year}/{media id}/ rather than
+         * into a directory named after the media id at the root of the disk.
+         * One photograph per teacher had already put close to 1,900 entries at
+         * the top level; the year folders keep that navigable as the faculty
+         * grows. Applies to every collection a teacher owns — the avatar and the
+         * uploaded documents alike.
+         */
+        \App\Models\Teacher::class => \App\Support\TeacherMediaPathGenerator::class,
     ],
 
     /*

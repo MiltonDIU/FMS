@@ -2,6 +2,8 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Resources\Teachers\TeacherResource;
+use App\Helpers\Seo;
 use App\Models\Teacher;
 use Carbon\Carbon;
 use Filament\Widgets\Widget;
@@ -82,13 +84,111 @@ class TeacherOverview extends Widget
         return auth()->user()->can('View:TeacherOverview');
     }
 
+    /**
+     * A teacher's profile page, for the names shown in the rankings and the top
+     * performer cards.
+     */
+    public function teacherProfileUrl(int | string $teacherId): string
+    {
+        return TeacherResource::getUrl('view', ['record' => $teacherId]);
+    }
+
+    /**
+     * The teacher's page on the public site, or null when it cannot be reached —
+     * Seo::teacherUrl() returns null if the faculty short name, department code
+     * or webpage slug is missing, which is exactly when the link would 404.
+     */
+    public function teacherPublicUrl(?Teacher $teacher): ?string
+    {
+        return Seo::teacherUrl($teacher);
+    }
+
+    /**
+     * The teachers list, carrying the filters this widget is currently showing,
+     * so "View All" continues the same view instead of dropping the reader into
+     * an unfiltered list of everyone.
+     *
+     * Filament's List page reads table filters from ?filters[name][value] and
+     * sorting from ?sort=column:direction, so the values go straight into the
+     * query string.
+     *
+     * @param  ?string  $sort  Overrides the sort the ranking is currently using.
+     * @param  array<string, array<string, mixed>>  $extraFilters
+     */
+    public function teacherListUrl(?string $sort = null, array $extraFilters = []): string
+    {
+        $filters = [];
+
+        $selected = [
+            'faculty_id'           => $this->facultyFilter,
+            'department_id'        => $this->departmentFilter,
+            'gender_id'            => $this->genderFilter,
+            'designation_id'       => $this->designationFilter,
+            'employment_status_id' => $this->employmentStatusFilter,
+            'job_type_id'          => $this->jobTypeFilter,
+        ];
+
+        foreach ($selected as $name => $value) {
+            if (filled($value) && $value !== 'all') {
+                $filters[$name] = ['value' => $value];
+            }
+        }
+
+        if ($this->fromDate || $this->toDate) {
+            $filters['joining_date'] = array_filter([
+                'from'  => $this->fromDate,
+                'until' => $this->toDate,
+            ]);
+        }
+
+        $filters = array_replace($filters, $extraFilters);
+
+        return TeacherResource::getUrl('index', array_filter([
+            'filters' => $filters ?: null,
+            'sort'    => $sort ?? $this->currentRankingTableSort(),
+        ]));
+    }
+
+    /**
+     * The ranking's sort expressed as a table sort, or null when the chosen
+     * metric has no matching column on the teachers table.
+     */
+    protected function currentRankingTableSort(): ?string
+    {
+        $column = match ($this->sortBy) {
+            'publications'   => 'publications_count',
+            'awards'         => 'awards_count',
+            'certifications' => 'certifications_count',
+            'experience'     => 'joining_date',
+            'profile_score'  => 'profile_score',
+            default          => null,
+        };
+
+        if ($column === null) {
+            return null;
+        }
+
+        /*
+         * The ranking inverts the joining date — "highest first" there means the
+         * longest service, which is the oldest date — so the table sort has to be
+         * inverted the same way or the two screens disagree.
+         */
+        $direction = $this->sortBy === 'experience'
+            ? ($this->sortDirection === 'desc' ? 'asc' : 'desc')
+            : $this->sortDirection;
+
+        return $column . ':' . ($direction === 'asc' ? 'asc' : 'desc');
+    }
+
     protected function getViewData(): array
     {
         // Base query for teachers
         $teachersQuery = Teacher::query()
             // 'media' because the list renders each teacher's photograph, and
             // photo_url reads it from the avatar collection.
-            ->with(['department', 'designation', 'employmentStatus', 'media'])
+            // 'department.faculty' rather than 'department': the public profile
+            // address starts with the faculty short name.
+            ->with(['department.faculty', 'designation', 'employmentStatus', 'media'])
             ->active();
 
         // Apply scoping first
@@ -110,6 +210,9 @@ class TeacherOverview extends Widget
                 'teachers.designation_id',
                 'teachers.employment_status_id',
                 'teachers.is_public',
+                // The public route is keyed on the webpage slug, so the public
+                // profile link cannot be built without it.
+                'teachers.webpage',
                 'teachers.photo'
             ])
             ->withCount([
@@ -170,6 +273,12 @@ class TeacherOverview extends Widget
             'jobTypes'           => $this->getJobTypes(),
             'sortOptions'        => $this->getSortOptions(),
             'sortBy'             => $this->sortBy,
+            /*
+             * Gates the profile links and the View All buttons. A reader who
+             * cannot open the teachers list should see the numbers without links
+             * that would only land them on a denial.
+             */
+            'canBrowseTeachers'  => auth()->user()?->can('viewAny', Teacher::class) ?? false,
         ];
     }
 
@@ -398,16 +507,19 @@ class TeacherOverview extends Widget
         $countColumn = $metric . '_count';
 
         return $query->withCount($metric)
+            ->with('department.faculty')
             ->having($countColumn, '>', 0)
             ->orderBy($countColumn, 'desc')
             ->limit($limit)
             ->get()
             ->map(function ($teacher) use ($countColumn) {
                 return [
-                    'name'  => $teacher->full_name,
-                    'count' => $teacher->$countColumn,
-                    'photo' => $teacher->photo_url,
-                    'rank'  => $teacher->designation->name ?? '',
+                    'id'         => $teacher->id,
+                    'name'       => $teacher->full_name,
+                    'count'      => $teacher->$countColumn,
+                    'photo'      => $teacher->photo_url,
+                    'rank'       => $teacher->designation->name ?? '',
+                    'public_url' => Seo::teacherUrl($teacher),
                 ];
             })
             ->toArray();
@@ -431,17 +543,22 @@ class TeacherOverview extends Widget
                 'teachers.profile_score',
                 'teachers.profile_score_synced_at',
                 'teachers.designation_id',
+                // Both needed to build the public profile address.
+                'teachers.department_id',
+                'teachers.webpage',
             ])
-            ->with('designation')
+            ->with(['designation', 'department.faculty'])
             ->whereNotNull('profile_score')
             ->orderByDesc('profile_score')
             ->limit($limit)
             ->get()
             ->map(fn ($t) => [
-                'name'      => $t->full_name,
-                'score'     => $t->profile_score ?? 0,
-                'photo'     => $t->photo_url,
-                'rank'      => $t->designation->name ?? '',
+                'id'         => $t->id,
+                'name'       => $t->full_name,
+                'score'      => $t->profile_score ?? 0,
+                'photo'      => $t->photo_url,
+                'rank'       => $t->designation->name ?? '',
+                'public_url' => Seo::teacherUrl($t),
                 'synced_at' => $t->profile_score_synced_at?->diffForHumans() ?? 'Never',
             ])
             ->toArray();

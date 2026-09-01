@@ -589,6 +589,97 @@
             background: rgba(255, 255, 255, 0.1);
             color: #d1d5db;
         }
+
+        /* Links out of the dashboard: to one teacher, or to the filtered list. */
+        .teacher-name-link {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .teacher-name-link:hover {
+            color: #4f46e5;
+            text-decoration: underline;
+        }
+
+        /* The public site, as opposed to the admin record. */
+        .public-link {
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .public-link:hover {
+            background: #ddd6fe;
+            border-color: #a78bfa;
+        }
+
+        .public-link-sm {
+            font-size: 12px;
+            line-height: 1;
+            text-decoration: none;
+            opacity: .55;
+            transition: opacity .15s;
+        }
+
+        .public-link-sm:hover {
+            opacity: 1;
+        }
+
+        .performer-name-link {
+            text-decoration: none;
+            border-bottom: 1px dashed transparent;
+        }
+
+        .performer-name-link:hover {
+            color: #4f46e5;
+            border-bottom-color: #a5b4fc;
+        }
+
+        .view-all-link {
+            margin-left: auto;
+            font-size: 11px;
+            font-weight: 600;
+            color: #4f46e5;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .view-all-link:hover {
+            text-decoration: underline;
+        }
+
+        .view-all-bar {
+            display: flex;
+            justify-content: center;
+            margin-top: 1.25rem;
+        }
+
+        .view-all-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.65rem 1.5rem;
+            border-radius: 10px;
+            background: #4f46e5;
+            color: #fff;
+            font-weight: 600;
+            font-size: 13px;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .view-all-btn:hover {
+            background: #4338ca;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(79, 70, 229, 0.35);
+        }
+
+        .dark .performer-name-link:hover {
+            color: #a5b4fc;
+        }
+
+        .dark .view-all-link {
+            color: #a5b4fc;
+        }
     </style>
 
     <div class="teacher-overview-container" x-data="{ isCollapsed: false }">
@@ -774,6 +865,10 @@
                         <div class="performer-title" style="color:#4338CA">
                             🎯 Top Profile Scores
                             <span style="font-size:10px;font-weight:500;color:#94A3B8;margin-left:auto">from DB cache</span>
+                            @if($canBrowseTeachers)
+                                <a class="view-all-link" style="margin-left:8px"
+                                   href="{{ $this->teacherListUrl('profile_score:desc') }}">View all →</a>
+                            @endif
                         </div>
                         <div class="performer-list">
                             @forelse($topProfileScorers as $i => $performer)
@@ -793,8 +888,20 @@
                                         <span class="gap-score-ring-sm-label">{{ $sc }}%</span>
                                     </div>
                                     <div style="flex:1;min-width:0">
-                                        <div class="performer-name" style="font-size:13px">{{ $performer['name'] }}</div>
-                                        <div style="font-size:10px;color:#94A3B8">{{ $performer['rank'] }}</div>
+                                        @if($canBrowseTeachers)
+                                            <a href="{{ $this->teacherProfileUrl($performer['id']) }}"
+                                               class="performer-name performer-name-link"
+                                               style="font-size:13px;display:block">{{ $performer['name'] }}</a>
+                                        @else
+                                            <div class="performer-name" style="font-size:13px">{{ $performer['name'] }}</div>
+                                        @endif
+                                        <div style="font-size:10px;color:#94A3B8;display:flex;align-items:center;gap:6px">
+                                            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ $performer['rank'] }}</span>
+                                            @if($performer['public_url'])
+                                                <a href="{{ $performer['public_url'] }}" target="_blank" rel="noopener"
+                                                   class="public-link-sm" title="Open public profile">🌐</a>
+                                            @endif
+                                        </div>
                                     </div>
                                     <span class="score-pill {{ $pillCls }}">{{ $sc }}%</span>
                                 </div>
@@ -805,11 +912,31 @@
                     </div>
 
                     <div class="performer-card">
-                        <div class="performer-title">📚 Top Publishers</div>
+                        <div class="performer-title">
+                            📚 Top Publishers
+                            @if($canBrowseTeachers)
+                                {{-- Same filters as this dashboard, ordered by publication count,
+                                     narrowed to teachers who actually have one — which is what the
+                                     five names above are. --}}
+                                <a class="view-all-link"
+                                   href="{{ $this->teacherListUrl('publications_count:desc', ['has_publications' => ['value' => '1']]) }}">View all →</a>
+                            @endif
+                        </div>
                         <div class="performer-list">
                             @forelse($topPublishers as $performer)
                                 <div class="performer-item">
-                                    <span class="performer-name">{{ $performer['name'] }}</span>
+                                    <span style="display:flex;align-items:center;gap:6px;min-width:0">
+                                        @if($canBrowseTeachers)
+                                            <a href="{{ $this->teacherProfileUrl($performer['id']) }}"
+                                               class="performer-name performer-name-link">{{ $performer['name'] }}</a>
+                                        @else
+                                            <span class="performer-name">{{ $performer['name'] }}</span>
+                                        @endif
+                                        @if($performer['public_url'])
+                                            <a href="{{ $performer['public_url'] }}" target="_blank" rel="noopener"
+                                               class="public-link-sm" title="Open public profile">🌐</a>
+                                        @endif
+                                    </span>
                                     <span class="performer-count">{{ $performer['count'] }}</span>
                                 </div>
                             @empty
@@ -819,11 +946,28 @@
                     </div>
 
                     <div class="performer-card">
-                        <div class="performer-title">🏆 Top Award Winners</div>
+                        <div class="performer-title">
+                            🏆 Top Award Winners
+                            @if($canBrowseTeachers)
+                                <a class="view-all-link"
+                                   href="{{ $this->teacherListUrl('awards_count:desc', ['has_awards' => ['value' => '1']]) }}">View all →</a>
+                            @endif
+                        </div>
                         <div class="performer-list">
                             @forelse($topAwardWinners as $performer)
                                 <div class="performer-item">
-                                    <span class="performer-name">{{ $performer['name'] }}</span>
+                                    <span style="display:flex;align-items:center;gap:6px;min-width:0">
+                                        @if($canBrowseTeachers)
+                                            <a href="{{ $this->teacherProfileUrl($performer['id']) }}"
+                                               class="performer-name performer-name-link">{{ $performer['name'] }}</a>
+                                        @else
+                                            <span class="performer-name">{{ $performer['name'] }}</span>
+                                        @endif
+                                        @if($performer['public_url'])
+                                            <a href="{{ $performer['public_url'] }}" target="_blank" rel="noopener"
+                                               class="public-link-sm" title="Open public profile">🌐</a>
+                                        @endif
+                                    </span>
                                     <span class="performer-count">{{ $performer['count'] }}</span>
                                 </div>
                             @empty
@@ -852,6 +996,10 @@
                         $scLabel  = is_null($sc) ? 'N/A' : $sc . '%';
                         $barWidth = $sc ?? 0;
                     @endphp
+                    @php $publicUrl = $this->teacherPublicUrl($teacher); @endphp
+                    {{-- The card carries two destinations now — the admin record and the public
+                         page — so it cannot be one big link any more: an anchor cannot be nested
+                         inside another. The name opens the record, the badge opens the site. --}}
                     <div class="teacher-card animate-slide-up" style="animation-delay: {{ $index * 0.05 }}s">
                         <div class="teacher-rank {{ $index < 3 ? 'rank-' . ($index + 1) : 'rank-other' }}">
                             {{ $index + 1 }}
@@ -871,7 +1019,12 @@
                             </div>
                             <div class="teacher-info">
                                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-                                    <div class="teacher-name">{{ $teacher->full_name }}</div>
+                                    @if($canBrowseTeachers)
+                                        <a href="{{ $this->teacherProfileUrl($teacher->id) }}"
+                                           class="teacher-name teacher-name-link">{{ $teacher->full_name }}</a>
+                                    @else
+                                        <div class="teacher-name">{{ $teacher->full_name }}</div>
+                                    @endif
                                     {{-- Profile score pill on ALL cards --}}
                                     <span class="score-pill {{ $pillCls }}">🎯 {{ $scLabel }}</span>
                                 </div>
@@ -887,6 +1040,11 @@
                                     @endif
                                     @if($teacher->joining_date)
                                         <span class="meta-badge">📅 Joined {{ $teacher->joining_date->format('M d, Y') }}</span>
+                                    @endif
+                                    @if($publicUrl)
+                                        <a href="{{ $publicUrl }}" target="_blank" rel="noopener"
+                                           class="meta-badge public-link"
+                                           title="{{ $publicUrl }}">🌐 Public Profile ↗</a>
                                     @endif
                                 </div>
                             </div>
@@ -958,6 +1116,18 @@
                         <p>Try adjusting your filters to see results</p>
                     </div>
                 @endforelse
+
+                @if($canBrowseTeachers && count($teacherStats))
+                    {{-- The ranking above is capped. This carries the same filters and the same
+                         ordering into the teachers list, where the rest of them are. --}}
+                    <div class="view-all-bar">
+                        <a href="{{ $this->teacherListUrl() }}" class="view-all-btn">
+                            View All Teachers
+                            <span style="font-size:11px;opacity:.85">(with these filters)</span>
+                            →
+                        </a>
+                    </div>
+                @endif
             </div>
         </div>
     </div>

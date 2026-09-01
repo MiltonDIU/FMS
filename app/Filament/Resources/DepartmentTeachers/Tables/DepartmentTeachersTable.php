@@ -22,6 +22,7 @@ use Filament\Forms\Components\Select;
 use Filament\Tables\Filters\Filter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
+use App\Helpers\Seo;
 use App\Models\Faculty;
 use App\Models\Department;
 use App\Models\DepartmentTeacher;
@@ -41,6 +42,15 @@ class DepartmentTeachersTable
         }
 
         return $table
+            /*
+             * Both relations are read by several columns on every row, and the
+             * public profile link needs the faculty behind the department, so they
+             * are loaded once for the page rather than per row.
+             */
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with([
+                'teacher',
+                'department.faculty',
+            ]))
             ->defaultSort(function (Builder $query, string $direction, $livewire) {
                 $departmentId = $livewire?->getTableFilterState('faculty_department')['department_id'] ?? null;
 
@@ -158,6 +168,31 @@ class DepartmentTeachersTable
                     ->label('Faculty')
                     ->searchable()
                     ->sortable()
+                    ->toggleable(),
+
+                /*
+                 * The public page for this assignment, not for the teacher in
+                 * general. A teacher appears once per department here, and the
+                 * public site gives them a page under each one, so the row has to
+                 * link to the department it is showing — passing $record->department
+                 * rather than letting Seo fall back to the home department, which
+                 * would send every row of the same teacher to the same page.
+                 *
+                 * Null when the faculty short name, department code or webpage slug
+                 * is missing; that is exactly when the address would 404, so the row
+                 * shows a dash instead of a broken link.
+                 */
+                TextColumn::make('public_profile_url')
+                    ->label('Public Profile')
+                    ->state(fn (DepartmentTeacher $record): ?string => Seo::teacherUrl($record->teacher, $record->department))
+                    ->formatStateUsing(fn (?string $state): string => filled($state) ? '🌐 Open ↗' : '—')
+                    ->url(fn (DepartmentTeacher $record): ?string => Seo::teacherUrl($record->teacher, $record->department))
+                    ->openUrlInNewTab()
+                    ->badge()
+                    ->color(fn (?string $state): string => filled($state) ? 'info' : 'gray')
+                    // No copyable() here: it takes the click for itself, so the
+                    // badge copied the address instead of opening it.
+                    ->tooltip(fn (?string $state): ?string => $state)
                     ->toggleable(),
 
                 TextColumn::make('jobType.name')

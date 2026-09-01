@@ -2,6 +2,7 @@
 
 namespace App\Helpers;
 
+use App\Models\Department;
 use App\Models\Publication;
 use App\Models\Teacher;
 use Illuminate\Support\Facades\Route;
@@ -133,10 +134,16 @@ class Seo
      * Three things have to be there — a faculty short name, a department code
      * and a webpage slug — and a teacher missing any of them has no address, so
      * their name on a byline is text rather than a link.
+     *
+     * $department overrides the teacher's home department. A teacher assigned to
+     * several departments has a page under each of them — the public controller
+     * matches on the home department or any department_teacher assignment — so a
+     * screen listing assignments has to link to the one it is showing rather than
+     * silently sending every row to the same home department page.
      */
-    public static function teacherUrl(?Teacher $teacher): ?string
+    public static function teacherUrl(?Teacher $teacher, ?Department $department = null): ?string
     {
-        $department = $teacher?->department;
+        $department ??= $teacher?->department;
         $faculty = $department?->faculty;
 
         if (! $teacher || ! $department || ! $faculty?->short_name || blank($teacher->webpage)) {

@@ -85,5 +85,14 @@ class AppServiceProvider extends ServiceProvider
         // Register Livewire components explicitly (auto-discovery provider not wired up).
         Livewire::component('teacher-search', \App\Livewire\Frontend\TeacherSearch::class);
         Livewire::component('department-search', \App\Livewire\Frontend\DepartmentSearch::class);
+
+        /*
+         * Media belongs to the library, so it cannot register its own observer
+         * the way our models do in booted(). Registered here instead, and it has
+         * to be registered somewhere: without it nothing stamps the year a
+         * teacher's file is filed under, and TeacherMediaPathGenerator falls
+         * back to reading the joining date on every path it builds.
+         */
+        \Spatie\MediaLibrary\MediaCollections\Models\Media::observe(\App\Observers\MediaObserver::class);
     }
 }
