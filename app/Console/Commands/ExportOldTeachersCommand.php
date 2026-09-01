@@ -680,7 +680,7 @@ class ExportOldTeachersCommand extends Command
         return match ((int) ($t->teacher_type ?? 0)) {
             1       => $this->jobTypeMap['adjunct faculty']  ?? null,
             2       => $this->jobTypeMap['visiting faculty'] ?? null,
-            default => $this->jobTypeMap['full time']        ?? null,
+            default => $this->jobTypeMap['regular']        ?? null,
         };
     }
 
@@ -692,7 +692,7 @@ class ExportOldTeachersCommand extends Command
         return match ((int) ($row->teacher_type ?? 0)) {
             1       => $this->jobTypeMap['adjunct faculty']  ?? null,
             2       => $this->jobTypeMap['visiting faculty'] ?? null,
-            default => $this->jobTypeMap['full time']        ?? null,
+            default => $this->jobTypeMap['regular']        ?? null,
         };
     }
 

@@ -168,6 +168,7 @@ class Organization extends Model
     {
         $name = trim(preg_replace('/\s+/', ' ', $name));
         $lower = mb_strtolower($name);
+        $lower = \Illuminate\Support\Str::ascii($lower);
         
         // Strip short acronyms in parentheses first (e.g. "(NIIT)", "(DIU)")
         $lower = preg_replace('/\s*\([a-z]{2,6}\)/', '', $lower);
@@ -384,7 +385,35 @@ class Organization extends Model
             'approved_by' => $isAdmin && auth()->check() ? auth()->id() : null,
         ], $flags);
 
-        return self::create($insertData);
+        try {
+            return self::create($insertData);
+        } catch (\Illuminate\Database\UniqueConstraintViolationException | \Illuminate\Database\QueryException $e) {
+            $fallback = self::where(function ($query) use ($countryId) {
+                    if ($countryId) {
+                        $query->where('country_id', $countryId)->orWhereNull('country_id');
+                    }
+                })
+                ->get()
+                ->first(function ($org) use ($name) {
+                    $canonicalInput = self::getCanonicalName($name);
+                    return self::getCanonicalName($org->name) === $canonicalInput;
+                });
+
+            if ($fallback) {
+                $update = [];
+                foreach ($flags as $flag => $val) {
+                    if ($val && !$fallback->$flag) {
+                        $update[$flag] = true;
+                    }
+                }
+                if (!empty($update)) {
+                    $fallback->update($update);
+                }
+                return $fallback;
+            }
+
+            throw $e;
+        }
     }
 
     public function creator(): BelongsTo

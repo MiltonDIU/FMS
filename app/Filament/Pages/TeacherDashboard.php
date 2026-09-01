@@ -2,12 +2,10 @@
 
 namespace App\Filament\Pages;
 
-use App\Filament\Widgets\MyProfileOverview;
 use App\Filament\Widgets\TeacherDashboardOverview;
 use App\Filament\Widgets\TeacherProfessionalInfoWidget;
 use App\Filament\Widgets\TeacherProfileCompletionWidget;
 use App\Filament\Widgets\TeacherProfileStatsWidget;
-use App\Filament\Widgets\TeacherPublicationTrendWidget;
 use App\Filament\Widgets\TeacherPublicationsStatsWidget;
 use App\Filament\Widgets\TeacherQuickActionsWidget;
 use App\Filament\Widgets\TeacherResearchStatsWidget;
@@ -156,7 +154,7 @@ class TeacherDashboard extends Page
 //            TeacherProfessionalInfoWidget::make(['record' => $teacher]),
 //            TeacherPublicationsStatsWidget::make(['record' => $teacher]),
 //            TeacherResearchStatsWidget::make(['record' => $teacher]),
-//            TeacherPublicationTrendWidget::make(['record' => $teacher]),
+//            TeacherPublicationTrendWidget::make(['record' => $teacher]), // class does not exist - do not uncomment
 //            TeacherQuickActionsWidget::make(['record' => $teacher]),
             TeacherDashboardOverview::make(['record' => $teacher])
         ];

@@ -50,6 +50,8 @@ class ImportAllOldTeachersDataCommand extends Command
             'import:training-experiences',
             'publications:convert-pipeline',
             'publications:import-pipeline',
+            'import:researcher-profiles',
+            'import:old-teachers-all'
 
         ];
 

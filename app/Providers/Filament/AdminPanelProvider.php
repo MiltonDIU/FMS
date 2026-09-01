@@ -60,10 +60,72 @@ class AdminPanelProvider extends PanelProvider
             ->pages([
                 \App\Filament\Pages\Dashboard::class,
             ])
-            ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
+            /*
+             * Widgets are registered by hand, not discovered.
+             *
+             * discoverWidgets() put every file in app/Filament/Widgets onto the
+             * dashboard. That is how page-scoped widgets ended up duplicated
+             * there, and why anything dropped into the folder appeared uninvited.
+             * The reporting work needs a dashboard that holds only what it is
+             * told to hold.
+             *
+             * Nothing was deleted. A widget left out of the lists below stays on
+             * disk and simply stops rendering — uncomment its line to bring it
+             * back. Note that a widget listed nowhere is also invisible to
+             * Shield, so it drops out of the role permission form; the rows
+             * already in the permissions table are untouched.
+             */
             ->widgets([
 //                AccountWidget::class,
 //                FilamentInfoWidget::class,
+
+                // Dashboard.
+                \App\Filament\Widgets\TeacherOverview::class,
+                \App\Filament\Widgets\PublicationOverview::class,
+                \App\Filament\Widgets\SystemStatsOverview::class,
+                \App\Filament\Widgets\SystemPackagesStatsWidget::class,
+                \App\Filament\Widgets\QueueStatusWidget::class,
+
+                /*
+                 * Parked pending the new report engine. Each one is either
+                 * superseded by a configurable report, duplicated by the two
+                 * overview widgets above, or was never rendered by any page.
+                 * Kept here so the decision to delete can be made later, one
+                 * line at a time, rather than guessed at now.
+                 */
+                \App\Filament\Widgets\PublicationYearWidget::class,
+//                \App\Filament\Widgets\PublicationTypeChart::class,
+//                \App\Filament\Widgets\PublicationQuartileWidget::class,
+//                \App\Filament\Widgets\PublicationGrantTypeWidget::class,
+//                \App\Filament\Widgets\PublicationLinkageChart::class,
+//                \App\Filament\Widgets\PublicationAuthorStatsWidget::class,
+//                \App\Filament\Widgets\CollaborationDistributionChart::class,
+//                \App\Filament\Widgets\PublicationStatsOverview::class,
+//                \App\Filament\Widgets\SystemOverviewWidget::class,
+//                \App\Filament\Widgets\TeacherStatsOverview::class,
+//                \App\Filament\Widgets\TopProfileViewsWidget::class,
+//                \App\Filament\Widgets\TeacherProfileStatsWidget::class,
+//                \App\Filament\Widgets\TeacherProfileCompletionWidget::class,
+//                \App\Filament\Widgets\TeacherProfessionalInfoWidget::class,
+//                \App\Filament\Widgets\TeacherPublicationsStatsWidget::class,
+//                \App\Filament\Widgets\TeacherResearchStatsWidget::class,
+//                \App\Filament\Widgets\TeacherQuickActionsWidget::class,
+            ])
+            /*
+             * Rendered by one specific page's getHeaderWidgets()/getFooterWidgets(),
+             * never on the dashboard. They still have to be registered as Livewire
+             * components or the page fails on the first update; widgets() would
+             * register them but would also return them to the dashboard, which is
+             * the duplication being undone here.
+             *
+             * TeacherVerificationStatsWidget is deliberately absent: it lives under
+             * Filament/Resources, and discoverResources() registers every Livewire
+             * component it walks past, including that one.
+             */
+            ->livewireComponents([
+                \App\Filament\Widgets\TeacherDashboardOverview::class,
+                \App\Filament\Widgets\PublicationSourceStatsWidget::class,
+                \App\Filament\Widgets\PublicationIncentiveStatsOverview::class,
             ])
             ->middleware([
                 EncryptCookies::class,
@@ -106,9 +168,37 @@ class AdminPanelProvider extends PanelProvider
                 FilamentApexChartsPlugin::make(),
 
             ])
+            /*
+             * The first rule below hands page scrolling back once every modal has
+             * closed.
+             *
+             * Tables that open their filters as a modal or slide-over — the
+             * teachers table does, via FiltersLayout::Modal plus slideOver() on
+             * the trigger — go through Alpine's x-trap.noscroll, which locks the
+             * page by writing overflow:hidden and a scrollbar-width padding
+             * straight onto <html>. Applying a filter re-renders the table through
+             * Livewire, and the trap's cleanup does not survive that morph, so the
+             * lock outlives the modal that set it and the page stops scrolling.
+             *
+             * A stylesheet !important outranks an inline style carrying no
+             * !important of its own, so the rule releases the lock whenever
+             * nothing is genuinely open.
+             *
+             * The guard has to be .fi-modal-open and nothing else. That class is
+             * bound to the modal's isOpen state, so it is present only while a
+             * modal is really open. .fi-modal-window, which an earlier version of
+             * this rule also tested for, is in the DOM permanently — every closed
+             * modal still has one — so naming it made :has() always match and left
+             * the rule as dead code.
+             */
             ->renderHook(
                 'panels::head.end',
                 fn (): string => '<style>
+                    html:not(:has(.fi-modal-open)) {
+                        overflow-y: auto !important;
+                        padding-right: 0 !important;
+                    }
+
                     @media (max-width: 1024px) {
                         .responsive-vertical-tabs {
                             display: flex !important;
@@ -129,6 +219,15 @@ class AdminPanelProvider extends PanelProvider
                     }
                 </style>'
             );
+        /*
+         * A companion 'panels::body.end' script used to try the same repair from
+         * JavaScript, clearing the inline overflow on every Livewire commit and
+         * every click. It carried the same .fi-modal-window test as the rule
+         * above, so its "is a modal open?" check was always true and it never
+         * cleared anything — while still running a document-wide click listener.
+         * The CSS rule covers the case on its own; `git log` has the script if it
+         * is ever wanted back.
+         */
     }
     public function boot(): void
     {
