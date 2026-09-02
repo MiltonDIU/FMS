@@ -55,3 +55,4 @@ docs/API-Information.pdf
 # storage/app/private/scopus, which the review already writes to and which is
 # already ignored.
 public/documents/scopas/
+public/documents/all profile.json

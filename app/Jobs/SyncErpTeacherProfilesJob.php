@@ -69,9 +69,26 @@ class SyncErpTeacherProfilesJob implements ShouldQueue
         // one number that says whether the run did what it was asked to.
         $filled = [];
 
+        /*
+         * Why the ones that did not work did not work, counted per reason.
+         *
+         * "22 failed" on its own sends the reader to the log file. Grouped, the
+         * same run says eighteen were refused because the ERP only serves
+         * academic staff — nothing to fix — and four were genuinely not found,
+         * which is a data question worth asking. Same information, one of them
+         * actionable.
+         */
+        $reasons = [];
+
+        /*
+         * Chosen fields that were not written, and why. A run that fills one
+         * field out of nine otherwise looks like eight silent failures.
+         */
+        $untouched = [];
+
         Teacher::query()
             ->whereIn('id', $this->teacherIds)
-            ->chunkById(50, function ($teachers) use ($sync, $fields, &$stats, &$filled): void {
+            ->chunkById(50, function ($teachers) use ($sync, $fields, &$stats, &$filled, &$reasons, &$untouched): void {
                 foreach ($teachers as $teacher) {
                     $result = $sync->sync($teacher, $fields, $this->mode);
 
@@ -81,17 +98,31 @@ class SyncErpTeacherProfilesJob implements ShouldQueue
                         $filled[$column] = ($filled[$column] ?? 0) + 1;
                     }
 
-                    if ($result['status'] === 'failed') {
-                        Log::warning('ERP profile sync failed for a teacher', [
+                    foreach ($result['untouched'] ?? [] as $why => $columns) {
+                        foreach ($columns as $column) {
+                            $untouched[$why][$column] = ($untouched[$why][$column] ?? 0) + 1;
+                        }
+                    }
+
+                    if (filled($result['message'])) {
+                        $reasons[$result['message']] = ($reasons[$result['message']] ?? 0) + 1;
+                    }
+
+                    if (in_array($result['status'], ['failed', 'not_found'], true)) {
+                        // The teacher's own ids stay here rather than in the
+                        // notification, so one can be looked up when a reason
+                        // needs chasing.
+                        Log::warning('ERP profile sync could not complete for a teacher', [
                             'teacher_id' => $teacher->id,
                             'employee_id' => $teacher->employee_id,
+                            'status' => $result['status'],
                             'reason' => $result['message'],
                         ]);
                     }
                 }
             });
 
-        $this->report($stats, $filled);
+        $this->report($stats, $filled, $reasons, $untouched);
     }
 
     /**
@@ -103,19 +134,74 @@ class SyncErpTeacherProfilesJob implements ShouldQueue
      *
      * @param  array<string, int>  $stats
      * @param  array<string, int>  $filled
+     * @param  array<string, int>  $reasons
      */
-    protected function report(array $stats, array $filled): void
+    protected function report(array $stats, array $filled, array $reasons = [], array $untouched = []): void
     {
-        $lines = [
-            $stats['updated'] . ' teacher(s) updated',
-            $stats['unchanged'] . ' already matched the ERP',
-        ];
+        $body = static::summaryBody($stats, $filled, $reasons, $untouched);
 
-        foreach (['not_found' => 'not found in the ERP', 'skipped' => 'skipped', 'failed' => 'failed'] as $key => $label) {
+        Log::info('ERP profile sync finished', [
+            'stats' => $stats,
+            'filled' => $filled,
+            'reasons' => $reasons,
+            'untouched' => $untouched,
+            'summary' => $body,
+        ]);
+
+        $user = $this->requestedBy ? User::find($this->requestedBy) : null;
+
+        if (! $user) {
+            return;
+        }
+
+        Notification::make()
+            ->title(($stats['failed'] ?? 0) > 0 ? 'ERP profile sync finished with failures' : 'ERP profile sync finished')
+            ->body($body)
+            ->icon('heroicon-o-cloud-arrow-down')
+            ->color(($stats['failed'] ?? 0) > 0 ? 'warning' : 'success')
+            ->sendToDatabase($user);
+    }
+
+    /**
+     * The sentence, and the reasons under it, that a finished run reports.
+     *
+     * Separate from sending so the wording can be exercised on its own — the
+     * notification itself only writes inside a panel or worker context, which
+     * makes the text impossible to check anywhere else.
+     *
+     * @param  array<string, int>  $stats
+     * @param  array<string, int>  $filled
+     * @param  array<string, int>  $reasons
+     * @param  array<string, array<string, int>>  $untouched
+     */
+    public static function summaryBody(array $stats, array $filled, array $reasons = [], array $untouched = []): string
+    {
+        $lines = [($stats['updated'] ?? 0) . ' teacher(s) updated'];
+
+        /*
+         * Only counts that happened. A line reading "0 already matched the ERP"
+         * is noise on every run that had none, and it pushed the reasons — the
+         * part worth reading — further down.
+         */
+        foreach ([
+            'unchanged' => 'already matched the ERP',
+            'not_found' => 'not found in the ERP',
+            'skipped' => 'skipped',
+            'failed' => 'failed',
+        ] as $key => $label) {
             if (($stats[$key] ?? 0) > 0) {
                 $lines[] = $stats[$key] . ' ' . $label;
             }
         }
+
+        /*
+         * The counts are one sentence; everything below gets its own line.
+         * Run together they made a paragraph nobody reads to the end of, and
+         * the field detail is the part being asked about.
+         */
+        $body = implode('. ', $lines) . '.';
+
+        $lines = [];
 
         if ($filled !== []) {
             arsort($filled);
@@ -129,22 +215,57 @@ class SyncErpTeacherProfilesJob implements ShouldQueue
             $lines[] = 'Filled: ' . implode(', ', $detail);
         }
 
-        $body = implode('. ', $lines) . '.';
+        /*
+         * The fields that were asked for and not written.
+         *
+         * A run that ticks nine fields and reports one reads as eight silent
+         * failures. These two lines are the difference between "the ERP has
+         * nothing for this, stop expecting it" and "we already hold a value,
+         * run again with overwrite if the ERP should win" — opposite next
+         * steps, and neither one guessable from the filled list alone.
+         */
+        foreach ([
+            ErpProfileFieldSync::UNTOUCHED_ALREADY_SET => 'Left alone, already on file',
+            ErpProfileFieldSync::UNTOUCHED_NOT_SUPPLIED => 'Not sent by the ERP',
+        ] as $why => $label) {
+            $columns = $untouched[$why] ?? [];
 
-        Log::info('ERP profile sync finished', ['stats' => $stats, 'filled' => $filled]);
+            if ($columns === []) {
+                continue;
+            }
 
-        $user = $this->requestedBy ? User::find($this->requestedBy) : null;
+            arsort($columns);
 
-        if (! $user) {
-            return;
+            $detail = [];
+
+            foreach ($columns as $column => $count) {
+                $detail[] = ErpProfileFields::labels([$column])[0] . ' (' . $count . ')';
+            }
+
+            $lines[] = $label . ': ' . implode(', ', $detail);
         }
 
-        Notification::make()
-            ->title($stats['failed'] > 0 ? 'ERP profile sync finished with failures' : 'ERP profile sync finished')
-            ->body($body)
-            ->icon('heroicon-o-cloud-arrow-down')
-            ->color($stats['failed'] > 0 ? 'warning' : 'success')
-            ->sendToDatabase($user);
+        foreach ($lines as $line) {
+            $body .= "\n" . $line . '.';
+        }
+
+        if ($reasons !== []) {
+            arsort($reasons);
+
+            // Four is enough to see the shape of a run without turning a
+            // notification into a report. The rest are in the log.
+            $shown = array_slice($reasons, 0, 4, true);
+
+            foreach ($shown as $reason => $count) {
+                $body .= "\n• " . $count . ' × ' . rtrim($reason, '.');
+            }
+
+            if (count($reasons) > count($shown)) {
+                $body .= "\n• and " . (count($reasons) - count($shown)) . ' other reason(s) — see the log';
+            }
+        }
+
+        return $body;
     }
 
     public function failed(\Throwable $e): void
