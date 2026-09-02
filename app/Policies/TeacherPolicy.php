@@ -113,6 +113,23 @@ class TeacherPolicy
         return $authUser->can('ImportErp:Teacher');
     }
 
+    /*
+     * Filling profile fields from the ERP is split in two on purpose. Refreshing
+     * the teacher in front of you is an everyday correction; starting a run
+     * across an employment status touches hundreds of records at once and
+     * writes past the approval workflow, so it is a different thing to be
+     * trusted with.
+     */
+    public function syncErpProfile(AuthUser $authUser, ?Teacher $teacher = null): bool
+    {
+        return $authUser->can('SyncErpProfile:Teacher');
+    }
+
+    public function bulkSyncErpProfiles(AuthUser $authUser): bool
+    {
+        return $authUser->can('BulkSyncErpProfiles:Teacher');
+    }
+
     public function viewDashboard(AuthUser $authUser, ?Teacher $teacher = null): bool
     {
         return $authUser->can('ViewDashboard:Teacher');

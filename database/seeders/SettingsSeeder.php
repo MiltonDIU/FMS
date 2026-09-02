@@ -173,6 +173,32 @@ class SettingsSeeder extends Seeder
                 'is_public' => false,
                 'sort_order' => 23,
             ],
+            /*
+             * The endpoint paths, seeded with what the vendor served at the
+             * time. They are settings rather than constants in the service so a
+             * moved endpoint is an edit on the Teacher API Integration tab
+             * instead of a code change and a deployment.
+             */
+            [
+                'group' => 'teacher_integration',
+                'key' => 'hr_api_search_path',
+                'value' => \App\Services\HrApiService::DEFAULT_SEARCH_PATH,
+                'type' => 'string',
+                'label' => 'HR API Employee Search Path',
+                'description' => 'Appended to the base URL when searching the ERP for a teacher',
+                'is_public' => false,
+                'sort_order' => 23,
+            ],
+            [
+                'group' => 'teacher_integration',
+                'key' => 'hr_api_profile_path',
+                'value' => \App\Services\HrApiService::DEFAULT_PROFILE_PATH,
+                'type' => 'string',
+                'label' => 'HR API Employee Profile Path',
+                'description' => 'Appended to the base URL to fetch one profile. ' . \App\Services\HrApiService::EMPLOYEE_ID_PLACEHOLDER . ' marks where the employee id goes',
+                'is_public' => false,
+                'sort_order' => 24,
+            ],
             [
                 'group' => 'teacher_integration',
                 'key' => 'hr_api_client_id',

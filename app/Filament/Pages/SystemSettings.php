@@ -154,6 +154,8 @@ class SystemSettings extends Page
             'teacher_integration_mapping' => 'erp_teacher_profile',
             'hr_api_base_url' => '',
             'hr_api_token_url' => 'https://auth0.diu.edu.bd/realms/diu/protocol/openid-connect/token',
+            'hr_api_search_path' => \App\Services\HrApiService::DEFAULT_SEARCH_PATH,
+            'hr_api_profile_path' => \App\Services\HrApiService::DEFAULT_PROFILE_PATH,
             'hr_api_client_id' => '',
             'hr_api_client_secret' => '',
             'hr_api_username' => '',
@@ -186,12 +188,31 @@ class SystemSettings extends Page
                                         TextInput::make('hr_api_base_url')
                                             ->label('Base URL')
                                             ->placeholder('https://api.diu.edu.bd')
-                                            ->helperText('Host only — the endpoint paths are fixed.')
+                                            ->helperText('Host only. The two endpoint paths below are appended to it.')
                                             ->columnSpanFull(),
 
                                         TextInput::make('hr_api_token_url')
                                             ->label('Token URL')
                                             ->placeholder('https://auth0.diu.edu.bd/realms/diu/protocol/openid-connect/token')
+                                            ->helperText('Full address, not appended to the base URL — the token service is a different host.')
+                                            ->columnSpanFull(),
+
+                                        /*
+                                         * The two paths are here so a vendor
+                                         * moving an endpoint is a field to edit
+                                         * rather than a file to change and a
+                                         * deployment to wait for.
+                                         */
+                                        TextInput::make('hr_api_search_path')
+                                            ->label('Employee Search Path')
+                                            ->placeholder(\App\Services\HrApiService::DEFAULT_SEARCH_PATH)
+                                            ->helperText('Appended to the base URL. Used when searching the ERP for a teacher to import. Leave empty to use ' . \App\Services\HrApiService::DEFAULT_SEARCH_PATH)
+                                            ->columnSpanFull(),
+
+                                        TextInput::make('hr_api_profile_path')
+                                            ->label('Employee Profile Path')
+                                            ->placeholder(\App\Services\HrApiService::DEFAULT_PROFILE_PATH)
+                                            ->helperText('Appended to the base URL. Used by "Fill Fields from ERP" and by the profile merge on the edit screen. Put ' . \App\Services\HrApiService::EMPLOYEE_ID_PLACEHOLDER . ' where the employee id belongs; without it the id is added at the end. Leave empty to use ' . \App\Services\HrApiService::DEFAULT_PROFILE_PATH)
                                             ->columnSpanFull(),
 
                                         TextInput::make('hr_api_client_id')

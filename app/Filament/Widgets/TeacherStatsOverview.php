@@ -69,9 +69,9 @@ class TeacherStatsOverview extends BaseWidget
 
     // Remove or comment this if you don't have permission set up yet
 
-    public static function canView(): bool
-    {
-        return auth()->user()->can('View:SystemOverviewWidget');
-    }
+//    public static function canView(): bool
+//    {
+//        return auth()->user()->can('View:SystemOverviewWidget');
+//    }
 
 }

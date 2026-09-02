@@ -27,6 +27,29 @@ class HrApiService
 
     protected const TIMEOUT = 25;
 
+    /*
+     * What the vendor's endpoints were on the day this was written. They are
+     * fallbacks, not the answer: the answer is whatever the corresponding
+     * setting holds, and these only stand in while it is empty — a fresh
+     * install, or a settings row not yet seeded.
+     *
+     * The paths live in settings because they are the vendor's to change, not
+     * ours. An endpoint moving used to mean editing this file and deploying;
+     * now it means editing a field on the Teacher API Integration tab.
+     */
+    public const DEFAULT_SEARCH_PATH = '/api/ess/portal/external-employee-info';
+
+    public const DEFAULT_PROFILE_PATH = '/api/ess/portal/external-employee-info/{employeeId}';
+
+    /**
+     * Where the employee id goes in the profile path.
+     *
+     * A placeholder rather than "whatever is appended", so the vendor can move
+     * the id into the middle of a path — /employee/{employeeId}/profile — or
+     * into a query string without this class needing to know.
+     */
+    public const EMPLOYEE_ID_PLACEHOLDER = '{employeeId}';
+
     /**
      * Whether an administrator has finished entering the credentials.
      */
@@ -51,7 +74,7 @@ class HrApiService
     public function searchTeachers(string $query, int $page = 1, int $perPage = 20): array
     {
         $response = $this->get(
-            '/api/ess/portal/external-employee-info',
+            $this->searchPath(),
             self::searchParameters($query) + [
                 'pageNumber' => $page,
                 'pageSize' => $perPage,
@@ -111,8 +134,50 @@ class HrApiService
     public function getTeacherProfile(string $employeeId): ?array
     {
         return self::normaliseProfile(
-            $this->get('/api/ess/portal/external-employee-info/' . rawurlencode($employeeId)),
+            $this->get($this->profilePath($employeeId)),
         );
+    }
+
+    /**
+     * The search endpoint's path, as configured.
+     */
+    public function searchPath(): string
+    {
+        return $this->configuredPath('hr_api_search_path', self::DEFAULT_SEARCH_PATH);
+    }
+
+    /**
+     * The profile endpoint's path for one employee, as configured.
+     *
+     * The id is url-encoded wherever it lands. A configured path with no
+     * placeholder is treated as a collection address and the id appended, which
+     * is what every version of this method did before the placeholder existed —
+     * so a path pasted in without one still works rather than silently
+     * requesting the whole list.
+     */
+    public function profilePath(string $employeeId): string
+    {
+        $path = $this->configuredPath('hr_api_profile_path', self::DEFAULT_PROFILE_PATH);
+        $encoded = rawurlencode($employeeId);
+
+        if (! str_contains($path, self::EMPLOYEE_ID_PLACEHOLDER)) {
+            return rtrim($path, '/') . '/' . $encoded;
+        }
+
+        return str_replace(self::EMPLOYEE_ID_PLACEHOLDER, $encoded, $path);
+    }
+
+    /**
+     * A path from settings, falling back to what the vendor used at the time.
+     *
+     * An empty setting means "not configured", not "no path" — a blank field
+     * would otherwise point every call at the base URL itself.
+     */
+    protected function configuredPath(string $settingKey, string $default): string
+    {
+        $path = trim((string) Setting::get($settingKey));
+
+        return $path === '' ? $default : $path;
     }
 
     /**

@@ -492,6 +492,68 @@ class TeachersTable
                         }
                     }),
                 // ─────────────────────────────────────────────────────────
+                /*
+                 * The same ERP fill as the header action, for one teacher.
+                 * Queued rather than run inline for the same reason: it is an
+                 * outbound call to somebody else's server, and a slow ERP would
+                 * otherwise hold the request open until it timed out.
+                 */
+                \Filament\Actions\Action::make('syncErpProfile')
+                    ->label('Fill from ERP')
+                    ->icon('heroicon-o-cloud-arrow-down')
+                    ->color('warning')
+                    ->visible(fn (Teacher $record): bool => auth()->user()?->can('syncErpProfile', $record) ?? false)
+                    ->modalHeading(fn (Teacher $record): string => 'Fill Fields from the ERP — ' . $record->full_name)
+                    ->modalDescription('Calls the ERP profile API for this teacher and fills only the fields chosen below.')
+                    ->modalSubmitActionLabel('Start in background')
+                    ->form([
+                        \Filament\Forms\Components\CheckboxList::make('fields')
+                            ->label('Fields to fill')
+                            ->options(\App\Support\ErpProfileFields::all())
+                            ->descriptions(\App\Support\ErpProfileFields::descriptions())
+                            ->default(\App\Support\ErpProfileFields::defaultSelection())
+                            ->columns(2)
+                            ->bulkToggleable()
+                            ->required()
+                            ->columnSpanFull(),
+
+                        \Filament\Forms\Components\Radio::make('mode')
+                            ->label('When we already hold a value')
+                            ->options([
+                                \App\Services\ErpProfileFieldSync::MODE_FILL_EMPTY => 'Only fill what is empty',
+                                \App\Services\ErpProfileFieldSync::MODE_OVERWRITE => 'Overwrite with the ERP value',
+                            ])
+                            ->default(\App\Services\ErpProfileFieldSync::MODE_FILL_EMPTY)
+                            ->required()
+                            ->columnSpanFull(),
+                    ])
+                    ->action(function (Teacher $record, array $data) {
+                        $fields = \App\Support\ErpProfileFields::only($data['fields'] ?? []);
+
+                        if ($fields === []) {
+                            Notification::make()
+                                ->warning()
+                                ->title('No field selected')
+                                ->body('Choose at least one field to fill.')
+                                ->send();
+
+                            return;
+                        }
+
+                        \App\Jobs\SyncErpTeacherProfilesJob::dispatch(
+                            [$record->id],
+                            $fields,
+                            (string) ($data['mode'] ?? \App\Services\ErpProfileFieldSync::MODE_FILL_EMPTY),
+                            auth()->id(),
+                        );
+
+                        Notification::make()
+                            ->success()
+                            ->title('Queued')
+                            ->body($record->full_name . ' has been queued for an ERP profile refresh. You will be notified when it finishes.')
+                            ->send();
+                    }),
+
                 \Filament\Actions\Action::make('syncFromOldDb')
                     ->label('Sync Old Data')
                     ->icon('heroicon-o-arrow-path')

@@ -102,12 +102,9 @@ class AdminPanelProvider extends PanelProvider
 //                \App\Filament\Widgets\CollaborationDistributionChart::class,
 //                \App\Filament\Widgets\PublicationStatsOverview::class,
 //                \App\Filament\Widgets\SystemOverviewWidget::class,
-//                \App\Filament\Widgets\TeacherStatsOverview::class,
-//                \App\Filament\Widgets\TopProfileViewsWidget::class,
-//                \App\Filament\Widgets\TeacherProfileStatsWidget::class,
-//                \App\Filament\Widgets\TeacherProfileCompletionWidget::class,
-//                \App\Filament\Widgets\TeacherProfessionalInfoWidget::class,
-//                \App\Filament\Widgets\TeacherPublicationsStatsWidget::class,
+                \App\Filament\Widgets\TeacherStatsOverview::class,
+                \App\Filament\Widgets\TeacherProfileStatsWidget::class, //oky
+                \App\Filament\Widgets\TeacherProfessionalInfoWidget::class, //ok
 //                \App\Filament\Widgets\TeacherResearchStatsWidget::class,
 //                \App\Filament\Widgets\TeacherQuickActionsWidget::class,
             ])
