@@ -6,6 +6,7 @@ use App\Models\Teacher;
 use App\Models\Gender;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Illuminate\Support\Facades\Auth;
 
 class TeacherStatsOverview extends BaseWidget
 {
@@ -67,11 +68,21 @@ class TeacherStatsOverview extends BaseWidget
         return $stats;
     }
 
-    // Remove or comment this if you don't have permission set up yet
-
-//    public static function canView(): bool
-//    {
-//        return auth()->user()->can('View:SystemOverviewWidget');
-//    }
-
+    /**
+     * Gated on its own permission, not SystemOverviewWidget's.
+     *
+     * This checked View:SystemOverviewWidget, which is not a permission that
+     * exists — so the gate was closed against everyone, super admins included,
+     * and the widget was invisible until the check was commented out. That left
+     * it ungated instead: the teacher role carries View:Dashboard, so all two
+     * thousand of them could read faculty-wide headcounts, the gender split and
+     * total profile views from the dashboard.
+     *
+     * View:TeacherStatsOverview does exist and is held by super_admin. Anyone
+     * else who should see it can be granted it from the role screen.
+     */
+    public static function canView(): bool
+    {
+        return Auth::user()?->can('View:TeacherStatsOverview') ?? false;
+    }
 }
