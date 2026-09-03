@@ -21,9 +21,24 @@ class TeacherProfileStatsWidget extends BaseWidget
         return Auth::user()?->teacher;
     }
 
+    /**
+     * A teacher's own figures, so only a teacher sees them.
+     *
+     * The check was commented out, and a widget with no canView() is visible to
+     * everyone the panel renders the dashboard for — this one was showing to
+     * every role. The record test is the second half of it: super_admin holds
+     * every permission by design, and without a teacher row of its own the
+     * widget would render as an empty strip of stats.
+     */
     public static function canView(): bool
     {
-        return Auth::user()?->can('View:TeacherProfileStatsWidget');
+        $user = Auth::user();
+
+        if (! $user?->can('View:TeacherProfileStatsWidget')) {
+            return false;
+        }
+
+        return $user->isTeacher();
     }
 
     protected function getColumns(): int

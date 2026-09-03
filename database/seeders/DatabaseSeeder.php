@@ -30,13 +30,29 @@ class DatabaseSeeder extends Seeder
             // FMSSeeder creates the roles everything below grants to, so nothing
             // here can move above it.
             FMSSeeder::class,
-            SystemSettingsPermissionSeeder::class,
-            BulkDeletePermissionSeeder::class,
             TeacherPermissionSeeder::class,
             ApprovalPermissionsSeeder::class,
             RoleSevenPermissionSeeder::class,
             RolePermissionsSeeder::class,
+
+            /*
+             * Everything below this line has to stay below it.
+             *
+             * RolePermissionsSeeder assigns with syncPermissions(), which means
+             * it does not add to a role — it replaces the role's whole set. Any
+             * grant made before it that is not written into its arrays is taken
+             * straight back off again, silently.
+             *
+             * That is not hypothetical: BulkDeletePermissionSeeder ran above it
+             * and its DeleteAny:* grants were wiped every single seed, so admin,
+             * registrar and research_team could delete a row at a time but never
+             * a selection. These three derive their grants from what the roles
+             * already hold, so running them afterwards is also simply correct.
+             */
             ActivityLogPermissionSeeder::class,
+            SystemSettingsPermissionSeeder::class,
+            BulkDeletePermissionSeeder::class,
+            ErpProfileSyncPermissionSeeder::class,
 
             // ── Configuration ───────────────────────────────────────────────
             SettingsSeeder::class,
@@ -80,6 +96,13 @@ class DatabaseSeeder extends Seeder
             DesignationSeeder::class,
             AdministrativeRoleSeeder::class,
             AdministrativeRoleUserSeeder::class,
+
+            // ── Last, and it has to be last ─────────────────────────────────
+            // Hands super_admin whatever the permissions table holds by the
+            // time everything above has run. Anything seeded after this line
+            // would not reach the role, which is how the gaps appeared that had
+            // to be ticked in by hand on the role screen.
+            SuperAdminPermissionSeeder::class,
         ]);
     }
 

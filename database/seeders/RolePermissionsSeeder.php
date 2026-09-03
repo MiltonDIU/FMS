@@ -13,7 +13,7 @@ use Spatie\Permission\PermissionRegistrar;
  * Defines and assigns permissions for all roles in the FMS system.
  *
  * Roles:
- *  - super_admin   : Full access — all permissions explicitly assigned + bypasses policy checks in Filament
+ *  - super_admin   : Every permission there is — handed over by SuperAdminPermissionSeeder, which reads the permissions table rather than a list kept here
  *  - admin         : Full CRUD on all resources
  *  - registrar     : Can manage teachers, departments, faculties, designations, etc. (read/write). No publication incentive management.
  *  - dean          : Can view teachers and publications scoped to their faculty. View-only on most.
@@ -31,21 +31,69 @@ class RolePermissionsSeeder extends Seeder
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         // ---------------------------------------------------------------
+        // 0. Who sees which dashboard widget
+        // ---------------------------------------------------------------
+
+        /*
+         * Widget visibility lives here and nowhere else.
+         *
+         * It used to be scattered: a few widget permissions in the list below,
+         * a few more in each role's array, one handed out by
+         * RoleSevenPermissionSeeder, and the rest ticked in by hand on the role
+         * screen. The lists drifted apart from what the widgets are for — dean
+         * and head ended up with the research charts, research_team and admin
+         * with the queue monitor, and the teacher's own two widgets were shown
+         * to whoever happened to hold the permission.
+         *
+         * Written as a matrix, the answer to "who sees this?" is one line, and
+         * the assignment step below strips every widget permission from the role
+         * arrays before applying it, so nothing can grant one behind its back.
+         *
+         * super_admin appears in no row on purpose: SuperAdminPermissionSeeder
+         * gives it every permission that exists, which is the only rule that
+         * survives a new widget being added.
+         */
+        $widgetPermissions = [
+            // The teacher directory, for the people who run it.
+            'View:TeacherStatsOverview' => ['admin'],
+            'View:TeacherOverview' => ['admin'],
+            'View:TeacherProfessionalInfoWidget' => ['admin'],
+
+            // Health of the installation itself — queue depth, package
+            // versions, table counts. Operational, not administrative.
+            'View:SystemStatsOverview' => [],
+            'View:SystemPackagesStatsWidget' => [],
+            'View:QueueStatusWidget' => [],
+            'View:SystemOverviewWidget' => [],
+
+            // Research reporting. The charts that only make sense to somebody
+            // working the publication data stay with research_team; the three
+            // summary widgets are also useful to admin.
+            'View:PublicationOverview' => ['research_team'],
+            'View:PublicationStatsOverview' => ['research_team', 'admin'],
+            'View:PublicationYearWidget' => ['research_team', 'admin'],
+            'View:PublicationAuthorStatsWidget' => ['research_team', 'admin'],
+            'View:PublicationTypeChart' => ['research_team'],
+            'View:PublicationQuartileWidget' => ['research_team'],
+            'View:PublicationGrantTypeWidget' => ['research_team'],
+            'View:PublicationLinkageChart' => ['research_team'],
+            'View:CollaborationDistributionChart' => ['research_team'],
+
+            // A teacher's own two widgets. Both also check that the viewer has
+            // a teacher record, so holding the permission is not enough to make
+            // them render for somebody who has no profile of their own.
+            'View:TeacherQuickActionsWidget' => ['teacher'],
+            'View:TeacherProfileStatsWidget' => ['teacher'],
+        ];
+
+        // ---------------------------------------------------------------
         // 1. Define ALL permissions used across the system
         // ---------------------------------------------------------------
         $allPermissions = [
-            // Dashboard & Widgets
+            // Dashboards. The widgets that sit on them are in the matrix above
+            // and get merged into this list once it is closed.
             'View:Dashboard',
             'View:TeacherDashboard',
-            'View:PublicationStatsOverview',
-            'View:PublicationYearWidget',
-            'View:QueueStatusWidget',
-            'View:PublicationOverview',
-            'View:TeacherResearchStatsWidget',
-            'View:PublicationQuartileWidget',
-            'View:PublicationLinkageChart',
-            'View:PublicationGrantTypeWidget',
-            'View:PublicationTypeChart',
 
             // Teacher Profile (self)
             'View:MyProfile',
@@ -313,6 +361,13 @@ class RolePermissionsSeeder extends Seeder
             'view:pending-approvals',
         ];
 
+        // The widget permissions belong in the same list — they have to exist
+        // before anything can be granted them.
+        $allPermissions = array_values(array_unique([
+            ...$allPermissions,
+            ...array_keys($widgetPermissions),
+        ]));
+
         // Create all permissions
         $this->command->info('Creating permissions...');
         foreach ($allPermissions as $permissionName) {
@@ -409,13 +464,6 @@ class RolePermissionsSeeder extends Seeder
         $deanPermissions = [
             'View:Dashboard',
             'View:TeacherDashboard',
-            'View:PublicationStatsOverview',
-            'View:PublicationYearWidget',
-            'View:PublicationOverview',
-            'View:PublicationQuartileWidget',
-            'View:PublicationLinkageChart',
-            'View:PublicationGrantTypeWidget',
-            'View:PublicationTypeChart',
 
             // Teachers - view only (scoped by faculty in resource)
             'ViewAny:Teacher', 'View:Teacher',
@@ -449,13 +497,6 @@ class RolePermissionsSeeder extends Seeder
         $headPermissions = [
             'View:Dashboard',
             'View:TeacherDashboard',
-            'View:PublicationStatsOverview',
-            'View:PublicationYearWidget',
-            'View:PublicationOverview',
-            'View:PublicationQuartileWidget',
-            'View:PublicationLinkageChart',
-            'View:PublicationGrantTypeWidget',
-            'View:PublicationTypeChart',
 
             // Teachers - view only (scoped by department)
             'ViewAny:Teacher', 'View:Teacher',
@@ -489,15 +530,6 @@ class RolePermissionsSeeder extends Seeder
         $researchTeamPermissions = [
             'View:Dashboard',
             'View:TeacherDashboard',
-            'View:PublicationStatsOverview',
-            'View:PublicationYearWidget',
-            'View:QueueStatusWidget',
-            'View:PublicationOverview',
-            'View:TeacherResearchStatsWidget',
-            'View:PublicationQuartileWidget',
-            'View:PublicationLinkageChart',
-            'View:PublicationGrantTypeWidget',
-            'View:PublicationTypeChart',
 
             // Teachers - view only
             'ViewAny:Teacher', 'View:Teacher',
@@ -567,13 +599,6 @@ class RolePermissionsSeeder extends Seeder
         $associateDeanPermissions = [
             'View:Dashboard',
             'View:TeacherDashboard',
-            'View:PublicationStatsOverview',
-            'View:PublicationYearWidget',
-            'View:PublicationOverview',
-            'View:PublicationQuartileWidget',
-            'View:PublicationLinkageChart',
-            'View:PublicationGrantTypeWidget',
-            'View:PublicationTypeChart',
 
             // Teachers - view only (scoped by faculty)
             'ViewAny:Teacher', 'View:Teacher',
@@ -605,13 +630,6 @@ class RolePermissionsSeeder extends Seeder
         $associateHeadPermissions = [
             'View:Dashboard',
             'View:TeacherDashboard',
-            'View:PublicationStatsOverview',
-            'View:PublicationYearWidget',
-            'View:PublicationOverview',
-            'View:PublicationQuartileWidget',
-            'View:PublicationLinkageChart',
-            'View:PublicationGrantTypeWidget',
-            'View:PublicationTypeChart',
 
             // Teachers - view only (scoped by department)
             'ViewAny:Teacher', 'View:Teacher',
@@ -653,7 +671,6 @@ class RolePermissionsSeeder extends Seeder
         // 3. Assign permissions to roles
         // ---------------------------------------------------------------
         $rolePermissionMap = [
-            'super_admin'    => $allPermissions,           // Explicitly assigned + auto-bypasses policies
             'admin'          => $adminPermissions,
             'registrar'      => $registrarPermissions,
             'dean'           => $deanPermissions,
@@ -664,8 +681,22 @@ class RolePermissionsSeeder extends Seeder
             'teacher'        => $teacherPermissions,
         ];
 
+        // Every widget permission comes out of the role arrays first, so the
+        // matrix is the only thing that can put one back. $adminPermissions is
+        // the whole permission list, which is exactly why this is needed: without
+        // it admin would silently hold every widget, system monitors included.
+        $widgetNames = array_keys($widgetPermissions);
+
         foreach ($rolePermissionMap as $roleName => $permissions) {
             $role = Role::firstOrCreate(['name' => $roleName, 'guard_name' => 'web']);
+
+            $permissions = array_values(array_diff($permissions, $widgetNames));
+
+            foreach ($widgetPermissions as $widgetPermission => $roleNames) {
+                if (in_array($roleName, $roleNames, true)) {
+                    $permissions[] = $widgetPermission;
+                }
+            }
 
             // Only assign permissions that actually exist
             $validPermissions = collect($permissions)
@@ -678,11 +709,17 @@ class RolePermissionsSeeder extends Seeder
             $this->command->info("✔ [{$roleName}] → " . count($validPermissions) . ' permissions assigned');
         }
 
+        // super_admin is not in the map above. A literal list can only ever be a
+        // subset of what shield:generate and the other seeders create, and
+        // syncPermissions() would take the difference away again on every run —
+        // which is how the role kept losing access that had to be ticked back in
+        // by hand. It reads the permissions table instead.
+        $this->call(SuperAdminPermissionSeeder::class);
+
         // Reset cache again after assignment
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         $this->command->info('');
         $this->command->info('✅ RolePermissionsSeeder completed successfully!');
-        $this->command->info('   super_admin: All permissions explicitly assigned + auto-bypasses policy checks in Filament.');
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Widgets\TeacherQuickActionsWidget;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -75,50 +76,47 @@ class AdminPanelProvider extends PanelProvider
              * Shield, so it drops out of the role permission form; the rows
              * already in the permissions table are untouched.
              */
+            /*
+             * Registering a widget here only decides that it exists on the
+             * dashboard. Who actually sees it is its View: permission, and which
+             * role holds that permission is the $widgetPermissions matrix at the
+             * top of RolePermissionsSeeder — one place, so the comments below
+             * cannot drift away from what is enforced.
+             *
+             * super_admin sees all of them; it holds every permission there is.
+             */
             ->widgets([
-//                AccountWidget::class,
-//                FilamentInfoWidget::class,
 
-                // Dashboard.
+            // The teacher directory — admin
+                \App\Filament\Widgets\TeacherStatsOverview::class,
                 \App\Filament\Widgets\TeacherOverview::class,
-                \App\Filament\Widgets\PublicationOverview::class,
+                \App\Filament\Widgets\TeacherProfessionalInfoWidget::class,
+
+            // Health of the installation — super_admin alone
                 \App\Filament\Widgets\SystemStatsOverview::class,
                 \App\Filament\Widgets\SystemPackagesStatsWidget::class,
                 \App\Filament\Widgets\QueueStatusWidget::class,
+                \App\Filament\Widgets\SystemOverviewWidget::class,
 
-                /*
-                 * Parked pending the new report engine. Each one is either
-                 * superseded by a configurable report, duplicated by the two
-                 * overview widgets above, or was never rendered by any page.
-                 * Kept here so the decision to delete can be made later, one
-                 * line at a time, rather than guessed at now.
-                 */
-                \App\Filament\Widgets\PublicationYearWidget::class,
-//                \App\Filament\Widgets\PublicationTypeChart::class,
-//                \App\Filament\Widgets\PublicationQuartileWidget::class,
-//                \App\Filament\Widgets\PublicationGrantTypeWidget::class,
-//                \App\Filament\Widgets\PublicationLinkageChart::class,
-//                \App\Filament\Widgets\PublicationAuthorStatsWidget::class,
-//                \App\Filament\Widgets\CollaborationDistributionChart::class,
-//                \App\Filament\Widgets\PublicationStatsOverview::class,
-//                \App\Filament\Widgets\SystemOverviewWidget::class,
-                \App\Filament\Widgets\TeacherStatsOverview::class,
-                \App\Filament\Widgets\TeacherProfileStatsWidget::class, //oky
-                \App\Filament\Widgets\TeacherProfessionalInfoWidget::class, //ok
-//                \App\Filament\Widgets\TeacherResearchStatsWidget::class,
-//                \App\Filament\Widgets\TeacherQuickActionsWidget::class,
+            // Research reporting — research_team, and admin where noted
+                \App\Filament\Widgets\PublicationOverview::class,
+                \App\Filament\Widgets\PublicationStatsOverview::class, // + admin
+                \App\Filament\Widgets\PublicationYearWidget::class, // + admin
+                \App\Filament\Widgets\PublicationAuthorStatsWidget::class, // + admin
+                \App\Filament\Widgets\PublicationTypeChart::class,
+                \App\Filament\Widgets\PublicationQuartileWidget::class,
+                \App\Filament\Widgets\PublicationGrantTypeWidget::class,
+                \App\Filament\Widgets\PublicationLinkageChart::class,
+                // Left with the rest of the publication charts for now — say the
+                // word if it belongs somewhere else.
+                \App\Filament\Widgets\CollaborationDistributionChart::class,
+
+            // A teacher's own dashboard — the teacher role, and only for
+            // somebody who actually has a teacher record
+                \App\Filament\Widgets\TeacherQuickActionsWidget::class,
+                \App\Filament\Widgets\TeacherProfileStatsWidget::class,
             ])
-            /*
-             * Rendered by one specific page's getHeaderWidgets()/getFooterWidgets(),
-             * never on the dashboard. They still have to be registered as Livewire
-             * components or the page fails on the first update; widgets() would
-             * register them but would also return them to the dashboard, which is
-             * the duplication being undone here.
-             *
-             * TeacherVerificationStatsWidget is deliberately absent: it lives under
-             * Filament/Resources, and discoverResources() registers every Livewire
-             * component it walks past, including that one.
-             */
+
             ->livewireComponents([
                 \App\Filament\Widgets\TeacherDashboardOverview::class,
                 \App\Filament\Widgets\PublicationSourceStatsWidget::class,

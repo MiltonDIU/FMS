@@ -11,11 +11,21 @@ class TeacherQuickActionsWidget extends StatsOverviewWidget
     protected static ?int $sort = 7; // Top priority
 
     /**
-     * Visible only to Teachers
+     * Visible only to Teachers.
+     *
+     * Every action here is about the viewer's own record — edit my profile, add
+     * my publication — so the permission alone is not the whole test. super_admin
+     * holds it along with everything else and has no teacher row to act on.
      */
     public static function canView(): bool
     {
-        return Auth::user()?->can('View:TeacherQuickActionsWidget');
+        $user = Auth::user();
+
+        if (! $user?->can('View:TeacherQuickActionsWidget')) {
+            return false;
+        }
+
+        return $user->isTeacher();
     }
 
     protected function getStats(): array

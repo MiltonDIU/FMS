@@ -6,15 +6,30 @@ use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 
+/**
+ * The publication permissions, for research_team.
+ *
+ * It used to look the role up as Role::find(7), which is a guess about insert
+ * order rather than a fact. On this database id 7 is head, so a department head
+ * was being handed full CRUD over every publication table — invisible only
+ * because RolePermissionsSeeder runs afterwards and syncs head back down.
+ *
+ * The name is the identity, so it looks up the name.
+ *
+ * RolePermissionsSeeder remains the authority on what research_team holds; this
+ * seeder is the one to reach for when the grants are wanted on their own,
+ * without re-syncing every other role.
+ */
 class RoleSevenPermissionSeeder extends Seeder
 {
+    protected const ROLE = 'research_team';
+
     public function run(): void
     {
-        // Find Role ID 7
-        $role = Role::find(7);
+        $role = Role::where('name', self::ROLE)->where('guard_name', 'web')->first();
 
         if (!$role) {
-            $this->command->error('Role with ID 7 not found!');
+            $this->command->error(self::ROLE . ' role not found!');
             return;
         }
 
@@ -93,15 +108,10 @@ class RoleSevenPermissionSeeder extends Seeder
             'ViewAny:Teacher',
             'View:Dashboard',
             'View:TeacherDashboard',
-            'View:PublicationStatsOverview',
-            'View:PublicationYearWidget',
-            'View:QueueStatusWidget',
-            'View:PublicationOverview',
-            'View:TeacherResearchStatsWidget',
-            'View:PublicationQuartileWidget',
-            'View:PublicationLinkageChart',
-            'View:PublicationGrantTypeWidget',
-            'View:PublicationTypeChart'
+            // Widget permissions are not listed here. Which role sees which
+            // widget is decided by the matrix at the top of
+            // RolePermissionsSeeder, and this seeder granting a few of them by
+            // hand is how research_team ended up with the queue monitor.
         ];
 
         foreach ($permissions as $permissionName) {
@@ -113,6 +123,6 @@ class RoleSevenPermissionSeeder extends Seeder
             }
         }
         
-        $this->command->info('Permissions assigned to Role ID 7 successfully.');
+        $this->command->info('Publication permissions assigned to ' . self::ROLE . '.');
     }
 }
