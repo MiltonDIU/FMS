@@ -177,6 +177,7 @@ class SystemSettings extends Page
             ->statePath('data')
             ->components([
                 Tabs::make('Settings')
+                    ->vertical()
                     ->tabs([
                         Tab::make('Teacher API Integration')
                             ->icon('heroicon-o-cloud-arrow-down')
@@ -1562,12 +1563,21 @@ class SystemSettings extends Page
         $this->preview_teacher_id = null;
     }
 
-    public function getFormActions(): array
+    /**
+     * The page's single save button.
+     *
+     * There used to be a second one floating at the bottom right of the form.
+     * Two buttons doing the same thing is just a chance to wonder whether they
+     * do; the header one is sticky (see the page view) so it stays in reach.
+     */
+    protected function getHeaderActions(): array
     {
         return [
-            Action::make('save')
+            Action::make('saveHeader')
                 ->label('Save Settings')
-                ->submit('save'),
+                ->icon('heroicon-m-check')
+                ->color('primary')
+                ->action('save'),
         ];
     }
 }
