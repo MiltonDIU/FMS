@@ -260,3 +260,25 @@ header.sticky {
 }
 .dark .text-\[\#58595B\] { color: var(--text-base) !important; }
 .dark .border-\[\#A7A9AC\] { border-color: var(--border-strong) !important; }
+
+/* ---------------------------------------------------------------------------
+   Platform brand marks
+   ---------------------------------------------------------------------------
+ * A platform publishes its colour to be used against white. The footer here is
+ * slate-950 whatever the appearance, and its chips are slate-800, so on that
+ * ground ten of the twenty-five seeded platforms fall below 3:1 and Medium
+ * (#000000), X (#0F1419) and GitHub (#181717) land near 1.3:1 — not a faint
+ * icon but no icon at all.
+ *
+ * Lifting them towards white in the footer keeps each mark recognisable as
+ * itself and legible at the same time. The profile buttons are not included:
+ * they are slate-100 in both appearances, which is what these colours were
+ * drawn for.
+ */
+.social-mark {
+    color: var(--mark, currentColor);
+}
+
+footer .social-mark {
+    color: color-mix(in oklab, var(--mark, currentColor) 52%, #ffffff);
+}

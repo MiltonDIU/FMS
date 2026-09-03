@@ -71,21 +71,29 @@
     $colour = $colours[$key] ?? '#475569';
 @endphp
 
+{{-- The brand colour is handed over as a custom property rather than set as
+     `color` here, and .social-mark in theme.css turns it into one.
+
+     These are the colours the platforms publish, and they are chosen against
+     white. Aurora's dark page is #05080f, where ten of the twenty-five fall
+     under 3:1 and three — Medium at #000000, X at #0F1419, GitHub at #181717 —
+     land near 1.1:1, which is to say invisible. An inline `color` cannot be
+     corrected from a stylesheet without !important; a custom property can. --}}
 @if(isset($paths[$key]))
-    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor" style="color: {{ $colour }}" aria-hidden="true">
+    <svg class="social-mark w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor" style="--mark: {{ $colour }}" aria-hidden="true">
         <path d="{{ $paths[$key] }}"/>
     </svg>
 @elseif(isset($letters[$key]))
     {{-- Sized down as the word gets longer, so "IEEE" and "RG" occupy the same
          box as the drawn marks beside them. --}}
-    <span class="font-sans font-black leading-none shrink-0 tracking-tight
+    <span class="social-mark font-sans font-black leading-none shrink-0 tracking-tight
         {{ strlen($letters[$key]) >= 4 ? 'text-[8px]' : (strlen($letters[$key]) === 3 ? 'text-[9px]' : 'text-[11px]') }}"
-        style="color: {{ $colour }}" aria-hidden="true">{{ $letters[$key] }}</span>
+        style="--mark: {{ $colour }}" aria-hidden="true">{{ $letters[$key] }}</span>
 @else
     {{-- Something seeded later, or a name nobody mapped. A chain link is honest
          about that; it was only wrong as the answer for four platforms at once,
          which is what it used to be. --}}
-    <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: {{ $colour }}" aria-hidden="true">
+    <svg class="social-mark w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="--mark: {{ $colour }}" aria-hidden="true">
         <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
         <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
     </svg>

@@ -40,7 +40,16 @@
         <div class="{{ $teacher->researchInterests->isNotEmpty() ? 'mt-9' : '' }}">
             <p class="eyebrow-quiet mb-2">Projects</p>
 
-            @foreach($projects as $proj)
+            {{-- Newest first. A project carries no "still running" flag the way a
+                 post or a membership does, so the start date decides on its own and
+                 anything undated falls to the bottom. --}}
+            @php
+                $projectList = $projects->sortByDesc(
+                    fn ($proj) => $proj->start_date?->format('Ymd') ?? '00000000',
+                );
+            @endphp
+
+            @foreach($projectList as $proj)
                 @php
                     $from = $proj->start_date ? \Illuminate\Support\Carbon::parse($proj->start_date)->format('Y') : null;
                     $to = $proj->end_date ? \Illuminate\Support\Carbon::parse($proj->end_date)->format('Y') : null;

@@ -28,7 +28,11 @@
             @foreach($rows as $edu)
                 @php
                     $degreeName = optional($edu->degreeType)->name ?? optional($edu->degreeLevel)->name ?? 'Degree';
-                    $degreeTitle = $degreeName . ($edu->major ? ' in ' . $edu->major : '');
+                    // major is free text on older records and a relation on
+                    // newer ones, so reading only the column dropped the subject
+                    // from every degree that came in through the import.
+                    $major = $edu->major ?: optional($edu->majorRelation)->name;
+                    $degreeTitle = $degreeName . ($major ? ' in ' . $major : '');
                     $institution = $edu->institution ?? optional($edu->educationalInstitution)->name ?? 'N/A';
 
                     $resultParts = [];

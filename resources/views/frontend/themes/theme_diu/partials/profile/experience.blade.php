@@ -8,7 +8,23 @@
         <p class="text-xs text-slate-400">No corporate or academic work history submitted.</p>
     @else
         <div class="relative border-l border-white/40 pl-5 ml-2.5 space-y-6">
-            @foreach($teacher->jobExperiences as $exp)
+            {{-- Newest first, with posts still held at the top.
+
+                 The relation is ordered by sort_order and every job_experiences row
+                 carries 0, so the list came out in insertion order — two thirds of the
+                 profiles with more than one dated post read out of sequence. Every other
+                 dated section here sorts its own years; this one never did.
+
+                 One sortable string rather than a multi-key sort: a flag for a post still
+                 held, then the start date, then zeros for anything undated so it falls to
+                 the bottom of its group rather than the top. --}}
+            @php
+                $experiences = $teacher->jobExperiences->sortByDesc(
+                    fn ($exp) => ($exp->is_current ? '1' : '0') . ($exp->start_date?->format('Ymd') ?? '00000000'),
+                );
+            @endphp
+
+            @foreach($experiences as $exp)
                 <div class="relative">
                     <span class="absolute -left-7.5 top-1 bg-white border-2 border-diu-primary rounded-full w-4 h-4 flex items-center justify-center shadow-xs"><span class="w-1.5 h-1.5 bg-diu-primary rounded-full"></span></span>
                     <div class="flex items-center gap-2 text-xs font-bold text-diu-primary tracking-wide">
@@ -17,6 +33,10 @@
                     </div>
                     <h4 class="text-sm font-bold text-slate-800 mt-1 font-display">{{ $exp->position ?? optional($exp->positionRelation)->name }}</h4>
                     <p class="text-xs text-slate-500 font-semibold mt-0.5">{{ $exp->organization ?? optional($exp->organizationRelation)->name ?? '' }}</p>
+                    @php $where = implode(' · ', array_filter([$exp->department, $exp->location], 'filled')); @endphp
+                    @if($where)
+                        <p class="text-[11px] text-slate-400 font-medium mt-0.5">{{ $where }}</p>
+                    @endif
                     @if($exp->responsibilities)<p class="text-xs text-slate-500 font-sans mt-1 leading-relaxed">{{ $exp->responsibilities }}</p>@endif
                 </div>
             @endforeach

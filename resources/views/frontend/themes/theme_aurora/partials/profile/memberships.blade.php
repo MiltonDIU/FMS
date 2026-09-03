@@ -13,7 +13,20 @@
     </div>
 
     <div>
-        @foreach($teacher->memberships as $mem)
+        {{-- Newest first, with memberships still held at the top.
+
+             The same correction as Experience: every memberships row carries
+             sort_order 0, so the relation's ordering did nothing and the list came
+             out in insertion order. is_active decides what still counts as held, for
+             the same reason it does below — a missing end date means nobody recorded
+             one, not that the membership lapsed. --}}
+        @php
+            $membershipList = $teacher->memberships->sortByDesc(
+                fn ($mem) => ($mem->is_active ? '1' : '0') . ($mem->start_date?->format('Ymd') ?? '00000000'),
+            );
+        @endphp
+
+        @foreach($membershipList as $mem)
             @php
                 $org = optional($mem->membershipOrganization)->name;
                 $kind = optional($mem->membershipType)->name;

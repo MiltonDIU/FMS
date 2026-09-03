@@ -390,8 +390,17 @@
                  ========================================================= --}}
             @if($contact)
 
+                {{-- Spans both columns until the grid grows a third one.
+
+                     Without this it is a third child in a two-column grid, so
+                     auto-placement puts it in row 2 of the *portrait* column:
+                     104px wide for an email address, under a hole as tall as
+                     the identity column beside it. The border only appears at
+                     xl for the same reason — that is the first width at which
+                     this is a column of its own rather than a footer to the
+                     panel. --}}
                 <dl
-                    class="min-w-0 xl:border-l xl:pl-7"
+                    class="min-w-0 sm:col-span-2 xl:col-span-1 xl:border-l xl:pl-7"
                     style="border-color: var(--hairline-soft);"
                 >
 

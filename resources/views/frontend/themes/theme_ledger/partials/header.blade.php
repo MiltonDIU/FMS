@@ -59,10 +59,26 @@
             </a>
 
             <div class="flex items-center gap-1.5 shrink-0">
+                {{-- The label needs room a phone does not have, so below md the
+                     same link becomes an icon. It used to be `hidden
+                     md:inline-flex` and nothing else — the only navigation link
+                     in the header, gone under 768px, and the footer does not
+                     carry it either, so on a phone the university's own site was
+                     unreachable from the directory. --}}
                 @if(! empty($brand['main_site_url']))
                     <a href="{{ $brand['main_site_url'] }}" target="_blank" rel="noopener noreferrer"
                        class="hidden md:inline-flex text-[13px] font-semibold px-2 py-1"
                        style="color: var(--ink-3);">{{ $brand['main_site_label'] }}</a>
+
+                    <a href="{{ $brand['main_site_url'] }}" target="_blank" rel="noopener noreferrer"
+                       class="btn-icon md:hidden" aria-label="{{ $brand['main_site_label'] }}"
+                       title="{{ $brand['main_site_label'] }}">
+                        <svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                            <path d="M15 3h6v6M10 14 21 3"/>
+                        </svg>
+                    </a>
                 @endif
 
                 <button type="button" id="appearance-toggle" class="btn-icon" aria-label="Toggle dark mode">

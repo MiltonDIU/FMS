@@ -1367,6 +1367,30 @@ html {
     overflow-wrap: anywhere;
 }
 
+/*
+ * A platform's own brand colour, on whichever ground it lands.
+ *
+ * Published brand colours are picked against white, so on the midnight page
+ * ten of the twenty-five seeded platforms fall below 3:1 and Medium, X and
+ * GitHub — all near-black — sit at about 1.1:1, which is not a faint icon but
+ * no icon at all. Lifting them towards white keeps each mark recognisable as
+ * itself while making all of them legible; it is the same treatment the theme
+ * gives its own brand colour, which swaps to the light accent for text in the
+ * dark (see --brand-ink).
+ *
+ * Also applied on the footer when an administrator has turned
+ * footer_match_theme on, because that paints the same marks onto the dark
+ * brand gradient in either appearance.
+ */
+.social-mark {
+    color: var(--mark, var(--ink-3));
+}
+
+.dark .social-mark,
+footer.text-white .social-mark {
+    color: color-mix(in oklab, var(--mark, var(--ink-3)) 52%, #ffffff);
+}
+
 /* The empty state. One shape for "no results" everywhere on the site. */
 .empty {
     border-radius: var(--radius-panel);

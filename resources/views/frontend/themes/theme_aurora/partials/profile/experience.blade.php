@@ -13,7 +13,23 @@
     </div>
 
     <div>
-        @foreach($teacher->jobExperiences as $exp)
+        {{-- Newest first, with posts still held at the top.
+
+             The relation is ordered by sort_order and every job_experiences row
+             carries 0, so the list came out in insertion order — two thirds of the
+             profiles with more than one dated post read out of sequence. Every other
+             dated section here sorts its own years; this one never did.
+
+             One sortable string rather than a multi-key sort: a flag for a post still
+             held, then the start date, then zeros for anything undated so it falls to
+             the bottom of its group rather than the top. --}}
+        @php
+            $experiences = $teacher->jobExperiences->sortByDesc(
+                fn ($exp) => ($exp->is_current ? '1' : '0') . ($exp->start_date?->format('Ymd') ?? '00000000'),
+            );
+        @endphp
+
+        @foreach($experiences as $exp)
             @php
                 $role = $exp->position ?: optional($exp->positionRelation)->name;
                 $org = $exp->organization ?: optional($exp->organizationRelation)->name;

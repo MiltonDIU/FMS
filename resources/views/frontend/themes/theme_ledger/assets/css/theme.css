@@ -1066,3 +1066,26 @@ a.record:hover .record-what { color: var(--brand-ink); }
 
     body { background: #fff; color: #000; }
 }
+
+/* ---------------------------------------------------------------------------
+   Platform brand marks
+   ---------------------------------------------------------------------------
+ * A platform publishes its colour to be used against white. Dark paper here is
+ * #100f0d and the icon buttons are transparent, so the mark sits straight on
+ * it: ten of the twenty-five seeded platforms fall below 3:1 and Medium
+ * (#000000), X (#0F1419) and GitHub (#181717) land near 1.1:1, which is to say
+ * invisible.
+ *
+ * Lifting them towards white keeps each mark recognisable as itself while
+ * making all of them legible — the same move the theme already makes for its
+ * own ink. Also applied to a footer matched to the brand colour, which is dark
+ * in either appearance.
+ */
+.social-mark {
+    color: var(--mark, var(--ink-3));
+}
+
+.dark .social-mark,
+footer.text-white .social-mark {
+    color: color-mix(in oklab, var(--mark, var(--ink-3)) 52%, #ffffff);
+}

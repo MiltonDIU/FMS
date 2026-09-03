@@ -22,10 +22,48 @@
         <p class="text-sm text-slate-500 italic mt-4">No specific research projects registered.</p>
     @else
         <div class="space-y-4 mt-6">
-            @foreach($teacher->researchProjects as $proj)
+            {{-- Newest first. A project carries no "still running" flag the way a
+                 post or a membership does, so the start date decides on its own and
+                 anything undated falls to the bottom. --}}
+            @php
+                $projectList = $teacher->researchProjects->sortByDesc(
+                    fn ($proj) => $proj->start_date?->format('Ymd') ?? '00000000',
+                );
+            @endphp
+
+            @foreach($projectList as $proj)
+                @php
+                    $from = $proj->start_date?->format('Y');
+                    $to = $proj->end_date?->format('Y');
+
+                    $period = match (true) {
+                        (bool) ($from && $to) => $from === $to ? $from : $from . '–' . $to,
+                        (bool) $from => $from,
+                        (bool) $to => $to,
+                        default => null,
+                    };
+
+                    // The funding agency is free text on older records and a
+                    // relation on newer ones; printing "N/A" for the second kind
+                    // said a funded project had no funder.
+                    $facts = array_filter([
+                        $proj->role,
+                        $proj->funding_agency ?: optional($proj->fundingAgencyOrganizationRelation)->name,
+                        $proj->status,
+                    ], 'filled');
+                @endphp
+
                 <div class="border-b border-gray-100 pb-4 last:border-0 last:pb-0">
-                    <h4 class="font-extrabold text-gray-900 text-sm">{{ $proj->title }}</h4>
-                    <p class="text-xs text-gray-500 mt-1">Funding: {{ $proj->funding_agency ?? 'N/A' }} | Role: {{ $proj->role ?? 'N/A' }}</p>
+                    @if($period)
+                        <p class="text-[10px] font-sans font-black text-diu-primary tracking-wider tabular-nums">{{ $period }}</p>
+                    @endif
+                    <h4 class="font-extrabold text-gray-900 text-sm mt-0.5">{{ $proj->title }}</h4>
+                    @if($facts)
+                        <p class="text-xs text-gray-500 mt-1">{{ implode(' · ', $facts) }}</p>
+                    @endif
+                    @if($proj->description)
+                        <p class="text-[11px] text-gray-500 mt-1 leading-relaxed">{{ $proj->description }}</p>
+                    @endif
                 </div>
             @endforeach
         </div>

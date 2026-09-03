@@ -31,10 +31,21 @@
                     <div>
                         <h4 class="text-xs font-bold text-slate-800 leading-snug font-display">{{ $trn->title }}</h4>
                         <p class="text-[11px] text-slate-500 font-semibold mt-0.5">{{ $trn->organization ?? optional($trn->organizationRelation)->name ?? '' }}</p>
-                        @if($trn->duration_days)
+                        @php
+                            $facts = array_filter([
+                                $trn->category,
+                                $trn->duration_days ? $trn->duration_days . ' days' : null,
+                                $trn->is_online ? 'Online' : null,
+                                $trn->country,
+                            ], 'filled');
+                        @endphp
+                        @if($facts)
                             <div class="flex items-center gap-4 mt-2 text-[10px] text-slate-400 font-bold uppercase">
-                                <span>Duration: {{ $trn->duration_days }} Days</span>
+                                <span>{{ implode(' · ', $facts) }}</span>
                             </div>
+                        @endif
+                        @if($trn->description)
+                            <p class="text-[11px] text-slate-500 mt-1 leading-relaxed">{{ $trn->description }}</p>
                         @endif
                     </div>
                 </div>

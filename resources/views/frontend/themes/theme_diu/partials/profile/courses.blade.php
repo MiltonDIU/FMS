@@ -11,7 +11,17 @@
             @foreach($teacher->teachingAreas as $area)
                 <div class="bg-slate-50 border border-gray-100 p-4 rounded-2xl flex items-center space-x-3">
                     <span class="text-diu-primary text-lg"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg></span>
-                    <div><h4 class="font-bold text-gray-900 text-sm">{{ $area->area }}</h4><p class="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Teaching Area</p></div>
+                    {{-- The teacher's own note about the area where there is
+                         one; the static label only where there is not, since it
+                         says nothing the heading above it has not. --}}
+                    <div class="min-w-0">
+                        <h4 class="font-bold text-gray-900 text-sm">{{ $area->area }}</h4>
+                        @if($area->description)
+                            <p class="text-[11px] text-gray-500 mt-0.5 leading-relaxed">{{ $area->description }}</p>
+                        @else
+                            <p class="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Teaching Area</p>
+                        @endif
+                    </div>
                 </div>
             @endforeach
         </div>
