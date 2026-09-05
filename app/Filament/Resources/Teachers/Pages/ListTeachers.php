@@ -192,17 +192,17 @@ class ListTeachers extends ListRecords
                     \Filament\Forms\Components\Select::make('faculty_ids')
                         ->label('Target Faculties (Multi-Select)')
                         ->placeholder('All faculties')
-                        ->options(fn (): array => static::facultyOptionsWithCounts())
+                        ->options(fn (\Filament\Schemas\Components\Utilities\Get $get): array => static::emailFilterOptions('faculty', $get))
                         ->multiple()
                         ->searchable()
                         ->live()
                         ->columnSpanFull()
-                        ->helperText('Leave empty for every faculty. The number beside each is how many non-archived teachers it holds.'),
+                        ->helperText('Leave empty for every faculty. Each number is how many of the current recipients that option would leave you with.'),
 
                     \Filament\Forms\Components\Select::make('department_ids')
                         ->label('Target Departments (Multi-Select)')
                         ->placeholder('All departments in the chosen faculties')
-                        ->options(fn (\Filament\Schemas\Components\Utilities\Get $get): array => static::departmentOptionsWithCounts($get('faculty_ids') ?? []))
+                        ->options(fn (\Filament\Schemas\Components\Utilities\Get $get): array => static::emailFilterOptions('department', $get))
                         ->multiple()
                         ->searchable()
                         ->live()
@@ -212,12 +212,22 @@ class ListTeachers extends ListRecords
                     \Filament\Forms\Components\Select::make('employment_status_ids')
                         ->label('Target Employment Statuses (Multi-Select)')
                         ->placeholder('All Employment Statuses (Full-time, Part-time, Suspended, etc.)')
-                        ->options(fn (): array => static::employmentStatusOptionsWithCounts())
+                        ->options(fn (\Filament\Schemas\Components\Utilities\Get $get): array => static::emailFilterOptions('employment_status', $get))
                         ->multiple()
                         ->searchable()
                         ->live()
                         ->columnSpanFull()
-                        ->helperText('Leave empty for every status. Combined with the two above, not instead of them.'),
+                        ->helperText('Leave empty for every status. Combined with the others, not instead of them.'),
+
+                    \Filament\Forms\Components\Select::make('job_type_ids')
+                        ->label('Target Job Types (Multi-Select)')
+                        ->placeholder('All job types (Regular, Adjunct, Visiting, Contractual, etc.)')
+                        ->options(fn (\Filament\Schemas\Components\Utilities\Get $get): array => static::emailFilterOptions('job_type', $get))
+                        ->multiple()
+                        ->searchable()
+                        ->live()
+                        ->columnSpanFull()
+                        ->helperText('Leave empty for every type. Use it to leave out the ones a message is not meant for — visiting and adjunct staff, for instance, when the email is about internal process.'),
 
                     /*
                      * How many people this actually reaches, before it is sent.
@@ -234,6 +244,7 @@ class ListTeachers extends ListRecords
                                 $get('faculty_ids') ?? [],
                                 $get('department_ids') ?? [],
                                 $get('employment_status_ids') ?? [],
+                                $get('job_type_ids') ?? [],
                             ));
                         }),
 
@@ -244,6 +255,7 @@ class ListTeachers extends ListRecords
                         $data['faculty_ids'] ?? [],
                         $data['department_ids'] ?? [],
                         $data['employment_status_ids'] ?? [],
+                        $data['job_type_ids'] ?? [],
                     )->with('user')->get();
 
                     if ($teachers->isEmpty()) {
@@ -491,11 +503,19 @@ class ListTeachers extends ListRecords
      * a department inside it should mean that department, not everyone in the
      * faculty; the faculty is how you found it.
      *
+     * Job type is read from the teacher's own record and not from their
+     * department assignments, which is the one place this parts company with
+     * the rule above. It is there to leave people out — visiting and adjunct
+     * staff, when a message is about internal process — and a filter meant for
+     * excluding has to be exact. Matching any assignment would pull in somebody
+     * employed on other terms who happens to hold one adjunct posting.
+     *
      * @param  array<int|string>  $facultyIds  Empty means every faculty.
      * @param  array<int|string>  $departmentIds  Empty means every department.
      * @param  array<int|string>  $employmentStatusIds  Empty means every status.
+     * @param  array<int|string>  $jobTypeIds  Empty means every job type.
      */
-    protected static function targetedEmailQuery(array $facultyIds, array $departmentIds, array $employmentStatusIds): Builder
+    protected static function targetedEmailQuery(array $facultyIds, array $departmentIds, array $employmentStatusIds, array $jobTypeIds = []): Builder
     {
         $query = Teacher::query()->where('is_archived', false);
 
@@ -513,6 +533,10 @@ class ListTeachers extends ListRecords
             $query->whereIn('employment_status_id', $employmentStatusIds);
         }
 
+        if (! empty($jobTypeIds)) {
+            $query->whereIn('job_type_id', $jobTypeIds);
+        }
+
         return $query;
     }
 
@@ -522,10 +546,11 @@ class ListTeachers extends ListRecords
      * @param  array<int|string>  $facultyIds
      * @param  array<int|string>  $departmentIds
      * @param  array<int|string>  $employmentStatusIds
+     * @param  array<int|string>  $jobTypeIds
      */
-    protected static function recipientReport(array $facultyIds, array $departmentIds, array $employmentStatusIds): string
+    protected static function recipientReport(array $facultyIds, array $departmentIds, array $employmentStatusIds, array $jobTypeIds = []): string
     {
-        $query = static::targetedEmailQuery($facultyIds, $departmentIds, $employmentStatusIds);
+        $query = static::targetedEmailQuery($facultyIds, $departmentIds, $employmentStatusIds, $jobTypeIds);
 
         $total = (clone $query)->count();
         $reachable = (clone $query)->whereHas('user', fn ($u) => $u->whereNotNull('email')->where('email', '!=', ''))->count();
@@ -546,6 +571,7 @@ class ListTeachers extends ListRecords
             $facultyIds ? count($facultyIds) . ' faculty(ies)' : null,
             $departmentIds ? count($departmentIds) . ' department(s)' : null,
             $employmentStatusIds ? count($employmentStatusIds) . ' employment status(es)' : null,
+            $jobTypeIds ? count($jobTypeIds) . ' job type(s)' : null,
         ]);
 
         $lines[] = $applied === []
@@ -566,40 +592,136 @@ class ListTeachers extends ListRecords
     }
 
     /**
-     * Faculties, each with how many non-archived teachers it holds.
+     * The options for one of the four filters, each carrying the number of
+     * people it would actually leave you with.
      *
-     * Counted through both routes a teacher reaches a faculty by, so the
-     * numbers here add up to what the count below the dropdowns reports.
+     * Every count is taken against the other three filters as they stand, and
+     * never against its own — so a dropdown always describes what choosing an
+     * option would do from here, and the numbers in one list can be compared
+     * with the numbers in another.
+     *
+     * They could not be, before. Employment status counted every teacher in the
+     * table, archived included, so it offered "Archived (923)" alongside
+     * "Active (935)" on a form that never sends to archived teachers. Job type
+     * counted only the non-archived. The two lists were describing different
+     * populations, and neither noticed the other: picking Active (935) still
+     * showed Regular (976), a bigger number than the set it was supposedly
+     * inside.
+     *
+     * Counts are grouped rather than looped — one query per dimension instead
+     * of one per option — because this runs again on every keystroke that
+     * changes a filter.
+     *
+     * @param  'faculty'|'department'|'employment_status'|'job_type'  $dimension
      */
-    protected static function facultyOptionsWithCounts(): array
+    protected static function emailFilterOptions(string $dimension, \Filament\Schemas\Components\Utilities\Get $get): array
     {
-        return \App\Models\Faculty::query()
-            ->orderBy('sort_order')
-            ->get(['id', 'name'])
-            ->mapWithKeys(fn ($faculty): array => [
-                $faculty->id => $faculty->name . ' (' . number_format(
-                    static::targetedEmailQuery([$faculty->id], [], [])->count(),
-                ) . ')',
-            ])
-            ->all();
+        $faculties = $get('faculty_ids') ?? [];
+        $departments = $get('department_ids') ?? [];
+        $statuses = $get('employment_status_ids') ?? [];
+        $jobTypes = $get('job_type_ids') ?? [];
+
+        /*
+         * The other filters only. A dimension counting itself would just echo
+         * the current selection back — every unpicked option would read zero,
+         * which is the one number that tells you nothing about picking it.
+         *
+         * Faculty and department drop together: they are two ways of naming the
+         * same thing, and department wins over faculty in the query, so leaving
+         * faculty in while counting departments would hide every department
+         * outside it behind a zero.
+         */
+        $base = match ($dimension) {
+            'faculty', 'department' => static::targetedEmailQuery([], [], $statuses, $jobTypes),
+            'employment_status' => static::targetedEmailQuery($faculties, $departments, [], $jobTypes),
+            'job_type' => static::targetedEmailQuery($faculties, $departments, $statuses, []),
+        };
+
+        if ($dimension === 'employment_status' || $dimension === 'job_type') {
+            $column = $dimension === 'job_type' ? 'job_type_id' : 'employment_status_id';
+
+            $counts = (clone $base)
+                ->whereNotNull($column)
+                ->selectRaw("{$column} as k, COUNT(*) as total")
+                ->groupBy($column)
+                ->pluck('total', 'k');
+
+            $model = $dimension === 'job_type' ? \App\Models\JobType::class : \App\Models\EmploymentStatus::class;
+
+            return $model::query()
+                ->orderBy('sort_order')
+                ->get(['id', 'name'])
+                ->mapWithKeys(fn ($row): array => [
+                    $row->id => $row->name . ' (' . number_format((int) ($counts[$row->id] ?? 0)) . ')',
+                ])
+                ->all();
+        }
+
+        return static::placementOptions($dimension, $base, $faculties);
     }
 
     /**
-     * Departments, each with its own head-count, narrowed to the chosen
-     * faculties when there are any.
+     * Faculty and department counts, which have to be gathered rather than
+     * grouped.
+     *
+     * A teacher reaches a department two ways — the one their record sits in
+     * and every one they are assigned to — and the same person can arrive by
+     * both. Summing two grouped queries would count them twice, so the teacher
+     * ids are collected per department and the set is measured. Faculty is the
+     * same sets, rolled up.
      *
      * @param  array<int|string>  $facultyIds
      */
-    protected static function departmentOptionsWithCounts(array $facultyIds): array
+    protected static function placementOptions(string $dimension, Builder $base, array $facultyIds): array
     {
-        return \App\Models\Department::query()
-            ->when(! empty($facultyIds), fn ($q) => $q->whereIn('faculty_id', $facultyIds))
+        $teacherIds = (clone $base)->pluck('id');
+
+        $byDepartment = [];
+
+        foreach (Teacher::query()->whereIn('id', $teacherIds)->whereNotNull('department_id')->get(['id', 'department_id']) as $t) {
+            $byDepartment[$t->department_id][$t->id] = true;
+        }
+
+        foreach (
+            \Illuminate\Support\Facades\DB::table('department_teacher')
+                ->whereIn('teacher_id', $teacherIds)
+                ->whereNull('deleted_at')
+                ->get(['teacher_id', 'department_id']) as $row
+        ) {
+            $byDepartment[$row->department_id][$row->teacher_id] = true;
+        }
+
+        if ($dimension === 'department') {
+            return \App\Models\Department::query()
+                ->when(! empty($facultyIds), fn ($q) => $q->whereIn('faculty_id', $facultyIds))
+                ->orderBy('sort_order')
+                ->get(['id', 'name'])
+                ->mapWithKeys(fn ($d): array => [
+                    $d->id => $d->name . ' (' . number_format(count($byDepartment[$d->id] ?? [])) . ')',
+                ])
+                ->all();
+        }
+
+        $facultyOf = \App\Models\Department::query()->pluck('faculty_id', 'id');
+        $byFaculty = [];
+
+        foreach ($byDepartment as $departmentId => $ids) {
+            $facultyId = $facultyOf[$departmentId] ?? null;
+
+            if ($facultyId === null) {
+                continue;
+            }
+
+            foreach ($ids as $id => $_) {
+                $byFaculty[$facultyId][$id] = true;
+            }
+        }
+
+        return \App\Models\Faculty::query()
             ->orderBy('sort_order')
             ->get(['id', 'name'])
-            ->mapWithKeys(fn ($department): array => [
-                $department->id => $department->name . ' (' . number_format(
-                    static::targetedEmailQuery([], [$department->id], [])->count(),
-                ) . ')',
+            ->mapWithKeys(fn ($f): array => [
+                $f->id => $f->name . ' (' . number_format(count($byFaculty[$f->id] ?? [])) . ')',
             ])
             ->all();
     }

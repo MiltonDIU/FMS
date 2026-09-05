@@ -65,6 +65,37 @@ class ImportPublicationsFromJsonPipelineCommand extends Command
         $quartilesCache = PublicationQuartile::all()->keyBy('slug');
         $collaborationsCache = ResearchCollaboration::all()->keyBy('slug');
 
+        /*
+         * The users that created_by is allowed to point at.
+         *
+         * publications.created_by and publication_incentives.created_by are
+         * both foreign keys into users. The ids in the file are written by
+         * publications:convert-pipeline, which resolves each "Created by" name
+         * against the users table as it stands on the day it runs — so they are
+         * only good for as long as that table keeps those rows.
+         *
+         * A migrate:fresh breaks that. The file kept ids 2023 to 2031 from an
+         * earlier run while the rebuilt users table stopped at 2016, and every
+         * one of the 7,378 publications failed on the foreign key: not a few
+         * bad rows, the entire import.
+         *
+         * The column is nullable with ON DELETE SET NULL, so an id nobody
+         * matches becomes null rather than taking the record down with it.
+         * Everything created inside the system from now on sets created_by
+         * itself; this is only about what the old file remembers.
+         */
+        $knownUserIds = DB::table('users')->pluck('id')->flip();
+
+        $resolveCreator = static function ($id) use ($knownUserIds): ?int {
+            if ($id === null || $id === '') {
+                return null;
+            }
+
+            return $knownUserIds->has((int) $id) ? (int) $id : null;
+        };
+
+        $creatorsDropped = 0;
+
         // Counted so the run says how the collaboration came out, rather than
         // leaving it to be discovered in the table afterwards.
         $collaborationCounts = ['diu' => 0, 'external' => 0, 'unknown' => 0];
@@ -192,8 +223,12 @@ class ImportPublicationsFromJsonPipelineCommand extends Command
                     'sort_order' => isset($pub['sort_order']) ? (int)$pub['sort_order'] : 1,
                     'come_from_old_site' => $comeFromOldSite,
                     'come_from_pd' => $comeFromPd,
-                    'created_by' => $pub['created_by_id'] ?? $pub['created_by'] ?? null,
+                    'created_by' => $resolveCreator($pub['created_by_id'] ?? $pub['created_by'] ?? null),
                 ];
+
+                if (($pub['created_by_id'] ?? null) !== null && $pubData['created_by'] === null) {
+                    $creatorsDropped++;
+                }
 
                 if ($existingPub) {
                     // Update existing publication
@@ -244,7 +279,10 @@ class ImportPublicationsFromJsonPipelineCommand extends Command
                         'publication_id' => $pubId,
                         'total_amount' => (float)($inc['total_amount'] ?? 0.00),
                         'status' => $inc['status'] ?? 'pending',
-                        'created_by' => $inc['created_by'] ?? $pub['created_by_id'] ?? 5,
+                        // Same foreign key, same treatment. The 5 that used to
+                        // stand here as a fallback was a user id nobody had
+                        // checked for either.
+                        'created_by' => $resolveCreator($inc['created_by'] ?? $pub['created_by_id'] ?? null),
                         'created_at' => $inc['created_at'] ?? now(),
                         'updated_at' => $inc['updated_at'] ?? now()
                     ]);
@@ -273,6 +311,7 @@ class ImportPublicationsFromJsonPipelineCommand extends Command
                 ['Collaboration → DIU Researcher', $collaborationCounts['diu']],
                 ['Collaboration → External', $collaborationCounts['external']],
                 ['Collaboration → left empty (no authors)', $collaborationCounts['unknown']],
+                ['created_by dropped (no such user)', $creatorsDropped],
             ]
         );
 
