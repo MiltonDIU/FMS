@@ -456,7 +456,11 @@ class TeachersTable
                     ->modalDescription(fn (Teacher $record) => "Select a saved template or customize the email content for {$record->full_name}.")
                     ->form(\App\Filament\Resources\Teachers\Support\TeacherEmailComposer::schema())
                     ->action(function (Teacher $record, array $data) {
-                        \App\Filament\Resources\Teachers\Support\TeacherEmailComposer::send([$record], $data);
+                        \App\Filament\Resources\Teachers\Support\TeacherEmailComposer::send(
+                            [$record],
+                            $data,
+                            \App\Models\EmailBatch::SOURCE_INDIVIDUAL,
+                        );
                     }),
                 \Filament\Actions\Action::make('dashboard')
                     ->label('Dashboard')
@@ -638,7 +642,11 @@ class TeachersTable
                         ->modalDescription('Select a saved email template or write custom content to send to selected teachers.')
                         ->form(\App\Filament\Resources\Teachers\Support\TeacherEmailComposer::schema())
                         ->action(function (\Illuminate\Database\Eloquent\Collection $records, array $data) {
-                            \App\Filament\Resources\Teachers\Support\TeacherEmailComposer::send($records, $data);
+                            \App\Filament\Resources\Teachers\Support\TeacherEmailComposer::send(
+                                $records,
+                                $data,
+                                \App\Models\EmailBatch::SOURCE_SELECTED,
+                            );
                         }),
                     BulkAction::make('sync_selected_profile_scores')
                         ->label('Sync Selected Scores')

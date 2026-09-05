@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\TeacherApiController;
 use App\Http\Controllers\Auth\TeacherActivationController;
 use App\Http\Controllers\Auth\TeacherPasswordSetupController;
+use App\Http\Controllers\EmailTrackingController;
 use App\Http\Controllers\Frontend\HomeController;
 use App\Http\Controllers\Frontend\DepartmentController;
 use App\Http\Controllers\Frontend\TeacherController;
@@ -40,6 +41,27 @@ Route::middleware('auth')->group(function () {
 Route::middleware('throttle:10,1')
     ->get('/teacher/activate/{token}', TeacherActivationController::class)
     ->name('teacher.activate');
+
+/*
+|--------------------------------------------------------------------------
+| Email tracking
+|--------------------------------------------------------------------------
+| The pixel and the link redirect that tell the Email Batches screen who has
+| read a message. Both are opened by mail clients rather than by people, so
+| neither is authenticated and neither can be, and both sit above the frontend
+| catch-all that would otherwise match them.
+|
+| The throttle is generous on purpose: one recipient's client can fetch the
+| pixel several times, and a whole faculty can sit behind one institutional
+| proxy address.
+*/
+Route::middleware('throttle:240,1')->prefix('email-track')->group(function () {
+    Route::get('/open/{token}.gif', [EmailTrackingController::class, 'open'])
+        ->name('email.track.open');
+
+    Route::get('/click/{token}', [EmailTrackingController::class, 'click'])
+        ->name('email.track.click');
+});
 
 Route::middleware('auth')->group(function () {
     Route::get('/teacher/set-password', [TeacherPasswordSetupController::class, 'create'])

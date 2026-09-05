@@ -53,6 +53,7 @@ class DatabaseSeeder extends Seeder
             SystemSettingsPermissionSeeder::class,
             BulkDeletePermissionSeeder::class,
             ErpProfileSyncPermissionSeeder::class,
+            EmailBatchPermissionSeeder::class,
 
             // ── Configuration ───────────────────────────────────────────────
             SettingsSeeder::class,

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Jobs\SendCustomTemplatedEmailJob;
 use App\Jobs\SendTeacherActivationEmailJob;
+use App\Models\EmailBatchRecipient;
 use App\Models\Teacher;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
@@ -134,31 +135,73 @@ class TeacherActivationService
      * {activation_link} gets a freshly minted token; anything else goes out on
      * the ordinary path.
      *
+     * $recipient is the row in the batch this message belongs to. It is handed
+     * down rather than created here so that a skip is written to the same row
+     * the send would have used: a recipient who was skipped has to stay in the
+     * batch and say why, or the numbers stop adding up and the reason is lost.
+     *
+     * $skipActivated extends the activation email's rule to ordinary ones, for
+     * the reminders that are only meant for teachers who have not signed in yet.
+     * An activation message skips them whatever is asked, because a link that
+     * signs somebody in has no business reaching an account that already has a
+     * password.
+     *
      * @return string  'activation', 'general', or why it was skipped
      */
-    public function queueFor(Teacher $teacher, string $subject, string $body, int $validityDays): string
-    {
+    public function queueFor(
+        Teacher $teacher,
+        string $subject,
+        string $body,
+        int $validityDays,
+        ?EmailBatchRecipient $recipient = null,
+        bool $skipActivated = false,
+    ): string {
         if (! $this->needsActivationLink($subject, $body)) {
-            SendCustomTemplatedEmailJob::dispatch($teacher, $subject, $body);
+            if ($skipActivated && $this->isAlreadyActivated($teacher)) {
+                return $this->skip($recipient, 'already activated');
+            }
+
+            if (blank($teacher->user?->email) && blank($teacher->email)) {
+                return $this->skip($recipient, 'no email');
+            }
+
+            SendCustomTemplatedEmailJob::dispatch($teacher, $subject, $body, $recipient?->id);
 
             return 'general';
         }
 
         if ($this->isAlreadyActivated($teacher)) {
-            return 'skipped: already activated';
+            return $this->skip($recipient, 'already activated');
         }
 
         if (blank($teacher->user?->email)) {
-            return 'skipped: no email';
+            return $this->skip($recipient, 'no email');
         }
 
         // Minted before dispatching, so a queue failure cannot leave a live link
         // that nobody was ever told about.
         $link = $this->issueLink($teacher, $validityDays);
 
-        SendTeacherActivationEmailJob::dispatch($teacher, $subject, $body, $link, $validityDays);
+        SendTeacherActivationEmailJob::dispatch(
+            $teacher,
+            $subject,
+            $body,
+            $link,
+            $validityDays,
+            $recipient?->id,
+        );
 
         return 'activation';
+    }
+
+    /**
+     * Record a skip on the batch row and report it in the same breath.
+     */
+    protected function skip(?EmailBatchRecipient $recipient, string $reason): string
+    {
+        $recipient?->markSkipped($reason);
+
+        return 'skipped: ' . $reason;
     }
 
     /**

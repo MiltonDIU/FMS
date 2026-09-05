@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\EmailBatch;
 use App\Models\EmailTemplate;
 use App\Models\Teacher;
 use App\Services\TeacherActivationService;
@@ -119,6 +120,23 @@ class SendTeacherActivationEmails extends Command
             return self::SUCCESS;
         }
 
+        /*
+         * A run from the console is recorded exactly like one from the panel.
+         * It reaches more people than any dialog does, so it is the last thing
+         * that should be the one send nobody can look up afterwards.
+         */
+        $batch = EmailBatch::create([
+            'subject' => $template->subject,
+            'body' => $template->body,
+            'email_template_id' => $template->id,
+            'template_name' => $template->name,
+            'sent_by' => null,
+            'source' => EmailBatch::SOURCE_CONSOLE,
+            'uses_activation_link' => true,
+            'link_validity_days' => $days,
+            'total_recipients' => $recipients->count(),
+        ]);
+
         $queued = 0;
         $skipped = 0;
         $bar = $this->output->createProgressBar($recipients->count());
@@ -127,7 +145,13 @@ class SendTeacherActivationEmails extends Command
         foreach ($recipients as $teacher) {
             // Same call the send dialogs use, so a template behaves identically
             // whether it goes out from here or from the admin panel.
-            $result = $activation->queueFor($teacher, $template->subject, $template->body, $days);
+            $result = $activation->queueFor(
+                $teacher,
+                $template->subject,
+                $template->body,
+                $days,
+                $batch->addRecipient($teacher),
+            );
 
             str_starts_with($result, 'skipped') ? $skipped++ : $queued++;
             $bar->advance();
@@ -140,6 +164,8 @@ class SendTeacherActivationEmails extends Command
         if ($skipped > 0) {
             $this->warn($skipped . ' skipped while queueing.');
         }
+
+        $this->line('  Delivery report: Email Batches #' . $batch->id . ' in the admin panel.');
 
         return self::SUCCESS;
     }

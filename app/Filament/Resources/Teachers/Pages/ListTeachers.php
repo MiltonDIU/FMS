@@ -268,7 +268,24 @@ class ListTeachers extends ListRecords
                         return;
                     }
 
-                    \App\Filament\Resources\Teachers\Support\TeacherEmailComposer::send($teachers, $data);
+                    /*
+                     * The filter itself is recorded with the batch, not just
+                     * the people it resolved to. Months later, "who was this
+                     * sent to" is answered by the recipient list, but "why
+                     * these people" is only answerable from the filter, and the
+                     * departments and statuses will have moved on by then.
+                     */
+                    \App\Filament\Resources\Teachers\Support\TeacherEmailComposer::send(
+                        $teachers,
+                        $data,
+                        \App\Models\EmailBatch::SOURCE_FILTERED,
+                        [
+                            'faculty_ids' => $data['faculty_ids'] ?? [],
+                            'department_ids' => $data['department_ids'] ?? [],
+                            'employment_status_ids' => $data['employment_status_ids'] ?? [],
+                            'job_type_ids' => $data['job_type_ids'] ?? [],
+                        ],
+                    );
                 }),
 
             Action::make('sync_erp_profiles')

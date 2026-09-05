@@ -2,15 +2,20 @@
 
 namespace App\Filament\Resources\Teachers\Support;
 
+use App\Filament\Resources\EmailBatches\EmailBatchResource;
+use App\Models\EmailBatch;
 use App\Models\EmailTemplate;
 use App\Models\Teacher;
 use App\Services\TeacherActivationService;
+use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
+use Illuminate\Support\Collection;
 
 /**
  * The shared "compose an email to teachers" form and its send handling.
@@ -21,6 +26,12 @@ use Filament\Schemas\Components\Utilities\Set;
  * wherever it is sent from, which matters most for the activation template:
  * sending it down the ordinary path would put the literal text
  * {activation_link} in a teacher's inbox.
+ *
+ * Every send also writes a batch: the message, who sent it, and a row per
+ * recipient carrying what became of their copy. Before that existed, a send left
+ * nothing behind but a count in a notification, and the questions that get asked
+ * afterwards — who never received it, who has read it, who is still to be
+ * chased — had no answer anywhere in the system.
  */
 class TeacherEmailComposer
 {
@@ -87,6 +98,27 @@ class TeacherEmailComposer
                 ->visible(fn (Get $get): bool => self::usesActivationLink($get))
                 ->helperText('This message signs the teacher in, so the link expires and works only once. '
                     . 'Teachers who already set a password and verified their email are skipped.'),
+
+            /*
+             * The same rule the activation email applies on its own, offered to
+             * every other template as a choice.
+             *
+             * Hidden for an activation message rather than shown switched on,
+             * because there it is not a choice: a link that signs somebody in
+             * must not reach an account that already has a password, and the
+             * field above already says so. Offering a switch that cannot be
+             * turned off would only invite the attempt.
+             *
+             * For an ordinary message it is the useful setting: it is how a
+             * reminder reaches only the teachers who have still not signed in.
+             */
+            Toggle::make('only_pending')
+                ->label('Skip teachers who have already activated their account')
+                ->default(false)
+                ->hidden(fn (Get $get): bool => self::usesActivationLink($get))
+                ->helperText('Leave off to email everyone. Turn it on for a reminder meant only for '
+                    . 'teachers who have not signed in yet. Skipped teachers still appear in the '
+                    . 'delivery report, with the reason.'),
         ];
     }
 
@@ -95,20 +127,59 @@ class TeacherEmailComposer
      *
      * @param  iterable<Teacher>  $teachers
      * @param  array<string,mixed>  $data
+     * @param  array<string,mixed>  $filters  What the filtered dialog was asked for, recorded with the batch
      */
-    public static function send(iterable $teachers, array $data): void
-    {
+    public static function send(
+        iterable $teachers,
+        array $data,
+        string $source = EmailBatch::SOURCE_SELECTED,
+        array $filters = [],
+    ): void {
         $activation = app(TeacherActivationService::class);
 
         $subject = (string) $data['subject'];
         $body = (string) $data['body'];
         $days = (int) ($data['link_validity_days'] ?? TeacherActivationService::DEFAULT_VALIDITY_DAYS);
 
+        $teachers = $teachers instanceof Collection ? $teachers : collect($teachers);
+
+        if ($teachers->isEmpty()) {
+            Notification::make()
+                ->warning()
+                ->title('Nothing was sent')
+                ->body('No teachers were selected.')
+                ->send();
+
+            return;
+        }
+
+        $usesActivationLink = $activation->needsActivationLink($subject, $body);
+
+        $batch = EmailBatch::create([
+            'subject' => $subject,
+            'body' => $body,
+            'email_template_id' => $data['template_id'] ?? null,
+            'template_name' => EmailTemplate::find($data['template_id'] ?? null)?->name,
+            'sent_by' => auth()->id(),
+            'source' => $source,
+            'filters' => $filters ?: null,
+            'uses_activation_link' => $usesActivationLink,
+            'link_validity_days' => $usesActivationLink ? $days : null,
+            'total_recipients' => $teachers->count(),
+        ]);
+
         $counts = ['activation' => 0, 'general' => 0, 'skipped' => 0];
         $reasons = [];
 
         foreach ($teachers as $teacher) {
-            $result = $activation->queueFor($teacher, $subject, $body, $days);
+            $result = $activation->queueFor(
+                $teacher,
+                $subject,
+                $body,
+                $days,
+                $batch->addRecipient($teacher),
+                $usesActivationLink || (bool) ($data['only_pending'] ?? false),
+            );
 
             if (str_starts_with($result, 'skipped')) {
                 $counts['skipped']++;
@@ -127,24 +198,38 @@ class TeacherEmailComposer
                 ->warning()
                 ->title('Nothing was sent')
                 ->body(self::describeSkips($reasons))
+                ->actions([self::reportAction($batch)])
                 ->send();
 
             return;
         }
 
-        $body = $counts['activation'] > 0
+        $summary = $counts['activation'] > 0
             ? "{$queued} activation email(s) queued. Each link expires in {$days} day(s) and can be used once."
             : "{$queued} email(s) queued.";
 
         if ($counts['skipped'] > 0) {
-            $body .= ' ' . self::describeSkips($reasons);
+            $summary .= ' ' . self::describeSkips($reasons);
         }
 
         Notification::make()
             ->success()
             ->title('Email queued')
-            ->body($body)
+            ->body($summary)
+            ->actions([self::reportAction($batch)])
             ->send();
+    }
+
+    /**
+     * Takes the sender straight to the report, while they still remember what
+     * they sent and to whom.
+     */
+    protected static function reportAction(EmailBatch $batch): Action
+    {
+        return Action::make('view_batch')
+            ->label('View delivery report')
+            ->url(EmailBatchResource::getUrl('view', ['record' => $batch]))
+            ->button();
     }
 
     protected static function usesActivationLink(Get $get): bool
