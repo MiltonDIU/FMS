@@ -260,6 +260,21 @@ class TeachersTable
                         }
                         return false;
                     }),
+                /*
+                 * In the research directory, and so carried by the API the
+                 * research site reads.
+                 *
+                 * import:researcher-profiles turns this on for everyone it finds
+                 * in the Directorate of Research's file — that is where the
+                 * biography, the expertise areas and the scholarly links on
+                 * those profiles come from. This is the row that lets somebody
+                 * the file missed be added, and somebody who does not belong be
+                 * taken out, without editing the file and re-importing.
+                 */
+                \Filament\Tables\Columns\ToggleColumn::make('is_researcher')
+                    ->label('Researcher')
+                    ->tooltip('Include this profile in the research directory API')
+                    ->disabled(fn (Teacher $record): bool => ! auth()->user()?->can('toggleResearcher', $record)),
                 TextColumn::make('joining_date')
                     ->date()
                     ->sortable()
@@ -270,6 +285,11 @@ class TeachersTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                \Filament\Tables\Filters\TernaryFilter::make('is_researcher')
+                    ->label('In research directory')
+                    ->placeholder('Everyone')
+                    ->trueLabel('Researchers only')
+                    ->falseLabel('Not in the directory'),
                 SelectFilter::make('major_id')
                     ->label('Major')
                     ->searchable()

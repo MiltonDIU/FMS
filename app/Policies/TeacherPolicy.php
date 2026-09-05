@@ -139,4 +139,18 @@ class TeacherPolicy
     {
         return $authUser->can('ToggleLoginAllowed:Teacher');
     }
+
+    /**
+     * Who may put a teacher into the research directory, or take them out.
+     *
+     * Separate from Update:Teacher because it is not an edit to the profile —
+     * it decides whether the profile is published to the research site through
+     * the API, which is a different audience from this system. The research
+     * team keeps that list, so the permission goes to them rather than to
+     * everyone who can correct a phone number.
+     */
+    public function toggleResearcher(AuthUser $authUser, ?Teacher $teacher = null): bool
+    {
+        return $authUser->can('ToggleResearcher:Teacher');
+    }
 }

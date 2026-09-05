@@ -256,6 +256,14 @@ return [
         'ImportErp:Teacher',
         'ViewDashboard:Teacher',
         'ToggleLoginAllowed:Teacher',
+        /*
+         * Puts a teacher into the research directory, or takes them out — the
+         * is_researcher toggle on the teachers table. It is not an edit to the
+         * profile but a decision about publishing it to another site through
+         * the API, so it is held apart from Update:Teacher and given to the
+         * research team, who keep that list.
+         */
+        'ToggleResearcher:Teacher',
     ],
 
     /*

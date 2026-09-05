@@ -359,6 +359,21 @@ class RolePermissionsSeeder extends Seeder
             'approve:own-department-teacher',
             'approve:own-faculty-teacher',
             'view:pending-approvals',
+
+            /*
+             * The research directory.
+             *
+             * Puts a teacher into the list the research site reads back through
+             * the API, or takes them out — the is_researcher toggle on the
+             * teachers table. import:researcher-profiles turns it on for
+             * everyone in the Directorate of Research's file; this is for the
+             * ones the file missed, and the ones who should not be there.
+             *
+             * Deliberately not folded into Update:Teacher. Correcting somebody's
+             * phone number and publishing their profile to another site are
+             * different decisions, and the second belongs to the research team.
+             */
+            'ToggleResearcher:Teacher',
         ];
 
         // The widget permissions belong in the same list — they have to exist
@@ -531,8 +546,18 @@ class RolePermissionsSeeder extends Seeder
             'View:Dashboard',
             'View:TeacherDashboard',
 
-            // Teachers - view only
+            // Teachers - view only, except for the research directory
             'ViewAny:Teacher', 'View:Teacher',
+
+            /*
+             * The one thing this role may change about a teacher.
+             *
+             * It cannot edit a profile, and should not — but it does keep the
+             * research directory, so it decides who the research site is served
+             * through the API. Everything else about the person stays with the
+             * people who own the profile.
+             */
+            'ToggleResearcher:Teacher',
 
             // Department Teachers - view only
             'ViewAny:DepartmentTeacher', 'View:DepartmentTeacher',

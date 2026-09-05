@@ -64,6 +64,10 @@ class Teacher extends Model implements HasMedia
         'verification_token',
         'verified_at',
         'is_public',
+        // In the Directorate of Research's directory, and so served by the API
+        // the research site reads. Set by import:researcher-profiles for every
+        // teacher it matches, and editable from the teachers table afterwards.
+        'is_researcher',
         'is_active',
         'login_allowed',
         'employment_status_id',
@@ -79,6 +83,7 @@ class Teacher extends Model implements HasMedia
         'joining_date' => 'date',
         'verified_at' => 'datetime',
         'is_public' => 'boolean',
+        'is_researcher' => 'boolean',
         'is_active' => 'boolean',
         'login_allowed' => 'boolean',
         'is_archived'              => 'boolean',

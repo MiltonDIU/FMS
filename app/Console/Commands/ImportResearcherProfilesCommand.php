@@ -114,7 +114,7 @@ class ImportResearcherProfilesCommand extends Command
             : '🚀 Importing researcher profiles...');
 
         $platforms = $this->platforms();
-        $stats = ['matched' => 0, 'bios' => 0, 'bios_kept' => 0, 'interests' => 0, 'links' => 0, 'usernames' => 0];
+        $stats = ['matched' => 0, 'bios' => 0, 'bios_kept' => 0, 'interests' => 0, 'links' => 0, 'usernames' => 0, 'flagged' => 0];
 
         $bar = $this->output->createProgressBar(count($researchers));
         $bar->start();
@@ -145,6 +145,7 @@ class ImportResearcherProfilesCommand extends Command
                 $this->applyBiography($teacher, $researcher, $stats);
                 $this->applyInterests($teacher, $researcher, $stats);
                 $this->applyLinks($teacher, $researcher, $platforms, $stats);
+                $this->markAsResearcher($teacher, $stats);
             });
 
             $bar->advance();
@@ -163,6 +164,7 @@ class ImportResearcherProfilesCommand extends Command
             ['Research interests added', $stats['interests']],
             ['Profile links added', $stats['links']],
             ['Usernames filled in on existing links', $stats['usernames']],
+            ['Newly marked as researchers', $stats['flagged']],
         ]);
 
         $this->reportLeftOut();
@@ -335,6 +337,32 @@ class ImportResearcherProfilesCommand extends Command
         $teacher->save();
 
         $stats['bios']++;
+    }
+
+    /**
+     * Record that this teacher is in the research directory.
+     *
+     * Everything above — the biography, the expertise, the scholarly links —
+     * came out of the Directorate of Research's file, and the flag is what says
+     * so afterwards. A second site reads these profiles back through an API,
+     * and this is the column it filters on; without it the only way to know who
+     * belongs in that set would be to re-read the file.
+     *
+     * Only ever turned on here. Turning it off is a decision for the teachers
+     * table screen, and a run of this command should not quietly undo one.
+     *
+     * @param  array<string, int>  $stats
+     */
+    protected function markAsResearcher(Teacher $teacher, array &$stats): void
+    {
+        if ($teacher->is_researcher) {
+            return;
+        }
+
+        $teacher->is_researcher = true;
+        $teacher->save();
+
+        $stats['flagged']++;
     }
 
     /** @param  array<string, mixed>  $researcher */
