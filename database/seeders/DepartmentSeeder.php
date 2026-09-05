@@ -87,15 +87,14 @@ class DepartmentSeeder extends Seeder
             'SUF' => [
                 ['name' => 'System - Unassigned Department', 'short_name' => 'SUD', 'code' => 'SUD', 'description' => 'System - Unassigned Department'],
                 /*
-                 * Also from the old site, and parked here rather than guessed at.
+                 * General Educational Development is deliberately not here.
                  *
-                 * Its old row carries faculty_id = 0 — no faculty was ever
-                 * recorded for it — so any faculty chosen here would be an
-                 * invention. Nobody is attached to it either, so nothing is
-                 * waiting on the answer; move this line into whichever faculty
-                 * owns it and the next seed puts it there.
+                 * The old site carries it, but its row records no faculty at
+                 * all and no teacher is attached to it, so seeding it would add
+                 * an empty department under a faculty nobody chose. The export
+                 * command reports it as unmatched on every run, which is the
+                 * honest place for it until somebody says where it belongs.
                  */
-               // ['name' => 'General Educational Development', 'short_name' => 'GED', 'code' => 'GED', 'description' => 'Delivers the general education and foundation courses taken across the university.'],
               ],
 
         ];

@@ -180,33 +180,77 @@ class ListTeachers extends ListRecords
                 ->color('success')
                 ->visible(fn (): bool => auth()->user()?->can('bulkSendEmailToTeachers', Teacher::class) ?? false)
                 ->modalHeading('Send Targeted Email to Teachers')
-                ->modalDescription('Filter teachers by employment status, select a saved email template or write custom content, and send.')
+                ->modalDescription('Narrow the recipients by faculty, department or employment status, then write the email. The count updates as you choose.')
+                /*
+                 * Every option list and the count below them are closures, so
+                 * they are read when the modal opens rather than when the page
+                 * loads. The teachers list is the busiest screen in the panel
+                 * and this is four aggregate queries; nobody who is not sending
+                 * an email should pay for them.
+                 */
                 ->form([
+                    \Filament\Forms\Components\Select::make('faculty_ids')
+                        ->label('Target Faculties (Multi-Select)')
+                        ->placeholder('All faculties')
+                        ->options(fn (): array => static::facultyOptionsWithCounts())
+                        ->multiple()
+                        ->searchable()
+                        ->live()
+                        ->columnSpanFull()
+                        ->helperText('Leave empty for every faculty. The number beside each is how many non-archived teachers it holds.'),
+
+                    \Filament\Forms\Components\Select::make('department_ids')
+                        ->label('Target Departments (Multi-Select)')
+                        ->placeholder('All departments in the chosen faculties')
+                        ->options(fn (\Filament\Schemas\Components\Utilities\Get $get): array => static::departmentOptionsWithCounts($get('faculty_ids') ?? []))
+                        ->multiple()
+                        ->searchable()
+                        ->live()
+                        ->columnSpanFull()
+                        ->helperText('Choosing a faculty above narrows this list. A department chosen here decides the recipients on its own — the faculty is then only a way of finding it. Somebody assigned to several of the departments you pick still gets one email.'),
+
                     \Filament\Forms\Components\Select::make('employment_status_ids')
                         ->label('Target Employment Statuses (Multi-Select)')
                         ->placeholder('All Employment Statuses (Full-time, Part-time, Suspended, etc.)')
-                        ->options(fn () => \App\Models\EmploymentStatus::query()->pluck('name', 'id')->toArray())
+                        ->options(fn (): array => static::employmentStatusOptionsWithCounts())
                         ->multiple()
                         ->searchable()
+                        ->live()
                         ->columnSpanFull()
-                        ->helperText('Leave empty to send email to all active teachers.'),
+                        ->helperText('Leave empty for every status. Combined with the two above, not instead of them.'),
+
+                    /*
+                     * How many people this actually reaches, before it is sent.
+                     *
+                     * The action used to say nothing until afterwards, so the
+                     * only way to find out whether a filter meant twelve people
+                     * or twelve hundred was to send to them.
+                     */
+                    \Filament\Forms\Components\Placeholder::make('recipient_count')
+                        ->label('This email will go to')
+                        ->columnSpanFull()
+                        ->content(function (\Filament\Schemas\Components\Utilities\Get $get): \Illuminate\Support\HtmlString {
+                            return new \Illuminate\Support\HtmlString(static::recipientReport(
+                                $get('faculty_ids') ?? [],
+                                $get('department_ids') ?? [],
+                                $get('employment_status_ids') ?? [],
+                            ));
+                        }),
 
                     ...\App\Filament\Resources\Teachers\Support\TeacherEmailComposer::schema(),
                 ])
                 ->action(function (array $data) {
-                    $query = Teacher::query()->where('is_archived', false);
-
-                    if (! empty($data['employment_status_ids']) && is_array($data['employment_status_ids'])) {
-                        $query->whereIn('employment_status_id', $data['employment_status_ids']);
-                    }
-
-                    $teachers = $query->with('user')->get();
+                    $teachers = static::targetedEmailQuery(
+                        $data['faculty_ids'] ?? [],
+                        $data['department_ids'] ?? [],
+                        $data['employment_status_ids'] ?? [],
+                    )->with('user')->get();
 
                     if ($teachers->isEmpty()) {
                         Notification::make()
                             ->warning()
                             ->title('No matching teachers found')
-                            ->body('No teachers matched the selected employment statuses.')
+                            ->body('Nothing matched that combination of faculty, department and employment status.')
                             ->send();
 
                         return;
@@ -416,6 +460,150 @@ class ListTeachers extends ListRecords
      *
      * @return array<int, string>
      */
+    /**
+     * The teachers a targeted email would reach.
+     *
+     * Shared by the count in the modal and by the send itself, so the number
+     * somebody reads before pressing the button is the number that gets an
+     * email.
+     *
+     * A teacher belongs to a department twice over: department_id is the one
+     * they sit in, and department_teacher holds the others they are attached
+     * to. Both count. Somebody teaching in a department should hear from it
+     * whether or not it is the department their record calls home — and it is
+     * the second kind that the old migration kept losing.
+     *
+     * One person, one email, however many of the selected departments they
+     * belong to. This is a message about their profile, and a profile shows up
+     * under every department it is assigned to — 39 teachers are attached to
+     * more than one, and Professor Rafiqul Islam is in both Business
+     * Administration and Development Studies. Selecting both must reach him
+     * once.
+     *
+     * That is why the pivot is reached through whereHas and never a join. A
+     * join returns one row per matching assignment and would send him two.
+     * whereHas compiles to EXISTS, which asks whether any assignment matches
+     * and returns the teacher once either way. Selecting all 32 departments
+     * returns 1,189 — exactly the number of non-archived teachers, not one
+     * more. Keep it that way.
+     *
+     * Department beats faculty when both are given. Picking a faculty and then
+     * a department inside it should mean that department, not everyone in the
+     * faculty; the faculty is how you found it.
+     *
+     * @param  array<int|string>  $facultyIds  Empty means every faculty.
+     * @param  array<int|string>  $departmentIds  Empty means every department.
+     * @param  array<int|string>  $employmentStatusIds  Empty means every status.
+     */
+    protected static function targetedEmailQuery(array $facultyIds, array $departmentIds, array $employmentStatusIds): Builder
+    {
+        $query = Teacher::query()->where('is_archived', false);
+
+        if (! empty($departmentIds)) {
+            $query->where(fn (Builder $q): Builder => $q
+                ->whereIn('department_id', $departmentIds)
+                ->orWhereHas('departments', fn ($d) => $d->whereIn('departments.id', $departmentIds)));
+        } elseif (! empty($facultyIds)) {
+            $query->where(fn (Builder $q): Builder => $q
+                ->whereHas('department', fn ($d) => $d->whereIn('faculty_id', $facultyIds))
+                ->orWhereHas('departments', fn ($d) => $d->whereIn('departments.faculty_id', $facultyIds)));
+        }
+
+        if (! empty($employmentStatusIds)) {
+            $query->whereIn('employment_status_id', $employmentStatusIds);
+        }
+
+        return $query;
+    }
+
+    /**
+     * The count, and what is standing between it and the filters.
+     *
+     * @param  array<int|string>  $facultyIds
+     * @param  array<int|string>  $departmentIds
+     * @param  array<int|string>  $employmentStatusIds
+     */
+    protected static function recipientReport(array $facultyIds, array $departmentIds, array $employmentStatusIds): string
+    {
+        $query = static::targetedEmailQuery($facultyIds, $departmentIds, $employmentStatusIds);
+
+        $total = (clone $query)->count();
+        $reachable = (clone $query)->whereHas('user', fn ($u) => $u->whereNotNull('email')->where('email', '!=', ''))->count();
+
+        $lines = ['<strong>' . number_format($total) . ' teacher(s)</strong> — one email each, counted once however many of the chosen departments they belong to.'];
+
+        if ($total === 0) {
+            $lines[] = 'Nothing matches that combination — widen one of the filters above.';
+
+            return implode('<br>', $lines);
+        }
+
+        if ($reachable < $total) {
+            $lines[] = number_format($total - $reachable) . ' of them have no email address on file and will be skipped.';
+        }
+
+        $applied = array_filter([
+            $facultyIds ? count($facultyIds) . ' faculty(ies)' : null,
+            $departmentIds ? count($departmentIds) . ' department(s)' : null,
+            $employmentStatusIds ? count($employmentStatusIds) . ' employment status(es)' : null,
+        ]);
+
+        $lines[] = $applied === []
+            ? 'No filter applied — this is every non-archived teacher.'
+            : 'Filtered by ' . implode(', ', $applied) . '.';
+
+        if ($departmentIds && $facultyIds) {
+            $lines[] = 'The department choice decides the recipients; the faculty above only narrowed the list.';
+        }
+
+        $archived = Teacher::query()->where('is_archived', true)->count();
+
+        if ($archived > 0) {
+            $lines[] = number_format($archived) . ' archived teacher(s) are never included.';
+        }
+
+        return implode('<br>', $lines);
+    }
+
+    /**
+     * Faculties, each with how many non-archived teachers it holds.
+     *
+     * Counted through both routes a teacher reaches a faculty by, so the
+     * numbers here add up to what the count below the dropdowns reports.
+     */
+    protected static function facultyOptionsWithCounts(): array
+    {
+        return \App\Models\Faculty::query()
+            ->orderBy('sort_order')
+            ->get(['id', 'name'])
+            ->mapWithKeys(fn ($faculty): array => [
+                $faculty->id => $faculty->name . ' (' . number_format(
+                    static::targetedEmailQuery([$faculty->id], [], [])->count(),
+                ) . ')',
+            ])
+            ->all();
+    }
+
+    /**
+     * Departments, each with its own head-count, narrowed to the chosen
+     * faculties when there are any.
+     *
+     * @param  array<int|string>  $facultyIds
+     */
+    protected static function departmentOptionsWithCounts(array $facultyIds): array
+    {
+        return \App\Models\Department::query()
+            ->when(! empty($facultyIds), fn ($q) => $q->whereIn('faculty_id', $facultyIds))
+            ->orderBy('sort_order')
+            ->get(['id', 'name'])
+            ->mapWithKeys(fn ($department): array => [
+                $department->id => $department->name . ' (' . number_format(
+                    static::targetedEmailQuery([], [$department->id], [])->count(),
+                ) . ')',
+            ])
+            ->all();
+    }
+
     protected static function employmentStatusOptionsWithCounts(): array
     {
         $counts = Teacher::query()

@@ -153,6 +153,26 @@ class ImportOldTeachersCommand extends Command
         if ($existingUser) {
 
             if ($existingUser->teacher) {
+                /*
+                 * Already here, so the profile is left exactly as it is — the
+                 * biography, the corrections, everything somebody has typed
+                 * since. What is topped up is only where they belong: the
+                 * department assignments and administrative roles.
+                 *
+                 * Those are the part a re-run has to be able to repair. Before
+                 * the export matched departments by name, 117 teachers were
+                 * filed under the wrong one, and returning here meant no import
+                 * could ever put them right — the only way was to empty the
+                 * table and spend three or four hours rebuilding it, losing
+                 * every hand correction on the way.
+                 *
+                 * Adding rows nobody has is cheap and additive, so it stays
+                 * within the same run rather than needing a repair script.
+                 */
+                if (!$this->dryRun) {
+                    $this->syncPlacements($existingUser->teacher, $existingUser, $record);
+                }
+
                 $this->skipped++;
 
                 if ($employeeId) {
@@ -222,6 +242,34 @@ class ImportOldTeachersCommand extends Command
             'user_id'    => $user->id,
             'sort_order' => 0,
         ]));
+
+        $this->syncPlacements($teacher, $user, $record);
+
+        return $teacher;
+    }
+
+    /**
+     * Attach a teacher to their departments and administrative roles.
+     *
+     * Split out of createTeacherProfile so that a teacher who is already here
+     * can be brought up to date without being written again. Every write below
+     * is syncWithoutDetaching or updateOrCreate: running it a second time adds
+     * what is missing and leaves everything else alone.
+     *
+     * That is what makes a re-run worth doing. The import used to return the
+     * moment it recognised somebody, so a department assignment that was wrong
+     * the first time — and there were 117 of those, before the export started
+     * matching departments by name — could never be repaired by importing
+     * again. The only way through was to empty the table and start over, which
+     * on this data set is a three to four hour job and throws away every
+     * correction made by hand since.
+     *
+     * @param  array<string, mixed>  $record
+     */
+    private function syncPlacements(Teacher $teacher, User $user, array $record): void
+    {
+        $p = $record['teacher_profile'];
+        $departments = $record['departments'] ?? [];
 
         if (!empty($departments)) {
             foreach ($departments as $dept) {
@@ -307,8 +355,6 @@ class ImportOldTeachersCommand extends Command
                 ],
             ]);
         }
-
-        return $teacher;
     }
 
     /**

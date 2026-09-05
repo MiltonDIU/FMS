@@ -559,6 +559,18 @@ class RolePermissionsSeeder extends Seeder
              */
             'ToggleResearcher:Teacher',
 
+            /*
+             * Opens a teacher's own dashboard from the teachers table.
+             *
+             * The role already holds View:TeacherDashboard, which is what the
+             * page itself checks, so it could reach the dashboard by typing the
+             * address — but the button that leads there is gated on this, and
+             * without it the way in was invisible. Somebody deciding who belongs
+             * in the research directory needs to be able to look at the person
+             * first.
+             */
+            'ViewDashboard:Teacher',
+
             // Department Teachers - view only
             'ViewAny:DepartmentTeacher', 'View:DepartmentTeacher',
 
