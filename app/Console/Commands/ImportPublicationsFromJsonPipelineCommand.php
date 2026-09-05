@@ -9,6 +9,8 @@ use App\Models\Publication;
 use App\Models\PublicationType;
 use App\Models\PublicationLinkage;
 use App\Models\PublicationQuartile;
+use App\Models\ResearchCollaboration;
+use App\Models\Teacher;
 
 class ImportPublicationsFromJsonPipelineCommand extends Command
 {
@@ -61,6 +63,11 @@ class ImportPublicationsFromJsonPipelineCommand extends Command
         $typesCache = PublicationType::all()->keyBy('slug');
         $linkagesCache = PublicationLinkage::all()->keyBy('slug');
         $quartilesCache = PublicationQuartile::all()->keyBy('slug');
+        $collaborationsCache = ResearchCollaboration::all()->keyBy('slug');
+
+        // Counted so the run says how the collaboration came out, rather than
+        // leaving it to be discovered in the table afterwards.
+        $collaborationCounts = ['diu' => 0, 'external' => 0, 'unknown' => 0];
 
         $importedCount = 0;
         $updatedCount = 0;
@@ -100,6 +107,49 @@ class ImportPublicationsFromJsonPipelineCommand extends Command
                 $quartile_id = isset($quartilesCache[$slug]) ? $quartilesCache[$slug]->id : null;
             }
 
+            /*
+             * Resolve the collaboration from who wrote the paper.
+             *
+             * PD does not record it — research_collaboration_id appears nowhere
+             * in the file — so the field was read straight out of the JSON and
+             * came back null for all 7,378 rows every run. The authors do say
+             * it, though, so it is worked out here instead.
+             *
+             * A paper with one of our own teachers on it is DIU research; a
+             * paper with none is an external collaboration. Note that a visiting
+             * faculty member does not change the answer: with a DIU teacher the
+             * paper is still DIU research, and without one it is still external.
+             * That leaves 'Visiting Faculty + DIU Researcher' unused, which is
+             * deliberate rather than an oversight — say the word and VF takes
+             * precedence in whichever direction you want it to.
+             *
+             * A paper with no authors at all is left alone. Two of them are like
+             * that, and neither statement is true of a paper we know nothing
+             * about.
+             */
+            $collaboration_id = null;
+            $authors = is_array($pub['authors'] ?? null) ? $pub['authors'] : [];
+
+            if ($authors !== []) {
+                $hasOurTeacher = false;
+
+                foreach ($authors as $author) {
+                    if (($author['authorable_type'] ?? null) === Teacher::class) {
+                        $hasOurTeacher = true;
+                        break;
+                    }
+                }
+
+                $collaborationSlug = $hasOurTeacher ? 'diu-researcher' : 'collaboration-external';
+                $collaboration_id = isset($collaborationsCache[$collaborationSlug])
+                    ? $collaborationsCache[$collaborationSlug]->id
+                    : null;
+
+                $collaborationCounts[$hasOurTeacher ? 'diu' : 'external']++;
+            } else {
+                $collaborationCounts['unknown']++;
+            }
+
             DB::beginTransaction();
             try {
                 // Check if publication already exists by normalized slug match.
@@ -123,7 +173,7 @@ class ImportPublicationsFromJsonPipelineCommand extends Command
                     'publication_linkage_id' => $linkage_id,
                     'publication_quartile_id' => $quartile_id,
                     'grant_type_id' => $pub['grant_type_id'] ?? null,
-                    'research_collaboration_id' => $pub['research_collaboration_id'] ?? null,
+                    'research_collaboration_id' => $collaboration_id,
                     'title' => $title,
                     'slug' => $titleSlug,
                     'journal_name' => $pub['journal_name'] ?? null,
@@ -220,6 +270,9 @@ class ImportPublicationsFromJsonPipelineCommand extends Command
                 ['Records skipped (empty data)', $skippedCount],
                 ['Teachers not found in new DB', $notFoundCount],
                 ['Individual record failures', $failedCount],
+                ['Collaboration → DIU Researcher', $collaborationCounts['diu']],
+                ['Collaboration → External', $collaborationCounts['external']],
+                ['Collaboration → left empty (no authors)', $collaborationCounts['unknown']],
             ]
         );
 

@@ -236,20 +236,43 @@ class ImportOldTeachersCommand extends Command
                     ],
                 ]);
 
-                // Import Administrative Roles
-                // Resolve department_id via departments.code (matched against old dslug)
-                // Resolve faculty_id via faculties.short_name (matched against old short_name)
+                /*
+                 * Import Administrative Roles.
+                 *
+                 * The export has already resolved both ids by name and put them
+                 * in this row, so they are what is used. The slug and short_name
+                 * lookups below them are a fallback for an older export file
+                 * that carries no ids.
+                 *
+                 * They used to be the only thing tried, and they are matched
+                 * literally: old dept.dslug against departments.code, old
+                 * faculty.short_name against faculties.short_name. Seven
+                 * departments never agreed — Real Estate is 'bre' there and 'RE'
+                 * here, Innovation & Entrepreneurship is 'de', and Architecture,
+                 * English, Pharmacy, Accounting and Finance & Banking all spell
+                 * theirs out in full — and neither does the Faculty of
+                 * Engineering, which is 'engineering' there and 'FE' here.
+                 *
+                 * A miss is silent: the role is still created, with no
+                 * department or no faculty on it, which is what scopes a head to
+                 * their department and a dean to their faculty. That cost 7
+                 * department-scoped roles and 16 faculty-scoped ones, 14 of them
+                 * across the whole of Engineering.
+                 *
+                 * Renaming the codes would fix the lookup and change every
+                 * department's public URL with it, so the ids win instead.
+                 */
                 $adminRoles = $dept['administrative_roles'] ?? [];
                 foreach ($adminRoles as $ar) {
                     if (empty($ar['role_id'])) continue;
 
-                    $resolvedDeptId = null;
-                    if (!empty($ar['dept_dslug'])) {
+                    $resolvedDeptId = $ar['department_id'] ?? null;
+                    if ($resolvedDeptId === null && !empty($ar['dept_dslug'])) {
                         $resolvedDeptId = $this->deptCodeMap[strtolower(trim($ar['dept_dslug']))] ?? null;
                     }
 
-                    $resolvedFacultyId = null;
-                    if (!empty($ar['faculty_short_name'])) {
+                    $resolvedFacultyId = $ar['faculty_id'] ?? null;
+                    if ($resolvedFacultyId === null && !empty($ar['faculty_short_name'])) {
                         $resolvedFacultyId = $this->facultyShortNameMap[strtolower(trim($ar['faculty_short_name']))] ?? null;
                     }
 

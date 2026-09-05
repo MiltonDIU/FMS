@@ -194,36 +194,77 @@ class ExportOldTeachersCommand extends Command
 
     private function buildLookupTables(): void
     {
-        // Department map
+        /*
+         * Department map.
+         *
+         * Matched on the name, exactly, after the "Department of " prefix that
+         * every old row carries is dropped. Nothing about it depends on either
+         * side's id, which is the whole point: this command is meant to be run
+         * again whenever the old database moves, and ids do not survive that.
+         *
+         * It used to do two things instead, and both of them were wrong.
+         *
+         * The first was a substring test — str_contains in either direction,
+         * taking the first hit. "Department of Tourism & Hospitality Management"
+         * contains "Management", so its 24 people were filed under Management;
+         * "Environmental Science and Disaster Management" went the same way with
+         * another 13.
+         *
+         * The second was a hand-written table of old id => new id. Its numbers
+         * belonged to some earlier version of the departments table and no
+         * longer pointed anywhere sensible: Multimedia & Creative Technology
+         * was sent to Electrical and Electronic Engineering, Journalism to
+         * Multimedia, Computing and Information System to Architecture,
+         * Information Technology & Management to Civil Engineering, and Genetic
+         * Engineering and Biotechnology to Development Studies. 117 teachers in
+         * seven departments, filed under names that had nothing to do with
+         * them, while the six departments they belonged to stood empty.
+         *
+         * Exact matching resolves 31 of the 33 old departments on its own. The
+         * two it cannot are named below, because a rename or a department that
+         * does not exist yet is a fact about the data, not something a fuzzy
+         * test should be left to guess at.
+         */
         $oldDepts = DB::connection('old_db')->table('department')->get();
         $newDepts = DB::connection('mysql')->table('departments')->get();
 
-        foreach ($oldDepts as $old) {
-            $oldName = $this->normalizeName($old->departmentname);
-            foreach ($newDepts as $new) {
-                $newName = $this->normalizeName($new->name);
-                if ($oldName === $newName || str_contains($newName, $oldName) || str_contains($oldName, $newName)) {
-                    $this->newDeptMap[$old->department_id] = $new->id;
-                    break;
-                }
-            }
+        $newDeptByName = [];
+        foreach ($newDepts as $new) {
+            $newDeptByName[$this->normalizeName($new->name)] = $new->id;
         }
 
-        // Manual overrides for name mismatches
-        $manualDept = [
-            7  => 11,
-            8  => null,
-            16 => 28,
-            20 => 5,
-            23 => 12,
-            24 => 13,
-            27 => 6,
-            28 => 7,
-            30 => 8,
-            31 => 25,
+        /*
+         * Old name => new name, for departments that were genuinely renamed
+         * between the two systems. Keyed by name rather than by id so that
+         * re-importing from a different copy of the old database cannot
+         * silently point an entry at the wrong department.
+         *
+         * 'fisheries' has no counterpart in the new structure at all — four
+         * people are attached to it. Rather than file them under a department
+         * they do not belong to, they are reported at the end of the mapping
+         * and left for a decision; add the department and its name here and
+         * they will come across on the next run.
+         */
+        $deptAliases = [
+            // 'old name (without "department of")' => 'new department name',
         ];
-        foreach ($manualDept as $oldId => $newId) {
-            $this->newDeptMap[$oldId] = $newId;
+
+        $unmatchedDepts = [];
+
+        foreach ($oldDepts as $old) {
+            $name = $this->normalizeName($old->departmentname);
+            $name = preg_replace('/^department of\s+/', '', $name);
+            $name = trim(preg_replace('/\s+/', ' ', $name));
+
+            $name = $deptAliases[$name] ?? $name;
+
+            $newId = $newDeptByName[$this->normalizeName($name)] ?? null;
+
+            $this->newDeptMap[$old->department_id] = $newId;
+
+            if ($newId === null) {
+                $unmatchedDepts[$old->department_id] = $old->departmentname;
+            }
         }
 
         // Designation map
@@ -246,25 +287,54 @@ class ExportOldTeachersCommand extends Command
             $this->jobTypeMap[strtolower(trim($jt->name))] = $jt->id;
         }
 
-        // Faculty map
+        /*
+         * Faculty map. Same rule as the departments above, with "Faculty of "
+         * dropped instead.
+         *
+         * The five hard-coded lines that used to follow this loop pinned old 1-5
+         * to new 1-5. They happened to be right, and they hid the fact that the
+         * loop under them was doing the same substring guessing that misfiled
+         * seven departments. Old faculty 6 was not in that list and matched
+         * nothing, so the five people under it carried no faculty at all —
+         * which reaches the administrative role rows, where the faculty is what
+         * scopes a dean or an associate dean.
+         */
         $oldFacs = DB::connection('old_db')->table('faculty')->get();
         $newFacs = DB::connection('mysql')->table('faculties')->get();
-        foreach ($oldFacs as $old) {
-            $oldName = $this->normalizeName($old->facultyname);
-            foreach ($newFacs as $new) {
-                $newName = $this->normalizeName($new->name);
-                if ($oldName === $newName || str_contains($newName, $oldName) || str_contains($oldName, $newName)) {
-                    $this->newFacultyMap[$old->faculty_id] = $new->id;
-                    break;
-                }
-            }
+
+        $newFacByName = [];
+        foreach ($newFacs as $new) {
+            $newFacByName[$this->normalizeName($new->name)] = $new->id;
         }
 
-        $this->newFacultyMap[1] = 1;
-        $this->newFacultyMap[2] = 2;
-        $this->newFacultyMap[3] = 3;
-        $this->newFacultyMap[4] = 4;
-        $this->newFacultyMap[5] = 5;
+        /*
+         * Old name => new name, for a faculty that was renamed between the two
+         * systems. Empty, and it should stay that way: Agriculture Sciences was
+         * in here only because this side was missing the faculty entirely, and
+         * FacultySeeder now carries all six under the same names the old site
+         * uses.
+         */
+        $facultyAliases = [
+            // 'old name (without "faculty of")' => 'new faculty name',
+        ];
+
+        $unmatchedFacs = [];
+
+        foreach ($oldFacs as $old) {
+            $name = $this->normalizeName($old->facultyname);
+            $name = preg_replace('/^faculty of\s+/', '', $name);
+            $name = trim(preg_replace('/\s+/', ' ', $name));
+
+            $name = $facultyAliases[$name] ?? $name;
+
+            $newId = $newFacByName[$this->normalizeName($name)] ?? null;
+
+            $this->newFacultyMap[$old->faculty_id] = $newId;
+
+            if ($newId === null) {
+                $unmatchedFacs[$old->faculty_id] = $old->facultyname;
+            }
+        }
 
         // Administrative roles map
         $roles = DB::connection('mysql')->table('administrative_roles')->get(['id', 'name']);
@@ -272,9 +342,71 @@ class ExportOldTeachersCommand extends Command
             $this->adminRoleMap[strtolower(trim($r->name))] = $r->id;
         }
 
-        $this->info("Dept map: " . count($this->newDeptMap) .
-                    " | Faculty map: " . count($this->newFacultyMap) .
-                    " | Desig map: " . count($this->newDesigMap) . " entries");
+        $this->reportMapping($unmatchedDepts, $unmatchedFacs);
+    }
+
+    /**
+     * What the mapping did, and what it could not do.
+     *
+     * This command is run again every time the old database is refreshed, so a
+     * department that stops matching has to be visible on the run that breaks
+     * it rather than discovered later in an empty listing. Anything that mapped
+     * to nothing is printed with the number of people behind it, and every new
+     * department that no old department feeds is listed underneath — a new
+     * department legitimately has nobody yet, but so does one whose name has
+     * drifted apart from its old counterpart.
+     *
+     * @param  array<int, string>  $unmatchedDepts
+     * @param  array<int, string>  $unmatchedFacs
+     */
+    private function reportMapping(array $unmatchedDepts, array $unmatchedFacs): void
+    {
+        $mappedDepts = count(array_filter($this->newDeptMap, fn ($id) => $id !== null));
+
+        $this->info(sprintf(
+            'Mapped %d of %d departments, %d of %d faculties, %d designations.',
+            $mappedDepts,
+            count($this->newDeptMap),
+            count(array_filter($this->newFacultyMap, fn ($id) => $id !== null)),
+            count($this->newFacultyMap),
+            count($this->newDesigMap),
+        ));
+
+        foreach ($unmatchedDepts as $oldId => $name) {
+            $people = DB::connection('old_db')
+                ->table('dfd_add')
+                ->where('department_id', $oldId)
+                ->distinct()
+                ->count('teacher_id');
+
+            if ($people === 0) {
+                $this->line(sprintf('  no match: %s — nobody attached, nothing lost.', $name));
+
+                continue;
+            }
+
+            $this->warn(sprintf(
+                '  NO MATCH: %s — %d teacher(s) will not reach a department. Add it to $deptAliases, or create the department.',
+                $name,
+                $people,
+            ));
+        }
+
+        foreach ($unmatchedFacs as $oldId => $name) {
+            $this->warn(sprintf('  NO MATCH: %s — add it to $facultyAliases.', $name));
+        }
+
+        $targets = array_filter(array_values($this->newDeptMap), fn ($id) => $id !== null);
+
+        $orphans = DB::connection('mysql')
+            ->table('departments')
+            ->whereNotIn('id', $targets ?: [0])
+            ->orderBy('id')
+            ->pluck('name', 'id');
+
+        foreach ($orphans as $id => $name) {
+            $this->line(sprintf('  no old department feeds #%d %s', $id, $name));
+        }
     }
 
     private function matchDesignation(string $oldName, array $rankMap): ?int
@@ -344,12 +476,17 @@ class ExportOldTeachersCommand extends Command
         $phone       = $phoneParsed['phone'];
         $personalPhone = $t->cell ?? null;
 
-        if (empty($phone)) {
-            if (!empty($personalPhone)) {
-                $phone = $personalPhone;
-            } else {
-                $phone = '016000000';
-            }
+        /*
+         * A teacher with no office number on file gets none.
+         *
+         * This used to write '016000000' — a number nobody can be reached on —
+         * for the 324 teachers who have neither a phone nor a cell recorded.
+         * The column is nullable, and every theme drops the Phone row when it is
+         * empty, so leaving it null shows nothing instead of showing a wrong
+         * number and putting it in the vCard as well.
+         */
+        if (empty($phone) && !empty($personalPhone)) {
+            $phone = $personalPhone;
         }
 
         $employmentStatusId = 1; // Default: Active (ID 1)
@@ -451,9 +588,9 @@ class ExportOldTeachersCommand extends Command
                     'first_name'           => $nameParts['first_name'],
                     'middle_name'          => $nameParts['middle_name'],
                     'last_name'            => $nameParts['last_name'],
-                    'department_id'        => 31,
+                    'department_id'        => 32,
                     'designation_id'       => 7,
-                    'faculty_id'           => 6,
+                    'faculty_id'           => 7,
                     'job_type_id'          => 7,
                     'employment_status_id' => 9,
                     'country_id'           => 18,
@@ -577,29 +714,78 @@ class ExportOldTeachersCommand extends Command
             ];
         }
 
-        // Uniqueness check
+        /*
+         * Uniqueness.
+         *
+         * The import matches people by email, so two export rows sharing one
+         * address become one person. The note here used to say the import would
+         * resolve it; it does not, and 109 of the 2,118 exported teachers were
+         * disappearing into somebody else's record.
+         *
+         * Most of them onto one address: 78 teachers have no email at all in the
+         * old database and every one of them was given 'unknown@diu.edu.bd', so
+         * 77 people vanished — among them Dr. Monjur Ahmed, the visiting
+         * researcher missing from Computing and Information System.
+         *
+         * A shared address means one of two different things, and the name tells
+         * them apart. The same name twice is the same person listed twice — Mr.
+         * Bikash Kumar Paul is in the old table under both Software Engineering
+         * and CIS with one address — and those should still merge into one
+         * teacher. A different name is a different person, whether they had no
+         * address at all or share a departmental one the way Asit Ghosh and
+         * A.B.M. Islam share aheadte@daffodilvarsity.edu.bd, and those must not
+         * be merged.
+         *
+         * So a different person gets the old teacher id folded into the address.
+         * That is stable — the same old database yields the same address on
+         * every run — which matters for a migration that gets re-run.
+         */
         $emailKey = strtolower($chosen);
+        $name = trim($t->name ?? '');
+
         if (isset($this->usedEmails[$emailKey])) {
             $prev = $this->usedEmails[$emailKey];
+            $samePerson = $this->normalizeName($prev['name']) === $this->normalizeName($name);
+
+            if (! $samePerson) {
+                $chosen = $this->uniqueEmailFor($chosen, (int) $t->old_teacher_id);
+                $emailKey = strtolower($chosen);
+            }
+
             $this->conflictLog[] = [
                 'type'               => 'email_duplicate',
                 'old_teacher_id'     => $t->old_teacher_id,
-                'name'               => trim($t->name ?? ''),
+                'name'               => $name,
                 'email'              => $chosen,
                 'raw_email_field'    => $rawEmail,
                 'all_emails_parsed'  => $allCandidates,
                 'first_seen_teacher' => $prev['old_teacher_id'],
                 'first_seen_name'    => $prev['name'],
-                'note'               => 'Duplicate email — both records exported; import script must resolve.',
+                'resolution'         => $samePerson
+                    ? 'Same name — left as one address so the import merges the two rows into one teacher.'
+                    : 'Different person on a shared address — given a distinct address so they are not merged away.',
             ];
-        } else {
+        }
+
+        if (! isset($this->usedEmails[$emailKey])) {
             $this->usedEmails[$emailKey] = [
                 'old_teacher_id' => $t->old_teacher_id,
-                'name'           => trim($t->name ?? ''),
+                'name'           => $name,
             ];
         }
 
         return $chosen;
+    }
+
+    /**
+     * The same address with the old teacher id folded into the local part, so
+     * two different people cannot land on one login.
+     */
+    private function uniqueEmailFor(string $email, int $oldTeacherId): string
+    {
+        [$local, $domain] = array_pad(explode('@', $email, 2), 2, 'diu.edu.bd');
+
+        return sprintf('%s.%d@%s', $local, $oldTeacherId, $domain ?: 'diu.edu.bd');
     }
 
     /**
@@ -674,26 +860,78 @@ class ExportOldTeachersCommand extends Command
 
     private function resolveJobType(object $t): ?int
     {
-        if (!empty($t->is_part_time)) {
-            return $this->jobTypeMap['part time'] ?? null;
-        }
-        return match ((int) ($t->teacher_type ?? 0)) {
-            1       => $this->jobTypeMap['adjunct faculty']  ?? null,
-            2       => $this->jobTypeMap['visiting faculty'] ?? null,
-            default => $this->jobTypeMap['regular']        ?? null,
-        };
+        return $this->jobTypeFor(
+            $t->is_part_time ?? null,
+            $t->teacher_type ?? null,
+            $t->old_designation_name ?? null,
+        );
     }
 
     private function resolveJobTypeFromRow(object $row): ?int
     {
-        if (!empty($row->is_part_time)) {
+        return $this->jobTypeFor(
+            $row->is_part_time ?? null,
+            $row->teacher_type ?? null,
+            $row->desig_name ?? null,
+        );
+    }
+
+    /**
+     * How somebody is employed, from the two columns that say so and — when
+     * they do not — from the designation they were given.
+     *
+     * teacher_type is the intended source, but it is mostly unset: of the 38
+     * people carrying the designation "Visiting Professor", 30 have
+     * teacher_type = 0, which this read as Regular. The word "Visiting" was
+     * sitting in the designation the whole time and nothing looked at it, so a
+     * visiting professor arrived here as a permanent one — the right rank on
+     * the wrong terms.
+     *
+     * The designation is only consulted when the columns say nothing, so a row
+     * that does set teacher_type still wins. Rank is not touched: it stays with
+     * matchDesignation(), which already reads "Visiting Professor" as Professor.
+     * That is the split this system is built on — designation carries the rank,
+     * job type carries the terms, and neither has to encode the other.
+     */
+    private function jobTypeFor($isPartTime, $teacherType, ?string $designation): ?int
+    {
+        if (!empty($isPartTime)) {
             return $this->jobTypeMap['part time'] ?? null;
         }
-        return match ((int) ($row->teacher_type ?? 0)) {
-            1       => $this->jobTypeMap['adjunct faculty']  ?? null,
-            2       => $this->jobTypeMap['visiting faculty'] ?? null,
-            default => $this->jobTypeMap['regular']        ?? null,
-        };
+
+        $type = (int) ($teacherType ?? 0);
+
+        if ($type === 1) {
+            return $this->jobTypeMap['adjunct faculty'] ?? null;
+        }
+
+        if ($type === 2) {
+            return $this->jobTypeMap['visiting faculty'] ?? null;
+        }
+
+        $name = strtolower(trim((string) $designation));
+
+        if ($name !== '') {
+            // Ordered: 'guest' and 'practice' name the terms more precisely than
+            // 'visiting' does, so they are tested first.
+            $fromDesignation = [
+                'guest'             => 'adjunct faculty',
+                'adjunct'           => 'adjunct faculty',
+                'of practice'       => 'contractual',
+                'industrial expert' => 'contractual',
+                'visiting'          => 'visiting faculty',
+                'part-time'         => 'part time',
+                'part time'         => 'part time',
+            ];
+
+            foreach ($fromDesignation as $keyword => $jobType) {
+                if (str_contains($name, $keyword) && isset($this->jobTypeMap[$jobType])) {
+                    return $this->jobTypeMap[$jobType];
+                }
+            }
+        }
+
+        return $this->jobTypeMap['regular'] ?? null;
     }
 
     // ── Helpers ──

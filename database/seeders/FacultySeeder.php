@@ -53,6 +53,27 @@ class FacultySeeder extends Seeder
                 'is_active' => true,
                 'sort_order' => 5,
             ],
+            /*
+             * The sixth faculty, and the one this list was missing.
+             *
+             * The old site has carried it all along — six faculties there
+             * against five here — with Agricultural Science and Fisheries
+             * underneath it. Both were being filed under Health and Life
+             * Sciences instead, which was the closest thing available while this
+             * faculty did not exist; they move across in DepartmentSeeder.
+             *
+             * The name matches the old one word for word on purpose. The export
+             * command matches faculties by name, so an exact match here is what
+             * removes the last alias it had to keep.
+             */
+            [
+                'name' => 'Agriculture Sciences',
+                'short_name' => 'FAS',
+                'code' => 'FAS',
+                'description' => 'The Faculty of Agriculture Sciences covers crop and animal production, aquaculture and the management of natural resources. Its departments prepare graduates for agribusiness, fisheries and the research behind food security.',
+                'is_active' => true,
+                'sort_order' => 6,
+            ],
             [
                 'name' => 'System - Unassigned Faculty',
                 'short_name' => 'SUF',

@@ -32,7 +32,6 @@ class DepartmentSeeder extends Seeder
                 ['name' => 'Electrical and Electronic Engineering', 'short_name' => 'EEE', 'code' => 'EEE', 'description' => 'Covers electrical systems, electronics, power generation, control systems, and embedded systems for electrical engineering professionals.'],
                 ['name' => 'Architecture', 'short_name' => 'ARCH', 'code' => 'ARCH', 'description' => 'Focuses on architectural design, urban planning, sustainable building practices, and interior design for future architects.'],
                 ['name' => 'Civil Engineering', 'short_name' => 'CE', 'code' => 'CE', 'description' => 'Covers structural engineering, construction management, transportation systems, and environmental engineering for infrastructure development.'],
-                ['name' => 'Robotics and Mechatronics Engineering', 'short_name' => 'rme', 'code' => 'rme', 'description' => 'The Department of Robotics and Mechatronics Engineering integrates mechanical, electronic, and computer systems to develop intelligent robots, automation technologies, and smart industrial solutions.'],
             ],
             // Faculty of Health and Life Sciences
             'FHLS' => [
@@ -41,8 +40,25 @@ class DepartmentSeeder extends Seeder
                 ['name' => 'Nutrition and Food Engineering', 'short_name' => 'NFE', 'code' => 'NFE', 'description' => 'Covers food science, nutrition, food processing technology, and food safety for the food and nutrition industry.'],
                 ['name' => 'Public Health', 'short_name' => 'PH', 'code' => 'PH', 'description' => 'Focuses on community health, epidemiology, health policy, and disease prevention for public health professionals.'],
                 ['name' => 'Physical Education & Sports Science', 'short_name' => 'PESS', 'code' => 'PESS', 'description' => 'Covers sports science, fitness training, sports management, and physical education for sports professionals.'],
-                ['name' => 'Agricultural Science', 'short_name' => 'AGS', 'code' => 'AGS', 'description' => 'Provides education in agricultural practices, crop science, agribusiness, and sustainable farming for agricultural development.'],
                 ['name' => 'Genetic Engineering and Biotechnology', 'short_name' => 'GEB', 'code' => 'GEB', 'description' => 'Covers molecular biology, genetic engineering, bioinformatics, and biotechnology applications for life science research.'],
+            ],
+            /*
+             * Faculty of Agriculture Sciences.
+             *
+             * Both of these were under Health and Life Sciences until the
+             * faculty they actually belong to was added to FacultySeeder —
+             * Agricultural Science because there was nowhere better to put it,
+             * and Fisheries because it did not exist here at all and its four
+             * teachers had nowhere to land.
+             *
+             * updateOrCreate keys on the code, so a re-seed moves the existing
+             * rows across rather than making a second copy. Agricultural
+             * Science's public address changes with it, from /fhls/ags to
+             * /fas/ags.
+             */
+            'FAS' => [
+                ['name' => 'Agricultural Science', 'short_name' => 'AGS', 'code' => 'AGS', 'description' => 'Provides education in agricultural practices, crop science, agribusiness, and sustainable farming for agricultural development.'],
+                ['name' => 'Fisheries', 'short_name' => 'FISH', 'code' => 'FISHERIES', 'description' => 'Covers fisheries science, aquaculture, aquatic resource management, and fish processing for the fisheries and aquaculture sector.'],
             ],
             // Faculty of Humanities & Social Sciences
             'FHSS' => [
@@ -58,10 +74,28 @@ class DepartmentSeeder extends Seeder
                 ['name' => 'Multimedia & Creative Technology', 'short_name' => 'MCT', 'code' => 'MCT', 'description' => 'Combines creativity with technology covering animation, game development, visual effects, UI/UX design, and digital content creation.'],
                 ['name' => 'Computing and Information System', 'short_name' => 'CIS', 'code' => 'CIS', 'description' => 'Focuses on information systems design, database management, business analytics, and enterprise solutions for IT-business integration.'],
                 ['name' => 'Information Technology & Management', 'short_name' => 'ITM', 'code' => 'ITM', 'description' => 'Combines IT skills with management knowledge covering IT project management, systems analysis, and technology leadership.'],
+                /*
+                 * Listed here rather than under Engineering, which is where this
+                 * file had it. The old database declares it under Science and
+                 * Information Technology and every one of its six teacher rows
+                 * agrees, so this follows the old structure. Its public address
+                 * moves with it, from /fe/rme to /fsit/rme.
+                 */
+                ['name' => 'Robotics and Mechatronics Engineering', 'short_name' => 'rme', 'code' => 'rme', 'description' => 'The Department of Robotics and Mechatronics Engineering integrates mechanical, electronic, and computer systems to develop intelligent robots, automation technologies, and smart industrial solutions.'],
             ],
 
             'SUF' => [
                 ['name' => 'System - Unassigned Department', 'short_name' => 'SUD', 'code' => 'SUD', 'description' => 'System - Unassigned Department'],
+                /*
+                 * Also from the old site, and parked here rather than guessed at.
+                 *
+                 * Its old row carries faculty_id = 0 — no faculty was ever
+                 * recorded for it — so any faculty chosen here would be an
+                 * invention. Nobody is attached to it either, so nothing is
+                 * waiting on the answer; move this line into whichever faculty
+                 * owns it and the next seed puts it there.
+                 */
+               // ['name' => 'General Educational Development', 'short_name' => 'GED', 'code' => 'GED', 'description' => 'Delivers the general education and foundation courses taken across the university.'],
               ],
 
         ];

@@ -40,7 +40,7 @@ class ImportAllOldTeachersDataCommand extends Command
         }
 
         $commands = [
-            'import:old-teachers',
+//            'import:old-teachers',
             'import:old-teachers-educations',
             'import:old-teachers-job-experiences',
             'import:old-teachers-memberships',
@@ -51,7 +51,7 @@ class ImportAllOldTeachersDataCommand extends Command
             'publications:convert-pipeline',
             'publications:import-pipeline',
             'import:researcher-profiles',
-            'import:old-teachers-all'
+            //'import:old-teachers-all'
 
         ];
 

@@ -38,7 +38,7 @@ class ExportAllOldTeachersDataCommand extends Command
 
         // List of all export commands and their specific options
         $commands = [
-            'export:old-teachers'                  => [], // Core profiles
+            //'export:old-teachers'                  => [], // Core profiles
             'export:old-teachers-educations'        => ['--provider' => $provider],
             'export:old-teachers-job-experiences'  => ['--provider' => $provider],
             'export:old-teachers-memberships'      => ['--provider' => $provider],
@@ -61,12 +61,12 @@ class ExportAllOldTeachersDataCommand extends Command
             $this->info("================================================================================");
             $this->info("➡️ Running: php artisan {$command}");
             $this->info("================================================================================");
-            
+
             // Merge options
             $options = array_merge($commonOptions, $specificOptions);
-            
+
             $exitCode = $this->call($command, $options);
-            
+
             if ($exitCode !== 0) {
                 \App\Models\Setting::set('export_progress', "Failed on command: {$command}");
                 $this->error("❌ Command {$command} failed with exit code: {$exitCode}");
