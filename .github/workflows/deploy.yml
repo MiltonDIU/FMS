@@ -57,3 +57,6 @@ jobs:
             chmod +x artisan || true
             php artisan queue:restart || true
 
+            # Bring application out of maintenance mode
+            php artisan up || true
+
