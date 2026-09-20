@@ -17,9 +17,13 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           script_stop: true
           script: |
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            export PATH=$PATH:/usr/local/bin:/usr/bin
+
             cd /var/www/faculty
 
-            # Clear stale caches first to prevent artisan crashes
+            # Clear stale caches first
             rm -f bootstrap/cache/*.php || true
 
             # Fetch and force reset to latest main
@@ -30,7 +34,7 @@ jobs:
             composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
             # Build frontend assets
-            npm ci
+            npm install
             npm run build
 
             # Database migrations & Filament
