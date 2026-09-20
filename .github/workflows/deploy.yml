@@ -18,19 +18,33 @@ jobs:
           script_stop: true
           script: |
             cd /var/www/faculty
-            php artisan down || true
+
+            # Clear stale caches first to prevent artisan crashes
+            rm -f bootstrap/cache/*.php || true
+
+            # Fetch and force reset to latest main
             git fetch origin main
             git reset --hard origin/main
+
+            # Install PHP dependencies
             composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+
+            # Build frontend assets
             npm ci
             npm run build
+
+            # Database migrations & Filament
             php artisan migrate --force
             php artisan filament:upgrade
+
+            # Optimize & cache
             php artisan optimize:clear
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
             php artisan event:cache
+
+            # Ensure permissions remain granted for storage and cache
+            chmod -R 775 storage bootstrap/cache || true
             php artisan queue:restart || true
-            php artisan up
 
