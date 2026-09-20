@@ -51,7 +51,6 @@ class ImportAllOldTeachersDataCommand extends Command
             'publications:convert-pipeline',
             'publications:import-pipeline',
             'import:researcher-profiles',
-            //'import:old-teachers-all'
 
         ];
 

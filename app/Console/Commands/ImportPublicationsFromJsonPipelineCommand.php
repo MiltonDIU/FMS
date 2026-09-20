@@ -37,7 +37,7 @@ class ImportPublicationsFromJsonPipelineCommand extends Command
 
         // Fallback for documnt typo
         if (!file_exists($jsonPath)) {
-            $jsonPath = storage_path('app/public/documnt/third_step.json');
+            $jsonPath = storage_path('app/public/document/third_step.json');
         }
 
         if (!file_exists($jsonPath)) {

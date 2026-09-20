@@ -87,7 +87,7 @@ class ConvertPublicationCsvToJsonCommand extends Command
 
         // Fallback for documnt typo
         if (!file_exists($csvPath)) {
-            $csvPath = storage_path('app/public/documnt/All_Publications.csv');
+            $csvPath = storage_path('app/public/document/All_Publications.csv');
         }
 
         if (!file_exists($csvPath)) {
