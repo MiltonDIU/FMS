@@ -17,14 +17,14 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           script_stop: true
           script: |
-            # Add NEM Node and NPM directly to PATH
+            # Add NVM Node and NPM directly to PATH
             export PATH="/home/ubuntu/.nvm/versions/node/v24.20.0/bin:/usr/local/bin:$PATH"
             export NVM_DIR="/home/ubuntu/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 
             cd /var/www/faculty
 
-            # Clear stale caches first to avoid artisan errors
+            # Clear stale caches first
             rm -f bootstrap/cache/*.php || true
 
             # Fetch and force reset to latest main
@@ -50,7 +50,10 @@ jobs:
             php artisan view:cache
             php artisan event:cache
 
-            # Ensure write permissions remain granted
+            # Fix file & directory permissions after build
+            find . -type d -exec chmod 755 {} + || true
+            find . -type f -exec chmod 644 {} + || true
             chmod -R 775 storage bootstrap/cache || true
+            chmod +x artisan || true
             php artisan queue:restart || true
 
