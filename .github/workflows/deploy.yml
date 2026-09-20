@@ -1,12 +1,23 @@
 name: Deploy FMS to VPS
+
 on:
   push:
     branches:
       - main
+  # Lets you re-run a deploy from the Actions tab without pushing an empty commit.
+  workflow_dispatch:
+
+# Two deploys running at once on the same directory is how you get a half-reset
+# working tree serving requests. Queue them instead.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
 jobs:
   deploy:
     name: Deploy to VPS
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@v1.2.0
@@ -16,32 +27,65 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
           script_stop: true
+          command_timeout: 20m
           script: |
-            # Add NVM Node and NPM directly to PATH
-            export PATH="/home/ubuntu/.nvm/versions/node/v24.20.0/bin:/usr/local/bin:$PATH"
-            export NVM_DIR="/home/ubuntu/.nvm"
+            set -euo pipefail
+
+            APP_DIR="/var/www/faculty"
+            WEB_USER="www-data"
+
+            # Node comes from nvm. Resolve the version through nvm instead of
+            # hardcoding a path, so upgrading node on the box does not silently
+            # break the build.
+            export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            command -v node >/dev/null 2>&1 || export PATH="/home/ubuntu/.nvm/versions/node/v24.20.0/bin:$PATH"
+            export PATH="/usr/local/bin:$PATH"
+            node -v
+            npm -v
+            php -v | head -n 1
 
-            cd /var/www/faculty
+            cd "$APP_DIR"
 
-            # Clear stale caches first
+            # .env is gitignored and holds the production credentials. If it is
+            # missing, every later step "succeeds" against the wrong database and
+            # the site answers with a credentials error, so stop here instead.
+            test -f .env || { echo "::error::$APP_DIR/.env is missing"; exit 1; }
+
+            # Whatever happens below, never leave the site in maintenance mode.
+            trap 'php artisan up || true' EXIT
+
+            php artisan down --retry=15 || true
+
+            # Stale compiled config/services from the previous release.
             rm -f bootstrap/cache/*.php || true
 
             # Fetch and force reset to latest main
             git fetch origin main
             git reset --hard origin/main
 
-            # Install PHP dependencies
+            # Install PHP dependencies (runs filament:upgrade via post-autoload-dump)
             composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
-            # Install & build frontend assets
-            npm install
+            # Frontend assets. npm ci is reproducible and, unlike npm install,
+            # cannot drift from package-lock.json mid-deploy.
+            npm ci --no-audit --no-fund || {
+              echo "::warning::npm ci failed (package-lock.json out of sync with package.json?) - falling back to npm install"
+              npm install --no-audit --no-fund
+            }
+            # Kept from the previous script: some npm/nvm combinations land the
+            # vite binary without its exec bit, and the build then dies with
+            # "Permission denied".
             chmod -R +x node_modules/.bin || true
             npm run build
 
-            # Database migrations & Filament
+            # Public disk symlink: gitignored, so it can go missing after a
+            # fresh checkout and take every uploaded photo down with it.
+            php artisan storage:link --force || true
+
+            # Migrations run before the caches are rebuilt, so a failure here
+            # aborts the deploy with the old caches already cleared.
             php artisan migrate --force
-            php artisan filament:upgrade
 
             # Optimize & cache
             php artisan optimize:clear
@@ -50,11 +94,56 @@ jobs:
             php artisan view:cache
             php artisan event:cache
 
-            # Keep full read/write permissions for web server and SSH user
-            chmod -R 777 . || true
+            # Permissions. Ownership, not 777: files are owned by the deploy user
+            # and group-owned by the web server, which only needs to *write*
+            # inside storage/ and bootstrap/cache. Everything else stays
+            # read-only to it. .env is kept off-limits to everyone else.
+            SUDO=""
+            if sudo -n true 2>/dev/null; then SUDO="sudo -n"; fi
+
+            if [ -n "$SUDO" ]; then
+              $SUDO chown -R "$(id -un)":"$WEB_USER" "$APP_DIR"
+            fi
+            # Tolerant of individual failures: without sudo, files the web server
+            # created (sessions, cache, uploads) cannot be chmod'ed by this user.
+            find storage bootstrap/cache -type d -exec chmod 2775 {} + 2>/dev/null || true
+            find storage bootstrap/cache -type f -exec chmod 664 {} + 2>/dev/null || true
+            chmod 640 .env || true
             chmod +x artisan || true
+
             php artisan queue:restart || true
 
-            # Bring application out of maintenance mode
-            php artisan up || true
+            # Opcache still holds the previous release's compiled PHP until
+            # php-fpm is reloaded, which is a classic "deployed but unchanged /
+            # broken site" cause.
+            if [ -n "$SUDO" ]; then
+              FPM_SERVICE="$(systemctl list-units --type=service --all --plain --no-legend 'php*-fpm.service' | awk '{print $1}' | head -n 1)"
+              [ -n "$FPM_SERVICE" ] && $SUDO systemctl reload "$FPM_SERVICE" || true
+            fi
 
+            php artisan up
+            trap - EXIT
+
+            # ---- Post-deploy verification -------------------------------------
+            # Without this the job goes green even when the site answers 403/500.
+
+            # Can the app actually reach the database with the cached config?
+            php artisan tinker --execute="DB::connection()->getPdo(); echo 'db-ok';"
+
+            APP_URL="$(php artisan tinker --execute="echo rtrim(config('app.url'), '/');" | tail -n 1)"
+            echo "Checking $APP_URL"
+
+            for PATH_TO_CHECK in "/" "/admin/login"; do
+              STATUS="$(curl -sSkL -o /dev/null -w '%{http_code}' --max-time 30 "$APP_URL$PATH_TO_CHECK" || echo 000)"
+              echo "$PATH_TO_CHECK -> $STATUS"
+              case "$STATUS" in
+                200|302) ;;
+                *)
+                  echo "::error::$APP_URL$PATH_TO_CHECK returned $STATUS"
+                  tail -n 40 storage/logs/laravel.log || true
+                  exit 1
+                  ;;
+              esac
+            done
+
+            echo "Deploy OK"
