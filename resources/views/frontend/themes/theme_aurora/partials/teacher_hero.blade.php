@@ -165,8 +165,7 @@
              break display-lg across three lines. --}}
         <div
             class="grid gap-6 sm:gap-8 sm:grid-cols-[11.5rem_minmax(0,1fr)]
-            lg:grid-cols-[15rem_minmax(0,1fr)]
-            {{ $contact ? 'xl:grid-cols-[15rem_minmax(0,1fr)_minmax(19rem,auto)]' : '' }}"
+            {{ $contact ? 'lg:grid-cols-[12rem_minmax(0,1fr)_minmax(16rem,auto)]' : 'lg:grid-cols-[12rem_minmax(0,1fr)]' }}"
         >
 
             {{-- =========================================================
@@ -427,7 +426,7 @@
                      this is a column of its own rather than a footer to the
                      panel. --}}
                 <dl
-                    class="min-w-0 sm:col-span-2 xl:col-span-1 xl:border-l xl:pl-7"
+                    class="min-w-0 sm:col-span-2 lg:col-span-1 lg:border-l lg:pl-6"
                     style="border-color: var(--hairline-soft);"
                 >
 
@@ -436,7 +435,8 @@
                         <div
                             class="pair"
                             style="
-                                grid-template-columns: 1.5rem minmax(0, 1fr);
+                                grid-template-columns: 1.25rem minmax(0, 1fr);
+                                gap: 0.5rem;
                                 align-items: center;
                             "
                         >
@@ -470,7 +470,7 @@
 
                                     <a
                                         href="mailto:{{ $item['value'] }}"
-                                        class="link-brand font-mono text-[12.5px] block hover:underline"
+                                        class="link-brand font-mono text-[12px] block hover:underline"
                                         style="white-space: nowrap; overflow-wrap: normal; word-break: normal;"
                                         title="{{ $item['value'] }}"
                                     >
