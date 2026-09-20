@@ -50,10 +50,8 @@ jobs:
             php artisan view:cache
             php artisan event:cache
 
-            # Fix file & directory permissions after build
-            find . -type d -exec chmod 755 {} + || true
-            find . -type f -exec chmod 644 {} + || true
-            chmod -R 775 storage bootstrap/cache || true
+            # Keep full read/write permissions for web server and SSH user
+            chmod -R 777 . || true
             chmod +x artisan || true
             php artisan queue:restart || true
 
