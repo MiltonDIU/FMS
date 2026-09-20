@@ -427,7 +427,7 @@
                      this is a column of its own rather than a footer to the
                      panel. --}}
                 <dl
-                    class="min-w-0 sm:col-span-2 xl:col-span-1 xl:border-l xl:pl-7"
+                    class="min-w-0 sm:col-span-2 xl:col-span-1 xl:border-l xl:pl-3"
                     style="border-color: var(--hairline-soft);"
                 >
 
