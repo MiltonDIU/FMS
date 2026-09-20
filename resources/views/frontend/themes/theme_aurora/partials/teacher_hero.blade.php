@@ -121,11 +121,38 @@
 
 
     @php
-        $contact = array_filter([
-            'Email' => $teacher->user->email ?? $teacher->secondary_email,
-            'Phone' => $teacher->phone ?: $teacher->personal_phone,
-            'Office' => $teacher->office_room,
-        ], 'filled');
+        $primaryEmail = $teacher->user?->email;
+        $secondaryEmail = ($teacher->secondary_email && $teacher->secondary_email !== $primaryEmail) ? $teacher->secondary_email : null;
+
+        $contact = [];
+        if ($primaryEmail) {
+            $contact[] = [
+                'type' => 'email',
+                'label' => 'Primary Email',
+                'value' => $primaryEmail,
+            ];
+        }
+        if ($secondaryEmail) {
+            $contact[] = [
+                'type' => 'email',
+                'label' => 'Secondary Email',
+                'value' => $secondaryEmail,
+            ];
+        }
+        if ($phone = ($teacher->phone ?: $teacher->personal_phone)) {
+            $contact[] = [
+                'type' => 'phone',
+                'label' => 'Phone',
+                'value' => $phone,
+            ];
+        }
+        if ($teacher->office_room) {
+            $contact[] = [
+                'type' => 'office',
+                'label' => 'Office',
+                'value' => $teacher->office_room,
+            ];
+        }
     @endphp
 
 
@@ -139,7 +166,7 @@
         <div
             class="grid gap-6 sm:gap-8 sm:grid-cols-[11.5rem_minmax(0,1fr)]
             lg:grid-cols-[15rem_minmax(0,1fr)]
-            {{ $contact ? 'xl:grid-cols-[15rem_minmax(0,1fr)_17rem]' : '' }}"
+            {{ $contact ? 'xl:grid-cols-[15rem_minmax(0,1fr)_minmax(19rem,auto)]' : '' }}"
         >
 
             {{-- =========================================================
@@ -404,34 +431,55 @@
                     style="border-color: var(--hairline-soft);"
                 >
 
-                    @foreach($contact as $label => $value)
+                    @foreach($contact as $item)
 
                         <div
                             class="pair"
                             style="
-                                grid-template-columns:
-                                4.25rem minmax(0, 1fr);
+                                grid-template-columns: 1.5rem minmax(0, 1fr);
+                                align-items: center;
                             "
                         >
 
-                            <dt>
-                                {{ $label }}
+                            <dt class="flex items-center justify-start" style="color: var(--ink-4);" title="{{ $item['label'] }}">
+                                @if($item['type'] === 'email')
+                                    <svg class="w-4 h-4 shrink-0 text-current" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <rect width="20" height="16" x="2" y="4" rx="2"/>
+                                        <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                                    </svg>
+                                    <span class="sr-only">{{ $item['label'] }}</span>
+                                @elseif($item['type'] === 'phone')
+                                    <svg class="w-4 h-4 shrink-0 text-current" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+                                    </svg>
+                                    <span class="sr-only">{{ $item['label'] }}</span>
+                                @elseif($item['type'] === 'office')
+                                    <svg class="w-4 h-4 shrink-0 text-current" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+                                        <circle cx="12" cy="10" r="3"/>
+                                    </svg>
+                                    <span class="sr-only">{{ $item['label'] }}</span>
+                                @else
+                                    {{ $item['label'] }}
+                                @endif
                             </dt>
 
-                            <dd>
+                            <dd class="min-w-0" style="overflow-wrap: normal; word-break: normal; white-space: nowrap;">
 
-                                @if($label === 'Email')
+                                @if($item['type'] === 'email')
 
                                     <a
-                                        href="mailto:{{ $value }}"
-                                        class="link-brand font-mono text-[12px]"
+                                        href="mailto:{{ $item['value'] }}"
+                                        class="link-brand font-mono text-[12.5px] block hover:underline"
+                                        style="white-space: nowrap; overflow-wrap: normal; word-break: normal;"
+                                        title="{{ $item['value'] }}"
                                     >
-                                        {{ $value }}
+                                        {{ $item['value'] }}
                                     </a>
 
                                 @else
 
-                                    {{ $value }}
+                                    <span style="white-space: nowrap;">{{ $item['value'] }}</span>
 
                                 @endif
 
