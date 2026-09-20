@@ -101,9 +101,11 @@ jobs:
             SUDO=""
             if sudo -n true 2>/dev/null; then SUDO="sudo -n"; fi
 
-            if [ -n "$SUDO" ]; then
-              $SUDO chown -R "$(id -un)":"$WEB_USER" "$APP_DIR"
-            fi
+            if [ -n "$SUDO" ]; then $SUDO chown -R "$(id -un)":"$WEB_USER" "$APP_DIR"; fi
+            # Without sudo the group stays the deploy user's, so www-data cannot
+            # write sessions/logs/compiled views - say so loudly instead of
+            # leaving a 500 to be discovered in the browser.
+            if [ -z "$SUDO" ]; then echo "::warning::No passwordless sudo - skipped chown to $WEB_USER. Run: sudo chown -R $(id -un):$WEB_USER $APP_DIR"; fi
             # Tolerant of individual failures: without sudo, files the web server
             # created (sessions, cache, uploads) cannot be chmod'ed by this user.
             find storage bootstrap/cache -type d -exec chmod 2775 {} + 2>/dev/null || true
@@ -116,10 +118,9 @@ jobs:
             # Opcache still holds the previous release's compiled PHP until
             # php-fpm is reloaded, which is a classic "deployed but unchanged /
             # broken site" cause.
-            if [ -n "$SUDO" ]; then
-              FPM_SERVICE="$(systemctl list-units --type=service --all --plain --no-legend 'php*-fpm.service' | awk '{print $1}' | head -n 1)"
-              [ -n "$FPM_SERVICE" ] && $SUDO systemctl reload "$FPM_SERVICE" || true
-            fi
+            FPM_SERVICE="$(systemctl list-units --type=service --all --plain --no-legend 'php*-fpm.service' 2>/dev/null | awk '{print $1}' | head -n 1 || true)"
+            if [ -n "$SUDO" ] && [ -n "$FPM_SERVICE" ]; then $SUDO systemctl reload "$FPM_SERVICE" || true; fi
+            if [ -z "$FPM_SERVICE" ]; then echo "::warning::No php-fpm service found; opcache may still serve the previous release"; fi
 
             php artisan up
             trap - EXIT
@@ -133,17 +134,21 @@ jobs:
             APP_URL="$(php artisan tinker --execute="echo rtrim(config('app.url'), '/');" | tail -n 1)"
             echo "Checking $APP_URL"
 
-            for PATH_TO_CHECK in "/" "/admin/login"; do
-              STATUS="$(curl -sSkL -o /dev/null -w '%{http_code}' --max-time 30 "$APP_URL$PATH_TO_CHECK" || echo 000)"
-              echo "$PATH_TO_CHECK -> $STATUS"
-              case "$STATUS" in
-                200|302) ;;
-                *)
-                  echo "::error::$APP_URL$PATH_TO_CHECK returned $STATUS"
-                  tail -n 40 storage/logs/laravel.log || true
-                  exit 1
-                  ;;
-              esac
-            done
+            # Kept deliberately flat - one line per command, no for/case blocks.
+            # drone-ssh rewrites the script line by line for script_stop, which
+            # mangles multi-line compound constructs (a `case` here failed with
+            # "syntax error near unexpected token `;'").
+            HOME_STATUS="$(curl -sSkL -o /dev/null -w '%{http_code}' --max-time 30 "$APP_URL/" || echo 000)"
+            ADMIN_STATUS="$(curl -sSkL -o /dev/null -w '%{http_code}' --max-time 30 "$APP_URL/admin/login" || echo 000)"
+            echo "GET /            -> $HOME_STATUS"
+            echo "GET /admin/login -> $ADMIN_STATUS"
+
+            HTTP_OK=1
+            if [ "$HOME_STATUS" != "200" ] && [ "$HOME_STATUS" != "302" ]; then echo "::error::$APP_URL/ returned $HOME_STATUS"; HTTP_OK=0; fi
+            if [ "$ADMIN_STATUS" != "200" ] && [ "$ADMIN_STATUS" != "302" ]; then echo "::error::$APP_URL/admin/login returned $ADMIN_STATUS"; HTTP_OK=0; fi
+
+            if [ "$HTTP_OK" != "1" ]; then echo "--- last 40 lines of storage/logs/laravel.log ---"; fi
+            if [ "$HTTP_OK" != "1" ]; then tail -n 40 storage/logs/laravel.log || true; fi
+            if [ "$HTTP_OK" != "1" ]; then exit 1; fi
 
             echo "Deploy OK"
