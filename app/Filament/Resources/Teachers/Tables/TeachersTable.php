@@ -462,6 +462,7 @@ class TeachersTable
                             \App\Models\EmailBatch::SOURCE_INDIVIDUAL,
                         );
                     }),
+                \App\Filament\Resources\Teachers\Actions\DownloadPhotoAction::make(),
                 \Filament\Actions\Action::make('dashboard')
                     ->label('Dashboard')
                     ->icon('heroicon-o-presentation-chart-line')

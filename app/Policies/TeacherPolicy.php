@@ -153,4 +153,23 @@ class TeacherPolicy
     {
         return $authUser->can('ToggleResearcher:Teacher');
     }
+
+    /**
+     * Who may take a teacher's photograph out of the system as a file.
+     *
+     * Held apart from View:Teacher and Update:Teacher. Reading a profile is not
+     * the same as walking away with the photograph on it: the file cannot be
+     * recalled once it has been saved, so it is worth granting on purpose
+     * rather than inheriting from the ability to open the page.
+     *
+     * Only super_admin holds it today, and super_admin reaches it through
+     * before() regardless. It is an ordinary ability with an ordinary
+     * permission behind it, so any other role can be given
+     * DownloadPhoto:Teacher from the roles screen whenever that is wanted,
+     * with no code change.
+     */
+    public function downloadPhoto(AuthUser $authUser, ?Teacher $teacher = null): bool
+    {
+        return $authUser->can('DownloadPhoto:Teacher');
+    }
 }

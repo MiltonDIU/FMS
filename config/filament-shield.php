@@ -264,6 +264,14 @@ return [
          * research team, who keep that list.
          */
         'ToggleResearcher:Teacher',
+        /*
+         * Saves a teacher's photograph as a file, from their row on the
+         * teachers list. Split from View:Teacher because the file leaves the
+         * system and cannot be recalled afterwards. Seeded to super_admin
+         * alone; appearing here is what lets it be handed to another role from
+         * the roles screen without a code change.
+         */
+        'DownloadPhoto:Teacher',
     ],
 
     /*
