@@ -52,6 +52,9 @@ class TeachersTable
                 'jobType',
                 'user.roles',
                 'user.administrativeRoles',
+                // The photo download action asks every row whether it has one;
+                // without this that is a query per row.
+                'media',
             ]))
             ->columns([
                 TextColumn::make('employee_id')
