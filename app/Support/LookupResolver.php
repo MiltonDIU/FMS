@@ -37,6 +37,20 @@ class LookupResolver
      */
     protected const NEVER_INFER = ['user_id', 'teacher_id', 'created_by', 'updated_by'];
 
+    /**
+     * Models where a stored value being a prefix of the incoming one proves
+     * nothing.
+     *
+     * The prefix pass below exists for nationalities — "Bangladeshi" finding the
+     * country "Bangladesh" — where the extra characters are a suffix of the same
+     * word. On designations the extra characters are a different grade:
+     * "Lecturer (Senior Scale)" matched the row "Lecturer" and every HR sync
+     * quietly demoted the person, with no error to notice. A designation that
+     * does not match must fail to resolve instead, which the importer reports as
+     * "designation did not resolve" — a visible problem rather than a silent one.
+     */
+    protected const NO_PREFIX_MATCH = [\App\Models\Designation::class];
+
     /** @var array<string,int|null> resolved once per run */
     protected static array $memo = [];
 
@@ -201,7 +215,12 @@ class LookupResolver
 
         // Last, the reverse: the stored value as a prefix of what arrived.
         // "Bangladeshi" finds the country stored as "Bangladesh", which is the
-        // shape a nationality field always has.
+        // shape a nationality field always has. Skipped for the models where
+        // that shape means a different row rather than the same one.
+        if (in_array($class, self::NO_PREFIX_MATCH, true)) {
+            return null;
+        }
+
         foreach ($columns as $column) {
             $id = $class::query()
                 ->whereRaw("? LIKE CONCAT({$column}, '%')", [$needle])

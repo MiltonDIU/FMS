@@ -56,6 +56,9 @@ class TeacherController extends Controller
             ->where('is_archived', false)
             ->with([
                 'designation',
+                // designation_title falls back to the job type for the
+                // designation rows that are not academic ranks.
+                'jobType',
                 'department',
                 // photo_url reads the avatar collection, so without this every
                 // card on the page costs its own query for one photograph.
@@ -90,7 +93,7 @@ class TeacherController extends Controller
         // Build SEO / social sharing metadata.
         $fullName = trim("{$teacher->first_name} {$teacher->middle_name} {$teacher->last_name}");
         $titleSuffix = \App\Helpers\Branding::get('meta_title_suffix');
-        $metaTitle = "{$fullName} — " . ($teacher->designation?->name ?? 'Faculty Member')
+        $metaTitle = "{$fullName} — " . ($teacher->designation_title ?? 'Faculty Member')
             . " | {$department->name}{$titleSuffix}";
 
         $rawDesc = $teacher->bio ?: implode(', ', $teacher->researchInterestNames()) ?: \App\Helpers\Branding::get('meta_description');
@@ -122,7 +125,7 @@ class TeacherController extends Controller
     public function shareImage(string $faculty_short_name, string $department_code, string $teacher_webpage)
     {
         $teacher = $this->resolveTeacher($faculty_short_name, $department_code, $teacher_webpage, [
-            'designation', 'department', 'teachingAreas', 'researchInterests',
+            'designation', 'jobType', 'department', 'teachingAreas', 'researchInterests',
         ]);
 
         $path = TeacherShareImage::pathFor($teacher);
@@ -154,7 +157,7 @@ class TeacherController extends Controller
         $email = $teacher->user?->email ?? $teacher->secondary_email;
         $phone = $teacher->phone ?? $teacher->personal_phone;
         $org = trim(($faculty?->name ?? '') . ' / ' . ($department?->name ?? ''), ' /');
-        $title = $teacher->designation?->name;
+        $title = $teacher->designation_title;
 
         $lines = [
             'BEGIN:VCARD',
@@ -207,7 +210,7 @@ class TeacherController extends Controller
         abort_unless(ProfileDownload::cvEnabled(), 404);
 
         $teacher = $this->resolveTeacher($faculty_short_name, $department_code, $teacher_webpage, [
-            'designation', 'department', 'department.faculty',
+            'designation', 'jobType', 'department', 'department.faculty',
             'educations.degreeLevel', 'educations.degreeType', 'educations.resultType',
             'educations.educationalInstitution',
             'publications', 'trainingExperiences', 'skills',

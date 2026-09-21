@@ -161,7 +161,7 @@ class SeoPayload
         ]);
 
         $name = $teacher->full_name ?: trim("{$teacher->first_name} {$teacher->middle_name} {$teacher->last_name}");
-        $designation = optional($teacher->designation)->name ?: 'Faculty Member';
+        $designation = $teacher->designation_title ?: 'Faculty Member';
 
         /*
          * Papers worth suggesting: the ones that carry an abstract, so a reader
@@ -213,7 +213,7 @@ class SeoPayload
                 'name' => $name,
                 'url' => $url,
                 'image' => $teacher->photo_url,
-                'jobTitle' => optional($teacher->designation)->name,
+                'jobTitle' => $teacher->designation_title,
                 /*
                  * No email and no telephone. They are on the page for a visitor
                  * who came looking, but putting them in structured data hands

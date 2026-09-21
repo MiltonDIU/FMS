@@ -65,7 +65,7 @@
      */
     $photoUrl = $teacher->photo_url;
 
-    $designation = $teacher->designation?->name;
+    $designation = $teacher->designation_title;
     $deptCode = $department?->code ? strtoupper($department->code) : null;
 
     // The fold line, for screens with no columns to put these in.
@@ -101,6 +101,9 @@
             {{-- Says so when this person is not currently at their desk — on
                  leave, on deputation. Silent for anyone working normally, so it
                  only appears when it carries information. --}}
+            {{-- And how they are engaged, when that is not the ordinary way. --}}
+            <x-teacher-engagement :teacher="$teacher" class="ml-2 shrink-0" />
+
             <x-teacher-status :teacher="$teacher" class="ml-2 shrink-0" />
         </span>
 

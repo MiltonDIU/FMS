@@ -67,7 +67,7 @@
 
 <a @if($profileUrl) href="{{ $profileUrl }}" wire:navigate @endif
    class="tile group"
-   aria-label="{{ $teacher->full_name }}{{ $teacher->designation?->name ? ', ' . $teacher->designation->name : '' }}">
+   aria-label="{{ $teacher->full_name }}{{ $teacher->designation_title ? ', ' . $teacher->designation_title : '' }}">
 
     @if($photoUrl)
         <img src="{{ $photoUrl }}" alt="{{ $teacher->full_name }}" loading="lazy" decoding="async">
@@ -82,13 +82,15 @@
     {{-- Says so when this person is not currently at their desk — on leave, on
          deputation. Silent for anyone working normally, so it only appears when
          it carries information. --}}
+    <x-teacher-engagement :teacher="$teacher" class="tile-status" />
+
     <x-teacher-status :teacher="$teacher" class="tile-status" />
 
     <span class="tile-plate">
         <span class="tile-name block">{{ $teacher->full_name }}</span>
 
-        @if($teacher->designation?->name)
-            <span class="tile-meta block">{{ $teacher->designation->name }}</span>
+        @if($teacher->designation_title)
+            <span class="tile-meta block">{{ $teacher->designation_title }}</span>
         @endif
 
         @if($department?->code || $department?->name)

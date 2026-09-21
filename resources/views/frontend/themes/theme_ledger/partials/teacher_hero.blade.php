@@ -71,7 +71,7 @@
             </p>
 
             <p class="text-[13px] mt-0.5" style="color: var(--ink-3);">
-                {{ $teacher->designation?->name ?? 'Faculty Member' }}@if($department?->name), {{ $department->name }}@endif
+                {{ $teacher->designation_title ?? 'Faculty Member' }}@if($department?->name), {{ $department->name }}@endif
             </p>
         </div>
     </div>
@@ -107,6 +107,7 @@
             @endif
         </div>
 
+        <x-teacher-engagement :teacher="$teacher" variant="full" class="inline-flex" />
         <x-teacher-status :teacher="$teacher" variant="full" class="inline-flex" />
 
         @if($contact)
@@ -187,7 +188,7 @@
         <h1 class="title-xl">{{ $teacher->full_name }}</h1>
 
         <p class="mt-3 text-[15px]" style="color: var(--ink-2);">
-            {{ $teacher->designation?->name ?? 'Faculty Member' }}
+            {{ $teacher->designation_title ?? 'Faculty Member' }}
         </p>
 
         <p class="mt-1 text-[13px]" style="color: var(--ink-4);">

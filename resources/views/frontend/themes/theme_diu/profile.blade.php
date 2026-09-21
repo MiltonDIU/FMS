@@ -76,7 +76,7 @@
                                 @endif
                             @endif
                             <span class="bg-slate-100 text-slate-700 text-[10px] font-sans font-bold uppercase px-2.5 py-0.5 rounded-sm border border-slate-200">
-                                {{ optional($teacher->designation)->name ?? 'Faculty Member' }}
+                                {{ $teacher->designation_title ?? 'Faculty Member' }}
                             </span>
                         </div>
                         <h2 class="text-xl md:text-2xl font-display font-bold text-slate-900 tracking-tight leading-tight">
@@ -88,6 +88,7 @@
 
                         {{-- Says so when this person is on leave, so the page does
                              not imply they are at their desk. Silent otherwise. --}}
+                        <x-teacher-engagement :teacher="$teacher" variant="full" class="mt-3" />
                         <x-teacher-status :teacher="$teacher" variant="full" class="mt-3 justify-center sm:justify-start" />
                     </div>
                 </div>

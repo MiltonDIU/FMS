@@ -16,14 +16,17 @@ class ImportOldTeachersCommand extends Command
                             {--file=teachers_export.json : JSON file name inside storage/app/public/exports/}
                             {--limit=0               : Import only N teachers (0 = all)}
                             {--dry-run               : Preview without writing to DB}
-                            {--skip-existing         : Skip if employee_id already exists}';
+                            {--skip-existing         : Skip if employee_id already exists}
+                            {--refresh-designations  : Also correct designation and extra designation on teachers already imported}';
 
     protected $description = 'Import teachers from exported JSON into the new database (Phase 1 — core profile only)';
 
     private bool  $dryRun       = false;
+    private bool  $refreshDesignations = false;
     private int   $created      = 0;
     private int   $skipped      = 0;
     private int   $failed       = 0;
+    private int   $designationsFixed = 0;
     private array $errors       = [];
 
     // Store already existing employee IDs
@@ -40,6 +43,7 @@ class ImportOldTeachersCommand extends Command
     public function handle(): int
     {
         $this->dryRun = (bool) $this->option('dry-run');
+        $this->refreshDesignations = (bool) $this->option('refresh-designations');
         $limit        = (int)  $this->option('limit');
         $skipExisting = (bool) $this->option('skip-existing');
         $file         = storage_path('app/public/exports/' . $this->option('file'));
@@ -99,8 +103,15 @@ class ImportOldTeachersCommand extends Command
                 ['✅ Created',       $this->created],
                 ['⏭ Skipped',        $this->skipped],
                 ['❌ Failed',        $this->failed],
+                ['🎓 Designations corrected', $this->designationsFixed],
             ]
         );
+
+        if (! $this->refreshDesignations) {
+            $this->newLine();
+            $this->comment('Existing profiles keep the designation they already have. '
+                . 'Re-run with --refresh-designations to correct it from the export.');
+        }
 
         // ✅ Show existing employee IDs
         if (!empty($this->existingEmployeeIds)) {
@@ -172,6 +183,8 @@ class ImportOldTeachersCommand extends Command
                 if (!$this->dryRun) {
                     $this->syncPlacements($existingUser->teacher, $existingUser, $record);
                 }
+
+                $this->refreshDesignation($existingUser->teacher, $record);
 
                 $this->skipped++;
 
@@ -246,6 +259,61 @@ class ImportOldTeachersCommand extends Command
         $this->syncPlacements($teacher, $user, $record);
 
         return $teacher;
+    }
+
+    /**
+     * Correct the designation of a teacher who is already here.
+     *
+     * The rule above is that an existing profile is never rewritten, because it
+     * holds corrections somebody typed by hand. Designation is the one field
+     * that rule works against: it is read out of the old designation string by
+     * the export, and that reading has changed twice — "Lecturer (Senior Scale)"
+     * used to collapse into plain Lecturer, and a compound title like
+     * "Professor & Director, MBA Program" lost everything after the rank. Nobody
+     * corrected those by hand because nothing showed they were wrong.
+     *
+     * So this is opt-in and writes exactly two columns. Everything else about
+     * the profile is still left alone, and a teacher whose designation already
+     * matches is not written at all.
+     */
+    private function refreshDesignation(Teacher $teacher, array $record): void
+    {
+        if (! $this->refreshDesignations) {
+            return;
+        }
+
+        $p = $record['teacher_profile'];
+
+        $designationId = $p['designation_id'] ?? null;
+        $extra = $p['extra_designation'] ?? null;
+
+        // A record whose designation did not resolve says nothing about this
+        // teacher; it must not blank out one that is already set.
+        if ($designationId === null) {
+            return;
+        }
+
+        if ((int) $teacher->designation_id === (int) $designationId
+            && $teacher->extra_designation === $extra) {
+            return;
+        }
+
+        $this->line(sprintf(
+            '  designation: %s #%s → #%s%s',
+            $teacher->full_name,
+            $teacher->designation_id,
+            $designationId,
+            $extra ? ' & ' . $extra : '',
+        ));
+
+        if (! $this->dryRun) {
+            $teacher->forceFill([
+                'designation_id'    => $designationId,
+                'extra_designation' => $extra,
+            ])->save();
+        }
+
+        $this->designationsFixed++;
     }
 
     /**

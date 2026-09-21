@@ -225,8 +225,8 @@
             <tr>
             <td class="header-text">
                 <div class="name">{{ $teacher->full_name }}</div>
-                @if($teacher->designation?->name)
-                    <div class="title">{{ $teacher->designation->name }}</div>
+                @if($teacher->designation_title)
+                    <div class="title">{{ $teacher->designation_title }}</div>
                 @endif
                 @if($teacher->department?->faculty?->name || $teacher->department?->name)
                     <div class="org">

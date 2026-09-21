@@ -119,7 +119,7 @@ class TeacherShareImage
         $blocks = array_values(array_filter([
             static::block($teacher->full_name ?: trim("{$teacher->first_name} {$teacher->last_name}"),
                 $display, 46, 60, $ink['strong'], 3, $maxWidth),
-            static::block(optional($teacher->designation)->name, $regular, 28, 38, $ink['soft'], 2, $maxWidth, 26),
+            static::block($teacher->designation_title, $regular, 28, 38, $ink['soft'], 2, $maxWidth, 26),
             static::block(optional($teacher->department)->name, $regular, 23, 32, $ink['muted'], 2, $maxWidth, 14),
         ]));
 

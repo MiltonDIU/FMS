@@ -95,7 +95,7 @@
                 class="text-[13px] mt-0.5"
                 style="color: var(--ink-3);"
             >
-                {{ optional($teacher->designation)->name ?? 'Faculty Member' }}
+                {{ $teacher->designation_title ?? 'Faculty Member' }}
 
                 @if($department?->name)
                     <span style="color: var(--hairline-strong);">
@@ -219,7 +219,7 @@
                     class="mt-2 text-[15px]"
                     style="color: var(--ink-2);"
                 >
-                    {{ optional($teacher->designation)->name ?? 'Faculty Member' }}
+                    {{ $teacher->designation_title ?? 'Faculty Member' }}
                 </p>
 
 
@@ -270,6 +270,13 @@
 
                 </p>
 
+
+                {{-- How they are engaged, when that is not the ordinary way --}}
+                <x-teacher-engagement
+                    :teacher="$teacher"
+                    variant="full"
+                    class="mt-4 inline-flex"
+                />
 
                 {{-- Teacher status --}}
                 <x-teacher-status

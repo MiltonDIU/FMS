@@ -36,7 +36,7 @@ class DepartmentSeeder extends Seeder
             // Faculty of Health and Life Sciences
             'FHLS' => [
                 ['name' => 'Environmental Science and Disaster Management', 'short_name' => 'ESDM', 'code' => 'ESDM', 'description' => 'Focuses on environmental protection, climate change, disaster preparedness, and sustainable development practices.'],
-                ['name' => 'Pharmacy', 'short_name' => 'PHR', 'code' => 'PHR', 'description' => 'Provides pharmaceutical education covering drug development, pharmacology, clinical pharmacy, and pharmaceutical management.'],
+                ['name' => 'Pharmacy', 'short_name' => 'pharmacy', 'code' => 'pharmacy', 'description' => 'Provides pharmaceutical education covering drug development, pharmacology, clinical pharmacy, and pharmaceutical management.'],
                 ['name' => 'Nutrition and Food Engineering', 'short_name' => 'NFE', 'code' => 'NFE', 'description' => 'Covers food science, nutrition, food processing technology, and food safety for the food and nutrition industry.'],
                 ['name' => 'Public Health', 'short_name' => 'PH', 'code' => 'PH', 'description' => 'Focuses on community health, epidemiology, health policy, and disease prevention for public health professionals.'],
                 ['name' => 'Physical Education & Sports Science', 'short_name' => 'PESS', 'code' => 'PESS', 'description' => 'Covers sports science, fitness training, sports management, and physical education for sports professionals.'],
@@ -58,7 +58,7 @@ class DepartmentSeeder extends Seeder
              */
             'FAS' => [
                 ['name' => 'Agricultural Science', 'short_name' => 'AGS', 'code' => 'AGS', 'description' => 'Provides education in agricultural practices, crop science, agribusiness, and sustainable farming for agricultural development.'],
-                ['name' => 'Fisheries', 'short_name' => 'FISH', 'code' => 'FISHERIES', 'description' => 'Covers fisheries science, aquaculture, aquatic resource management, and fish processing for the fisheries and aquaculture sector.'],
+                ['name' => 'Fisheries', 'short_name' => 'fisheries', 'code' => 'fisheries', 'description' => 'Covers fisheries science, aquaculture, aquatic resource management, and fish processing for the fisheries and aquaculture sector.'],
             ],
             // Faculty of Humanities & Social Sciences
             'FHSS' => [

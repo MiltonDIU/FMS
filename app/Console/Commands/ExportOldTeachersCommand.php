@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Support\DesignationTitle;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -15,6 +16,16 @@ class ExportOldTeachersCommand extends Command
     protected array $newDesigMap   = [];
     protected array $jobTypeMap    = [];
     protected array $adminRoleMap  = [];
+
+    /**
+     * old designation_id → the title carried beside the rank, or null.
+     *
+     * "Associate Professor & Director, M.Sc in CSE" resolves to the Associate
+     * Professor row in newDesigMap and leaves "Director, M.Sc in CSE" here.
+     * Until this existed the second half was read for its rank and then thrown
+     * away, so a directorship survived nowhere in the new system.
+     */
+    protected array $extraDesigMap = [];
 
     // Tracks used emails → old_teacher_id (for duplicate detection)
     protected array $usedEmails = [];
@@ -268,17 +279,32 @@ class ExportOldTeachersCommand extends Command
         }
 
         // Designation map
-        $newDesigs = DB::connection('mysql')->table('designations')->get();
+        // Soft-deleted rows excluded: a retired designation must not be handed
+        // out again. This is the query builder, which does not apply the model's
+        // SoftDeletes scope, so the condition is spelled out.
+        $newDesigs = DB::connection('mysql')->table('designations')->whereNull('deleted_at')->get();
         $oldDesigs = DB::connection('old_db')->table('designation')->get();
 
         $rankMap = [];
         foreach ($newDesigs as $nd) {
             $rankMap[strtolower(trim($nd->name))] = $nd->id;
         }
+        /*
+         * One old designation string can hold two facts: "Professor & Director,
+         * MBA Program" is a rank and a standing title. Split first, match the
+         * rank half, and keep the other half for teachers.extra_designation —
+         * matchDesignation() reads a rank out of whatever it is given and
+         * discards the rest, so without the split the directorship is lost.
+         */
+        $isRank = fn (string $half) => $this->matchDesignation(strtolower($half), $rankMap) !== null;
+
         foreach ($oldDesigs as $od) {
+            [$rankText, $extra] = DesignationTitle::split($od->designation, $isRank);
+
             $this->newDesigMap[$od->designation_id] = $this->matchDesignation(
-                strtolower($od->designation), $rankMap
+                strtolower($rankText), $rankMap
             );
+            $this->extraDesigMap[$od->designation_id] = $extra;
         }
 
         // Job type map
@@ -411,39 +437,75 @@ class ExportOldTeachersCommand extends Command
 
     private function matchDesignation(string $oldName, array $rankMap): ?int
     {
+        /*
+         * Keyword → the designation row it names, most specific first. The
+         * order is the whole of the logic: "associate professor" has to be
+         * tested before "professor", and both senior-scale spellings before
+         * "lecturer". Without that last part "Lecturer (Senior Scale)" matches
+         * the plain Lecturer row, which is what happened to every senior-scale
+         * lecturer in the old data — the grade simply disappeared on import.
+         *
+         * Only academic ranks appear here. "Adjunct" and "Visiting" describe how
+         * somebody is employed, not what they are, and jobTypeFor() already
+         * reads both out of the same string into job_type_id. "Adjunct Faculty"
+         * used to be tested in this list, above "professor", together with a
+         * bare "adjunct" that never fired at all — it looked for a designation
+         * row of that name and there is none. Both now sit in the fallback
+         * below, which is where a title that names no rank belongs; a title that
+         * does name one has always kept it, and still does.
+         */
         $priority = [
-            'associate professor',
-            'assistant professor',
-            'senior lecturer',
-            'adjunct faculty',
-            'adjunct',
-            'professor',
-            'senior lecturer',
-            'lecturer',
+            'lecturer (senior scale)' => 'lecturer (senior scale)',
+            'senior scale'            => 'lecturer (senior scale)',
+            'associate professor'     => 'associate professor',
+            'assistant professor'     => 'assistant professor',
+            'senior lecturer'         => 'senior lecturer',
+            'professor'               => 'professor',
+            'lecturer'                => 'lecturer',
         ];
-        foreach ($priority as $keyword) {
-            if (isset($rankMap[$keyword]) && str_contains($oldName, $keyword)) {
-                return $rankMap[$keyword];
+        foreach ($priority as $keyword => $target) {
+            if (isset($rankMap[$target]) && str_contains($oldName, $keyword)) {
+                return $rankMap[$target];
             }
         }
 
+        /*
+         * Reached only when the title names no rank at all.
+         *
+         * The first group are titles a rank is implied by — a dean, an emeritus,
+         * a distinguished chair are all professors.
+         *
+         * The second group name no rank and never will: "Visiting Faculty",
+         * "Industrial Expert", "Research Scholar" say how somebody is engaged,
+         * not what grade they hold. They used to land on an "Adjunct Faculty"
+         * designation, which was the same mistake written down — that row has
+         * been retired from the designations table, because job_types is where
+         * this belongs and already carries Adjunct Faculty, Visiting Faculty,
+         * Contractual and Part Time. jobTypeFor() reads the engagement out of
+         * this very string, so nothing is lost by admitting the grade is unknown
+         * rather than inventing one.
+         */
+        $professor = $rankMap['professor'] ?? null;
+        $noRank = $rankMap['system - unassigned designation'] ?? null;
+
         $specialMap = [
-            'dean'              => $rankMap['professor']      ?? null,
-            'chair professor'   => $rankMap['professor']      ?? null,
-            'distinguished'     => $rankMap['professor']      ?? null,
-            'emeritus'          => $rankMap['professor']      ?? null,
-            'chancellor'        => $rankMap['professor']      ?? null,
-            'founder'           => $rankMap['professor']      ?? null,
-            'director'          => $rankMap['professor']      ?? null,
-            'advisor'           => $rankMap['professor']      ?? null,
-            'visiting'          => $rankMap['adjunct faculty'] ?? null,
-            'industrial expert' => $rankMap['adjunct faculty'] ?? null,
-            'practice'          => $rankMap['adjunct faculty'] ?? null,
-            'academician'       => $rankMap['adjunct faculty'] ?? null,
-            'researcher'        => $rankMap['adjunct faculty'] ?? null,
-            'scholar'           => $rankMap['adjunct faculty'] ?? null,
-            'attached'          => $rankMap['adjunct faculty'] ?? null,
-            'part-time'         => $rankMap['adjunct faculty'] ?? null,
+            'dean'              => $professor,
+            'chair professor'   => $professor,
+            'distinguished'     => $professor,
+            'emeritus'          => $professor,
+            'chancellor'        => $professor,
+            'founder'           => $professor,
+            'director'          => $professor,
+            'advisor'           => $professor,
+            'adjunct'           => $noRank,
+            'visiting'          => $noRank,
+            'industrial expert' => $noRank,
+            'practice'          => $noRank,
+            'academician'       => $noRank,
+            'researcher'        => $noRank,
+            'scholar'           => $noRank,
+            'attached'          => $noRank,
+            'part-time'         => $noRank,
             'coordinator'       => $rankMap['senior lecturer'] ?? null,
         ];
         foreach ($specialMap as $keyword => $id) {
@@ -471,6 +533,7 @@ class ExportOldTeachersCommand extends Command
         $email       = $this->resolveEmail($t, $isArchived);
         $newDeptId   = $this->newDeptMap[$t->old_dept_id ?? 0]  ?? null;
         $newDesigId  = $this->newDesigMap[$t->old_desig_id ?? 0] ?? null;
+        $extraDesig  = $this->extraDesigMap[$t->old_desig_id ?? 0] ?? null;
         $jobTypeId   = $this->resolveJobType($t);
         $phoneParsed = $this->parsePhoneAndExtension($t->phone ?? '');
         $phone       = $phoneParsed['phone'];
@@ -575,6 +638,37 @@ class ExportOldTeachersCommand extends Command
             ];
         }
 
+        /*
+         * "Professor & Head" must not also carry the extra title "Head": the
+         * head flag on the same dfd_add row already produces a Head of
+         * Department assignment, and the profile would then say it twice —
+         * once in the title and once in the badge beside it.
+         *
+         * Only the roles this teacher actually receives are compared, so a
+         * title naming a role the new system has no row for is kept as text.
+         * Advisor is exactly that case: administrative_roles has no Advisor,
+         * so those assignments are dropped at the filter below and the words
+         * "& Advisor" would otherwise be lost with them.
+         */
+        if ($extraDesig !== null) {
+            $heldRoleIds = [];
+
+            foreach ($departmentAssignments as $assignment) {
+                foreach ($assignment['administrative_roles'] as $role) {
+                    $heldRoleIds[] = $role['role_id'];
+                }
+            }
+
+            $heldRoleNames = array_keys(array_filter(
+                $this->adminRoleMap,
+                fn ($id) => in_array($id, $heldRoleIds, true),
+            ));
+
+            if (DesignationTitle::repeatsAdministrativeRole($extraDesig, $heldRoleNames)) {
+                $extraDesig = null;
+            }
+        }
+
         // ── Archived teacher overrides ──
         if ($isArchived) {
             return [
@@ -590,6 +684,7 @@ class ExportOldTeachersCommand extends Command
                     'last_name'            => $nameParts['last_name'],
                     'department_id'        => 32,
                     'designation_id'       => 7,
+                    'extra_designation'    => null,
                     'faculty_id'           => 7,
                     'job_type_id'          => 7,
                     'employment_status_id' => 9,
@@ -638,6 +733,7 @@ class ExportOldTeachersCommand extends Command
                 'last_name'            => $nameParts['last_name'],
                 'department_id'        => $newDeptId,
                 'designation_id'       => $newDesigId,
+                'extra_designation'    => $extraDesig,
                 'job_type_id'          => $jobTypeId,
                 'employment_status_id' => $employmentStatusId,
                 'country_id'           => 18,

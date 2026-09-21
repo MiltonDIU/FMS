@@ -44,6 +44,10 @@ class DesignationsTable
                     ->counts('teachers')
                     ->badge()
                     ->color('success'),
+                IconColumn::make('is_rank')
+                    ->label('Rank?')
+                    ->tooltip('Off means this is not a grade the university awards — those teachers are shown by their job type')
+                    ->boolean(),
                 IconColumn::make('is_active')
                     ->label('Active')
                     ->boolean()

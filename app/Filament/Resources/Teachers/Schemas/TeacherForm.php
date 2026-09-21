@@ -232,6 +232,24 @@ class TeacherForm
                                         ->required()
                                         ->disabled($isOwnProfile)
                                         ->dehydrated(! $isOwnProfile),
+                                    /*
+                                     * The standing title some people carry beside
+                                     * their rank — "Advisor", "Director, MBA
+                                     * Program". Free text because there is no
+                                     * list to choose from: each programme names
+                                     * its own. A role that governs a department
+                                     * or faculty is not this; that is an
+                                     * administrative role, which carries dates
+                                     * and a scope and files the holder under
+                                     * Administration on the public pages.
+                                     */
+                                    TextInput::make('extra_designation')
+                                        ->label('Extra Designation')
+                                        ->placeholder('Director, MBA Program')
+                                        ->helperText('Shown after the designation: "Professor & Director, MBA Program". Leave empty for most teachers.')
+                                        ->maxLength(255)
+                                        ->disabled($isOwnProfile)
+                                        ->dehydrated(! $isOwnProfile),
                                 ]),
                                 Grid::make(3)->schema([
                                     TextInput::make('employee_id')

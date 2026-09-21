@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Helpers\OutboundUrl;
 use App\Observers\TeacherObserver;
+use App\Support\DesignationTitle;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -37,6 +38,7 @@ class Teacher extends Model implements HasMedia
         'user_id',
         'department_id',
         'designation_id',
+        'extra_designation',
         'employee_id',
         'scopus_id',
         'webpage',
@@ -396,15 +398,87 @@ class Teacher extends Model implements HasMedia
     }
 
     /**
+     * The title as it should be shown: the rank, and the standing title beside
+     * it where there is one.
+     *
+     *   "Professor"
+     *   "Professor & Advisor"
+     *   "Associate Professor & Director, M.Sc in CSE"
+     *
+     * Every place that prints a teacher's title reads this rather than
+     * designation->name, so the extra half cannot appear in one theme and go
+     * missing in another.
+     *
+     * The designation alone, which is what a directory naturally prints. The job
+     * type does not join it here: it rides beside the title as its own label —
+     * see getEngagementLabelAttribute() — the way an administrative role does,
+     * so the title stays the thing the person is.
+     *
+     * Where the designation is not a grade at all — "Adjunct Faculty", "System
+     * - Unassigned Designation", rows that exist only because designation_id is
+     * NOT NULL — there is no title to print, so the job type stands in for it
+     * and the label drops out rather than saying the same words twice.
+     */
+    public function getDesignationTitleAttribute(): ?string
+    {
+        $designation = $this->designation;
+
+        $title = $this->hasRankedDesignation() ? $designation->name : null;
+
+        if ($title === null) {
+            $title = DesignationTitle::engagementLabel($this->jobType?->name)
+                ?: (DesignationTitle::isSystemPlaceholder($designation?->name)
+                    ? null
+                    : $designation?->name);
+        }
+
+        return DesignationTitle::compose($title, $this->extra_designation);
+    }
+
+    /**
+     * How this teacher is engaged, when that is anything other than the default,
+     * for the badge beside their name: "Adjunct Faculty", "Visiting Faculty",
+     * "Part Time", "Contractual", "Emeritus".
+     *
+     * Null for Regular staff, null when the terms were never recorded, and null
+     * when the teacher has no grade — there the job type is already serving as
+     * the title.
+     */
+    public function getEngagementLabelAttribute(): ?string
+    {
+        return $this->hasRankedDesignation()
+            ? DesignationTitle::engagementLabel($this->jobType?->name)
+            : null;
+    }
+
+    /**
+     * Whether the designation on file is an academic grade rather than one of
+     * the placeholder rows kept only because designation_id cannot be null.
+     */
+    protected function hasRankedDesignation(): bool
+    {
+        $designation = $this->designation;
+
+        return $designation !== null
+            && $designation->is_rank !== false
+            && ! DesignationTitle::isSystemPlaceholder($designation->name);
+    }
+
+    /**
      * Determine whether the teacher holds an administrative designation
      * (dean, head, chairman, director, coordinator, advisor).
+     *
+     * Reads the composed title, not the designation name alone: the words this
+     * looks for used to sit inside the designation string ("Professor &
+     * Director, MBA Program") and now live in extra_designation, so matching on
+     * the name by itself would answer false for everybody it was written for.
      */
     public function getIsAdministrativeAttribute(): bool
     {
-        $designation = optional($this->designation)->name;
+        $title = $this->designation_title;
 
-        return $designation
-            ? (bool) preg_match('/(dean|head|chairman|director|coordinator|advisor)/i', $designation)
+        return $title
+            ? (bool) preg_match('/(dean|head|chairman|director|coordinator|advisor)/i', $title)
             : false;
     }
 

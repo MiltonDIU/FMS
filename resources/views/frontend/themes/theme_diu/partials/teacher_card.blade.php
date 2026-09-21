@@ -68,8 +68,9 @@
                 <h4 class="text-[15px] font-bold text-slate-900 tracking-tight leading-snug line-clamp-1 group-hover:text-diu-accent transition-colors">
                     {{ $teacher->first_name }} {{ $teacher->middle_name }} {{ $teacher->last_name }}
                 </h4>
-                <p class="text-xs text-slate-600 font-medium truncate mt-0.5">{{ optional($teacher->designation)->name ?? 'Faculty Member' }}</p>
+                <p class="text-xs text-slate-600 font-medium truncate mt-0.5">{{ $teacher->designation_title ?? 'Faculty Member' }}</p>
                 <p class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-0.5">{{ optional($teacher->department)->name ?? 'General' }}</p>
+                <x-teacher-engagement :teacher="$teacher" class="mt-1.5" />
                 <x-teacher-status :teacher="$teacher" class="mt-1.5" />
 
                 <div class="mt-4 space-y-2 border-t border-slate-100 pt-3">
@@ -141,8 +142,9 @@
                 <h4 class="text-[15px] font-bold text-slate-900 tracking-tight leading-snug line-clamp-1 group-hover:text-diu-primary transition-colors">
                     {{ $teacher->first_name }} {{ $teacher->middle_name }} {{ $teacher->last_name }}
                 </h4>
-                <p class="text-xs text-slate-600 font-medium truncate mt-0.5">{{ optional($teacher->designation)->name ?? 'Faculty Member' }}</p>
+                <p class="text-xs text-slate-600 font-medium truncate mt-0.5">{{ $teacher->designation_title ?? 'Faculty Member' }}</p>
                 <p class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-0.5">{{ optional($teacher->department)->name ?? 'General' }}</p>
+                <x-teacher-engagement :teacher="$teacher" class="mt-1.5" />
                 <x-teacher-status :teacher="$teacher" class="mt-1.5" />
 
                 <div class="mt-4 space-y-2 border-t border-slate-100 pt-3">

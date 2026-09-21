@@ -32,7 +32,23 @@ class TeacherResource extends JsonResource
             'last_name' => $this->last_name,
             'initials' => $this->initials,
 
+            /*
+             * designation stays the rank on its own, because consumers already
+             * read it and a filter URL is built from designation ids.
+             * designation_title is the same thing with the standing title beside
+             * it — "Professor & Director, MBA Program" — which is how the person
+             * is introduced on their own page.
+             */
             'designation' => optional($this->whenLoaded('designation'))->name,
+            'extra_designation' => $this->extra_designation,
+            'designation_title' => $this->whenLoaded('designation', fn () => $this->designation_title),
+            /*
+             * How the person is engaged, when that is anything other than the
+             * ordinary way: "Adjunct Faculty", "Visiting Faculty", "Part Time".
+             * Null for regular staff. Separate from the title on purpose — the
+             * designation says what somebody is, this says on what terms.
+             */
+            'engagement' => $this->whenLoaded('jobType', fn () => $this->engagement_label),
             'department' => new DepartmentResource($this->whenLoaded('department')),
 
             'photo_url' => $this->photo_url,
