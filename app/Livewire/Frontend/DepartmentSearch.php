@@ -9,6 +9,7 @@ use App\Models\Designation;
 use App\Models\Teacher;
 use App\Models\UserAdministrativeRole;
 use App\Services\DepartmentContacts;
+use App\Support\TeacherSearchTerm;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Request;
@@ -196,7 +197,10 @@ class DepartmentSearch extends Component
             ->distinct()
             ->pluck('teachers.designation_id');
 
-        return Designation::whereIn('id', $ids)->orderBy('sort_order')->get();
+        // Ranks only. "Adjunct Faculty" is not a grade, and the teachers under
+        // it are shown by their job type, so a chip carrying its name would
+        // filter to a group whose cards all say something else.
+        return Designation::ranks()->whereIn('id', $ids)->orderBy('sort_order')->get();
     }
 
     public function getVisibleAdminRolesProperty()
@@ -260,20 +264,10 @@ class DepartmentSearch extends Component
         $query->where('teachers.is_active', true)
             ->where('teachers.is_archived', false);
 
-        $q = trim($this->q);
-        if ($q !== '') {
-            $like = '%' . $q . '%';
-            $query->where(function ($qb) use ($like) {
-                $qb->where('teachers.first_name', 'like', $like)
-                    ->orWhere('teachers.middle_name', 'like', $like)
-                    ->orWhere('teachers.last_name', 'like', $like)
-                    ->orWhere('teachers.secondary_email', 'like', $like)
-                    ->orWhere('teachers.employee_id', 'like', $like)
-                    ->orWhere('departments.name', 'like', $like)
-                    ->orWhere('departments.code', 'like', $like)
-                    ->orWhere('designations.name', 'like', $like);
-            });
-        }
+        // The same call the directory search makes. This page used to match
+        // fewer fields than that one — no faculty name, no faculty short name —
+        // for no reason anybody chose; it was simply a copy that fell behind.
+        TeacherSearchTerm::apply($query, $this->q);
 
         if ($this->designationId) {
             $query->where('teachers.designation_id', $this->designationId);
@@ -300,7 +294,9 @@ class DepartmentSearch extends Component
 
         return $query
             ->whereRaw("EXISTS (SELECT 1 FROM administrative_role_user aru WHERE aru.user_id = teachers.user_id AND ({$adminScope}) AND aru.deleted_at IS NULL)")
-            ->with(['designation', 'department.faculty', 'teachingAreas',
+            // jobType because designation_title falls back to it for the rows
+            // that are not ranks; without it the card asks per teacher.
+            ->with(['designation', 'jobType', 'department.faculty', 'teachingAreas',
                 'administrativeRoles.administrativeRole', 'employmentStatus', 'user'])
             // publications_count instead of loading every paper to call count()
             // on it: three of the four themes print the number on each card,
@@ -319,7 +315,9 @@ class DepartmentSearch extends Component
 
         return $query
             ->whereRaw("NOT EXISTS (SELECT 1 FROM administrative_role_user aru WHERE aru.user_id = teachers.user_id AND ({$adminScope}) AND aru.deleted_at IS NULL)")
-            ->with(['designation', 'department.faculty', 'teachingAreas',
+            // jobType because designation_title falls back to it for the rows
+            // that are not ranks; without it the card asks per teacher.
+            ->with(['designation', 'jobType', 'department.faculty', 'teachingAreas',
                 'administrativeRoles.administrativeRole', 'employmentStatus', 'user'])
             // publications_count instead of loading every paper to call count()
             // on it: three of the four themes print the number on each card,

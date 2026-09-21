@@ -10,6 +10,7 @@ use App\Http\Resources\V1\TeacherResource;
 use App\Models\Department;
 use App\Models\Faculty;
 use App\Models\Teacher;
+use App\Support\TeacherSearchTerm;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
@@ -134,27 +135,28 @@ class DirectoryController extends Controller
     /**
      * The list query, with the filters both listing endpoints accept.
      *
-     * ?q= name, employee id or email · ?designation= · ?department= · ?faculty=
+     * ?q= name, employee id, email, phone, department, faculty or designation
+     * · ?designation= · ?department= · ?faculty=
      */
     protected function teacherQuery(Request $request)
     {
         $query = Teacher::published()
-            ->with(['designation', 'department.faculty', 'employmentStatus', 'user', 'media'])
+            ->with(['designation', 'jobType', 'department.faculty', 'employmentStatus', 'user', 'media'])
             ->withCount('publications');
 
+        /*
+         * The same search the site's own boxes run, so a term that finds
+         * somebody on the directory page finds them here too. It used to match
+         * four columns to the directory's ten, which made this endpoint quietly
+         * the narrowest of the three.
+         *
+         * Note for anyone extending it: not full_name. It is a column and an
+         * accessor of the same name, and the column is empty on all 2,000 rows
+         * — the accessor builds the name from the parts on read. Matching
+         * against it compiles and runs and finds nothing.
+         */
         if (filled($search = $request->query('q'))) {
-            $like = '%' . $search . '%';
-
-            // Not full_name: it is a column and an accessor of the same name,
-            // and the column is empty on all 2,000 rows — the accessor builds
-            // the name from the parts on read. Matching against it compiles and
-            // runs and finds nothing.
-            $query->where(fn ($q) => $q
-                ->where('teachers.first_name', 'like', $like)
-                ->orWhere('teachers.middle_name', 'like', $like)
-                ->orWhere('teachers.last_name', 'like', $like)
-                ->orWhere('teachers.employee_id', 'like', $like)
-                ->orWhere('teachers.secondary_email', 'like', $like));
+            TeacherSearchTerm::apply($query, $search);
         }
 
         if (filled($designation = $request->query('designation'))) {
