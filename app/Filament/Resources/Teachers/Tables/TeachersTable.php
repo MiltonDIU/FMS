@@ -52,9 +52,6 @@ class TeachersTable
                 'jobType',
                 'user.roles',
                 'user.administrativeRoles',
-                // The photo download action asks every row whether it has one;
-                // without this that is a query per row.
-                'media',
             ]))
             ->columns([
                 TextColumn::make('employee_id')
@@ -465,7 +462,7 @@ class TeachersTable
                             \App\Models\EmailBatch::SOURCE_INDIVIDUAL,
                         );
                     }),
-                \App\Filament\Resources\Teachers\Actions\DownloadPhotoAction::make(),
+                \App\Filament\Resources\Teachers\Actions\SyncPhotoAction::make(),
                 \Filament\Actions\Action::make('dashboard')
                     ->label('Dashboard')
                     ->icon('heroicon-o-presentation-chart-line')
