@@ -27,6 +27,10 @@ class TeacherPhotoDownload
     /** Where the file handed to the browser came from. */
     public const SOURCE_STORAGE = 'storage';
 
+    /** Fetched from the old site and saved onto the profile. */
+    public const SOURCE_RESTORED = 'restored';
+
+    /** Fetched from the old site, but saving it onto the profile failed. */
     public const SOURCE_LEGACY = 'legacy';
 
     /** Why there is nothing to hand over. */
@@ -67,15 +71,22 @@ class TeacherPhotoDownload
      * That second path is the whole point of this method. A server whose
      * storage has not been populated has the media rows and none of the files,
      * and before this it could only shrug. Now it goes and gets the picture
-     * from where the picture came from.
+     * from where the picture came from — and keeps it, so the teacher's profile
+     * has a photograph from then on instead of the download being the only
+     * copy anybody ever sees.
      *
-     * @return array{ok: true, path: string, filename: string, size: int, source: string, temporary: bool}
+     * @return array{ok: true, path: string, filename: string, size: int, source: string, temporary: bool, warning: ?string}
      *         |array{ok: false, reason: string, detail: ?string}
      */
     public function obtain(Teacher $teacher): array
     {
         if ($local = $this->resolve($teacher)) {
-            return $local + ['ok' => true, 'source' => self::SOURCE_STORAGE, 'temporary' => false];
+            return $local + [
+                'ok' => true,
+                'source' => self::SOURCE_STORAGE,
+                'temporary' => false,
+                'warning' => null,
+            ];
         }
 
         $url = $this->legacySourceUrl($teacher);
@@ -95,19 +106,6 @@ class TeacherPhotoDownload
         }
 
         return $this->fetch($teacher, $url);
-    }
-
-    /**
-     * Whether this teacher has a photograph on record.
-     *
-     * A question about the database, never about the disk: a file that has gone
-     * missing is something to report when somebody asks for it, not a reason to
-     * quietly pretend the teacher has no picture.
-     */
-    public function exists(Teacher $teacher): bool
-    {
-        return $teacher->exists
-            && ($teacher->getFirstMedia('avatar') instanceof Media || $this->legacySourceUrl($teacher) !== null);
     }
 
     /**
@@ -145,15 +143,26 @@ class TeacherPhotoDownload
     }
 
     /**
-     * Fetches the picture and stages it for the browser.
+     * Fetches the picture, puts it on the teacher's profile, and serves it.
      *
-     * Nothing is written into the media library. Bringing a missing photograph
-     * back into storage is a repair, it is what
-     * `teachers:download-photos --repair` exists for, and doing it as a side
-     * effect of somebody pressing a download button would mean a read turning
-     * into a write nobody asked for.
+     * Saving it is the point. A photograph fetched only to be handed to the
+     * browser leaves the profile exactly as empty as it was, so the next person
+     * to look at that teacher — on the website, in a CV, on the card in the
+     * directory — still sees the initials block, and the next person to press
+     * this button fetches the same picture off the old site all over again. One
+     * press now fixes the profile for everybody.
      *
-     * @return array{ok: true, path: string, filename: string, size: int, source: string, temporary: bool}
+     * It goes in the same way `teachers:download-photos` puts one there: same
+     * collection, same filename rule, same custom properties. The collection is
+     * singleFile, so this replaces the record whose file had gone missing
+     * rather than leaving two.
+     *
+     * If the write fails the download still happens, from the copy in the
+     * staging directory. Whoever pressed the button asked for a picture; a
+     * storage problem is worth telling them about, not worth refusing them
+     * over.
+     *
+     * @return array{ok: true, path: string, filename: string, size: int, source: string, temporary: bool, warning: ?string}
      *         |array{ok: false, reason: string, detail: ?string}
      */
     private function fetch(Teacher $teacher, string $url): array
@@ -192,18 +201,112 @@ class TeacherPhotoDownload
         $directory = storage_path(self::STAGING_DIRECTORY);
         File::ensureDirectoryExists($directory);
 
-        $path = $directory . DIRECTORY_SEPARATOR . 'teacher-' . $teacher->id . '-' . Str::random(8) . '.' . $extension;
-        File::put($path, $body);
+        $staged = $directory . DIRECTORY_SEPARATOR . 'teacher-' . $teacher->id . '-' . Str::random(8) . '.' . $extension;
+        File::put($staged, $body);
+
+        $failure = $this->store($teacher, $staged, $extension, $url);
+
+        if ($failure === null) {
+            /*
+             * Served from where it now lives rather than from the staged copy,
+             * so what the browser gets is the file the profile got.
+             *
+             * The staged copy is kept until this point on purpose: addMedia is
+             * told to preserve it, so that if the record cannot be read back
+             * there is still something to hand over rather than a fetch thrown
+             * away.
+             */
+            $stored = $this->resolve($teacher->refresh());
+
+            if ($stored !== null) {
+                File::delete($staged);
+
+                return $stored + [
+                    'ok' => true,
+                    'source' => self::SOURCE_RESTORED,
+                    'temporary' => false,
+                    'warning' => null,
+                ];
+            }
+
+            $failure = 'it was saved but could not be read back';
+        }
 
         return [
             'ok' => true,
-            'path' => $path,
+            'path' => $staged,
             'filename' => $this->filename($teacher, $extension),
             'size' => strlen($body),
             'source' => self::SOURCE_LEGACY,
-            // Deleted once it has been sent; this is a copy, not a new record.
+            // Deleted once it has been sent; nothing kept it.
             'temporary' => true,
+            'warning' => $failure,
         ];
+    }
+
+    /**
+     * Puts the fetched photograph on the teacher's profile.
+     *
+     * Mirrors teachers:download-photos so a picture saved here is
+     * indistinguishable from one that command brought over: the same filename
+     * rule (the teacher's own webpage handle, which is what identifies them
+     * everywhere else), and the same custom properties, so where it came from
+     * stays recorded and a later run can tell a fetched photograph from an
+     * upload. MediaObserver stamps the joining year that decides the folder.
+     *
+     * @return string|null  The reason it did not work, or null when it did.
+     */
+    private function store(Teacher $teacher, string $path, string $extension, string $url): ?string
+    {
+        try {
+            $teacher->addMedia($path)
+                ->preservingOriginal()
+                ->usingFileName($this->storedFileName($teacher, $extension))
+                ->usingName($teacher->full_name)
+                ->withCustomProperties([
+                    'source_url' => $url,
+                    'legacy_filename' => $teacher->getRawOriginal('photo'),
+                    'fetched_at' => now()->toIso8601String(),
+                    // So a photograph restored from a download button can be
+                    // told apart from one the import brought over.
+                    'restored_by' => 'download-action',
+                ])
+                ->toMediaCollection('avatar', 'public');
+        } catch (\Throwable $e) {
+            return Str::limit($e->getMessage(), 80);
+        }
+
+        /*
+         * The column has to go, or none of this shows: getPhotoAttribute
+         * returns the column when it is filled and only falls through to the
+         * media library when it is not. Empty on every row today, so this is
+         * belt and braces — but the command clears it for the same reason and
+         * the two should not disagree.
+         */
+        if (filled($teacher->getRawOriginal('photo'))) {
+            $teacher->forceFill(['photo' => null])->saveQuietly();
+        }
+
+        return null;
+    }
+
+    /**
+     * The name the file is stored under: the teacher's own webpage handle,
+     * exactly as teachers:download-photos names it.
+     *
+     * Never trusted straight into a path — it is imported data, and a handle
+     * carrying a slash or dots would write outside the directory.
+     */
+    private function storedFileName(Teacher $teacher, string $extension): string
+    {
+        $handle = trim((string) $teacher->webpage);
+        $handle = $handle === '' ? '' : Str::slug($handle, '-', null);
+
+        if ($handle === '') {
+            $handle = 'teacher-' . $teacher->id;
+        }
+
+        return $handle . '.' . $extension;
     }
 
     /**

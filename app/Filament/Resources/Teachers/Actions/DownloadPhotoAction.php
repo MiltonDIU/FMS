@@ -87,12 +87,48 @@ class DownloadPhotoAction extends Action
                     ->event('download')
                     ->log('downloaded teacher photograph');
 
+                static::announce($record, $photo);
+
                 $response = response()->download($photo['path'], $photo['filename']);
 
-                // A picture fetched from the old site is a copy made for this
-                // one download; the stored one is the record itself and stays.
+                // Only the copy that could not be saved is a throwaway; a
+                // restored photograph is the profile's own file now.
                 return $photo['temporary'] ? $response->deleteFileAfterSend(true) : $response;
             });
+    }
+
+    /**
+     * Says so when the download also put a photograph on the profile.
+     *
+     * Worth saying out loud, because the record changed. Somebody pressed a
+     * button labelled Download and their teacher now has a picture on the
+     * website; that should not be something they discover later.
+     *
+     * A download served straight from storage changed nothing, so it passes in
+     * silence — the file arriving is its own confirmation.
+     *
+     * @param  array{source: string, warning: ?string}  $photo
+     */
+    protected static function announce(Teacher $record, array $photo): void
+    {
+        if ($photo['source'] === TeacherPhotoDownload::SOURCE_RESTORED) {
+            Notification::make()
+                ->success()
+                ->title('Photograph restored to the profile')
+                ->body("We did not hold {$record->full_name}'s photograph, so it was fetched from the old faculty site and saved to their profile. It will now show wherever their picture appears.")
+                ->send();
+
+            return;
+        }
+
+        if ($photo['source'] === TeacherPhotoDownload::SOURCE_LEGACY) {
+            Notification::make()
+                ->warning()
+                ->title('Downloaded, but not saved to the profile')
+                ->body("{$record->full_name}'s photograph came from the old faculty site, but storing it here failed — " . $photo['warning'] . '. The profile still has no picture.')
+                ->persistent()
+                ->send();
+        }
     }
 
     /**
