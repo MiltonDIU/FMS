@@ -8,6 +8,7 @@ use App\Models\Designation;
 use App\Models\Faculty;
 use App\Models\Teacher;
 use App\Models\UserAdministrativeRole;
+use App\Support\TeacherDirectoryOrder;
 use App\Support\TeacherSearchTerm;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
@@ -167,6 +168,9 @@ class TeacherSearch extends Component
             ->join('departments', 'departments.id', '=', 'teachers.department_id')
             ->join('faculties', 'faculties.id', '=', 'departments.faculty_id')
             ->leftJoin('designations', 'designations.id', '=', 'teachers.designation_id')
+            // Joined for the ordering, not for the search — see the sort on the
+            // two listing properties below.
+            ->leftJoin('job_types', 'job_types.id', '=', 'teachers.job_type_id')
             ->where('teachers.is_active', true)
             ->where('teachers.is_archived', false);
 
@@ -207,7 +211,7 @@ class TeacherSearch extends Component
     {
         [$query, $adminScope] = $this->getBaseTeachersQuery();
 
-        return $query
+        $listing = $query
             ->whereRaw("EXISTS (SELECT 1 FROM administrative_role_user aru WHERE aru.user_id = teachers.user_id AND ({$adminScope}) AND aru.deleted_at IS NULL)")
             // jobType because designation_title falls back to it for the rows
             // that are not ranks; without it the card asks per teacher.
@@ -216,19 +220,16 @@ class TeacherSearch extends Component
             // publications_count instead of loading every paper to call count()
             // on it: three of the four themes print the number on each card,
             // which fetched a teacher's whole bibliography per card.
-            ->withCount('publications')
-            ->orderBy('admin_role_sort')
-            ->orderBy('designations.sort_order')
-            ->orderBy('teachers.sort_order')
-            ->orderBy('teachers.first_name')
-            ->get();
+            ->withCount('publications');
+
+        return TeacherDirectoryOrder::apply($listing, administrativeFirst: true)->get();
     }
 
     public function getTeachersProperty()
     {
         [$query, $adminScope] = $this->getBaseTeachersQuery();
 
-        return $query
+        $listing = $query
             ->whereRaw("NOT EXISTS (SELECT 1 FROM administrative_role_user aru WHERE aru.user_id = teachers.user_id AND ({$adminScope}) AND aru.deleted_at IS NULL)")
             // jobType because designation_title falls back to it for the rows
             // that are not ranks; without it the card asks per teacher.
@@ -237,11 +238,9 @@ class TeacherSearch extends Component
             // publications_count instead of loading every paper to call count()
             // on it: three of the four themes print the number on each card,
             // which fetched a teacher's whole bibliography per card.
-            ->withCount('publications')
-            ->orderBy('designations.sort_order')
-            ->orderBy('teachers.sort_order')
-            ->orderBy('teachers.first_name')
-            ->paginate(12);
+            ->withCount('publications');
+
+        return TeacherDirectoryOrder::apply($listing)->paginate(12);
     }
     public function getStaticTeacherCountProperty(): int
     {
