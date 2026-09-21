@@ -48,7 +48,11 @@ class DepartmentTeachersTable
              * are loaded once for the page rather than per row.
              */
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with([
-                'teacher',
+                // namePrefix and academicSuffixes because the name column asks
+                // the model to compose the whole name; without them that is two
+                // queries per row.
+                'teacher.namePrefix',
+                'teacher.academicSuffixes',
                 'department.faculty',
             ]))
             ->defaultSort(function (Builder $query, string $direction, $livewire) {
@@ -79,11 +83,23 @@ class DepartmentTeachersTable
                     ->searchable()
                     ->sortable(),
 
-                TextColumn::make('teacher.full_name')
+                TextColumn::make('teacher.display_name')
                     ->label('Teacher Name')
-                    ->formatStateUsing(fn ($record) => $record->teacher->first_name . ' '  .$record->teacher->middle_name . ' ' . $record->teacher->last_name)
+                    /*
+                     * This column used to join first, middle and last together
+                     * itself. That is how the four themes, the CV and the API
+                     * each ended up with their own idea of a name; the model
+                     * composes it now, titles and qualifications included, and
+                     * everything that prints a name asks the same question.
+                     *
+                     * The sort is given real columns because display_name is an
+                     * accessor and full_name — what this column used to name —
+                     * is no longer a column at all, so a bare sortable() would
+                     * put a missing column into the ORDER BY as soon as anybody
+                     * clicked the header.
+                     */
                     ->searchable(['first_name', 'middle_name', 'last_name'])
-                    ->sortable(),
+                    ->sortable(['first_name', 'last_name']),
 
                 TextColumn::make('teacher.designation.name')
                     ->label('Designation')

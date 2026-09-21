@@ -2,9 +2,12 @@
 
 namespace App\Console\Commands;
 
+use App\Models\AcademicSuffix;
+use App\Models\NamePrefix;
 use App\Models\Teacher;
 use App\Models\User;
 use App\Models\UserAdministrativeRole;
+use App\Support\AdministrativePostMap;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -17,17 +20,29 @@ class ImportOldTeachersCommand extends Command
                             {--limit=0               : Import only N teachers (0 = all)}
                             {--dry-run               : Preview without writing to DB}
                             {--skip-existing         : Skip if employee_id already exists}
-                            {--refresh-designations  : Also correct designation and extra designation on teachers already imported}';
+                            {--refresh-designations  : Also correct designation and extra designation on teachers already imported}
+                            {--refresh-names         : Also correct the name, its prefix and its suffixes on teachers already imported}';
 
     protected $description = 'Import teachers from exported JSON into the new database (Phase 1 — core profile only)';
 
     private bool  $dryRun       = false;
     private bool  $refreshDesignations = false;
+    private bool  $refreshNames = false;
     private int   $created      = 0;
     private int   $skipped      = 0;
     private int   $failed       = 0;
     private int   $designationsFixed = 0;
+    private int   $namesFixed   = 0;
     private array $errors       = [];
+
+    /** name_prefixes.name (lowercase) → id, built once. */
+    private array $namePrefixMap = [];
+
+    /** academic_suffixes.name (lowercase) → id, built once. */
+    private array $academicSuffixMap = [];
+
+    /** Designation names, so a post that is only a rank can be ignored. */
+    private array $designationNames = [];
 
     // Store already existing employee IDs
     private array $existingEmployeeIds = [];
@@ -44,6 +59,7 @@ class ImportOldTeachersCommand extends Command
     {
         $this->dryRun = (bool) $this->option('dry-run');
         $this->refreshDesignations = (bool) $this->option('refresh-designations');
+        $this->refreshNames = (bool) $this->option('refresh-names');
         $limit        = (int)  $this->option('limit');
         $skipExisting = (bool) $this->option('skip-existing');
         $file         = storage_path('app/public/exports/' . $this->option('file'));
@@ -104,6 +120,7 @@ class ImportOldTeachersCommand extends Command
                 ['⏭ Skipped',        $this->skipped],
                 ['❌ Failed',        $this->failed],
                 ['🎓 Designations corrected', $this->designationsFixed],
+                ['🪪 Names corrected', $this->namesFixed],
             ]
         );
 
@@ -111,6 +128,11 @@ class ImportOldTeachersCommand extends Command
             $this->newLine();
             $this->comment('Existing profiles keep the designation they already have. '
                 . 'Re-run with --refresh-designations to correct it from the export.');
+        }
+
+        if (! $this->refreshNames) {
+            $this->comment('Existing profiles keep the name they already have. '
+                . 'Re-run with --refresh-names to correct it from the export.');
         }
 
         // ✅ Show existing employee IDs
@@ -185,6 +207,7 @@ class ImportOldTeachersCommand extends Command
                 }
 
                 $this->refreshDesignation($existingUser->teacher, $record);
+                $this->refreshName($existingUser->teacher, $record);
 
                 $this->skipped++;
 
@@ -248,6 +271,10 @@ class ImportOldTeachersCommand extends Command
             }
         }
 
+        // The export carries the prefix by name so the file stays readable; the
+        // lookup rows live here, so the id is resolved on this side.
+        $stripped['name_prefix_id'] = $this->resolveNamePrefixId($p['name_prefix'] ?? null);
+
         $allowed  = (new Teacher)->getFillable();
         $filtered = array_intersect_key($stripped, array_flip($allowed));
 
@@ -256,9 +283,232 @@ class ImportOldTeachersCommand extends Command
             'sort_order' => 0,
         ]));
 
+        $this->syncAcademicSuffixes($teacher, $p['academic_suffixes'] ?? []);
         $this->syncPlacements($teacher, $user, $record);
 
         return $teacher;
+    }
+
+    /**
+     * Correct the name of a teacher who is already here.
+     *
+     * Same shape and same reasoning as refreshDesignation above: an existing
+     * profile is never rewritten, because it holds corrections somebody typed
+     * by hand — but the name is a field where nobody could have known it was
+     * wrong. The export's old parser removed the first word of 108 names
+     * outright ("Md. Shah Jahan" became "Shah Jahan"), left "Professor" inside
+     * the first name of 117 more, and made "PhD" the surname of sixteen. None
+     * of that looks like an error on screen; it looks like the name.
+     *
+     * So this is opt-in and writes the name fields only. Everything else about
+     * the profile is left alone, and a teacher whose name already matches is
+     * not written at all.
+     */
+    private function refreshName(Teacher $teacher, array $record): void
+    {
+        if (! $this->refreshNames) {
+            return;
+        }
+
+        $p = $record['teacher_profile'] ?? [];
+
+        $name = trim((string) ($p['name'] ?? ''));
+
+        if ($name === '') {
+            return;
+        }
+
+        $prefixId = $this->resolveNamePrefixId($p['name_prefix'] ?? null);
+        $suffixes = $p['academic_suffixes'] ?? [];
+
+        $current = $teacher->academicSuffixes()->pluck('name')->all();
+
+        $unchanged = $teacher->name_prefix_id === $prefixId
+            && $teacher->first_name === ($p['first_name'] ?? null)
+            && $teacher->middle_name === ($p['middle_name'] ?? null)
+            && $teacher->last_name === ($p['last_name'] ?? null)
+            && $current === $suffixes;
+
+        if ($unchanged) {
+            return;
+        }
+
+        $this->namesFixed++;
+
+        if ($this->dryRun) {
+            return;
+        }
+
+        /*
+         * saveQuietly: TeacherVersionService watches this model and would file
+         * a version for every one of these, which would bury the versions that
+         * record what a person actually changed under two thousand that record
+         * a correction to our own import.
+         */
+        /*
+         * The parsed name lands in the three parts and nowhere else. The export
+         * carries it whole as well, which is what those parts are cut from, but
+         * storing both would mean two sources that drift apart the first time
+         * somebody edits a surname on the form.
+         */
+        $teacher->forceFill([
+            'name_prefix_id' => $prefixId,
+            'first_name'     => $p['first_name'] ?? $teacher->first_name,
+            'middle_name'    => $p['middle_name'] ?? null,
+            'last_name'      => $p['last_name'] ?? null,
+        ])->saveQuietly();
+
+        $this->syncAcademicSuffixes($teacher, $suffixes);
+    }
+
+    /**
+     * Turns the non-rank half of an old designation into an administrative role.
+     *
+     * "Professor & Director, MBA Program" is a rank and a post. The rank is
+     * designation_id; this is the post. It used to be written to a free-text
+     * teachers.extra_designation column beside the rank, which is gone — a post
+     * somebody holds is an administrative role, which is a lookup rather than
+     * typed words, can be held several at a time, and carries the department it
+     * is held over.
+     *
+     * It has to happen here and not only in the migration that moved the
+     * existing values. The migration reads rows that already exist; a database
+     * rebuilt from scratch never has them, and without this the ranks would
+     * come across and every directorship and associate headship would quietly
+     * not.
+     *
+     * Additive and repeatable: somebody who already holds the role is left
+     * alone, so a second import does not stack duplicates.
+     */
+    private function syncPostFromDesignation(Teacher $teacher, User $user, ?string $extra): void
+    {
+        if ($this->dryRun) {
+            return;
+        }
+
+        if ($this->designationNames === []) {
+            $this->designationNames = \App\Models\Designation::pluck('name')->all();
+        }
+
+        $roleName = AdministrativePostMap::roleFor($extra, $this->designationNames);
+
+        if ($roleName === null) {
+            return;
+        }
+
+        $role = \App\Models\AdministrativeRole::firstOrCreate(
+            ['name' => $roleName],
+            ['sort_order' => AdministrativePostMap::MISSING_ROLES[$roleName] ?? 99, 'is_active' => true],
+        );
+
+        $facultyId = null;
+        $departmentId = $teacher->department_id;
+
+        if (AdministrativePostMap::isFacultyScoped($roleName)) {
+            $facultyId = $teacher->department?->faculty_id;
+            $departmentId = null;
+        }
+
+        UserAdministrativeRole::updateOrCreate(
+            [
+                'user_id' => $user->id,
+                'administrative_role_id' => $role->id,
+                'department_id' => $departmentId,
+                'faculty_id' => $facultyId,
+            ],
+            [
+                // Required by the table, and the old data records no date for
+                // these posts; every assignment the import creates carries the
+                // same answer.
+                'start_date' => now()->toDateString(),
+                'is_acting' => false,
+                'is_active' => true,
+                // The words the post was written in. "Program Coordinator"
+                // cannot say which programme, and "Director, M.Sc in Cyber
+                // Security" should not become indistinguishable from
+                // "Coordinator, MIS".
+                'remarks' => trim((string) $extra),
+            ],
+        );
+    }
+
+    /**
+     * The id of a prefix, creating the row if the export found one the seeder
+     * does not list.
+     *
+     * Created rather than dropped: a title nobody anticipated is still that
+     * person's title, and silently losing it is what this whole exercise is
+     * about. It lands inactive-free and can be tidied on the lookup screen.
+     */
+    private function resolveNamePrefixId(?string $name): ?int
+    {
+        $name = trim((string) $name);
+
+        if ($name === '') {
+            return null;
+        }
+
+        if ($this->namePrefixMap === []) {
+            $this->namePrefixMap = NamePrefix::pluck('id', 'name')
+                ->mapWithKeys(fn ($id, $n) => [mb_strtolower($n) => $id])->all();
+        }
+
+        $key = mb_strtolower($name);
+
+        if (! isset($this->namePrefixMap[$key])) {
+            if ($this->dryRun) {
+                return null;
+            }
+
+            $this->namePrefixMap[$key] = NamePrefix::firstOrCreate(
+                ['name' => $name],
+                ['sort_order' => 900, 'is_active' => true],
+            )->id;
+        }
+
+        return $this->namePrefixMap[$key];
+    }
+
+    /**
+     * Attach the qualifications written after the name, in the order given.
+     *
+     * @param  array<int, string>  $names
+     */
+    private function syncAcademicSuffixes(Teacher $teacher, array $names): void
+    {
+        if ($this->dryRun) {
+            return;
+        }
+
+        if ($this->academicSuffixMap === []) {
+            $this->academicSuffixMap = AcademicSuffix::pluck('id', 'name')
+                ->mapWithKeys(fn ($id, $n) => [mb_strtolower($n) => $id])->all();
+        }
+
+        $attach = [];
+
+        foreach (array_values($names) as $order => $name) {
+            $name = trim((string) $name);
+
+            if ($name === '') {
+                continue;
+            }
+
+            $key = mb_strtolower($name);
+
+            if (! isset($this->academicSuffixMap[$key])) {
+                $this->academicSuffixMap[$key] = AcademicSuffix::firstOrCreate(
+                    ['name' => $name],
+                    ['sort_order' => 900, 'is_active' => true],
+                )->id;
+            }
+
+            $attach[$this->academicSuffixMap[$key]] = ['sort_order' => $order];
+        }
+
+        // sync, not attach: a re-run with a corrected export has to be able to
+        // remove one that should not be there.
+        $teacher->academicSuffixes()->sync($attach);
     }
 
     /**
@@ -285,7 +535,6 @@ class ImportOldTeachersCommand extends Command
         $p = $record['teacher_profile'];
 
         $designationId = $p['designation_id'] ?? null;
-        $extra = $p['extra_designation'] ?? null;
 
         // A record whose designation did not resolve says nothing about this
         // teacher; it must not blank out one that is already set.
@@ -293,23 +542,26 @@ class ImportOldTeachersCommand extends Command
             return;
         }
 
-        if ((int) $teacher->designation_id === (int) $designationId
-            && $teacher->extra_designation === $extra) {
+        if ((int) $teacher->designation_id === (int) $designationId) {
             return;
         }
 
         $this->line(sprintf(
-            '  designation: %s #%s → #%s%s',
+            '  designation: %s #%s → #%s',
             $teacher->full_name,
             $teacher->designation_id,
             $designationId,
-            $extra ? ' & ' . $extra : '',
         ));
 
+        /*
+         * The rank only. The other half of an old designation string — "&
+         * Director, MBA Program" — used to be written to extra_designation
+         * beside it; that column is gone and those posts are administrative
+         * roles now, which syncPlacements attaches from the same record.
+         */
         if (! $this->dryRun) {
             $teacher->forceFill([
-                'designation_id'    => $designationId,
-                'extra_designation' => $extra,
+                'designation_id' => $designationId,
             ])->save();
         }
 
@@ -338,6 +590,8 @@ class ImportOldTeachersCommand extends Command
     {
         $p = $record['teacher_profile'];
         $departments = $record['departments'] ?? [];
+
+        $this->syncPostFromDesignation($teacher, $user, $p['extra_designation'] ?? null);
 
         if (!empty($departments)) {
             foreach ($departments as $dept) {

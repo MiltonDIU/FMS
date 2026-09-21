@@ -233,23 +233,21 @@ class TeacherForm
                                         ->disabled($isOwnProfile)
                                         ->dehydrated(! $isOwnProfile),
                                     /*
-                                     * The standing title some people carry beside
-                                     * their rank — "Advisor", "Director, MBA
-                                     * Program". Free text because there is no
-                                     * list to choose from: each programme names
-                                     * its own. A role that governs a department
-                                     * or faculty is not this; that is an
-                                     * administrative role, which carries dates
-                                     * and a scope and files the holder under
-                                     * Administration on the public pages.
+                                     * There was an "Extra Designation" free-text
+                                     * field here for the standing title some
+                                     * people carry beside their rank — "Advisor",
+                                     * "Director, MBA Program".
+                                     *
+                                     * It is gone, and so is the column. A post
+                                     * somebody holds is an administrative role:
+                                     * chosen from a list instead of typed, held
+                                     * several at a time, scoped to the department
+                                     * or faculty it is held over, and carrying
+                                     * the dates it was held. Saying it twice is
+                                     * what made three teachers read "Professor &
+                                     * Professor" while the administrative role
+                                     * beside them already said Dean.
                                      */
-                                    TextInput::make('extra_designation')
-                                        ->label('Extra Designation')
-                                        ->placeholder('Director, MBA Program')
-                                        ->helperText('Shown after the designation: "Professor & Director, MBA Program". Leave empty for most teachers.')
-                                        ->maxLength(255)
-                                        ->disabled($isOwnProfile)
-                                        ->dehydrated(! $isOwnProfile),
                                 ]),
                                 Grid::make(3)->schema([
                                     TextInput::make('employee_id')

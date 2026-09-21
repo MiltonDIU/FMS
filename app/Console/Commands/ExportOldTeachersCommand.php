@@ -296,7 +296,7 @@ class ExportOldTeachersCommand extends Command
          * matchDesignation() reads a rank out of whatever it is given and
          * discards the rest, so without the split the directorship is lost.
          */
-        $isRank = fn (string $half) => $this->matchDesignation(strtolower($half), $rankMap) !== null;
+        $isRank = fn (string $half) => $this->namesRankExplicitly($half, $rankMap);
 
         foreach ($oldDesigs as $od) {
             [$rankText, $extra] = DesignationTitle::split($od->designation, $isRank);
@@ -435,34 +435,57 @@ class ExportOldTeachersCommand extends Command
         }
     }
 
+    /**
+     * Keyword → the designation row it names, most specific first.
+     *
+     * The order is the whole of the logic: "associate professor" has to be
+     * tested before "professor", and both senior-scale spellings before
+     * "lecturer". Without that last part "Lecturer (Senior Scale)" matches the
+     * plain Lecturer row, which is what happened to every senior-scale lecturer
+     * in the old data — the grade simply disappeared on import.
+     *
+     * Only academic ranks appear here. "Adjunct" and "Visiting" describe how
+     * somebody is employed, not what they are, and jobTypeFor() already reads
+     * both out of the same string into job_type_id.
+     */
+    private const RANK_KEYWORDS = [
+        'lecturer (senior scale)' => 'lecturer (senior scale)',
+        'senior scale'            => 'lecturer (senior scale)',
+        'associate professor'     => 'associate professor',
+        'assistant professor'     => 'assistant professor',
+        'senior lecturer'         => 'senior lecturer',
+        'professor'               => 'professor',
+        'lecturer'                => 'lecturer',
+    ];
+
+    /**
+     * Whether this half of a designation names an academic rank in so many
+     * words.
+     *
+     * Deliberately stricter than matchDesignation(), which falls back to
+     * "a dean is a professor" for a title that names no rank at all. That
+     * fallback is right when there is only one title to read and wrong when
+     * deciding which of two halves is the rank: it made isRank("Dean") true, so
+     * "Dean & Professor" was never swapped and the rank was read out of the
+     * word "Dean". "Associate Dean & Associate Professor" came through as plain
+     * Professor because of it — a grade demoted by one and promoted by the
+     * other, on somebody who is neither.
+     */
+    private function namesRankExplicitly(string $name, array $rankMap): bool
+    {
+        foreach (self::RANK_KEYWORDS as $keyword => $target) {
+            if (isset($rankMap[$target]) && str_contains(strtolower($name), $keyword)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function matchDesignation(string $oldName, array $rankMap): ?int
     {
-        /*
-         * Keyword → the designation row it names, most specific first. The
-         * order is the whole of the logic: "associate professor" has to be
-         * tested before "professor", and both senior-scale spellings before
-         * "lecturer". Without that last part "Lecturer (Senior Scale)" matches
-         * the plain Lecturer row, which is what happened to every senior-scale
-         * lecturer in the old data — the grade simply disappeared on import.
-         *
-         * Only academic ranks appear here. "Adjunct" and "Visiting" describe how
-         * somebody is employed, not what they are, and jobTypeFor() already
-         * reads both out of the same string into job_type_id. "Adjunct Faculty"
-         * used to be tested in this list, above "professor", together with a
-         * bare "adjunct" that never fired at all — it looked for a designation
-         * row of that name and there is none. Both now sit in the fallback
-         * below, which is where a title that names no rank belongs; a title that
-         * does name one has always kept it, and still does.
-         */
-        $priority = [
-            'lecturer (senior scale)' => 'lecturer (senior scale)',
-            'senior scale'            => 'lecturer (senior scale)',
-            'associate professor'     => 'associate professor',
-            'assistant professor'     => 'assistant professor',
-            'senior lecturer'         => 'senior lecturer',
-            'professor'               => 'professor',
-            'lecturer'                => 'lecturer',
-        ];
+        $priority = self::RANK_KEYWORDS;
+
         foreach ($priority as $keyword => $target) {
             if (isset($rankMap[$target]) && str_contains($oldName, $keyword)) {
                 return $rankMap[$target];
@@ -679,6 +702,11 @@ class ExportOldTeachersCommand extends Command
                 ],
                 'teacher_profile' => [
                     'employee_id'          => $t->employeeID   ?? null,
+                    // Resolved to ids by the import, which is where the lookup
+                    // tables live; the export stays readable.
+                    'name_prefix'          => $nameParts['name_prefix'],
+                    'name'                 => $nameParts['name'],
+                    'academic_suffixes'    => $nameParts['academic_suffixes'],
                     'first_name'           => $nameParts['first_name'],
                     'middle_name'          => $nameParts['middle_name'],
                     'last_name'            => $nameParts['last_name'],
@@ -728,6 +756,11 @@ class ExportOldTeachersCommand extends Command
             ],
             'teacher_profile' => [
                 'employee_id'          => $t->employeeID   ?? null,
+                // Resolved to ids by the import, which is where the lookup
+                // tables live; the export stays readable.
+                'name_prefix'          => $nameParts['name_prefix'],
+                'name'                 => $nameParts['name'],
+                'academic_suffixes'    => $nameParts['academic_suffixes'],
                 'first_name'           => $nameParts['first_name'],
                 'middle_name'          => $nameParts['middle_name'],
                 'last_name'            => $nameParts['last_name'],
@@ -1074,12 +1107,50 @@ class ExportOldTeachersCommand extends Command
         ];
     }
 
+    /**
+     * The name, the title in front of it, and the letters after it.
+     *
+     * This used to be one line:
+     *
+     *     preg_replace('/^(Dr\.?|Prof\.?|Mr\.?|Mrs\.?|Ms\.?|Md\.?)\s+/i', '', $name)
+     *
+     * and that line is where every name problem in the new database came from.
+     * `Md\.?` was in it, so 108 people lost the first word of their name —
+     * "Md. Shah Jahan" was stored as "Shah Jahan". It replaced once instead of
+     * looping, so "Prof. Dr. M. Mizanur Rahman" kept the second title. It never
+     * matched "Professor", only "Prof.", so 117 people have "Professor" sitting
+     * in first_name. And it knew nothing about what follows a name, so sixteen
+     * people's surname is literally "PhD".
+     *
+     * LegacyNameParser does the whole job and is checked against all 2,129
+     * legacy names: not one word is dropped or invented, only title spellings
+     * are made consistent.
+     *
+     * first_name/middle_name/last_name are still filled, because everything
+     * downstream still reads them. They are now filled from the name with the
+     * title and the qualifications already taken off, so the surname is at
+     * least a word out of the person's name.
+     *
+     * @return array{
+     *     name_prefix: string|null,
+     *     name: string,
+     *     academic_suffixes: array<int, string>,
+     *     first_name: string,
+     *     middle_name: string|null,
+     *     last_name: string|null,
+     * }
+     */
     private function parseName(string $fullName): array
     {
-        $fullName = preg_replace('/^(Dr\.?|Prof\.?|Mr\.?|Mrs\.?|Ms\.?|Md\.?)\s+/i', '', trim($fullName));
-        $parts    = preg_split('/\s+/', $fullName);
+        $parsed = \App\Support\LegacyNameParser::parse($fullName);
+        $parts  = preg_split('/\s+/', $parsed['name'], -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
         return [
-            'first_name'  => $parts[0] ?? $fullName,
+            'name_prefix'       => $parsed['prefix'],
+            'name'              => $parsed['name'],
+            'academic_suffixes' => $parsed['suffixes'],
+
+            'first_name'  => $parts[0] ?? $parsed['name'],
             'middle_name' => count($parts) > 2 ? implode(' ', array_slice($parts, 1, -1)) : null,
             'last_name'   => count($parts) > 1 ? end($parts) : null,
         ];

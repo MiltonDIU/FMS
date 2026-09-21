@@ -13,27 +13,20 @@ use App\Mail\TeacherWelcomeMail;
 
 class TeacherObserver
 {
-    /**
-     * Keep the full_name column in step with the name parts.
+    /*
+     * There was a saving() hook here that kept a full_name column in step with
+     * the name parts. Both are gone.
      *
-     * The column exists and a dozen places read it — exports, mail, the Scopus
-     * matching — but nothing ever wrote it outside the one-off
-     * `teachers:fill-fullname` command, so every teacher created since it was
-     * added had it empty. Firing on saving covers creates and updates alike, and
-     * a name edited on the form no longer leaves a stale display name behind.
+     * The column could never be read: Teacher defines getFullNameAttribute(),
+     * and an accessor shadows a column of the same name, so every caller got
+     * the parts rejoined and the written value was never seen by anything. It
+     * was two sources for one fact with one of them invisible, which is the
+     * bug the name work set out to fix — keeping it would have been keeping the
+     * disease and treating the symptoms.
+     *
+     * $teacher->full_name still works everywhere it is used. It is the accessor
+     * now, and only the accessor.
      */
-    public function saving(Teacher $teacher): void
-    {
-        $name = \App\Support\TeacherName::fromParts(
-            $teacher->first_name,
-            $teacher->middle_name,
-            $teacher->last_name,
-        );
-
-        if ($name !== '') {
-            $teacher->full_name = $name;
-        }
-    }
 
     /**
      * Handle the Teacher "creating" event.

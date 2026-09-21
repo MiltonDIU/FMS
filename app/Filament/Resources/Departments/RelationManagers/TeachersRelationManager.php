@@ -25,10 +25,12 @@ class TeachersRelationManager extends RelationManager
                     ->searchable()
                     ->copyable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('full_name')
+                TextColumn::make('display_name')
                     ->label('Name')
+                    // An accessor, so both lists are explicit: there is no
+                    // display_name or full_name column to sort on any more.
                     ->searchable(['first_name', 'middle_name', 'last_name'])
-                    ->sortable(),
+                    ->sortable(['first_name', 'last_name']),
 //                TextColumn::make('department.name')
 //                    ->label('Department')
 //                    ->searchable()

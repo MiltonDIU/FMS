@@ -19,7 +19,10 @@ class DepartmentTeacherForm
                     Select::make('teacher_id')
                         ->label('Teacher')
                         ->relationship('teacher', 'first_name')
-                        ->getOptionLabelFromRecordUsing(fn ($record) => $record->first_name . ' ' . $record->last_name . ' (' . $record->employee_id . ')')
+                        // The same composed name the table shows, so picking a
+                        // teacher here and finding them in the list afterwards
+                        // are the same name rather than two spellings of one.
+                        ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_name . ' (' . $record->employee_id . ')')
                         ->searchable(['first_name', 'last_name', 'employee_id'])
                         ->preload()
                         ->required()

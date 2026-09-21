@@ -21,7 +21,7 @@ class TeacherVersionService
      */
     public const FIELD_SECTION_MAP = [
         // Tab 1: Basic Info (removed 'photo' - it's a media field)
-        'basic_info' => ['department_id', 'designation_id', 'extra_designation', 'employee_id', 'webpage', 'joining_date', 'work_location', 'first_name', 'middle_name', 'last_name', 'bio'],
+        'basic_info' => ['department_id', 'designation_id', 'employee_id', 'webpage', 'joining_date', 'work_location', 'first_name', 'middle_name', 'last_name', 'bio'],
         
         // Tab 2: Contact Info
         'contact_info' => ['phone', 'personal_phone', 'extension_no', 'office_room', 'secondary_email', 'present_address', 'permanent_address'],

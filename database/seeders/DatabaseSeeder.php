@@ -55,6 +55,7 @@ class DatabaseSeeder extends Seeder
             ErpProfileSyncPermissionSeeder::class,
             EmailBatchPermissionSeeder::class,
             TeacherPhotoDownloadPermissionSeeder::class,
+            NameAffixPermissionSeeder::class,
 
             // ── Configuration ───────────────────────────────────────────────
             SettingsSeeder::class,
@@ -78,6 +79,11 @@ class DatabaseSeeder extends Seeder
             // Fills in each country's demonym, which is what the HR system
             // sends for a teacher's nationality.
             CountryNationalitySeeder::class,
+            // Before anything that imports teachers: the import resolves a
+            // parsed prefix against these rows and creates any it cannot find,
+            // so an empty table means the list builds itself out of whatever
+            // the old data happened to contain.
+            NameAffixSeeder::class,
             GenderSeeder::class,
             BloodGroupSeeder::class,
             ReligionSeeder::class,

@@ -40,7 +40,6 @@ class TeacherResource extends JsonResource
              * is introduced on their own page.
              */
             'designation' => optional($this->whenLoaded('designation'))->name,
-            'extra_designation' => $this->extra_designation,
             'designation_title' => $this->whenLoaded('designation', fn () => $this->designation_title),
             /*
              * How the person is engaged, when that is anything other than the

@@ -96,6 +96,14 @@ class IntegrationService
      * from the second word is what reduced "Md. Fokhray Hossain" to a first name
      * of "Md.".
      *
+     * The title and any qualifications come off first, through the same parser
+     * the legacy import uses. Without that a name arriving as "Professor Dr. Md.
+     * Shahedur Rashid" puts "Professor" in first_name, and one arriving as
+     * "Muhammad Mahboob Ali, PhD" makes "PhD" the surname — which is precisely
+     * what the old export did to 133 teachers before it was fixed. The HR system
+     * sends names in the same shape the old database held them, so it needs the
+     * same reading.
+     *
      * @param array $teacher the mapped Teacher attributes
      */
     protected function splitPackedName(array $teacher): array
@@ -106,14 +114,22 @@ class IntegrationService
             return $teacher;
         }
 
-        if (!str_contains($first, ' ')) {
+        $parsed = \App\Support\LegacyNameParser::parse($first);
+        $name = $parsed['name'];
+
+        if (! str_contains($name, ' ')) {
+            // One word once the title is off: it is a given name and there is
+            // no surname to take. Still worth having lifted the title out.
+            $teacher['first_name'] = $name !== '' ? $name : $first;
+
             return $teacher;
         }
 
-        $parts = \App\Support\TeacherName::split($first);
+        $parts = preg_split('/\s+/', $name, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $last = array_pop($parts);
 
-        $teacher['first_name'] = $parts['first_name'];
-        $teacher['last_name'] = $parts['last_name'];
+        $teacher['first_name'] = implode(' ', $parts);
+        $teacher['last_name'] = $last;
 
         return $teacher;
     }

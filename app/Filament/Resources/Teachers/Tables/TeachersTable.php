@@ -52,6 +52,10 @@ class TeachersTable
                 'jobType',
                 'user.roles',
                 'user.administrativeRoles',
+                // display_name reads both; without these the name column is
+                // two queries per row.
+                'namePrefix',
+                'academicSuffixes',
             ]))
             ->columns([
                 TextColumn::make('employee_id')
@@ -63,10 +67,22 @@ class TeachersTable
                     ->searchable()
                     ->copyable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('full_name')
+                TextColumn::make('display_name')
                     ->label('Name')
-                    ->searchable(['first_name', 'middle_name', 'last_name'])
-                    ->sortable(),
+                    /*
+                     * The whole name as it is written — "Professor Dr. Mostafa
+                     * Kamal", "Muhammad Mahboob Ali, PhD" — composed by the
+                     * model so this column and every other place that prints a
+                     * name cannot drift apart.
+                     *
+                     * Both lists are told explicitly what to search and sort on,
+                     * because display_name is an accessor and full_name is one
+                     * too: the database has neither column, and a bare
+                     * sortable() would put a column that does not exist into
+                     * the ORDER BY the moment somebody clicked the header.
+                     */
+                    ->searchable(['first_name', 'middle_name', 'last_name', 'employee_id'])
+                    ->sortable(['first_name', 'last_name']),
                 TextColumn::make('admin_roles')
                     ->label('Admin Roles')
                     ->badge()

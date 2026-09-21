@@ -38,8 +38,11 @@ class Teacher extends Model implements HasMedia
         'user_id',
         'department_id',
         'designation_id',
-        'extra_designation',
         'employee_id',
+        // The title written before the name — "Professor Dr.", "Engr.". Held
+        // apart from the name itself because it is a different fact about the
+        // person, and because the old import buried it inside first_name.
+        'name_prefix_id',
         'scopus_id',
         'webpage',
         'first_name',
@@ -398,6 +401,43 @@ class Teacher extends Model implements HasMedia
     }
 
     /**
+     * The name as it should be written out: title, name, qualifications.
+     *
+     *     Professor Dr. Mostafa Kamal
+     *     Muhammad Mahboob Ali, PhD
+     *     Md. Shah Jahan
+     *
+     * One place, deliberately. Every part of this system that has ever had its
+     * own idea of how to assemble a name has ended up disagreeing with the
+     * others — four themes each rejoining first, middle and last their own way,
+     * a full_name column nothing read, an import that invented a surname. This
+     * is the rule, and anything that prints a teacher's name should ask for it
+     * rather than build its own.
+     *
+     * The prefix is not suppressed when it repeats the designation. 53 of the
+     * 55 people written "Professor" are also Professors by designation, so a
+     * card showing both says "Professor" twice — which is how a great many
+     * university directories read, and it is a presentation decision rather
+     * than something to hard-code here. DesignationTitle has the machinery if
+     * that is ever wanted.
+     *
+     * Relations are read, so eager load namePrefix and academicSuffixes on any
+     * query that will print a list of these.
+     */
+    public function getDisplayNameAttribute(): string
+    {
+        $name = trim(($this->namePrefix?->name ? $this->namePrefix->name . ' ' : '') . $this->full_name);
+
+        $suffixes = $this->relationLoaded('academicSuffixes')
+            ? $this->academicSuffixes
+            : $this->academicSuffixes()->get();
+
+        return $suffixes->isEmpty()
+            ? $name
+            : $name . ', ' . $suffixes->pluck('name')->implode(', ');
+    }
+
+    /**
      * The title as it should be shown: the rank, and the standing title beside
      * it where there is one.
      *
@@ -432,7 +472,18 @@ class Teacher extends Model implements HasMedia
                     : $designation?->name);
         }
 
-        return DesignationTitle::compose($title, $this->extra_designation);
+        /*
+         * The rank alone. The administrative half of a designation used to be
+         * appended here from teachers.extra_designation, and that column is
+         * gone: a post somebody holds is an administrative role, which is a
+         * lookup rather than free text, can be held several at once, and
+         * carries the department or faculty it is held over.
+         *
+         * Saying it in both places is what produced "Professor & Professor" —
+         * the export put the rank in both halves while the administrative role
+         * beside it already read Dean correctly.
+         */
+        return $title;
     }
 
     /**
@@ -525,6 +576,27 @@ class Teacher extends Model implements HasMedia
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class);
+    }
+
+    /**
+     * The title written before this teacher's name — "Professor Dr.", "Engr.".
+     */
+    public function namePrefix(): BelongsTo
+    {
+        return $this->belongsTo(NamePrefix::class);
+    }
+
+    /**
+     * The qualifications written after it — PhD, MBBS.
+     *
+     * Ordered by the pivot, because "PhD, MBA" is not "MBA, PhD".
+     */
+    public function academicSuffixes(): BelongsToMany
+    {
+        return $this->belongsToMany(AcademicSuffix::class)
+            ->withPivot('sort_order')
+            ->withTimestamps()
+            ->orderBy('academic_suffix_teacher.sort_order');
     }
 
     /**
