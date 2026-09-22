@@ -8,6 +8,10 @@ use App\Models\Faculty;
 use App\Models\Department;
 use App\Models\Teacher;
 use App\Models\Author;
+use App\Models\GrantType;
+use App\Models\ResearchCollaboration;
+use App\Support\GrantTypeRule;
+use App\Support\ResearchCollaborationRule;
 
 class ConvertPublicationCsvToJsonCommand extends Command
 {
@@ -544,6 +548,9 @@ class ConvertPublicationCsvToJsonCommand extends Command
         // Cache author types
         $authorTypesCache = \Illuminate\Support\Facades\DB::table('author_types')->get()->keyBy('name');
 
+        $collaborationsCache = ResearchCollaboration::all()->keyBy('slug');
+        $grantTypesCache = GrantType::all()->keyBy('slug');
+
         foreach ($pubs as &$pub) {
             $pub['come_from_pd'] = 1;
             $deptId = $pub['department_id'];
@@ -648,7 +655,42 @@ class ConvertPublicationCsvToJsonCommand extends Command
                         $author['authorable_id'] = $authorId;
                     }
                 }
+
+                // The inner foreach leaves $author referencing this paper's last
+                // author. Harmless as the loop stands, but the list is read
+                // again just below and a stray reference into it is the kind of
+                // thing that only breaks once somebody adds a line.
+                unset($author);
             }
+
+            /*
+             * The collaboration, now that every author on this paper is either
+             * one of our teachers or a row in the authors table. It cannot be
+             * settled any earlier: before this loop the authors are only names.
+             */
+            $collabSlug = ResearchCollaborationRule::slugFor($pub['authors'] ?? []);
+
+            $pub['research_collaboration_slug'] = $collabSlug;
+            $pub['research_collaboration_id'] = ($collabSlug !== null && isset($collaborationsCache[$collabSlug]))
+                ? $collaborationsCache[$collabSlug]->id
+                : null;
+
+            /*
+             * The grant type, which has to wait for the same thing. It used to
+             * be settled back in step 2 alongside the incentive, but its last
+             * resort is now "is one of our teachers on this paper", and in step
+             * 2 the authors are still just names — nothing has been matched to
+             * a teacher yet, so every row would have fallen through to Not
+             * Assigned.
+             */
+            $grantSlug = GrantTypeRule::slugFor(
+                $pub['award_money_csv'] ?? null,
+                $pub['funding'] ?? null,
+                $pub['authors'] ?? [],
+            );
+
+            $pub['grant_type_slug'] = $grantSlug;
+            $pub['grant_type_id'] = $grantTypesCache[$grantSlug]->id ?? null;
         }
 
         return $pubs;

@@ -47,7 +47,9 @@ class PublicationLookupSeeder extends Seeder
             ['name' => 'Q2', 'slug' => 'q2'],
             ['name' => 'Q3', 'slug' => 'q3'],
             ['name' => 'Q4', 'slug' => 'q4'],
-            ['name' => 'N/Q', 'slug' => 'n-q'],
+            // Not ranked in a quartile. Named N/A because that is what the
+            // source writes; it was "N/Q" until the two were reconciled.
+            ['name' => 'N/A', 'slug' => 'n-a'],
         ];
         foreach ($quartiles as $index => $item) {
             PublicationQuartile::firstOrCreate(['slug' => $item['slug']], array_merge($item, ['sort_order' => $index + 1]));
@@ -55,13 +57,16 @@ class PublicationLookupSeeder extends Seeder
 
         // Grant Types
         $grants = [
-            ['name' => 'DIU Project', 'slug' => 'diu-project'],
-            ['name' => 'External Project', 'slug' => 'external-project'],
-            ['name' => 'Self Funded', 'slug' => 'self-funded'],
-            ['name' => 'Govt. Funded', 'slug' => 'govt-funded'],
+            ['name' => 'DIU Project', 'slug' => 'diu-project', 'sort_order' => 1],
+            ['name' => 'External Project', 'slug' => 'external-project', 'sort_order' => 2],
+            ['name' => 'Self Funded', 'slug' => 'self-funded', 'sort_order' => 3],
+            ['name' => 'Govt. Funded', 'slug' => 'govt-funded', 'sort_order' => 4],
+            // Not a funder: where a publication lands when nothing on record
+            // names one. Last in every dropdown, hence the gap in sort_order.
+            ['name' => 'Not Assigned', 'slug' => 'not-assigned', 'sort_order' => 99],
         ];
-        foreach ($grants as $index => $item) {
-            GrantType::firstOrCreate(['slug' => $item['slug']], array_merge($item, ['sort_order' => $index + 1]));
+        foreach ($grants as $item) {
+            GrantType::firstOrCreate(['slug' => $item['slug']], $item);
         }
 
         // Research Collaborations

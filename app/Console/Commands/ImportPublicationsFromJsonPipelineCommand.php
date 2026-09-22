@@ -10,7 +10,10 @@ use App\Models\PublicationType;
 use App\Models\PublicationLinkage;
 use App\Models\PublicationQuartile;
 use App\Models\ResearchCollaboration;
-use App\Models\Teacher;
+use App\Models\GrantType;
+use App\Support\GrantTypeRule;
+use App\Support\PublicationQuartileRule;
+use App\Support\ResearchCollaborationRule;
 
 class ImportPublicationsFromJsonPipelineCommand extends Command
 {
@@ -64,6 +67,35 @@ class ImportPublicationsFromJsonPipelineCommand extends Command
         $linkagesCache = PublicationLinkage::all()->keyBy('slug');
         $quartilesCache = PublicationQuartile::all()->keyBy('slug');
         $collaborationsCache = ResearchCollaboration::all()->keyBy('slug');
+        $collaborationsById = ResearchCollaboration::all()->keyBy('id');
+        $grantTypesById = GrantType::all()->keyBy('id');
+        $grantTypesCache = GrantType::all()->keyBy('slug');
+
+        /*
+         * Not Assigned has to exist before a run can file anything under it.
+         * Its migration adds it, but a database that has not been migrated
+         * would otherwise silently write nulls again — the exact state this
+         * whole category was added to get rid of.
+         */
+        if (! isset($grantTypesCache[GrantTypeRule::NOT_ASSIGNED])) {
+            $this->error('The "Not Assigned" grant type is missing. Run php artisan migrate first.');
+
+            return 1;
+        }
+
+        // Same reasoning for the quartile every unranked publication falls to.
+        // Named N/A now, N/Q before it was renamed; either will do.
+        $notQuartiledId = PublicationQuartileRule::notQuartiledId($quartilesCache);
+
+        if ($notQuartiledId === null) {
+            $this->error(
+                'No "not ranked" publication quartile found — expected one of: '
+                . implode(', ', PublicationQuartileRule::NOT_QUARTILED_SLUGS)
+                . '. Run php artisan db:seed --class=PublicationLookupSeeder first.'
+            );
+
+            return 1;
+        }
 
         /*
          * The users that created_by is allowed to point at.
@@ -96,9 +128,39 @@ class ImportPublicationsFromJsonPipelineCommand extends Command
 
         $creatorsDropped = 0;
 
-        // Counted so the run says how the collaboration came out, rather than
-        // leaving it to be discovered in the table afterwards.
-        $collaborationCounts = ['diu' => 0, 'external' => 0, 'unknown' => 0];
+        // Counted so the run says how the collaboration and the funding came
+        // out, rather than leaving both to be discovered in the table
+        // afterwards. Keyed by slug, with 'unknown' for the rows that could not
+        // be placed.
+        $collaborationCounts = [
+            ResearchCollaborationRule::DIU => 0,
+            ResearchCollaborationRule::VISITING_AND_DIU => 0,
+            ResearchCollaborationRule::EXTERNAL => 0,
+            'unknown' => 0,
+        ];
+
+        $grantCounts = [
+            GrantTypeRule::DIU => 0,
+            GrantTypeRule::EXTERNAL => 0,
+            GrantTypeRule::SELF => 0,
+            GrantTypeRule::NOT_ASSIGNED => 0,
+            'unknown' => 0,
+        ];
+
+        // grant_type_id comes out of the file as an id, resolved against the
+        // grant_types table on the day the pipeline ran. The same thing that
+        // happened to created_by after a migrate:fresh can happen here, so an
+        // id nothing matches becomes null instead of failing the row.
+        $grantIdsDropped = 0;
+        $collaborationIdsDropped = 0;
+
+        $quartileCounts = [
+            PublicationQuartileRule::Q1 => 0,
+            PublicationQuartileRule::Q2 => 0,
+            PublicationQuartileRule::Q3 => 0,
+            PublicationQuartileRule::Q4 => 0,
+            PublicationQuartileRule::NOT_QUARTILED => 0,
+        ];
 
         $importedCount = 0;
         $updatedCount = 0;
@@ -131,55 +193,86 @@ class ImportPublicationsFromJsonPipelineCommand extends Command
                 $linkage_id = isset($linkagesCache[$slug]) ? $linkagesCache[$slug]->id : null;
             }
 
-            // Resolve Quartile ID
-            $quartile_id = null;
-            if (!empty($pub['q_index'])) {
-                $slug = $this->toSlug($pub['q_index']);
-                $quartile_id = isset($quartilesCache[$slug]) ? $quartilesCache[$slug]->id : null;
-            }
+            /*
+             * Resolve Quartile ID.
+             *
+             * Never null: a journal that is not ranked in a quartile is N/Q,
+             * which is a row in the table and not an absence. The old lookup
+             * left a null whenever the text missed, and "N/A" missed — it slugs
+             * to "n-a", which is nothing.
+             */
+            $quartileSlug = PublicationQuartileRule::slugFor($pub['q_index'] ?? null);
+
+            $quartile_id = $quartileSlug === PublicationQuartileRule::NOT_QUARTILED
+                ? $notQuartiledId
+                : ($quartilesCache[$quartileSlug]->id ?? null);
+
+            $quartileCounts[$quartileSlug] = ($quartileCounts[$quartileSlug] ?? 0) + 1;
 
             /*
-             * Resolve the collaboration from who wrote the paper.
+             * The collaboration, as publications:convert-pipeline worked it out
+             * from the resolved author list.
              *
-             * PD does not record it — research_collaboration_id appears nowhere
-             * in the file — so the field was read straight out of the JSON and
-             * came back null for all 7,378 rows every run. The authors do say
-             * it, though, so it is worked out here instead.
-             *
-             * A paper with one of our own teachers on it is DIU research; a
-             * paper with none is an external collaboration. Note that a visiting
-             * faculty member does not change the answer: with a DIU teacher the
-             * paper is still DIU research, and without one it is still external.
-             * That leaves 'Visiting Faculty + DIU Researcher' unused, which is
-             * deliberate rather than an oversight — say the word and VF takes
-             * precedence in whichever direction you want it to.
-             *
-             * A paper with no authors at all is left alone. Two of them are like
-             * that, and neither statement is true of a paper we know nothing
-             * about.
+             * It is recomputed here when the file does not carry it, so a
+             * third_step.json written before the pipeline started emitting the
+             * field still imports with a collaboration rather than a null. Same
+             * rule either way — ResearchCollaborationRule is the only place it
+             * is written down.
              */
-            $collaboration_id = null;
             $authors = is_array($pub['authors'] ?? null) ? $pub['authors'] : [];
 
-            if ($authors !== []) {
-                $hasOurTeacher = false;
+            /*
+             * An id in the file that the table no longer has is treated as if
+             * the file had said nothing, and the rule answers instead. This is
+             * the created_by problem again: the ids were resolved on the day
+             * the pipeline ran, and a migrate:fresh since then renumbers the
+             * lookup tables underneath them.
+             */
+            $collaboration_id = $pub['research_collaboration_id'] ?? null;
 
-                foreach ($authors as $author) {
-                    if (($author['authorable_type'] ?? null) === Teacher::class) {
-                        $hasOurTeacher = true;
-                        break;
-                    }
-                }
-
-                $collaborationSlug = $hasOurTeacher ? 'diu-researcher' : 'collaboration-external';
-                $collaboration_id = isset($collaborationsCache[$collaborationSlug])
-                    ? $collaborationsCache[$collaborationSlug]->id
-                    : null;
-
-                $collaborationCounts[$hasOurTeacher ? 'diu' : 'external']++;
-            } else {
-                $collaborationCounts['unknown']++;
+            if ($collaboration_id !== null && ! isset($collaborationsById[$collaboration_id])) {
+                $collaboration_id = null;
+                $collaborationIdsDropped++;
             }
+
+            $collaborationSlug = $collaboration_id !== null
+                ? ($collaborationsById[$collaboration_id]->slug ?? null)
+                : ResearchCollaborationRule::slugFor($authors);
+
+            if ($collaboration_id === null && $collaborationSlug !== null) {
+                $collaboration_id = $collaborationsCache[$collaborationSlug]->id ?? null;
+            }
+
+            $collaborationCounts[$collaborationSlug ?? 'unknown'] =
+                ($collaborationCounts[$collaborationSlug ?? 'unknown'] ?? 0) + 1;
+
+            /*
+             * The grant type, the same way: what the pipeline decided, or the
+             * rule again when the file is older than the field. The CSV's
+             * Award Money and Funding cells are both carried through into
+             * third_step.json, so this command can work it out from scratch
+             * exactly as the pipeline did.
+             */
+            $grant_type_id = $pub['grant_type_id'] ?? null;
+
+            if ($grant_type_id !== null && ! isset($grantTypesById[$grant_type_id])) {
+                $grant_type_id = null;
+                $grantIdsDropped++;
+            }
+
+            $grantSlug = $grant_type_id !== null
+                ? ($grantTypesById[$grant_type_id]->slug ?? null)
+                : GrantTypeRule::slugFor(
+                    $pub['award_money_csv'] ?? null,
+                    $pub['funding'] ?? null,
+                    $authors,
+                );
+
+            if ($grant_type_id === null && $grantSlug !== null) {
+                $grant_type_id = $grantTypesCache[$grantSlug]->id ?? null;
+            }
+
+            $grantCounts[$grantSlug ?? 'unknown'] = ($grantCounts[$grantSlug ?? 'unknown'] ?? 0) + 1;
 
             DB::beginTransaction();
             try {
@@ -203,7 +296,7 @@ class ImportPublicationsFromJsonPipelineCommand extends Command
                     'publication_type_id' => $type_id,
                     'publication_linkage_id' => $linkage_id,
                     'publication_quartile_id' => $quartile_id,
-                    'grant_type_id' => $pub['grant_type_id'] ?? null,
+                    'grant_type_id' => $grant_type_id,
                     'research_collaboration_id' => $collaboration_id,
                     'title' => $title,
                     'slug' => $titleSlug,
@@ -308,9 +401,22 @@ class ImportPublicationsFromJsonPipelineCommand extends Command
                 ['Records skipped (empty data)', $skippedCount],
                 ['Teachers not found in new DB', $notFoundCount],
                 ['Individual record failures', $failedCount],
-                ['Collaboration → DIU Researcher', $collaborationCounts['diu']],
-                ['Collaboration → External', $collaborationCounts['external']],
-                ['Collaboration → left empty (no authors)', $collaborationCounts['unknown']],
+                ['Collaboration → DIU Researcher', $collaborationCounts[ResearchCollaborationRule::DIU]],
+                ['Collaboration → Visiting Faculty + DIU Researcher', $collaborationCounts[ResearchCollaborationRule::VISITING_AND_DIU]],
+                ['Collaboration → Collaboration (External)', $collaborationCounts[ResearchCollaborationRule::EXTERNAL]],
+                ['Collaboration → left empty (no resolved authors)', $collaborationCounts['unknown']],
+                ['Grant type → DIU Project', $grantCounts[GrantTypeRule::DIU]],
+                ['Grant type → External Project', $grantCounts[GrantTypeRule::EXTERNAL]],
+                ['Grant type → Self Funded', $grantCounts[GrantTypeRule::SELF]],
+                ['Grant type → Not Assigned', $grantCounts[GrantTypeRule::NOT_ASSIGNED]],
+                ['Grant type → left empty (not in the file)', $grantCounts['unknown']],
+                ['Quartile → Q1 / Q2 / Q3 / Q4', $quartileCounts[PublicationQuartileRule::Q1]
+                    . ' / ' . $quartileCounts[PublicationQuartileRule::Q2]
+                    . ' / ' . $quartileCounts[PublicationQuartileRule::Q3]
+                    . ' / ' . $quartileCounts[PublicationQuartileRule::Q4]],
+                ['Quartile → N/Q (not ranked)', $quartileCounts[PublicationQuartileRule::NOT_QUARTILED]],
+                ['grant_type_id dropped (no such grant type)', $grantIdsDropped],
+                ['research_collaboration_id dropped (recomputed)', $collaborationIdsDropped],
                 ['created_by dropped (no such user)', $creatorsDropped],
             ]
         );

@@ -110,6 +110,9 @@ class PublicationGrantTypeWidget extends ApexChartWidget
                 'external project' => '#f59e0b', // Amber-500
                 'self funded' => '#10b981', // Emerald-500
                 'govt. funded', 'government funded' => '#ef4444', // Red-500
+                // Not a funder but a gap, so it reads as one: grey against the
+                // four colours, never mistaken for a funding source at a glance.
+                'not assigned' => '#94a3b8', // Slate-400
                 default => '#94a3b8', // Slate-400
             };
         }
