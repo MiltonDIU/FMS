@@ -369,8 +369,8 @@ class TeacherForm
                                             'namePrefix',
                                             'name',
                                             fn (\Illuminate\Database\Eloquent\Builder $query) => $query
-                                                ->where('is_active', true)
-                                                ->orderBy('sort_order'),
+                                                ->where('name_prefixes.is_active', true)
+                                                ->orderBy('name_prefixes.sort_order'),
                                         )
                                         ->searchable()
                                         ->preload()
@@ -383,12 +383,29 @@ class TeacherForm
 
                                     Select::make('academicSuffixes')
                                         ->label('Qualifications')
+                                        /*
+                                         * Both sides of this relationship have
+                                         * a sort_order — the list's own, and
+                                         * the pivot's, which is the order one
+                                         * teacher wrote their qualifications
+                                         * in. Filament joins the pivot to load
+                                         * the options, so an unqualified
+                                         * column name is ambiguous and MySQL
+                                         * refuses the query outright.
+                                         *
+                                         * Qualified rather than reordered. The
+                                         * relation already sorts by the pivot
+                                         * and that ordering is what keeps a
+                                         * teacher's "PhD, MBA" from coming
+                                         * back as "MBA, PhD"; reorder() would
+                                         * drop it to fix a name clash.
+                                         */
                                         ->relationship(
                                             'academicSuffixes',
                                             'name',
                                             fn (\Illuminate\Database\Eloquent\Builder $query) => $query
-                                                ->where('is_active', true)
-                                                ->orderBy('sort_order'),
+                                                ->where('academic_suffixes.is_active', true)
+                                                ->orderBy('academic_suffixes.sort_order'),
                                         )
                                         ->multiple()
                                         ->searchable()
