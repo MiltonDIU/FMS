@@ -1908,25 +1908,42 @@ class TeacherForm
             fn (object $row): bool => (int) $row->department_id === (int) $record->department_id
         )->values();
 
-        $tags = $rows->map(function (object $row) use ($record): string {
-            $isPrimary = (int) $row->department_id === (int) $record->department_id;
+        /*
+         * Filament's own badge, rendered rather than imitated.
+         *
+         * The teachers list shows departments and job types as badges, and a
+         * hand-rolled span with inline colours drifts from them the moment the
+         * palette or the dark theme changes. Rendering the component is the
+         * only version of "looks like the list" that stays true.
+         *
+         * Primary carries the panel's colour and a star; the rest stay grey,
+         * so the department the public directory lists them under is findable
+         * among eight. The star is titled, because a colour on its own says
+         * nothing to somebody who cannot see it.
+         */
+        $badges = $rows->map(fn (object $row): array => [
+            'label' => implode(' · ', array_filter([
+                $row->department ?? 'Unknown department',
+                $row->job_type,
+            ])),
+            'is_primary' => (int) $row->department_id === (int) $record->department_id,
+        ])->all();
 
-            // Primary picks up the panel's own colour; the rest stay quiet, so
-            // the one that matters is findable in a list of eight.
-            $style = $isPrimary
-                ? 'background-color:rgb(var(--primary-50));color:rgb(var(--primary-700));border-color:rgb(var(--primary-300));'
-                : 'background-color:rgb(var(--gray-50));color:rgb(var(--gray-700));border-color:rgb(var(--gray-300));';
-
-            $label = array_filter([
-                e($row->department ?? 'Unknown department'),
-                $row->job_type ? e($row->job_type) : null,
-                $isPrimary ? 'primary' : null,
-            ]);
-
-            return '<span class="inline-flex items-center rounded-md border px-2 py-1 text-sm whitespace-nowrap" style="'
-                . $style . '">' . implode(' · ', $label) . '</span>';
-        })->implode('');
-
-        return '<div class="flex flex-wrap items-center gap-1.5">' . $tags . '</div>';
+        return \Illuminate\Support\Facades\Blade::render(
+            <<<'BLADE'
+            <div class="flex flex-wrap items-center gap-1.5">
+                @foreach ($badges as $badge)
+                    <x-filament::badge
+                        :color="$badge['is_primary'] ? 'primary' : 'gray'"
+                        :icon="$badge['is_primary'] ? 'heroicon-m-star' : null"
+                        :tooltip="$badge['is_primary'] ? 'Primary department' : null"
+                    >
+                        {{ $badge['label'] }}
+                    </x-filament::badge>
+                @endforeach
+            </div>
+            BLADE,
+            ['badges' => $badges],
+        );
     }
 }
