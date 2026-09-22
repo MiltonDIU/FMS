@@ -35,19 +35,37 @@ class ExportOldTeachersCommand extends Command
     protected array $conflictLog = [];
 
     /**
-     * Role/shared email prefixes to avoid as primary email.
-     * If a teacher has one of these AND another personal email, prefer the personal one.
+     * Words that make an address a post's rather than a person's. Matched
+     * anywhere in the local part.
      *
-     * Matching logic: the LOCAL PART (before @) is checked — if it starts with
-     * or equals one of these keywords (case-insensitive), it is considered a
-     * "role email" and deprioritised.
+     * Anywhere, not at the start, because the post is very often qualified in
+     * front of the word. Eleven addresses were slipping through on a
+     * starts-with test, and eight of them were being exported as somebody's
+     * login: "aheadte@" and "aheadcse2@" are the assistant heads of Textile
+     * Engineering and CSE, "adeanfbe@" the associate dean of Business and
+     * Entrepreneurship, "campusdirector@daffodiluniversity.ae" the director of
+     * the UAE campus. Each begins with a letter that is not part of the role
+     * word, so "head", "dean" and "director" never matched.
+     *
+     * These are long enough that finding one inside a local part means what it
+     * says; none of the 2,129 names in the old table produces one by accident.
+     */
+    protected array $roleEmailWords = [
+        'dean', 'head', 'director', 'advisor', 'adviser', 'registrar',
+        'controller', 'chancellor', 'chairman', 'principal', 'provost',
+        'treasurer', 'coordinator', 'coordination', 'international',
+        'helpdesk', 'provost',
+    ];
+
+    /**
+     * Short or ambiguous tokens, matched only at the START of the local part.
+     *
+     * "vc" inside a word is a coincidence — matching it anywhere would catch a
+     * name — so these keep the stricter test they always had.
      */
     protected array $roleEmailPrefixes = [
-        'dean', 'head', 'director', 'advisor', 'registrar', 'controller',
-        'vc', 'vicechancellor', 'vice.chancellor', 'chancellor', 'provc', 'pro-vc',
-        'international', 'intladvisor', 'coordination', 'coordinator',
-        'chairman', 'principal', 'provost', 'treasurer',
-        'info', 'admin', 'support', 'office', 'contact', 'helpdesk',
+        'vc', 'vicechancellor', 'vice.chancellor', 'provc', 'pro-vc',
+        'info', 'admin', 'support', 'office', 'contact',
     ];
 
     public function handle(): int
@@ -179,7 +197,8 @@ class ExportOldTeachersCommand extends Command
 
         $emailConflicts  = count(array_filter($this->conflictLog, fn($c) => $c['type'] === 'email_duplicate'));
         $empIdConflicts  = count(array_filter($this->conflictLog, fn($c) => $c['type'] === 'employee_id_duplicate'));
-        $roleEmailUsed   = count(array_filter($this->conflictLog, fn($c) => $c['type'] === 'role_email_forced'));
+        $roleOnly        = count(array_filter($this->conflictLog, fn($c) => $c['type'] === 'role_email_moved_to_secondary'));
+        $withSecondary   = count(array_filter($exportData, fn($t) => filled($t['teacher_profile']['secondary_email'] ?? null)));
 
         $this->newLine();
         $this->info("✅ Export complete → {$path}");
@@ -195,7 +214,8 @@ class ExportOldTeachersCommand extends Command
                 ['Fallback email generated',          $fallbackEmail],
                 ['Email duplicates (conflict log)',   $emailConflicts],
                 ['Employee ID duplicates (log)',      $empIdConflicts],
-                ['Role-email forced (no alternative)',$roleEmailUsed],
+                ['Spare address → secondary_email',   $withSecondary],
+                ['  of those, only a shared address', $roleOnly . ' (login address generated)'],
             ]
         );
         return 0;
@@ -553,7 +573,9 @@ class ExportOldTeachersCommand extends Command
     private function transformTeacher(object $t, $dfdRows = null, bool $isArchived = false): array
     {
         $nameParts   = $this->parseName($t->name ?? '');
-        $email       = $this->resolveEmail($t, $isArchived);
+        $resolvedEmail  = $this->resolveEmail($t, $isArchived);
+        $email          = $resolvedEmail['primary'];
+        $secondaryEmail = $resolvedEmail['secondary'];
         $newDeptId   = $this->newDeptMap[$t->old_dept_id ?? 0]  ?? null;
         $newDesigId  = $this->newDesigMap[$t->old_desig_id ?? 0] ?? null;
         $extraDesig  = $this->extraDesigMap[$t->old_desig_id ?? 0] ?? null;
@@ -723,6 +745,9 @@ class ExportOldTeachersCommand extends Command
                     'phone'                => $phone,
                     'extension_no'         => $phoneParsed['extension_no'],
                     'personal_phone'       => $personalPhone,
+                    // Every address except the login: shared department ones
+                    // (headeee@, deanfsit@ …) and second personal ones alike.
+                    'secondary_email'      => $secondaryEmail,
                     'webpage'              => $t->webpage ?? null,
                     'photo'                => $t->picture ?: null,
                     'bio'                  => null,
@@ -776,6 +801,9 @@ class ExportOldTeachersCommand extends Command
                 'phone'                => $phone,
                 'extension_no'         => $phoneParsed['extension_no'],
                 'personal_phone'       => $personalPhone,
+                // Every address except the login: shared department ones
+                // (headeee@, deanfsit@ …) and second personal ones alike.
+                'secondary_email'      => $secondaryEmail,
                 'webpage'              => $t->webpage ?? null,
                 'photo'                => $t->picture ?: null,
                 'bio'                  => null,
@@ -803,19 +831,38 @@ class ExportOldTeachersCommand extends Command
     // ── Email Resolution ──
 
     /**
-     * Resolve the best unique email for a teacher.
+     * Resolve a teacher's addresses into the one they log in with and the rest.
      *
-     * Priority:
+     * Returns ['primary' => string, 'secondary' => ?string].
+     *
+     * Primary priority:
      *   1. Personal institutional email (not a role/shared address) — @diu.edu.bd preferred
      *   2. Personal institutional email — @daffodilvarsity.edu.bd
      *   3. Any personal .edu.bd email
      *   4. Any personal non-edu email (gmail etc.)
-     *   5. Role/shared email (last resort — only if no personal alternative)
+     *   5. A generated address — never a role address
      *
-     * Uniqueness: if the selected email is already taken by another teacher,
-     * the conflict is logged but the email is still used (import script decides).
+     * A role address is never the primary any more, not even as a last resort.
+     * headeee@, deanfsit@ and headpharmacy@ are the department's addresses and
+     * not any one person's: the post changes hands and the address does not, so
+     * three different teachers hold headpharmacy@ in the old table and three
+     * hold headeee@. users.email carries a UNIQUE index, so those cannot all
+     * become logins; previously the export folded the old teacher id into the
+     * address to force them apart, which invented a login nobody can receive
+     * mail at.
+     *
+     * They are kept rather than dropped, on secondary_email — as is every other
+     * address the teacher has and does not log in with, so that the migration
+     * loses none of them. 118 teachers carry one; for 18 of them the only
+     * address the old database holds is a shared one, so their login is
+     * generated.
+     *
+     * Uniqueness: if the selected primary is already taken by another teacher,
+     * the conflict is logged and, for a different person, made distinct.
+     *
+     * @return array{primary: string, secondary: ?string}
      */
-    private function resolveEmail(object $t, bool $isArchived): string
+    private function resolveEmail(object $t, bool $isArchived): array
     {
         $rawEmail   = $t->email      ?? '';
         $employeeId = $t->employeeID ?? '';
@@ -828,18 +875,42 @@ class ExportOldTeachersCommand extends Command
 
         // Pick best personal email (by domain priority)
         $chosen = $this->pickByDomainPriority($personal)
-               ?? $this->pickByDomainPriority($roleOnly)  // fallback to role email
-               ?? 'unknown@diu.edu.bd';
+               ?? $this->generatedEmailFor($employeeId, (int) $t->old_teacher_id);
 
-        // If we had to fall back to a role email, log it
-        if ($this->isRoleEmail($chosen) && !empty($roleOnly)) {
+        /*
+         * Every address the teacher holds except the one they log in with.
+         *
+         * Not just the role ones. A teacher can have a second personal address
+         * as easily as a departmental one — Zahirul Islam has
+         * zahirete@daffodilvarsity.edu.bd and zahir375@gmail.com, Mahbubul
+         * Haque has his DIU address and one at Manchester — and only one of
+         * them can be the login. The other used to be read, classified, and
+         * then dropped on the floor: 77 addresses belonging to 52 people
+         * existed in the old database and nowhere in the new one.
+         *
+         * So secondary_email is every leftover address rather than only the
+         * shared ones. It takes the count from 66 to 118 and means the
+         * migration loses no address at all.
+         *
+         * Order is the order they were written, which puts the institutional
+         * ones first in almost every case. 114 people have one leftover and 4
+         * have two; the longest value is 69 characters against a varchar(255).
+         */
+        $others = array_values(array_filter($allCandidates, fn ($e) => $e !== $chosen));
+
+        $secondary = $others !== [] ? implode(', ', $others) : null;
+
+        // A teacher whose only address was a role one now has a generated
+        // login, which is worth knowing about rather than discovering later.
+        if ($personal === [] && $roleOnly !== []) {
             $this->conflictLog[] = [
-                'type'           => 'role_email_forced',
-                'old_teacher_id' => $t->old_teacher_id,
-                'name'           => trim($t->name ?? ''),
-                'email_used'     => $chosen,
-                'all_emails'     => $allCandidates,
-                'note'           => 'No personal email found; role/shared email was the only option.',
+                'type'             => 'role_email_moved_to_secondary',
+                'old_teacher_id'   => $t->old_teacher_id,
+                'name'             => trim($t->name ?? ''),
+                'generated_primary'=> $chosen,
+                'secondary_email'  => $secondary,
+                'all_emails'       => $allCandidates,
+                'note'             => 'Only a shared role address on file; it was moved to secondary_email and a login address generated.',
             ];
         }
 
@@ -903,7 +974,23 @@ class ExportOldTeachersCommand extends Command
             ];
         }
 
-        return $chosen;
+        return ['primary' => $chosen, 'secondary' => $secondary];
+    }
+
+    /**
+     * A login address for somebody the old database has no personal one for.
+     *
+     * Built from the employee id, which is unique and stable, so re-running the
+     * export against the same old database produces the same address. The old
+     * teacher id is the fallback for the handful with no employee id either —
+     * without it they would all collide on 'unknown@diu.edu.bd', which is how
+     * 77 people used to vanish into one record.
+     */
+    private function generatedEmailFor(string $employeeId, int $oldTeacherId): string
+    {
+        $slug = preg_replace('/[^a-z0-9]/', '', strtolower($employeeId));
+
+        return $slug !== '' ? "{$slug}@diu.edu.bd" : "teacher.{$oldTeacherId}@diu.edu.bd";
     }
 
     /**
@@ -922,11 +1009,31 @@ class ExportOldTeachersCommand extends Command
      */
     private function parseAllEmails(string $rawEmail, string $employeeId): array
     {
-        $parts = preg_split('/[,;]+/', strtolower(trim($rawEmail)));
+        /*
+         * The old `email` column is one varchar holding anything up to four
+         * addresses, separated however the person typing felt like: a comma in
+         * 99 rows, a semicolon in 2, and nothing but a space in 104.
+         *
+         * Splitting on [,;] alone — which is what this did — turned
+         * "headpess@diu.edu.bd m.kamal@daffodilvarsity.edu.bd" into a single
+         * part, and the whitespace strip below then glued it into
+         * "headpess@diu.edu.bdm.kamal@..." which validates as nothing. Those
+         * teachers fell through to the generated employee-id address and both
+         * of their real addresses were lost.
+         *
+         * Whitespace cannot simply be added to the split, because it is also
+         * what breaks single addresses: "elahi.jmc@ daffodilvarsity.edu.bd" and
+         * "alamin @daffodilvarsity.edu.bd" are one address each, typed with a
+         * stray space. So the space beside an @ is closed up first, and only
+         * then is the remaining whitespace treated as a separator.
+         */
+        $normalised = preg_replace('/\s*@\s*/', '@', strtolower(trim($rawEmail)));
+
+        $parts = preg_split('/[,;\/\|\s]+/', (string) $normalised, -1, PREG_SPLIT_NO_EMPTY) ?: [];
         $candidates = [];
 
         foreach ($parts as $part) {
-            $cleaned = preg_replace('/\s+/', '', trim($part));
+            $cleaned = trim($part, " \t\n\r\0\x0B.<>()");
             if ($cleaned && filter_var($cleaned, FILTER_VALIDATE_EMAIL)) {
                 $candidates[] = $cleaned;
             }
@@ -941,10 +1048,11 @@ class ExportOldTeachersCommand extends Command
     }
 
     /**
-     * Returns true if the email local-part looks like a shared/role address.
+     * Returns true if the email local-part belongs to a post rather than a person.
      *
-     * Logic: extract the part before '@', strip digits from the end,
-     * then check if it starts with (or equals) any known role prefix.
+     * Two tests, because the two lists mean different things: a role word can
+     * sit anywhere in the local part ("aheadcse2", "campusdirector"), while the
+     * short tokens are only safe to read at the start.
      */
     private function isRoleEmail(string $email): bool
     {
@@ -952,11 +1060,18 @@ class ExportOldTeachersCommand extends Command
         // Remove trailing digits (e.g. "dean2" → "dean")
         $localStripped = rtrim($local, '0123456789');
 
+        foreach ($this->roleEmailWords as $word) {
+            if (str_contains($localStripped, $word)) {
+                return true;
+            }
+        }
+
         foreach ($this->roleEmailPrefixes as $prefix) {
             if ($localStripped === $prefix || str_starts_with($localStripped, $prefix)) {
                 return true;
             }
         }
+
         return false;
     }
 
