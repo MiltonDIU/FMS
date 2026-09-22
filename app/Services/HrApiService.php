@@ -325,9 +325,15 @@ class HrApiService
             throw new \RuntimeException('The HR API did not return JSON.');
         }
 
-        // The vendor reports failure inside a 200 response.
+        /*
+         * The vendor reports failure inside a 200 response.
+         *
+         * Thrown as HrApiRefusal rather than a plain \RuntimeException so a
+         * caller can tell "the API said no" from "the API is broken". It is a
+         * subclass, so anything catching \RuntimeException here is unaffected.
+         */
         if (array_key_exists('success', $body) && ! filter_var($body['success'], FILTER_VALIDATE_BOOLEAN)) {
-            throw new \RuntimeException('The HR API refused the request: ' . ($body['message'] ?? 'no reason given') . '.');
+            throw new \App\Exceptions\HrApiRefusal((string) ($body['message'] ?? 'no reason given'));
         }
 
         return $body;

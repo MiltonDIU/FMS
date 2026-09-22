@@ -63,7 +63,14 @@ class SyncErpTeacherProfilesJob implements ShouldQueue
             return;
         }
 
-        $stats = ['updated' => 0, 'unchanged' => 0, 'skipped' => 0, 'not_found' => 0, 'failed' => 0];
+        $stats = [
+            'updated' => 0,
+            'unchanged' => 0,
+            'skipped' => 0,
+            'not_found' => 0,
+            ErpProfileFieldSync::STATUS_OUT_OF_SCOPE => 0,
+            'failed' => 0,
+        ];
 
         // How many teachers each field was actually filled for, which is the
         // one number that says whether the run did what it was asked to.
@@ -73,10 +80,12 @@ class SyncErpTeacherProfilesJob implements ShouldQueue
          * Why the ones that did not work did not work, counted per reason.
          *
          * "22 failed" on its own sends the reader to the log file. Grouped, the
-         * same run says eighteen were refused because the ERP only serves
-         * academic staff — nothing to fix — and four were genuinely not found,
-         * which is a data question worth asking. Same information, one of them
-         * actionable.
+         * same run distinguishes a timeout from a record the ERP has never
+         * heard of — same information, but one of them is worth acting on.
+         *
+         * The refusal that arrives in bulk is deliberately not here: employees
+         * the profile endpoint does not serve get counted on their own line
+         * above, so this list stays short enough to read.
          */
         $reasons = [];
 
@@ -104,7 +113,14 @@ class SyncErpTeacherProfilesJob implements ShouldQueue
                         }
                     }
 
-                    if (filled($result['message'])) {
+                    /*
+                     * Out-of-scope employees are counted, never listed as a
+                     * reason. Their refusal is identical every time and there
+                     * is nothing to do about it, so as a bullet it only pushes
+                     * the reasons that can be acted on out of sight — or off
+                     * the end of the four the notification shows.
+                     */
+                    if (filled($result['message']) && $result['status'] !== ErpProfileFieldSync::STATUS_OUT_OF_SCOPE) {
                         $reasons[$result['message']] = ($reasons[$result['message']] ?? 0) + 1;
                     }
 
@@ -116,6 +132,17 @@ class SyncErpTeacherProfilesJob implements ShouldQueue
                             'teacher_id' => $teacher->id,
                             'employee_id' => $teacher->employee_id,
                             'status' => $result['status'],
+                            'reason' => $result['message'],
+                        ]);
+                    }
+
+                    // Logged, but not as a warning: knowing which employees the
+                    // ERP will not serve is useful, and none of them is a
+                    // problem to be woken up about.
+                    if ($result['status'] === ErpProfileFieldSync::STATUS_OUT_OF_SCOPE) {
+                        Log::info('ERP profile sync skipped an employee outside the API scope', [
+                            'teacher_id' => $teacher->id,
+                            'employee_id' => $teacher->employee_id,
                             'reason' => $result['message'],
                         ]);
                     }
@@ -186,6 +213,7 @@ class SyncErpTeacherProfilesJob implements ShouldQueue
         foreach ([
             'unchanged' => 'already matched the ERP',
             'not_found' => 'not found in the ERP',
+            ErpProfileFieldSync::STATUS_OUT_OF_SCOPE => 'not covered by the ERP profile API, which serves academic staff only',
             'skipped' => 'skipped',
             'failed' => 'failed',
         ] as $key => $label) {

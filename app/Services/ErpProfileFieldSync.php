@@ -26,6 +26,19 @@ class ErpProfileFieldSync
     /** The ERP wins, even over a value already on file. */
     public const MODE_OVERWRITE = 'overwrite';
 
+    /**
+     * The ERP declined to serve this employee at all, because its profile
+     * endpoint covers academic staff only.
+     *
+     * Its own status rather than a `failed`. A run across the whole faculty
+     * reaches every non-academic employee on file and is turned away once for
+     * each of them; that is the endpoint's scope, not a fault. Counted as
+     * failures they set off the "finished with failures" warning on runs where
+     * nothing went wrong, and they bury the one genuine failure underneath two
+     * hundred identical refusals.
+     */
+    public const STATUS_OUT_OF_SCOPE = 'out_of_scope';
+
     /** Chosen, but we already held something and the mode said to keep it. */
     public const UNTOUCHED_ALREADY_SET = 'already_set';
 
@@ -58,6 +71,18 @@ class ErpProfileFieldSync
 
         try {
             $profile = $this->hrApi->getTeacherProfile($employeeId);
+        } catch (\App\Exceptions\HrApiRefusal $e) {
+            /*
+             * A refusal is the API working, so the one refusal we expect in
+             * bulk is separated from the ones worth chasing. The reason still
+             * travels back for the log; the run's report keeps it out of the
+             * failure count and off the list of things to look into.
+             */
+            if ($e->isOutOfScope()) {
+                return $this->result(self::STATUS_OUT_OF_SCOPE, message: $e->reason());
+            }
+
+            return $this->result('failed', message: Str::limit($e->getMessage(), 120));
         } catch (\Throwable $e) {
             // The other end is somebody else's server. It fails often enough
             // that the reason has to travel back as a result rather than as an
