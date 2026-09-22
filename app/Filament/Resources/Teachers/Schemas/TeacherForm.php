@@ -1869,16 +1869,16 @@ class TeacherForm
     }
 
     /**
-     * Every department a teacher is assigned to, as read-only tags.
+     * Every department a teacher is assigned to, as one read-only tag each.
      *
-     * Each carries the job type recorded against that assignment, because it
+     * A tag carries the job type recorded against that assignment, because it
      * is per-assignment rather than per-teacher: somebody can be Regular in
      * their own department and Visiting Faculty in another, and the single
      * Job Type field above cannot say that.
      *
-     * The department the profile itself points at is marked as primary. It is
-     * the one the public directory lists them under, and on a teacher with
-     * eight assignments that is the only way to tell which.
+     * The department the profile itself points at is marked as primary and
+     * sorted first. It is the one the public directory lists them under, and
+     * on a teacher with eight assignments that is the only way to tell which.
      */
     protected static function departmentAssignmentTags(?\App\Models\Teacher $record): string
     {
@@ -1889,13 +1889,12 @@ class TeacherForm
 
         $rows = \Illuminate\Support\Facades\DB::table('department_teacher as dt')
             ->leftJoin('departments as d', 'd.id', '=', 'dt.department_id')
-            ->leftJoin('faculties as f', 'f.id', '=', 'd.faculty_id')
             ->leftJoin('job_types as jt', 'jt.id', '=', 'dt.job_type_id')
             ->where('dt.teacher_id', $record->id)
             ->whereNull('dt.deleted_at')
             ->orderBy('dt.sort_order')
             ->orderBy('d.name')
-            ->get(['d.id as department_id', 'd.name as department', 'd.code', 'f.name as faculty', 'jt.name as job_type']);
+            ->get(['d.id as department_id', 'd.name as department', 'jt.name as job_type']);
 
         if ($rows->isEmpty()) {
             return '<span class="text-sm text-gray-500 dark:text-gray-400">'
@@ -1912,33 +1911,22 @@ class TeacherForm
         $tags = $rows->map(function (object $row) use ($record): string {
             $isPrimary = (int) $row->department_id === (int) $record->department_id;
 
-            $name = e($row->department ?? 'Unknown department');
-            $code = $row->code ? ' <span class="opacity-60">' . e($row->code) . '</span>' : '';
-
-            $meta = array_filter([
-                $row->job_type ? e($row->job_type) : null,
-                $row->faculty ? e($row->faculty) : null,
-            ]);
-
             // Primary picks up the panel's own colour; the rest stay quiet, so
             // the one that matters is findable in a list of eight.
             $style = $isPrimary
                 ? 'background-color:rgb(var(--primary-50));color:rgb(var(--primary-700));border-color:rgb(var(--primary-300));'
                 : 'background-color:rgb(var(--gray-50));color:rgb(var(--gray-700));border-color:rgb(var(--gray-300));';
 
-            return '<span class="inline-flex flex-col gap-0.5 rounded-lg border px-2.5 py-1.5 text-sm" style="' . $style . '">'
-                . '<span class="font-medium">' . $name . $code
-                . ($isPrimary ? ' <span class="text-xs font-normal opacity-75">· primary</span>' : '')
-                . '</span>'
-                . ($meta === [] ? '' : '<span class="text-xs opacity-75">' . implode(' · ', $meta) . '</span>')
-                . '</span>';
+            $label = array_filter([
+                e($row->department ?? 'Unknown department'),
+                $row->job_type ? e($row->job_type) : null,
+                $isPrimary ? 'primary' : null,
+            ]);
+
+            return '<span class="inline-flex items-center rounded-md border px-2 py-1 text-sm whitespace-nowrap" style="'
+                . $style . '">' . implode(' · ', $label) . '</span>';
         })->implode('');
 
-        $note = $rows->count() > 1
-            ? '<p class="mt-2 text-xs text-gray-500 dark:text-gray-400">'
-                . e($rows->count()) . ' assignments. Changed on the Department Teachers screen.</p>'
-            : '<p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Changed on the Department Teachers screen.</p>';
-
-        return '<div class="flex flex-wrap items-start gap-2">' . $tags . '</div>' . $note;
+        return '<div class="flex flex-wrap items-center gap-1.5">' . $tags . '</div>';
     }
 }
