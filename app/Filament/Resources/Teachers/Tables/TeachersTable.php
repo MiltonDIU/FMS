@@ -733,10 +733,218 @@ class TeachersTable
                                 ->body("Recalculated profile scores for {$processed} selected teachers.")
                                 ->send();
                         }),
+                    /*
+                     * Fold the same person's second profile into their first.
+                     *
+                     * The migration brought 26 people in twice, each pair
+                     * sharing an employee id — HR's own number, so two live
+                     * rows carrying one is one person entered twice.
+                     *
+                     * Which row survives is asked rather than assumed. The
+                     * obvious rule, keep whichever holds the publications,
+                     * is wrong on 6 of the pairs: the papers hang off the
+                     * archived profile while the live one is the person's
+                     * real record. So the data moves to whichever row is
+                     * chosen, and the modal says what will move before it does.
+                     *
+                     * Rewrites foreign keys and retires a profile, so it asks
+                     * for Delete:Teacher rather than list access.
+                     */
+                    BulkAction::make('merge_selected')
+                        ->label('Merge Selected')
+                        ->icon('heroicon-o-arrows-pointing-in')
+                        ->color('warning')
+                        ->visible(fn (): bool => auth()->user()?->can('Delete:Teacher') ?? false)
+                        ->modalHeading('Merge the selected profiles into one')
+                        ->modalSubmitActionLabel('Merge')
+                        ->form(fn (\Illuminate\Support\Collection $records): array => [
+                            Select::make('target_id')
+                                ->label('Profile to keep')
+                                ->options(static::mergeTargetOptions($records))
+                                ->default(static::suggestedKeeper($records))
+                                ->helperText('Everything on the other profiles moves onto this one. They are then archived, not deleted.')
+                                ->required()
+                                ->live()
+                                ->columnSpanFull(),
+
+                            \Filament\Forms\Components\Placeholder::make('merge_preview')
+                                ->label('This merge will move')
+                                ->columnSpanFull()
+                                ->content(fn (Get $get): \Illuminate\Support\HtmlString => new \Illuminate\Support\HtmlString(
+                                    static::mergePreview($records, $get('target_id'))
+                                )),
+                        ])
+                        ->action(function (\Illuminate\Database\Eloquent\Collection $records, array $data) {
+                            $target = $records->firstWhere('id', (int) $data['target_id']);
+
+                            if (! $target) {
+                                Notification::make()->danger()
+                                    ->title('Pick the profile to keep')->send();
+
+                                return;
+                            }
+
+                            $sources = $records->reject(fn (Teacher $t): bool => $t->is($target));
+
+                            if ($sources->isEmpty()) {
+                                Notification::make()->danger()
+                                    ->title('Select more than one profile to merge')->send();
+
+                                return;
+                            }
+
+                            $merger = app(\App\Services\TeacherMerger::class);
+                            $totals = [];
+
+                            foreach ($sources as $source) {
+                                foreach ($merger->merge($source, $target) as $what => $n) {
+                                    $totals[$what] = ($totals[$what] ?? 0) + $n;
+                                }
+                            }
+
+                            activity()
+                                ->performedOn($target)
+                                ->withProperties([
+                                    'merged' => $sources->pluck('id')->all(),
+                                    'moved' => $totals,
+                                ])
+                                ->event('merge')
+                                ->log('merged teacher profiles');
+
+                            $detail = [];
+                            foreach ($totals as $what => $n) {
+                                $detail[] = "{$n} {$what}";
+                            }
+
+                            Notification::make()
+                                ->success()
+                                ->title('Merged')
+                                ->body($sources->count() . ' profile(s) folded into ' . $target->full_name
+                                    . ($detail === [] ? '.' : ' — moved ' . implode(', ', $detail) . '.'))
+                                ->send();
+                        }),
                     DeleteBulkAction::make(),
                     ForceDeleteBulkAction::make(),
                     RestoreBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /**
+     * The selected profiles, labelled with enough to tell them apart.
+     *
+     * Two rows for one person look identical in a bare name list, and picking
+     * the wrong one moves the data the wrong way. The department, the archived
+     * flag and the publication count are what actually distinguish them.
+     *
+     * @param  \Illuminate\Support\Collection<int, Teacher>  $records
+     * @return array<int, string>
+     */
+    protected static function mergeTargetOptions($records): array
+    {
+        return $records->mapWithKeys(function (Teacher $t): array {
+            $bits = array_filter([
+                $t->employee_id ? "emp {$t->employee_id}" : null,
+                $t->department?->code,
+                $t->is_archived ? 'archived' : 'active',
+                static::publicationCount($t) . ' pubs',
+            ]);
+
+            return [$t->id => $t->full_name . '  —  ' . implode(', ', $bits)];
+        })->all();
+    }
+
+    /**
+     * The profile that best represents the person now.
+     *
+     * Not the one holding the data: on 6 of the duplicate pairs the
+     * publications sit on the archived row, and keeping that one would file
+     * the university's research under a retired profile. On staff first, then
+     * in a real department rather than the unassigned placeholder, then with a
+     * joining date, and only then the fuller record.
+     *
+     * A suggestion, not a decision — the operator picks.
+     *
+     * @param  \Illuminate\Support\Collection<int, Teacher>  $records
+     */
+    protected static function suggestedKeeper($records): ?int
+    {
+        $unassigned = \App\Models\Department::where('code', 'SUD')->value('id');
+
+        return $records->sortBy([
+            fn (Teacher $a, Teacher $b): int => ($a->is_archived ? 1 : 0) <=> ($b->is_archived ? 1 : 0),
+            fn (Teacher $a, Teacher $b): int => ($a->department_id === $unassigned ? 1 : 0)
+                <=> ($b->department_id === $unassigned ? 1 : 0),
+            fn (Teacher $a, Teacher $b): int => (blank($a->joining_date) ? 1 : 0) <=> (blank($b->joining_date) ? 1 : 0),
+            fn (Teacher $a, Teacher $b): int => static::publicationCount($b) <=> static::publicationCount($a),
+            fn (Teacher $a, Teacher $b): int => $a->id <=> $b->id,
+        ])->first()?->id;
+    }
+
+    /**
+     * What the merge would do, totalled across every profile being folded in.
+     *
+     * @param  \Illuminate\Support\Collection<int, Teacher>  $records
+     */
+    protected static function mergePreview($records, $targetId): string
+    {
+        $target = $records->firstWhere('id', (int) $targetId);
+
+        if (! $target) {
+            return 'Choose the profile to keep.';
+        }
+
+        $sources = $records->reject(fn (Teacher $t): bool => $t->is($target));
+
+        if ($sources->isEmpty()) {
+            return 'Select more than one profile — there is nothing to fold in.';
+        }
+
+        $merger = app(\App\Services\TeacherMerger::class);
+        $totals = [];
+
+        foreach ($sources as $source) {
+            foreach ($merger->preview($source, $target) as $what => $n) {
+                $totals[$what] = ($totals[$what] ?? 0) + $n;
+            }
+        }
+
+        $lines = [];
+
+        foreach ($totals as $what => $n) {
+            $lines[] = $n . ' ' . $what;
+        }
+
+        $body = $lines === []
+            ? 'Nothing to move — the other profile carries no records.'
+            : implode('<br>', $lines);
+
+        $names = $sources->map(fn (Teacher $t): string => e($t->full_name))->implode(', ');
+
+        /*
+         * Names that do not match are worth stopping over. Four of the
+         * duplicate pairs are one person typed two ways, but one is two
+         * different people who were issued the same employee id, and merging
+         * those would lose a teacher.
+         */
+        $distinct = $records->map(fn (Teacher $t): string => preg_replace('/[^a-z]/', '', mb_strtolower($t->full_name)))->unique();
+
+        if ($distinct->count() > 1) {
+            $body .= '<br><br><strong>The selected profiles carry different names.</strong> '
+                . 'Check this is one person before merging — one duplicate employee id in this '
+                . 'database belongs to two different people.';
+        }
+
+        return $body . '<br><br><em>' . $names . '</em> will be archived, not deleted.';
+    }
+
+    protected static function publicationCount(Teacher $teacher): int
+    {
+        static $cache = [];
+
+        return $cache[$teacher->id] ??= \Illuminate\Support\Facades\DB::table('publication_authors')
+            ->where('authorable_type', Teacher::class)
+            ->where('authorable_id', $teacher->id)
+            ->count();
     }
 }

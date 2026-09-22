@@ -164,13 +164,22 @@ class ReportDuplicateTeachersCommand extends Command
         $normalised = $rows->map(fn ($r) => $this->normalise($this->fullName($r)))->unique();
         $namesAgree = $normalised->count() === 1;
 
-        // Both rows on the same paper: merging would double the authorship.
+        /*
+         * Both profiles on the same paper, which a merge would turn into the
+         * same person listed twice as its author.
+         *
+         * Counted over distinct profiles, not over rows. Counting rows also
+         * catches a profile that is on one paper twice by itself — 24 of those
+         * exist, left by the PD and old-site imports each linking the same
+         * teacher — and reported them as a collision between two profiles,
+         * which is a different problem with a different fix.
+         */
         $shared = DB::table('publication_authors')
             ->where('authorable_type', \App\Models\Teacher::class)
             ->whereIn('authorable_id', $rows->pluck('id'))
-            ->selectRaw('publication_id, COUNT(*) as n')
+            ->selectRaw('publication_id, COUNT(DISTINCT authorable_id) as n')
             ->groupBy('publication_id')
-            ->havingRaw('COUNT(*) > 1')
+            ->havingRaw('COUNT(DISTINCT authorable_id) > 1')
             ->pluck('publication_id');
 
         $moving = collect($members)->where('teacher_id', '!=', $keeper)->sum('publications');
