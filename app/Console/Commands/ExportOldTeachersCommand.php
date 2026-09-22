@@ -164,9 +164,32 @@ class ExportOldTeachersCommand extends Command
             ->get()
             ->groupBy('teacher_id');
 
+        /*
+         * Fold the same person's second row into their first before anything
+         * is written.
+         *
+         * 30 employee ids are held by two rows of the old teacher table, and
+         * an employee id is HR's own number, so that is one person entered
+         * twice rather than two people. Exporting both produced two profiles
+         * that then had to be merged back together by hand in the new system.
+         *
+         * Collapsing here rather than merging later is not only less work: it
+         * is the only point at which the two rows are still side by side with
+         * their departments, emails and details intact. Three of the pairs are
+         * somebody genuinely listed under two departments — Tamanna Akter in
+         * Computer Science and in Computing and Information Systems — and the
+         * export has carried several departments per teacher all along, so
+         * those become one profile assigned to both.
+         */
+        [$teachers, $mergedDfdRows] = $this->collapseDuplicateEmployeeIds($teachers, $allDfdRows);
+
+        $bar = $this->output->createProgressBar($teachers->count());
+
         foreach ($teachers as $teacher) {
             $isArchived = ($teacher->dfd_teacher_id === null);
-            $dfdRows    = $isArchived ? collect() : $allDfdRows->get($teacher->old_teacher_id, collect());
+            $dfdRows    = $isArchived
+                ? collect()
+                : ($mergedDfdRows[$teacher->old_teacher_id] ?? $allDfdRows->get($teacher->old_teacher_id, collect()));
             $exportData[] = $this->transformTeacher($teacher, $dfdRows, $isArchived);
             $bar->advance();
         }
@@ -198,6 +221,8 @@ class ExportOldTeachersCommand extends Command
         $emailConflicts  = count(array_filter($this->conflictLog, fn($c) => $c['type'] === 'email_duplicate'));
         $empIdConflicts  = count(array_filter($this->conflictLog, fn($c) => $c['type'] === 'employee_id_duplicate'));
         $roleOnly        = count(array_filter($this->conflictLog, fn($c) => $c['type'] === 'role_email_moved_to_secondary'));
+        $collapsed       = count(array_filter($this->conflictLog, fn($c) => $c['type'] === 'employee_id_collapsed'));
+        $twoPeople       = count(array_filter($this->conflictLog, fn($c) => $c['type'] === 'employee_id_shared_by_different_people'));
         $withSecondary   = count(array_filter($exportData, fn($t) => filled($t['teacher_profile']['secondary_email'] ?? null)));
 
         $this->newLine();
@@ -213,6 +238,8 @@ class ExportOldTeachersCommand extends Command
                 ['Null designation_id (active only)', $nullDesig . ' (unrecognized rank)'],
                 ['Fallback email generated',          $fallbackEmail],
                 ['Email duplicates (conflict log)',   $emailConflicts],
+                ['Duplicate profiles collapsed',      $collapsed],
+                ['  left separate (different people)',$twoPeople],
                 ['Employee ID duplicates (log)',      $empIdConflicts],
                 ['Spare address → secondary_email',   $withSecondary],
                 ['  of those, only a shared address', $roleOnly . ' (login address generated)'],
@@ -566,6 +593,184 @@ class ExportOldTeachersCommand extends Command
         $name = preg_replace('/\s+/', ' ', $name);
         $name = preg_replace('/\s*\([^)]+\)/', '', $name);
         return trim($name, ' ,.');
+    }
+
+    // ── Duplicate collapsing ──
+
+    /**
+     * Folds rows sharing an employee id into one, keeping what each held.
+     *
+     * The survivor is the row that knows where the person works: one with a
+     * dfd_add record, so it is not archived. On 18 of the 30 pairs only one
+     * row has any department at all and the other is a bare stub; on 9 neither
+     * does; on 3 they sit in different departments and both are kept as
+     * assignments on the one profile.
+     *
+     * Nothing the folded-away row held is dropped. Its email joins the
+     * survivor's, so the one that does not become the login still lands in
+     * secondary_email — the two rows often carry different addresses, and
+     * Rokanuzzaman's rokanuzzaman.eng@ and rokanuzzaman.eee0106.c@ are both
+     * his. Any field the survivor has blank is filled from it.
+     *
+     * A pair whose names do not match is left alone and logged. Four of those
+     * are one person typed twice — "Afsana Hossain Rima" and "Afsana Hosssain
+     * Rima" — but one is two different people who were issued the same
+     * employee id, and collapsing them would lose a teacher.
+     *
+     * @param  \Illuminate\Support\Collection<int, object>  $teachers
+     * @param  \Illuminate\Support\Collection<int, \Illuminate\Support\Collection>  $allDfdRows
+     * @return array{0: \Illuminate\Support\Collection<int, object>, 1: array<int, \Illuminate\Support\Collection>}
+     */
+    private function collapseDuplicateEmployeeIds($teachers, $allDfdRows): array
+    {
+        $mergedDfdRows = [];
+        $drop = [];
+
+        $groups = $teachers
+            ->filter(fn (object $t): bool => trim((string) ($t->employeeID ?? '')) !== '')
+            ->groupBy(fn (object $t): string => strtolower(trim((string) $t->employeeID)));
+
+        foreach ($groups as $employeeId => $rows) {
+            if ($rows->count() < 2) {
+                continue;
+            }
+
+            if (! $this->looksLikeOnePerson($rows)) {
+                $this->conflictLog[] = [
+                    'type' => 'employee_id_shared_by_different_people',
+                    'employee_id' => $employeeId,
+                    'rows' => $rows->map(fn (object $t): array => [
+                        'old_teacher_id' => $t->old_teacher_id,
+                        'name' => trim((string) $t->name),
+                        'email' => $t->email,
+                    ])->all(),
+                    'note' => 'Names differ too much to be one person; both were exported separately.',
+                ];
+
+                continue;
+            }
+
+            // The row that knows where they work, then the fuller record.
+            $survivor = $rows->sortBy([
+                fn (object $a, object $b): int => ($a->dfd_teacher_id === null ? 1 : 0) <=> ($b->dfd_teacher_id === null ? 1 : 0),
+                fn (object $a, object $b): int => $this->filledFieldCount($b) <=> $this->filledFieldCount($a),
+                fn (object $a, object $b): int => $a->old_teacher_id <=> $b->old_teacher_id,
+            ])->first();
+
+            $others = $rows->reject(fn (object $t): bool => $t->old_teacher_id === $survivor->old_teacher_id);
+
+            $dfd = collect($allDfdRows->get($survivor->old_teacher_id, collect()));
+
+            foreach ($others as $other) {
+                $this->foldRowInto($other, $survivor);
+
+                $dfd = $dfd->concat($allDfdRows->get($other->old_teacher_id, collect()));
+                $drop[$other->old_teacher_id] = true;
+            }
+
+            // One assignment per department, whichever row it came from.
+            $dfd = $dfd->unique(fn (object $row) => $row->old_dept_id)->values();
+
+            if ($dfd->isNotEmpty()) {
+                $mergedDfdRows[$survivor->old_teacher_id] = $dfd;
+
+                // Departments came from somewhere, so this is not an archived row.
+                $survivor->dfd_teacher_id = $survivor->dfd_teacher_id ?? $survivor->old_teacher_id;
+            }
+
+            $this->conflictLog[] = [
+                'type' => 'employee_id_collapsed',
+                'employee_id' => $employeeId,
+                'kept_old_teacher_id' => $survivor->old_teacher_id,
+                'folded_old_teacher_ids' => $others->pluck('old_teacher_id')->all(),
+                'name' => trim((string) $survivor->name),
+                'email' => $survivor->email,
+                'departments' => $dfd->pluck('dept_name')->filter()->unique()->values()->all(),
+                'note' => 'One person held two rows in the old teacher table; exported as a single profile.',
+            ];
+        }
+
+        return [
+            $teachers->reject(fn (object $t): bool => isset($drop[$t->old_teacher_id]))->values(),
+            $mergedDfdRows,
+        ];
+    }
+
+    /**
+     * Whether every row in a group is plausibly the same human being.
+     *
+     * Compared on letters alone, so spacing and punctuation cannot separate
+     * "S. M. Mahmudur Rahman" from "S.M. Mahmudur Rahman". The threshold is
+     * set where it divides the real data: the four misspellings score 91% and
+     * up, and the one pair that is genuinely two people scores far below.
+     *
+     * @param  \Illuminate\Support\Collection<int, object>  $rows
+     */
+    private function looksLikeOnePerson($rows): bool
+    {
+        $names = $rows->map(fn (object $t): string => preg_replace('/[^a-z]/', '', strtolower((string) $t->name)))
+            ->filter()
+            ->values();
+
+        if ($names->count() < 2) {
+            return true;
+        }
+
+        $first = $names->first();
+
+        foreach ($names->skip(1) as $name) {
+            if ($name === $first || str_contains($first, $name) || str_contains($name, $first)) {
+                continue;
+            }
+
+            similar_text($first, $name, $percent);
+
+            if ($percent < 85.0) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Carries everything the folded-away row held onto the survivor.
+     */
+    private function foldRowInto(object $from, object $survivor): void
+    {
+        /*
+         * Emails are appended rather than chosen between. resolveEmail picks
+         * the login out of the whole list and puts the rest in
+         * secondary_email, so both addresses survive without this having to
+         * decide which is which.
+         */
+        $emails = array_filter([
+            trim((string) ($survivor->email ?? '')),
+            trim((string) ($from->email ?? '')),
+        ]);
+
+        $survivor->email = implode(', ', array_unique($emails));
+
+        foreach (['phone', 'cell', 'webpage', 'currentResearch', 'picture', 'study_leave',
+                  'old_dept_id', 'old_desig_id', 'old_dept_name', 'old_faculty_name',
+                  'old_designation_name', 'is_part_time', 'teacher_type'] as $field) {
+            if (blank($survivor->{$field} ?? null) && filled($from->{$field} ?? null)) {
+                $survivor->{$field} = $from->{$field};
+            }
+        }
+    }
+
+    private function filledFieldCount(object $row): int
+    {
+        $n = 0;
+
+        foreach (get_object_vars($row) as $value) {
+            if (filled($value)) {
+                $n++;
+            }
+        }
+
+        return $n;
     }
 
     // ── Transform (Phase 1) ──
