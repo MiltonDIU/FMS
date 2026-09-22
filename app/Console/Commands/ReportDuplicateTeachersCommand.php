@@ -30,9 +30,12 @@ class ReportDuplicateTeachersCommand extends Command
 {
     protected $signature = 'teachers:duplicates
                             {--json= : Also write the full report to this path}
-                            {--show-safe : List the groups that look safe to merge, not only the risky ones}';
+                            {--show-safe : List the groups that look safe to merge, not only the risky ones}
+                            {--merge : Merge the groups instead of only reporting them}
+                            {--only= : Merge only these identity values (comma separated), whatever their risk}
+                            {--apply : With --merge, actually write. Without it nothing is saved.}';
 
-    protected $description = 'Report teacher profiles sharing an employee_id or an email address, and what merging each group would move';
+    protected $description = 'Report teacher profiles sharing an employee_id or an email address, and optionally merge them';
 
     /** The placeholder department every archived teacher is parked in. */
     protected ?int $unassignedDepartmentId = null;
@@ -59,6 +62,10 @@ class ReportDuplicateTeachersCommand extends Command
             return Command::SUCCESS;
         }
 
+        if ($this->option('merge')) {
+            return $this->mergeGroups($groups);
+        }
+
         $this->summarise($groups);
         $this->listGroups($groups);
 
@@ -66,6 +73,127 @@ class ReportDuplicateTeachersCommand extends Command
             File::put($path, json_encode($groups, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
             $this->newLine();
             $this->info("Full report written to {$path}");
+        }
+
+        return Command::SUCCESS;
+    }
+
+    /**
+     * Folds each group into its keeper.
+     *
+     * Groups flagged REVIEW are left alone unless named in --only, because
+     * that flag means the two rows carry different names and one of those
+     * pairs is two different people holding one employee id. Merging that one
+     * would lose a teacher, and no rule can tell it apart from the four that
+     * are simply misspelled — a person has to look.
+     *
+     * CARE groups are merged: that flag means the publications sit on the row
+     * being retired, which is precisely what the merge moves.
+     *
+     * @param  array<int, array<string, mixed>>  $groups
+     */
+    protected function mergeGroups(array $groups): int
+    {
+        $only = array_filter(array_map('trim', explode(',', (string) $this->option('only'))));
+        $apply = (bool) $this->option('apply');
+
+        $chosen = array_filter($groups, function (array $g) use ($only): bool {
+            if ($only !== []) {
+                return in_array((string) $g['key'], $only, true);
+            }
+
+            return ! str_starts_with($g['risk'], 'REVIEW');
+        });
+
+        if ($chosen === []) {
+            $this->warn($only !== []
+                ? 'None of those identity values match a duplicate group.'
+                : 'Nothing to merge — every group needs a human look first.');
+
+            return Command::SUCCESS;
+        }
+
+        $this->info($apply
+            ? 'Merging ' . count($chosen) . ' group(s)…'
+            : 'DRY RUN — ' . count($chosen) . ' group(s) would be merged. Add --apply to write.');
+
+        $merger = app(\App\Services\TeacherMerger::class);
+        $totals = [];
+        $retired = 0;
+        $skipped = [];
+
+        foreach ($chosen as $g) {
+            $keeper = \App\Models\Teacher::find($g['proposed_keeper']);
+
+            if (! $keeper) {
+                $skipped[] = $g['key'] . ' (keeper no longer exists)';
+
+                continue;
+            }
+
+            $this->newLine();
+            $this->line("<comment>{$g['identity']} {$g['key']}</comment>  keep id={$keeper->id} {$keeper->full_name}");
+
+            foreach ($g['members'] as $m) {
+                if ($m['teacher_id'] === $keeper->id) {
+                    continue;
+                }
+
+                $source = \App\Models\Teacher::find($m['teacher_id']);
+
+                if (! $source) {
+                    continue;
+                }
+
+                $moved = $apply
+                    ? $merger->merge($source, $keeper)
+                    : $merger->preview($source, $keeper);
+
+                foreach ($moved as $what => $n) {
+                    $totals[$what] = ($totals[$what] ?? 0) + $n;
+                }
+
+                $retired++;
+
+                $this->line(sprintf('    fold id=%-6d %-28s %s',
+                    $source->id,
+                    mb_substr($source->full_name, 0, 28),
+                    $moved === [] ? '(nothing to move)' : json_encode($moved)));
+            }
+
+            if ($apply) {
+                activity()
+                    ->performedOn($keeper)
+                    ->withProperties(['identity' => $g['identity'], 'key' => $g['key'], 'merged' => $g['members']])
+                    ->event('merge')
+                    ->log('merged duplicate teacher profiles');
+            }
+        }
+
+        $this->newLine();
+        $rows = [['Groups merged', count($chosen)], ['Profiles retired', $retired]];
+
+        foreach ($totals as $what => $n) {
+            $rows[] = ["  {$what}", $n];
+        }
+
+        $this->table([$apply ? 'Metric' : 'Metric (dry run)', 'Count'], $rows);
+
+        foreach ($skipped as $s) {
+            $this->warn("Skipped {$s}");
+        }
+
+        $left = count($groups) - count($chosen);
+
+        if ($left > 0 && $only === []) {
+            $this->newLine();
+            $this->line("<comment>{$left} group(s) left for a human look. Run without --merge to see them, "
+                . 'then merge one with: --merge --only=EMPLOYEE_ID --apply</comment>');
+        }
+
+        if (! $apply) {
+            $this->newLine();
+            $this->info('Nothing was written. Re-run with --apply to save.');
         }
 
         return Command::SUCCESS;
