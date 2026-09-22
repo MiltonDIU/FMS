@@ -21,7 +21,7 @@ class TeacherVersionService
      */
     public const FIELD_SECTION_MAP = [
         // Tab 1: Basic Info (removed 'photo' - it's a media field)
-        'basic_info' => ['department_id', 'designation_id', 'employee_id', 'webpage', 'joining_date', 'work_location', 'first_name', 'middle_name', 'last_name', 'bio'],
+        'basic_info' => ['department_id', 'designation_id', 'employee_id', 'webpage', 'joining_date', 'work_location', 'name_prefix_id', 'first_name', 'middle_name', 'last_name', 'academicSuffixes', 'scopus_id', 'bio'],
         
         // Tab 2: Contact Info
         'contact_info' => ['phone', 'personal_phone', 'extension_no', 'office_room', 'secondary_email', 'present_address', 'permanent_address'],
@@ -76,6 +76,19 @@ class TeacherVersionService
         'educations', 'publications', 'jobExperiences', 'trainingExperiences',
         'awards', 'skills', 'teachingAreas', 'researchInterests', 'memberships', 'socialLinks'
     ];
+
+    /**
+     * Many-to-many relations, which arrive as a list of ids rather than rows.
+     *
+     * Kept apart from RELATION_NAMES because everything in that list is a
+     * hasMany whose form data is whole records to create, update or delete.
+     * A pivot is a set: the form sends [3, 1] and the answer is to sync those
+     * two ids, not to build two rows.
+     *
+     * Order is the value, not an accident of it — "PhD, MBA" is not "MBA,
+     * PhD" — so the position each id was chosen in becomes its sort_order.
+     */
+    public const PIVOT_RELATIONS = ['academicSuffixes'];
 
     /**
      * Static flag to prevent Observer recursion
@@ -189,7 +202,24 @@ class TeacherVersionService
                     }
                     
                     // STRICT SEPARATION: Check if field is a relation OR scalar
-                    if (in_array($field, self::RELATION_NAMES)) {
+                    if (in_array($field, self::PIVOT_RELATIONS, true)) {
+                        // A set of ids, compared in order because the order is
+                        // what the teacher wrote their qualifications in.
+                        if (! $teacher->relationLoaded($field)) {
+                            $teacher->load($field);
+                        }
+
+                        $existingIds = $teacher->$field->pluck('id')->map(fn ($id): int => (int) $id)->all();
+                        $incomingIds = array_map('intval', array_values(array_filter((array) $newValue)));
+
+                        if ($existingIds !== $incomingIds) {
+                            \Log::info("Pivot Mismatch in {$section}.{$field}", [
+                                'original' => $existingIds,
+                                'new' => $incomingIds,
+                            ]);
+                            $changedSections[$section][] = $field;
+                        }
+                    } elseif (in_array($field, self::RELATION_NAMES)) {
                         // Handle Relation
                         $incomingData = is_array($newValue) ? $newValue : []; 
                         
@@ -377,14 +407,39 @@ class TeacherVersionService
     private function applyUpdates(Teacher $teacher, array $data): void
     {
         DB::transaction(function () use ($teacher, $data) {
-            $scalarData = Arr::except($data, array_merge(...array_values($this->getRelationshipFields())));
-            
+            $scalarData = Arr::except(
+                $data,
+                array_merge(self::PIVOT_RELATIONS, ...array_values($this->getRelationshipFields())),
+            );
+
             self::$ignoreObserver = true;
-            
+
             try {
                 $teacher->update($scalarData);
             } finally {
                 self::$ignoreObserver = false;
+            }
+
+            /*
+             * Pivots, synced with the order they were given in.
+             *
+             * MyProfile deliberately does not call the form's own
+             * saveRelationships — everything routes through here instead — so
+             * without this a teacher's qualifications would be read off the
+             * form and then quietly dropped.
+             */
+            foreach (self::PIVOT_RELATIONS as $relation) {
+                if (! array_key_exists($relation, $data)) {
+                    continue;
+                }
+
+                $ids = array_values(array_filter((array) $data[$relation]));
+
+                $teacher->$relation()->sync(
+                    collect($ids)->mapWithKeys(fn ($id, int $position): array => [
+                        (int) $id => ['sort_order' => $position],
+                    ])->all()
+                );
             }
 
             // Update relations

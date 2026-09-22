@@ -331,11 +331,72 @@ class TeacherForm
                                     TextInput::make('work_location')->default('Main Campus')
                                         ->disabled($isOwnProfile)
                                         ->dehydrated(! $isOwnProfile),
+                                    /*
+                                     * The author id Scopus knows them by. The
+                                     * column has been on the table unused and
+                                     * unreachable; publication matching is the
+                                     * obvious thing to want it for, and that
+                                     * cannot start until somebody can type one
+                                     * in.
+                                     *
+                                     * Left editable on a teacher's own profile,
+                                     * unlike the joining date beside it. A
+                                     * joining date is HR's record of them; a
+                                     * Scopus id is their own, and they are the
+                                     * one who can look it up.
+                                     */
+                                    TextInput::make('scopus_id')
+                                        ->label('Scopus Author ID')
+                                        ->maxLength(32)
+                                        ->rule('regex:/^[0-9]*$/')
+                                        ->helperText('Digits only, as it appears on the Scopus profile'),
                                 ]),
-                                Grid::make(3)->schema([
+                                /*
+                                 * The whole name, left to right: Dr. | Md. |
+                                 * Kamrul | Islam | PhD.
+                                 *
+                                 * The title and the qualifications became rows
+                                 * of their own when the import stopped writing
+                                 * "Professor" into a first name and "PhD" into
+                                 * a surname. Nothing was then added to this
+                                 * form, so 1,814 teachers carry a prefix that
+                                 * nobody could see, correct or remove.
+                                 */
+                                Grid::make(5)->schema([
+                                    Select::make('name_prefix_id')
+                                        ->label('Title')
+                                        ->relationship(
+                                            'namePrefix',
+                                            'name',
+                                            fn (\Illuminate\Database\Eloquent\Builder $query) => $query
+                                                ->where('is_active', true)
+                                                ->orderBy('sort_order'),
+                                        )
+                                        ->searchable()
+                                        ->preload()
+                                        ->placeholder('None')
+                                        ->helperText('Dr., Professor, Mr., Ms.'),
+
                                     TextInput::make('first_name')->required(),
                                     TextInput::make('middle_name'),
                                     TextInput::make('last_name')->required(),
+
+                                    Select::make('academicSuffixes')
+                                        ->label('Qualifications')
+                                        ->relationship(
+                                            'academicSuffixes',
+                                            'name',
+                                            fn (\Illuminate\Database\Eloquent\Builder $query) => $query
+                                                ->where('is_active', true)
+                                                ->orderBy('sort_order'),
+                                        )
+                                        ->multiple()
+                                        ->searchable()
+                                        ->preload()
+                                        // The order they are picked in is the
+                                        // order they are written in: "PhD, MBA"
+                                        // is not "MBA, PhD".
+                                        ->helperText('PhD, MBBS — in the order they should read'),
                                 ]),
                                 Textarea::make('bio')
                                     ->rows(3)
