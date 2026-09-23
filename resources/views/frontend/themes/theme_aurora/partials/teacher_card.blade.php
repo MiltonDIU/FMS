@@ -48,6 +48,17 @@
         ?: $roles->first();
 
     $adminRoleName = ($showAdminRole && $adminRole) ? $adminRole->administrativeRole?->name : null;
+    $adminRoleScope = null;
+    if ($showAdminRole && $adminRole) {
+        if ($adminRole->faculty) {
+            $adminRoleScope = $adminRole->faculty->short_name ?: $adminRole->faculty->name;
+        } elseif ($adminRole->department) {
+            $adminRoleScope = $adminRole->department->code ?: $adminRole->department->short_name ?: $adminRole->department->name;
+        }
+    }
+    $adminRoleBadge = $adminRoleName
+        ? ($adminRoleScope ? "{$adminRoleName}, {$adminRoleScope}" : $adminRoleName)
+        : null;
 
     $profileUrl = ($faculty?->short_name && $department?->code && $teacher->webpage)
         ? route('teacher.show', [
@@ -75,8 +86,8 @@
         <span class="tile-initials" aria-hidden="true">{{ $teacher->initials ?: '—' }}</span>
     @endif
 
-    @if($adminRoleName)
-        <span class="tile-badge">{{ $adminRoleName }}</span>
+    @if($adminRoleBadge)
+        <span class="tile-badge">{{ $adminRoleBadge }}</span>
     @endif
 
     {{-- Says so when this person is not currently at their desk — on leave, on

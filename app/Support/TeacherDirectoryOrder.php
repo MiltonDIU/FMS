@@ -59,7 +59,9 @@ final class TeacherDirectoryOrder
     public static function apply(Builder $query, bool $administrativeFirst = false): Builder
     {
         if ($administrativeFirst) {
-            $query->orderBy('admin_role_sort');
+            $query
+                ->orderBy('admin_role_sort')
+                ->orderBy('admin_user_sort');
         }
 
         return $query

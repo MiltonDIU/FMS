@@ -847,7 +847,8 @@ class Teacher extends Model implements HasMedia
      */
     public function administrativeRoles(): HasMany
     {
-        return $this->hasMany(UserAdministrativeRole::class, 'user_id', 'user_id');
+        return $this->hasMany(UserAdministrativeRole::class, 'user_id', 'user_id')
+            ->orderBy('sort_order');
     }
 
     /**

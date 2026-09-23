@@ -114,9 +114,12 @@
 
     {{-- Resolve administrative role only for full profile variant --}}
     @php
-        $adminRoleName = optional(
-            $teacher->administrativeRoles->first()
-        )->administrativeRole?->name;
+        $adminRoleFirst = $teacher->administrativeRoles->first();
+        $adminRoleName = $adminRoleFirst?->administrativeRole?->name;
+        $adminRoleScope = $adminRoleFirst?->faculty?->name ?: $adminRoleFirst?->department?->name;
+        $adminRoleTitle = $adminRoleName
+            ? ($adminRoleScope ? "{$adminRoleName}, {$adminRoleScope}" : $adminRoleName)
+            : null;
     @endphp
 
 
@@ -201,10 +204,10 @@
                  ========================================================= --}}
             <div class="min-w-0">
 
-                @if($adminRoleName)
+                @if($adminRoleTitle)
 
                     <p class="eyebrow mb-2">
-                        {{ $adminRoleName }}
+                        {{ $adminRoleTitle }}
                     </p>
 
                 @endif
