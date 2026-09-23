@@ -156,8 +156,8 @@
                 @endif
 
                 {{-- Fold the whole bar away into a bubble that can be dragged wherever
-                     the reader's thumb is, and tapped to bring the bar back. Small
-                     screens only; see .command-bubble in theme.css and the fold module
+                     the reader wants it, and tapped to bring the bar back. Offered at
+                     every width; see .command-bubble in theme.css and the fold module
                      in theme.js, which owns the bubble, its place and the drag. --}}
                 <button type="button" data-command-fold class="btn-icon command-fold shrink-0"
                         aria-label="Hide search and filters" title="Hide search and filters">
@@ -171,9 +171,9 @@
 
         {{-- The fold control lives in the search row, and the contacts view has
              no search row — which left the one page whose bar is nothing but
-             navigation as the one page a phone reader could not put the bar
-             away on. It rides alongside the faculty rail here instead, so it
-             costs no row of its own. --}}
+             navigation as the one page a reader could not put the bar away on.
+             It rides alongside the faculty rail here instead, so it costs no
+             row of its own. --}}
         <div class="chip-rail-row flex items-center gap-2 {{ $this->view === 'contact' ? '' : 'mt-3' }}">
             <div class="chip-rail min-w-0 flex-1" role="list" aria-label="Faculties">
                 <a href="{{ route('home', $carry) }}" wire:navigate role="listitem" class="chip">All faculties</a>

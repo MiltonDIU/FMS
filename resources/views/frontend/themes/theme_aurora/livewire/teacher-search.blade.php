@@ -141,8 +141,8 @@
             @endif
 
             {{-- Fold the whole bar away into a bubble that can be dragged wherever
-                 the reader's thumb is, and tapped to bring the bar back. Small
-                 screens only; see .command-bubble in theme.css and the fold module
+                 the reader wants it, and tapped to bring the bar back. Offered at
+                 every width; see .command-bubble in theme.css and the fold module
                  in theme.js, which owns the bubble, its place and the drag. --}}
             <button type="button" data-command-fold class="btn-icon command-fold shrink-0"
                     aria-label="Hide search and filters" title="Hide search and filters">

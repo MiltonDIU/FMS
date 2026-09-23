@@ -534,12 +534,18 @@ function centreInRail(rail, child, behavior) {
  * ───────────────────────────────────────────────────────────────────────────
  * Compacting the parked bar was half an answer. A reader who has already found
  * the right list still pays for the bar on every screen of faces after that,
- * and the one thing a phone has none of is vertical space.
+ * and vertical space is the one thing no window has enough of.
  *
  * So the minimise button folds the whole bar away into a bubble, the bubble is
- * dragged wherever the reader's thumb actually lives — left-handers exist, and
- * so does the bottom-right corner every browser puts its own chrome in — and a
- * tap opens the bar again exactly as it was.
+ * dragged wherever the reader's thumb or pointer actually lives — left-handers
+ * exist, and so does the bottom-right corner every browser puts its own chrome
+ * in — and a tap opens the bar again exactly as it was.
+ *
+ * Offered at every width, not only on a phone. The reasoning for the old
+ * small-screen gate was that a desktop bar costs space nothing else wanted;
+ * what it missed is that a wide window makes the chip rails longer rather than
+ * shorter. It is opt-in either way — nothing folds until the reader asks — so
+ * the bar is never taken from anyone who did not put it away themselves.
  *
  * Three things this owns that are worth knowing about.
  *
@@ -580,14 +586,6 @@ function centreInRail(rail, child, behavior) {
 
     function bar() { return document.querySelector('.command'); }
 
-    /* The breakpoint theme.css folds at. Written out rather than shared with
-       the module above, so neither can quietly change it for the other. */
-    function narrow() {
-        return window.matchMedia
-            ? window.matchMedia('(max-width: 63.99rem)').matches
-            : false;
-    }
-
     function store(key, value) {
         try { sessionStorage.setItem(key, value); } catch (e) {}
     }
@@ -620,7 +618,9 @@ function centreInRail(rail, child, behavior) {
         };
     }
 
-    /* Bottom right, but lifted clear of the browser's own bottom bar. */
+    /* Bottom right, but lifted clear of the browser's own bottom bar. The same
+       lift on a desktop, where there is no such bar, simply keeps the bubble
+       off the very corner — and it is only ever a starting point anyway. */
     function restingPlace() {
         var s = size();
 
@@ -847,9 +847,7 @@ function centreInRail(rail, child, behavior) {
             return;
         }
 
-        var away = folded && narrow();
-
-        if (away) {
+        if (folded) {
             if (!bubble) bubble = build();
 
             dress(bubble);
@@ -859,7 +857,7 @@ function centreInRail(rail, child, behavior) {
         }
 
         withoutMovingThePage(function () {
-            el.classList.toggle('is-folded', away);
+            el.classList.toggle('is-folded', folded);
         });
 
         /*
@@ -869,7 +867,7 @@ function centreInRail(rail, child, behavior) {
          * it should be, and focusing must not undo that.
          */
         if (moveFocus) {
-            var next = away ? bubble : el.querySelector('[data-command-fold]');
+            var next = folded ? bubble : el.querySelector('[data-command-fold]');
 
             if (next) next.focus({ preventScroll: true });
         }
@@ -906,9 +904,14 @@ function centreInRail(rail, child, behavior) {
     });
 
     /*
-     * A rotation changes both which side is nearer and what is still on screen,
-     * and crossing back to a wide window has to give the bar back — nobody
-     * expects a phone-sized decision to follow them onto a desktop.
+     * A rotation, or a window dragged smaller, changes what is still on screen
+     * — clamp() is what keeps the bubble reachable, and it needs the new size.
+     *
+     * Folding no longer unwinds itself at the desktop breakpoint. It used to
+     * have to: it was a phone-only control, and a window widened past it would
+     * otherwise have stranded the bar behind a bubble the stylesheet had just
+     * hidden the way back to. Now the bar folds at every width, and putting it
+     * away is a decision that outlasts a resize like any other.
      */
     window.addEventListener('resize', function () {
         apply(false);

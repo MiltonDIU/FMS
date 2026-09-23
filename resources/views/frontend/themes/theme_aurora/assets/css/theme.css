@@ -613,11 +613,16 @@ body {
  * giving up the top of the screen to a control they have finished using.
  *
  * So the bar can be put away entirely. The minimise button folds it into a
- * bubble that floats over the page, is dragged wherever the reader's thumb
- * prefers, and opens the bar again on a tap.
+ * bubble that floats over the page, is dragged wherever the reader prefers,
+ * and opens the bar again on a tap.
  *
- * Small screens only. On a desktop the bar sits in space nothing else wanted,
- * and a button floating over a wide page is clutter, not a saving.
+ * Offered at every width. This was a small-screen control, on the reasoning
+ * that a desktop bar sits in space nothing else wanted — but a wide window
+ * makes the chip rails longer, not shorter, and a reader who has finished
+ * choosing is giving up the top of the window to a control they are done with
+ * on any screen. What keeps it from being clutter is that nothing folds until
+ * it is asked to: the bar is there until the reader puts it away, and the
+ * choice lasts the browsing session and no longer.
  *
  * The bubble itself is built by theme.js rather than written here, because it
  * has to outlive the Livewire component: every faculty chip is a wire:navigate
@@ -626,13 +631,7 @@ body {
  * the folded state and position kept in sessionStorage.
  */
 .command .command-fold {
-    display: none;
-}
-
-@media (max-width: 63.99rem) {
-    .command .command-fold {
-        display: inline-flex;
-    }
+    display: inline-flex;
 }
 
 /* Folded, not merely collapsed: the bar leaves the flow altogether. theme.js
