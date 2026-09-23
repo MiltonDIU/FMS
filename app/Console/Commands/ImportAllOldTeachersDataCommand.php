@@ -40,17 +40,17 @@ class ImportAllOldTeachersDataCommand extends Command
         }
 
         $commands = [
-           // 'import:old-teachers',
-            'import:old-teachers-educations',
-            'import:old-teachers-job-experiences',
-            'import:old-teachers-memberships',
-            'import:old-teachers-awards',
-            'import:old-teachers-publications',
+           //'import:old-teachers',
+//            'import:old-teachers-educations',
+//            'import:old-teachers-job-experiences',
+//            'import:old-teachers-memberships',
+//            'import:old-teachers-awards',
+//            'import:old-teachers-publications',
             'import:old-teachers-teaching-areas',
             'import:training-experiences',
-            'publications:convert-pipeline',
-            'publications:import-pipeline',
-            'import:researcher-profiles',
+//            'publications:convert-pipeline',
+//            'publications:import-pipeline',
+//            'import:researcher-profiles',
 
         ];
 

@@ -10,6 +10,7 @@ use App\Support\PublicationTypeRule;
 use App\Support\ResearchCollaborationRule;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class ImportOldTeachersPublicationsCommand extends Command
 {
@@ -242,67 +243,79 @@ class ImportOldTeachersPublicationsCommand extends Command
 
                 DB::beginTransaction();
                 try {
-                     // Check if publication already exists by Title (avoid duplicates)
-                     $existingPubs = Publication::where('title', $title)->get();
-                     $existingPub = null;
+                     $titleSlug = Str::slug($title) ?: 'publication';
+                     $pubYear   = !empty($pub['publication_year']) ? (int) $pub['publication_year'] : null;
 
-                     $pubYear = $pub['publication_year'] ?? null;
-                     $jName = trim($pub['journal_name'] ?? '');
-
-                     foreach ($existingPubs as $ep) {
-                         // 1. Same year?
-                         if ($pubYear && $ep->publication_year == $pubYear) {
-                             $existingPub = $ep;
-                             break;
-                         }
-                         // 2. Same journal name?
-                         if ($jName !== '' && $ep->journal_name && stripos($ep->journal_name, $jName) !== false) {
-                             $existingPub = $ep;
-                             break;
-                         }
-                         // 3. Same department or faculty?
-                         if ($ep->department_id == $deptId || $ep->faculty_id == $facultyId) {
-                             $existingPub = $ep;
-                             break;
-                         }
-                     }
+                     // 1. Check if publication already exists by Slug or exact Title (prioritizing same department/faculty)
+                     $existingPub = Publication::where('slug', $titleSlug)
+                         ->orWhere('title', $title)
+                         ->orderByRaw('CASE WHEN department_id = ? THEN 0 WHEN faculty_id = ? THEN 1 ELSE 2 END', [(int) $deptId, (int) $facultyId])
+                         ->first();
 
                      if ($existingPub) {
                          $pubId = $existingPub->id;
-                         if ($this->option('skip-existing')) {
-                             $linkExists = DB::table('publication_authors')
-                                 ->where([
-                                     'publication_id'  => $pubId,
-                                     'authorable_type' => 'App\Models\Teacher',
-                                     'authorable_id'   => $teacher->id,
-                                 ])->exists();
-                             if ($linkExists) {
-                                 DB::rollBack();
-                                 continue;
-                             }
+
+                         // 2. Check if this same author (teacher) is already linked to this publication
+                         $authorLinkExists = DB::table('publication_authors')
+                             ->where([
+                                 'publication_id'  => $pubId,
+                                 'authorable_type' => 'App\Models\Teacher',
+                                 'authorable_id'   => $teacher->id,
+                             ])->exists();
+
+                         if ($authorLinkExists && $this->option('skip-existing')) {
+                             DB::rollBack();
+                             $skipped++;
+                             continue;
                          }
+
+                         // 3. Update department & missing fields if empty, and mark come_from_old_site
+                         $updateData = ['come_from_old_site' => 1];
+                         if (empty($existingPub->department_id) && $deptId) {
+                             $updateData['department_id'] = $deptId;
+                         }
+                         if (empty($existingPub->faculty_id) && $facultyId) {
+                             $updateData['faculty_id'] = $facultyId;
+                         }
+                         if (empty($existingPub->publication_year) && $pubYear) {
+                             $updateData['publication_year'] = $pubYear;
+                         }
+                         if (empty($existingPub->journal_name) && !empty($pub['journal_name'])) {
+                             $updateData['journal_name'] = $pub['journal_name'];
+                         }
+                         if (empty($existingPub->journal_link) && !empty($pub['journal_link'])) {
+                             $updateData['journal_link'] = $pub['journal_link'];
+                         }
+
+                         $existingPub->update($updateData);
                          $pubShared++;
                      } else {
-                         $newPub = Publication::create([
-                             'publication_type_id'     => $typeId,
-                             'publication_linkage_id'  => $linkageId,
-                             'publication_quartile_id' => $quartileId,
-                             'grant_type_id'           => $grantsBySlug[$grantSlug]->id,
-                             'title'                   => $title,
-                             'journal_name'            => $pub['journal_name'] ?? null,
-                             'journal_link'            => $pub['journal_link'] ?? null,
-                             'publication_year'        => $pubYear,
-                             'status'                  => 'approved', // Default approved for old DB publications
-                             'faculty_id'              => $facultyId,
-                             'department_id'           => $deptId,
-                             'h_index'                 => $pub['h_index'] ?? null,
-                             'citescore'               => $pub['citescore'] ?? null,
-                             'impact_factor'           => $pub['impact_factor'] ?? null,
-                             'keywords'                => $pub['keywords'] ?? null,
-                             'abstract'                => $pub['abstract'] ?? null,
-                             'come_from_pd'            => 0,
-                             'come_from_old_site'      => 1,
-                         ]);
+                         // 4. Use updateOrCreate for Publication by slug to guarantee no duplicate records
+                         $newPub = Publication::updateOrCreate(
+                             [
+                                 'slug' => $titleSlug,
+                             ],
+                             [
+                                 'publication_type_id'     => $typeId,
+                                 'publication_linkage_id'  => $linkageId,
+                                 'publication_quartile_id' => $quartileId,
+                                 'grant_type_id'           => $grantsBySlug[$grantSlug]->id,
+                                 'title'                   => $title,
+                                 'journal_name'            => $pub['journal_name'] ?? null,
+                                 'journal_link'            => $pub['journal_link'] ?? null,
+                                 'publication_year'        => $pubYear,
+                                 'status'                  => 'approved', // Default approved for old DB publications
+                                 'faculty_id'              => $facultyId,
+                                 'department_id'           => $deptId,
+                                 'h_index'                 => $pub['h_index'] ?? null,
+                                 'citescore'               => $pub['citescore'] ?? null,
+                                 'impact_factor'           => $pub['impact_factor'] ?? null,
+                                 'keywords'                => $pub['keywords'] ?? null,
+                                 'abstract'                => $pub['abstract'] ?? null,
+                                 'come_from_pd'            => 0,
+                                 'come_from_old_site'      => 1,
+                             ]
+                         );
                          $pubId = $newPub->id;
                          $pubCreated++;
                      }
