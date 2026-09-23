@@ -65,6 +65,7 @@ class PublicationLinkageChart extends ApexChartWidget
                 ->minValue(1)
                 ->maxValue(50)
                 ->default(5)
+                ->debounce(500)
                 ->visible(fn (callable $get) => $get('filter_type') === 'last_years'),
 
             \Filament\Forms\Components\TextInput::make('year_from')
@@ -72,6 +73,7 @@ class PublicationLinkageChart extends ApexChartWidget
                 ->numeric()
                 ->minValue(1900)
                 ->maxValue(\Carbon\Carbon::now()->year)
+                ->debounce(500)
                 ->visible(fn (callable $get) => $get('filter_type') === 'custom_range'),
 
             \Filament\Forms\Components\TextInput::make('year_to')
@@ -79,6 +81,7 @@ class PublicationLinkageChart extends ApexChartWidget
                 ->numeric()
                 ->minValue(1900)
                 ->maxValue(\Carbon\Carbon::now()->year)
+                ->debounce(500)
                 ->visible(fn (callable $get) => $get('filter_type') === 'custom_range'),
 
             \Filament\Forms\Components\DatePicker::make('date_start')

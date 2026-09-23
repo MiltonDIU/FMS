@@ -88,6 +88,7 @@ class PublicationYearWidget extends ApexChartWidget
                 ->minValue(1)
                 ->maxValue(50)
                 ->default(5)
+                ->debounce(500)
                 ->visible(fn (callable $get) => $get('filter_type') === 'last_years'),
 
             DatePicker::make('date_start')

@@ -48,6 +48,7 @@
 
                     @if (method_exists($this, 'getFiltersSchema'))
                         <x-filament::dropdown
+                            :wire:key="$this->getId() . '.chart.filters'"
                             placement="bottom-end"
                             shift
                             width="xs"

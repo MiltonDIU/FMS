@@ -73,7 +73,7 @@ class CollaborationDistributionChart extends ApexChartWidget
                 ->maxValue(50)
                 ->default(5)
                 ->visible(fn (Get $get) => $get('filter_type') === 'last_years')
-                ->live(),
+                ->debounce(500),
 
             DatePicker::make('date_start')
                 ->label('Start Date')
