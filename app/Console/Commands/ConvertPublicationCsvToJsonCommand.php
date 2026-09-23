@@ -11,6 +11,7 @@ use App\Models\Author;
 use App\Models\GrantType;
 use App\Models\ResearchCollaboration;
 use App\Support\GrantTypeRule;
+use App\Support\PublicationTypeRule;
 use App\Support\ResearchCollaborationRule;
 
 class ConvertPublicationCsvToJsonCommand extends Command
@@ -550,6 +551,7 @@ class ConvertPublicationCsvToJsonCommand extends Command
 
         $collaborationsCache = ResearchCollaboration::all()->keyBy('slug');
         $grantTypesCache = GrantType::all()->keyBy('slug');
+        $publicationTypesCache = \App\Models\PublicationType::all()->keyBy('slug');
 
         foreach ($pubs as &$pub) {
             $pub['come_from_pd'] = 1;
@@ -691,6 +693,20 @@ class ConvertPublicationCsvToJsonCommand extends Command
 
             $pub['grant_type_slug'] = $grantSlug;
             $pub['grant_type_id'] = $grantTypesCache[$grantSlug]->id ?? null;
+
+            /*
+             * The kind of output, resolved here for the same reason the other
+             * two are: so the file says what it means rather than leaving the
+             * importer to guess from raw text.
+             *
+             * The CSV's Remarks column speaks Scopus — Article, Conference
+             * paper, Letter — and the importer used to slug it and look it up,
+             * which matched nothing for 7,203 of the 7,378 rows.
+             */
+            $typeSlug = PublicationTypeRule::slugFor($pub['remarks'] ?? null);
+
+            $pub['publication_type_slug'] = $typeSlug;
+            $pub['publication_type_id'] = $publicationTypesCache[$typeSlug]->id ?? null;
         }
 
         return $pubs;

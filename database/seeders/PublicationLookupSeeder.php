@@ -14,19 +14,32 @@ class PublicationLookupSeeder extends Seeder
 {
     public function run(): void
     {
-        // Publication Types
+        /*
+         * Publication Types.
+         *
+         * The first eight are the university's own wording. The rest come from
+         * the PD export, which speaks Scopus: a Letter, an Erratum, a Data
+         * Paper and an Editorial are not journal articles and had nowhere to
+         * go, so 7,203 publications carried no type at all.
+         *
+         * Scopus names that mean something we already had — "Article",
+         * "Conference paper", "Review" — are not rows here. They are synonyms,
+         * resolved by PublicationTypeRule; adding them would split one kind of
+         * output across two categories.
+         */
         $types = [
-            ['name' => 'Journal Article', 'slug' => 'journal-article'],
-            ['name' => 'Conference Proceeding', 'slug' => 'conference-proceeding'],
-            ['name' => 'Book', 'slug' => 'book'],
-            ['name' => 'Book Chapter', 'slug' => 'book-chapter'],
-            ['name' => 'Review Article', 'slug' => 'review-article'],
-            ['name' => 'Report', 'slug' => 'report'],
-            ['name' => 'Thesis', 'slug' => 'thesis'],
-            ['name' => 'Patent', 'slug' => 'patent'],
+            ['name' => 'Journal Article', 'slug' => 'journal-article', 'sort_order' => 1],
+            ['name' => 'Conference Proceeding', 'slug' => 'conference-proceeding', 'sort_order' => 2],
+            ['name' => 'Book', 'slug' => 'book', 'sort_order' => 3],
+            ['name' => 'Book Chapter', 'slug' => 'book-chapter', 'sort_order' => 4],
+            ['name' => 'Review Article', 'slug' => 'review-article', 'sort_order' => 5],
+            ['name' => 'Report', 'slug' => 'report', 'sort_order' => 6],
+            ['name' => 'Thesis', 'slug' => 'thesis', 'sort_order' => 7],
+            ['name' => 'Patent', 'slug' => 'patent', 'sort_order' => 8],
+            ...\App\Support\PublicationTypeRule::additionalTypes(),
         ];
-        foreach ($types as $index => $item) {
-            PublicationType::firstOrCreate(['slug' => $item['slug']], array_merge($item, ['sort_order' => $index + 1]));
+        foreach ($types as $item) {
+            PublicationType::firstOrCreate(['slug' => $item['slug']], $item);
         }
 
         // Publication Linkages

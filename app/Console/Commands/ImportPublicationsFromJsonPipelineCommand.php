@@ -13,6 +13,7 @@ use App\Models\ResearchCollaboration;
 use App\Models\GrantType;
 use App\Support\GrantTypeRule;
 use App\Support\PublicationQuartileRule;
+use App\Support\PublicationTypeRule;
 use App\Support\ResearchCollaborationRule;
 
 class ImportPublicationsFromJsonPipelineCommand extends Command
@@ -82,6 +83,17 @@ class ImportPublicationsFromJsonPipelineCommand extends Command
 
             return 1;
         }
+
+        // And the type anything unrecognised falls to.
+        $notAssignedTypeId = $typesCache[PublicationTypeRule::NOT_ASSIGNED]->id ?? null;
+
+        if ($notAssignedTypeId === null) {
+            $this->error('The "Not Assigned" publication type is missing. Run php artisan migrate first.');
+
+            return 1;
+        }
+
+        $typeCounts = [];
 
         // Same reasoning for the quartile every unranked publication falls to.
         // Named N/A now, N/Q before it was renamed; either will do.
@@ -179,12 +191,19 @@ class ImportPublicationsFromJsonPipelineCommand extends Command
                 continue;
             }
 
-            // Resolve Type ID
-            $type_id = null;
-            if (!empty($pub['remarks'])) {
-                $slug = $this->toSlug($pub['remarks']);
-                $type_id = isset($typesCache[$slug]) ? $typesCache[$slug]->id : null;
-            }
+            /*
+             * Resolve Type ID.
+             *
+             * Never null. The old lookup slugged the text and hoped: PD writes
+             * Scopus document types, so "Article" became "article", matched no
+             * seeded row, and 7,203 publications came out with no type at all.
+             * PublicationTypeRule knows both vocabularies and falls back to
+             * Not Assigned rather than nothing.
+             */
+            $typeSlug = PublicationTypeRule::slugFor($pub['remarks'] ?? null);
+            $type_id = $typesCache[$typeSlug]->id ?? $notAssignedTypeId;
+
+            $typeCounts[$typeSlug] = ($typeCounts[$typeSlug] ?? 0) + 1;
 
             // Resolve Linkage ID
             $linkage_id = null;
@@ -415,6 +434,8 @@ class ImportPublicationsFromJsonPipelineCommand extends Command
                     . ' / ' . $quartileCounts[PublicationQuartileRule::Q3]
                     . ' / ' . $quartileCounts[PublicationQuartileRule::Q4]],
                 ['Quartile → N/Q (not ranked)', $quartileCounts[PublicationQuartileRule::NOT_QUARTILED]],
+                ['Type → Not Assigned (unrecognised)', $typeCounts[PublicationTypeRule::NOT_ASSIGNED] ?? 0],
+                ['Type → resolved', array_sum($typeCounts) - ($typeCounts[PublicationTypeRule::NOT_ASSIGNED] ?? 0)],
                 ['grant_type_id dropped (no such grant type)', $grantIdsDropped],
                 ['research_collaboration_id dropped (recomputed)', $collaborationIdsDropped],
                 ['created_by dropped (no such user)', $creatorsDropped],

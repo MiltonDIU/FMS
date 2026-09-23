@@ -6,6 +6,7 @@ use App\Models\Publication;
 use App\Models\Teacher;
 use App\Support\GrantTypeRule;
 use App\Support\PublicationQuartileRule;
+use App\Support\PublicationTypeRule;
 use App\Support\ResearchCollaborationRule;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -87,6 +88,17 @@ class ImportOldTeachersPublicationsCommand extends Command
                 'No "not ranked" publication quartile found — expected one of: '
                 . implode(', ', PublicationQuartileRule::NOT_QUARTILED_SLUGS) . '.'
             );
+
+            return Command::FAILURE;
+        }
+
+        // Publication types by slug, resolved through the same rule the PD
+        // import uses so both agree on what the source wording means.
+        $typesBySlug = DB::table('publication_types')->get()->keyBy('slug');
+        $notAssignedTypeId = $typesBySlug[PublicationTypeRule::NOT_ASSIGNED]->id ?? null;
+
+        if ($notAssignedTypeId === null) {
+            $this->error('The "Not Assigned" publication type is missing. Run php artisan migrate first.');
 
             return Command::FAILURE;
         }
@@ -179,8 +191,17 @@ class ImportOldTeachersPublicationsCommand extends Command
                     continue;
                 }
 
-                // Resolve type, linkage, quartile IDs
-                $typeId     = $pubTypeMap[mb_strtolower($pub['publication_type'] ?? '')] ?? $pubTypeMap['journal article'] ?? null;
+                /*
+                 * Resolve type, linkage, quartile IDs.
+                 *
+                 * The type goes through the same rule the PD import uses, so
+                 * the two cannot disagree about what "Review" means. It also
+                 * replaces a fallback to Journal Article, which quietly filed
+                 * anything unrecognised as a journal article rather than
+                 * admitting it did not know.
+                 */
+                $typeSlug   = PublicationTypeRule::slugFor($pub['publication_type'] ?? null);
+                $typeId     = $typesBySlug[$typeSlug]->id ?? $notAssignedTypeId;
                 $linkageId  = $linkageMap[mb_strtolower($pub['linkage'] ?? '')] ?? $linkageMap['non-indexed'] ?? null;
                 $authorRole = $pub['author_role'] ?? 'co_author';
 
