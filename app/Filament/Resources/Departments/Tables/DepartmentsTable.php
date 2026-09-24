@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Departments\Tables;
 
+use App\Models\Department;
 use App\Models\Faculty;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -23,6 +24,16 @@ class DepartmentsTable
 {
     public static function configure(Table $table): Table
     {
+        $user = auth()->user();
+        $adminRole = null;
+
+        if ($user && ! $user->hasRole('super_admin')) {
+            $adminRole = $user->administrativeRoles()
+                ->wherePivot('is_active', true)
+                ->whereNull('administrative_role_user.end_date')
+                ->first();
+        }
+
         return $table
             ->defaultSort('sort_order', 'asc')
             ->reorderable('sort_order')
@@ -93,7 +104,20 @@ class DepartmentsTable
             ->filters([
                 SelectFilter::make('faculty_id')
                     ->label('Faculty')
-                    ->options(Faculty::pluck('short_name', 'id'))
+                    ->options(function () use ($adminRole) {
+                        $query = Faculty::query();
+                        if ($adminRole && $adminRole->pivot) {
+                            if ($adminRole->pivot->faculty_id) {
+                                $query->where('id', $adminRole->pivot->faculty_id);
+                            } elseif ($adminRole->pivot->department_id) {
+                                $department = Department::find($adminRole->pivot->department_id);
+                                if ($department) {
+                                    $query->where('id', $department->faculty_id);
+                                }
+                            }
+                        }
+                        return $query->pluck('short_name', 'id');
+                    })
                     ->searchable(),
                 SelectFilter::make('is_active')
                     ->label('Status')

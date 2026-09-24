@@ -89,7 +89,7 @@ class PublicationResource extends Resource
                 return $query;
             }
 
-            if ($user->hasRole('teacher') && ! ($user->hasRole('dean') || $user->hasRole('head'))) {
+            if ($user->hasRole('teacher') && ! $user->hasRole(['dean', 'associate_dean', 'head', 'associate_head'])) {
                 if ($user->teacher) {
                     $teacherId = $user->teacher->id;
                     $query->whereHas('teachers', function ($q) use ($teacherId) {

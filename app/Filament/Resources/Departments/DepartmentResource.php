@@ -63,6 +63,38 @@ class DepartmentResource extends Resource
         ];
     }
 
+    /**
+     * Apply role-based scoping to the query
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        $user = auth()->user();
+
+        if (! $user || $user->hasRole('super_admin')) {
+            return $query;
+        }
+
+        // Check user's administrative role bindings
+        $adminRole = $user->administrativeRoles()
+            ->wherePivot('is_active', true)
+            ->whereNull('administrative_role_user.end_date')
+            ->first();
+
+        if ($adminRole && $adminRole->pivot) {
+            // Department-scoped user (e.g. Head)
+            if ($adminRole->pivot->department_id) {
+                $query->where('departments.id', $adminRole->pivot->department_id);
+            }
+            // Faculty-scoped user (e.g. Dean)
+            elseif ($adminRole->pivot->faculty_id) {
+                $query->where('departments.faculty_id', $adminRole->pivot->faculty_id);
+            }
+        }
+
+        return $query;
+    }
+
     public static function getRecordRouteBindingEloquentQuery(): Builder
     {
         return parent::getRecordRouteBindingEloquentQuery()

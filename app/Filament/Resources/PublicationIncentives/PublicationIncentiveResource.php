@@ -66,7 +66,7 @@ class PublicationIncentiveResource extends Resource
                 return $query;
             }
 
-            if ($user->hasRole('teacher') && ! ($user->hasRole('dean') || $user->hasRole('head'))) {
+            if ($user->hasRole('teacher') && ! $user->hasRole(['dean', 'associate_dean', 'head', 'associate_head'])) {
                 if ($user->teacher) {
                     $teacherId = $user->teacher->id;
                     $query->whereHas('publication.teachers', function ($q) use ($teacherId) {
