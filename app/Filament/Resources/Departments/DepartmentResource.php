@@ -5,9 +5,11 @@ namespace App\Filament\Resources\Departments;
 use App\Filament\Resources\Departments\Pages\CreateDepartment;
 use App\Filament\Resources\Departments\Pages\EditDepartment;
 use App\Filament\Resources\Departments\Pages\ListDepartments;
+use App\Filament\Resources\Departments\Pages\ViewDepartment;
 use App\Filament\Resources\Departments\RelationManagers\TeacherDepartmentRelationManager;
 use App\Filament\Resources\Departments\RelationManagers\TeachersRelationManager;
 use App\Filament\Resources\Departments\Schemas\DepartmentForm;
+use App\Filament\Resources\Departments\Schemas\DepartmentInfolist;
 use App\Filament\Resources\Departments\Tables\DepartmentsTable;
 use App\Models\Department;
 use App\Models\Teacher;
@@ -41,6 +43,11 @@ class DepartmentResource extends Resource
         return DepartmentForm::configure($schema);
     }
 
+    public static function infolist(Schema $schema): Schema
+    {
+        return DepartmentInfolist::configure($schema);
+    }
+
     public static function table(Table $table): Table
     {
         return DepartmentsTable::configure($table);
@@ -59,6 +66,7 @@ class DepartmentResource extends Resource
         return [
             'index' => ListDepartments::route('/'),
             'create' => CreateDepartment::route('/create'),
+            'view' => ViewDepartment::route('/{record}'),
             'edit' => EditDepartment::route('/{record}/edit'),
         ];
     }

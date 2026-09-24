@@ -15,6 +15,7 @@ class TeachersRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->description('Teachers whose home department is this one.')
             ->columns([
                 TextColumn::make('employee_id')
                     ->label('ID')

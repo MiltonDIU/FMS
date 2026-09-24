@@ -26,6 +26,7 @@ class TeacherDepartmentRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->description('Teachers from another department, assigned to teach in this one. Department shows where each one belongs.')
             ->modifyQueryUsing(fn (\Illuminate\Database\Eloquent\Builder $query) => $query->where(function ($q) {
                 $q->where('teachers.department_id', '!=', $this->getOwnerRecord()->id)
                     ->orWhereNull('teachers.department_id');
