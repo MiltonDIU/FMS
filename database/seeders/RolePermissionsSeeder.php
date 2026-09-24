@@ -516,8 +516,10 @@ class RolePermissionsSeeder extends Seeder
             // Teachers - view only (scoped by department)
             'ViewAny:Teacher', 'View:Teacher',
 
-            // Department Teachers - view only (scoped by department)
+            // Department Teachers - view only (scoped by department), plus the
+            // order their department's teachers are listed in on the public site
             'ViewAny:DepartmentTeacher', 'View:DepartmentTeacher',
+            'Reorder:DepartmentTeacher',
 
             // Publications - view only (scoped by department)
             'ViewAny:Publication', 'View:Publication',
@@ -671,8 +673,10 @@ class RolePermissionsSeeder extends Seeder
             // Teachers - view only (scoped by department)
             'ViewAny:Teacher', 'View:Teacher',
 
-            // Department Teachers - view only (scoped by department)
+            // Department Teachers - view only (scoped by department), plus the
+            // order their department's teachers are listed in on the public site
             'ViewAny:DepartmentTeacher', 'View:DepartmentTeacher',
+            'Reorder:DepartmentTeacher',
 
             // Publications - view only (scoped by department)
             'ViewAny:Publication', 'View:Publication',

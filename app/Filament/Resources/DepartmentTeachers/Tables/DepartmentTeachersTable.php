@@ -41,6 +41,20 @@ class DepartmentTeachersTable
                 ->first();
         }
 
+        /*
+         * The one department the list is showing, if it is showing only one:
+         * the department picked in the filter, or the department a Head or
+         * Associate Head is scoped to — the filter enforces that scope without
+         * ever writing it into the filter state, so it has to be read here too.
+         *
+         * sort_order is an order within a department. Dragging rows only makes
+         * sense when every row belongs to the same one; across departments the
+         * drop would renumber them all as a single list.
+         */
+        $scopedDepartmentId = $adminRole?->pivot?->department_id;
+        $currentDepartmentId = fn ($livewire) => $livewire?->getTableFilterState('faculty_department')['department_id']
+            ?? $scopedDepartmentId;
+
         return $table
             /*
              * Both relations are read by several columns on every row, and the
@@ -55,11 +69,9 @@ class DepartmentTeachersTable
                 'teacher.academicSuffixes',
                 'department.faculty',
             ]))
-            ->defaultSort(function (Builder $query, string $direction, $livewire) {
-                $departmentId = $livewire?->getTableFilterState('faculty_department')['department_id'] ?? null;
-
-                // Filtered to one department: honour the manual per-department order.
-                if ($departmentId) {
+            ->defaultSort(function (Builder $query, string $direction, $livewire) use ($currentDepartmentId) {
+                // One department on screen: honour the manual per-department order.
+                if ($currentDepartmentId($livewire)) {
                     return $query->orderBy('sort_order', $direction);
                 }
 
@@ -76,7 +88,7 @@ class DepartmentTeachersTable
                     )
                     ->orderBy('sort_order', $direction);
             }, 'asc')
-            ->reorderable('sort_order')
+            ->reorderable('sort_order', fn ($livewire): bool => filled($currentDepartmentId($livewire)))
             ->columns([
                 TextColumn::make('teacher.employee_id')
                     ->label('Employee ID')
@@ -231,7 +243,12 @@ class DepartmentTeachersTable
                     ->extraAttributes(['class' => 'dt-sort-order-cell'])
                     // Reorders the public directory listing. Inline columns skip
                     // policies, so without this read access is enough to edit it.
-                    ->disabled(fn (DepartmentTeacher $record): bool => ! auth()->user()?->can('update', $record))
+                    // Reorder is enough on its own: it is the same order that
+                    // dragging the rows writes.
+                    ->disabled(fn (DepartmentTeacher $record): bool => ! (
+                        auth()->user()?->can('update', $record)
+                        || auth()->user()?->can('reorder', DepartmentTeacher::class)
+                    ))
                     ->updateStateUsing(function ($record, $state) {
                         $newPosition = max(1, (int) $state);
                         $oldPosition = $record->sort_order;
