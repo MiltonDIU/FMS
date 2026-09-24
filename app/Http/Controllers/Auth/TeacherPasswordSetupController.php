@@ -42,7 +42,8 @@ class TeacherPasswordSetupController extends Controller
             'password' => [
                 'required',
                 'confirmed',
-                Password::min(8)->letters()->numbers()->uncompromised(),
+                //Password::min(8)->letters()->numbers()->uncompromised(),
+                Password::min(8)->letters()->numbers()->symbols()->uncompromised(),
             ],
         ], [
             'password.uncompromised' => 'That password has appeared in a public data breach. Please choose another.',

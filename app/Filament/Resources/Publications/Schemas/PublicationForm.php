@@ -2,12 +2,18 @@
 
 namespace App\Filament\Resources\Publications\Schemas;
 
+use App\Models\Author;
+use App\Models\AuthorType;
+use App\Models\Teacher;
+use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
+use Filament\Notifications\Notification;
 use Filament\Schemas\Schema;
 use Filament\Schemas\Components\Grid;
+use Illuminate\Support\Facades\DB;
 class PublicationForm
 {
 
@@ -83,6 +89,21 @@ class PublicationForm
                     ])->columns(2),
 
                 \Filament\Schemas\Components\Section::make('Authorship')
+                    ->description('Select teachers (permanent faculty) or external authors. If not in the list, click "New Author" above to add them.')
+                    ->headerActions([
+                        Action::make('create_author')
+                            ->label('New Author')
+                            ->icon('heroicon-o-user-plus')
+                            ->color('gray')
+                            ->modalHeading('Create New Author')
+                            ->modalDescription('Add a new external, guest, or student author to the database.')
+                            ->modalWidth('lg')
+                            ->model(Author::class)
+                            ->schema(static::getAuthorOptionForm())
+                            ->action(function (array $data) {
+                                static::handleCreateAuthorOption($data);
+                            }),
+                    ])
                     ->schema([
                         Select::make('first_author_id')
                             ->label('First Author')
@@ -91,7 +112,7 @@ class PublicationForm
                             ->getOptionLabelUsing(fn ($value) => static::authorLabel($value))
                             ->afterStateHydrated(function ($component, $record) {
                                 if (!$record) return null;
-                                $pivot = \DB::table('publication_authors')
+                                $pivot = DB::table('publication_authors')
                                     ->where('publication_id', $record->id)
                                     ->where('author_role', 'first')
                                     ->first();
@@ -107,7 +128,7 @@ class PublicationForm
                             ->getOptionLabelUsing(fn ($value) => static::authorLabel($value))
                             ->afterStateHydrated(function ($component, $record) {
                                 if (!$record) return null;
-                                $pivot = \DB::table('publication_authors')
+                                $pivot = DB::table('publication_authors')
                                     ->where('publication_id', $record->id)
                                     ->where('author_role', 'corresponding')
                                     ->first();
@@ -124,7 +145,7 @@ class PublicationForm
                             ->getOptionLabelsUsing(fn (array $values) => static::authorLabels($values))
                             ->afterStateHydrated(function ($component, $record) {
                                 if (!$record) return null;
-                                $pivots = \DB::table('publication_authors')
+                                $pivots = DB::table('publication_authors')
                                     ->where('publication_id', $record->id)
                                     ->where('author_role', 'co_author')
                                     ->orderBy('sort_order')
@@ -354,14 +375,130 @@ class PublicationForm
     }
 
     /** @return array{0: ?string, 1: ?string} */
-    protected static function parseKey(mixed $value): array
+    public static function parseKey(mixed $value): array
     {
-        if (! is_string($value) || ! str_contains($value, ':')) {
+        if (blank($value)) {
             return [null, null];
         }
 
-        [$model, $id] = explode(':', $value, 2);
+        if (is_string($value) && str_contains($value, ':')) {
+            [$model, $id] = explode(':', $value, 2);
 
-        return [$model, $id];
+            return [$model, $id];
+        }
+
+        if (is_numeric($value)) {
+            return [\App\Models\Teacher::class, (string) $value];
+        }
+
+        return [null, null];
+    }
+
+    /**
+     * Form schema for quickly creating an external author inline.
+     *
+     * @return array<\Filament\Forms\Components\Component>
+     */
+    public static function getAuthorOptionForm(): array
+    {
+        return [
+            TextInput::make('name')
+                ->label('Author Name')
+                ->required()
+                ->maxLength(255)
+                ->placeholder('e.g. Dr. John Doe'),
+
+            TextInput::make('email')
+                ->label('Email Address')
+                ->email()
+                ->maxLength(255)
+                ->nullable()
+                ->helperText('Optional. If left blank, a placeholder email will be generated automatically.'),
+
+            Select::make('author_type_id')
+                ->label('Author Category')
+                ->options(function () {
+                    $labels = [
+                        'VF' => 'Visiting Faculty (VF)',
+                        'GA' => 'Guest / External Author (GA)',
+                        'SA' => 'Student Author (SA)',
+                    ];
+
+                    return AuthorType::where('is_active', true)
+                        ->get()
+                        ->mapWithKeys(fn ($type) => [$type->id => $labels[$type->name] ?? $type->name])
+                        ->toArray();
+                })
+                ->default(fn () => AuthorType::where('name', 'GA')->value('id') ?? 2)
+                ->required()
+                ->native(false),
+
+            TextInput::make('scopus_id')
+                ->label('Scopus Author ID')
+                ->maxLength(32)
+                ->nullable()
+                ->placeholder('Optional Scopus ID'),
+
+            Toggle::make('is_active')
+                ->label('Active')
+                ->default(true),
+        ];
+    }
+
+    /**
+     * Handle creating a new external author from the inline modal.
+     */
+    public static function handleCreateAuthorOption(array $data): string
+    {
+        $name = trim($data['name']);
+        $email = !empty($data['email']) ? trim($data['email']) : null;
+
+        if (!$email) {
+            $base = preg_replace('/[^a-z0-9]/', '', strtolower($name));
+            $base = $base !== '' ? $base : 'author';
+            $email = $base . '@fms.com';
+            $counter = 1;
+            while (Author::withTrashed()->where('email', $email)->exists()) {
+                $email = $base . $counter . '@fms.com';
+                $counter++;
+            }
+        }
+
+        $existing = Author::withTrashed()->where('email', $email)->first();
+        if ($existing) {
+            if ($existing->trashed()) {
+                $existing->restore();
+            }
+            $existing->update([
+                'name' => $name,
+                'author_type_id' => $data['author_type_id'],
+                'scopus_id' => !empty($data['scopus_id']) ? trim($data['scopus_id']) : $existing->scopus_id,
+                'is_active' => $data['is_active'] ?? true,
+            ]);
+
+            Notification::make()
+                ->title('Author selected')
+                ->body("{$existing->name} already existed and was selected.")
+                ->info()
+                ->send();
+
+            return static::keyFor(Author::class, $existing->id);
+        }
+
+        $author = Author::create([
+            'name' => $name,
+            'email' => $email,
+            'author_type_id' => $data['author_type_id'],
+            'scopus_id' => !empty($data['scopus_id']) ? trim($data['scopus_id']) : null,
+            'is_active' => $data['is_active'] ?? true,
+        ]);
+
+        Notification::make()
+            ->title('Author created successfully')
+            ->body("{$author->name} has been created and selected.")
+            ->success()
+            ->send();
+
+        return static::keyFor(Author::class, $author->id);
     }
 }

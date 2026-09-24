@@ -20,6 +20,10 @@ use Filament\Schemas\Components\Tabs;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
+use App\Filament\Resources\Publications\Schemas\PublicationForm;
+use App\Models\Author;
+use App\Models\Teacher;
+use Illuminate\Support\Facades\DB;
 
 class TeacherForm
 {
@@ -835,55 +839,69 @@ class TeacherForm
 
 
                                                 \Filament\Schemas\Components\Section::make('Authorship')
+                                                    ->description('Select teachers (permanent faculty) or external authors. If not in the list, click "New Author" above to add them.')
+                                                    ->headerActions([
+                                                        Action::make('create_author')
+                                                            ->label('New Author')
+                                                            ->icon('heroicon-o-user-plus')
+                                                            ->color('gray')
+                                                            ->modalHeading('Create New Author')
+                                                            ->modalDescription('Add a new external, guest, or student author to the database.')
+                                                            ->modalWidth('lg')
+                                                            ->model(Author::class)
+                                                            ->schema(PublicationForm::getAuthorOptionForm())
+                                                            ->action(function (array $data) {
+                                                                PublicationForm::handleCreateAuthorOption($data);
+                                                            }),
+                                                    ])
                                                     ->schema([
                                                         Select::make('first_author_id')
                                                             ->label('First Author')
                                                             ->searchable()
-                                                            ->options(fn () => \App\Models\Teacher::query()->orderBy('sort_order')->limit(10)->get()->pluck('full_name', 'id'))
-                                                            ->getSearchResultsUsing(fn (string $search) => \App\Models\Teacher::query()
-                                                                ->where('first_name', 'like', "%{$search}%")
-                                                                ->orWhere('middle_name', 'like', "%{$search}%")
-                                                                ->orWhere('last_name', 'like', "%{$search}%")
-                                                                ->orWhere('employee_id', 'like', "%{$search}%")
-                                                                ->limit(20)
-                                                                ->get()
-                                                                ->pluck('full_name', 'id')
-                                                            )
-                                                            ->getOptionLabelUsing(fn ($value) => \App\Models\Teacher::find($value)?->full_name)
-                                                            ->afterStateHydrated(fn ($component, $record) => $record && $component->state($record->teachers()->wherePivot('author_role', 'first')->first()?->id)),
+                                                            ->getSearchResultsUsing(fn (string $search) => PublicationForm::searchAuthors($search))
+                                                            ->getOptionLabelUsing(fn ($value) => PublicationForm::authorLabel($value))
+                                                            ->afterStateHydrated(function ($component, $record) {
+                                                                if (!$record) return null;
+                                                                $pivot = DB::table('publication_authors')
+                                                                    ->where('publication_id', $record->id)
+                                                                    ->where('author_role', 'first')
+                                                                    ->first();
+                                                                if ($pivot) {
+                                                                    $component->state($pivot->authorable_type . ':' . $pivot->authorable_id);
+                                                                }
+                                                            }),
 
                                                         Select::make('corresponding_author_id')
                                                             ->label('Corresponding Author')
                                                             ->searchable()
-                                                            ->options(fn () => \App\Models\Teacher::query()->orderBy('sort_order')->limit(10)->get()->pluck('full_name', 'id'))
-                                                            ->getSearchResultsUsing(fn (string $search) => \App\Models\Teacher::query()
-                                                                ->where('first_name', 'like', "%{$search}%")
-                                                                ->orWhere('middle_name', 'like', "%{$search}%")
-                                                                ->orWhere('last_name', 'like', "%{$search}%")
-                                                                ->orWhere('employee_id', 'like', "%{$search}%")
-                                                                ->limit(20)
-                                                                ->get()
-                                                                ->pluck('full_name', 'id')
-                                                            )
-                                                            ->getOptionLabelUsing(fn ($value) => \App\Models\Teacher::find($value)?->full_name)
-                                                            ->afterStateHydrated(fn ($component, $record) => $record && $component->state($record->teachers()->wherePivot('author_role', 'corresponding')->first()?->id)),
+                                                            ->getSearchResultsUsing(fn (string $search) => PublicationForm::searchAuthors($search))
+                                                            ->getOptionLabelUsing(fn ($value) => PublicationForm::authorLabel($value))
+                                                            ->afterStateHydrated(function ($component, $record) {
+                                                                if (!$record) return null;
+                                                                $pivot = DB::table('publication_authors')
+                                                                    ->where('publication_id', $record->id)
+                                                                    ->where('author_role', 'corresponding')
+                                                                    ->first();
+                                                                if ($pivot) {
+                                                                    $component->state($pivot->authorable_type . ':' . $pivot->authorable_id);
+                                                                }
+                                                            }),
 
                                                         Select::make('co_author_ids')
                                                             ->label('Co-Authors')
                                                             ->multiple()
                                                             ->searchable()
-                                                            ->options(fn () => \App\Models\Teacher::query()->orderBy('sort_order')->limit(10)->get()->pluck('full_name', 'id'))
-                                                            ->getSearchResultsUsing(fn (string $search) => \App\Models\Teacher::query()
-                                                                ->where('first_name', 'like', "%{$search}%")
-                                                                ->orWhere('middle_name', 'like', "%{$search}%")
-                                                                ->orWhere('last_name', 'like', "%{$search}%")
-                                                                ->orWhere('employee_id', 'like', "%{$search}%")
-                                                                ->limit(20)
-                                                                ->get()
-                                                                ->pluck('full_name', 'id')
-                                                            )
-                                                            ->getOptionLabelsUsing(fn (array $values) => \App\Models\Teacher::whereIn('id', $values)->get()->pluck('full_name', 'id')->toArray())
-                                                            ->afterStateHydrated(fn ($component, $record) => $record && $component->state($record->teachers()->wherePivot('author_role', 'co_author')->orderByPivot('sort_order')->pluck('teachers.id')->toArray())),
+                                                            ->getSearchResultsUsing(fn (string $search) => PublicationForm::searchAuthors($search))
+                                                            ->getOptionLabelsUsing(fn (array $values) => PublicationForm::authorLabels($values))
+                                                            ->afterStateHydrated(function ($component, $record) {
+                                                                if (!$record) return null;
+                                                                $pivots = DB::table('publication_authors')
+                                                                    ->where('publication_id', $record->id)
+                                                                    ->where('author_role', 'co_author')
+                                                                    ->orderBy('sort_order')
+                                                                    ->get();
+                                                                $component->state($pivots->map(fn ($pivot) => $pivot->authorable_type . ':' . $pivot->authorable_id)->toArray());
+                                                            }),
                                                     ])->columns(3),
 
 
@@ -995,41 +1013,73 @@ class TeacherForm
                                                 $publication = $record->publications()->create($data);
                                             }
 
-                                            // Handle Authorship Sync
+                                            // Handle Authorship Sync (Polymorphic: Teachers & External Authors)
                                             if ($publication) {
-                                                $syncData = [];
+                                                $carried = DB::table('publication_authors')
+                                                    ->where('publication_id', $publication->id)
+                                                    ->get()
+                                                    ->keyBy(fn ($row) => $row->authorable_type . ':' . $row->authorable_id . ':' . $row->author_role);
+
+                                                DB::table('publication_authors')->where('publication_id', $publication->id)->delete();
+
+                                                $previous = function (string $model, $id, string $role) use ($carried) {
+                                                    return $carried->get("{$model}:{$id}:{$role}")
+                                                        ?? $carried->first(fn ($row) => $row->authorable_type === $model
+                                                            && (string) $row->authorable_id === (string) $id);
+                                                };
+
+                                                $insertAuthor = function (string $model, $id, string $role, int $sortOrder) use ($publication, $previous) {
+                                                    $was = $previous($model, $id, $role);
+
+                                                    DB::table('publication_authors')->insert([
+                                                        'publication_id' => $publication->id,
+                                                        'authorable_type' => $model,
+                                                        'authorable_id' => $id,
+                                                        'author_role' => $role,
+                                                        'sort_order' => $sortOrder,
+                                                        'affiliation' => $was->affiliation ?? null,
+                                                        'used_our_affiliation' => $was->used_our_affiliation ?? null,
+                                                        'incentive_amount' => $was->incentive_amount ?? 0.00,
+                                                        'created_at' => $was->created_at ?? now(),
+                                                        'updated_at' => now(),
+                                                    ]);
+                                                };
+
+                                                $insertedKeys = [];
 
                                                 // First Author
                                                 if (!empty($item['first_author_id'])) {
-                                                    $syncData[$item['first_author_id']] = ['author_role' => 'first', 'sort_order' => 1];
+                                                    [$model, $id] = PublicationForm::parseKey($item['first_author_id']);
+                                                    if ($model && $id) {
+                                                        $insertAuthor($model, $id, 'first', 0);
+                                                        $insertedKeys[] = "{$model}:{$id}";
+                                                    }
                                                 }
 
                                                 // Corresponding Author
                                                 if (!empty($item['corresponding_author_id'])) {
-                                                    // If already added (e.g. same as first), update role?
-                                                    // Usually one person can be both, but pivot key is teacher_id.
-                                                    // Pivot often handles multiple roles or unique teacher_id per publication.
-                                                    // With standard `sync`, duplicate keys overwrite.
-                                                    // We need to decide precedence or merging.
-                                                    // Simplification: Prioritize roles?
-                                                    // For now, if same person is First and Corresponding, the last one overwrites.
-                                                    $existing = $syncData[$item['corresponding_author_id']] ?? [];
-                                                    $syncData[$item['corresponding_author_id']] = array_merge($existing, ['author_role' => 'corresponding', 'sort_order' => 2]);
+                                                    [$model, $id] = PublicationForm::parseKey($item['corresponding_author_id']);
+                                                    if ($model && $id) {
+                                                        $insertAuthor($model, $id, 'corresponding', 0);
+                                                        $insertedKeys[] = "{$model}:{$id}";
+                                                    }
                                                 }
 
                                                 // Co-Authors
                                                 if (!empty($item['co_author_ids']) && is_array($item['co_author_ids'])) {
-                                                    foreach ($item['co_author_ids'] as $index => $coAuthorId) {
-                                                        // Don't overwrite higher priority roles?
-                                                        if (!isset($syncData[$coAuthorId])) {
-                                                            $syncData[$coAuthorId] = ['author_role' => 'co_author', 'sort_order' => 3 + $index];
+                                                    foreach ($item['co_author_ids'] as $index => $coAuthorKey) {
+                                                        [$model, $id] = PublicationForm::parseKey($coAuthorKey);
+                                                        if ($model && $id) {
+                                                            $insertAuthor($model, $id, 'co_author', $index + 1);
+                                                            $insertedKeys[] = "{$model}:{$id}";
                                                         }
                                                     }
                                                 }
 
-                                                // Sync teachers
-                                                if (!empty($syncData)) {
-                                                    $publication->teachers()->sync($syncData);
+                                                // Ensure this teacher stays associated with their publication
+                                                $teacherKey = Teacher::class . ":{$record->id}";
+                                                if (!in_array($teacherKey, $insertedKeys)) {
+                                                    $insertAuthor(Teacher::class, $record->id, 'co_author', 99);
                                                 }
                                             }
                                         }
