@@ -359,13 +359,30 @@ class Teacher extends Model implements HasMedia
      * publish the other 872: of 2,000 teacher records, 1,128 are visible.
      *
      * So the rule lives here once, is used by every API query, and is covered by
-     * a test that counts what the endpoints return against this scope.
+     * a test that counts what the endpoints return against this scope. The
+     * website's pages, searches, counts and sitemap call it too.
+     *
+     * With the "hide unverified profiles" teacher setting on, a teacher who has
+     * never verified their profile is left out as well. Off, the two rules above
+     * are the whole of it, as they always were.
      */
     public function scopePublished(Builder $query): Builder
     {
         return $query
             ->where('teachers.is_active', true)
-            ->where('teachers.is_archived', false);
+            ->where('teachers.is_archived', false)
+            ->when(static::hidesUnverifiedPublicly(), fn (Builder $q) => $q
+                // NULL is read as unverified everywhere else, so it is here too.
+                ->whereNotNull('teachers.verification_status')
+                ->where('teachers.verification_status', '!=', 'unverified'));
+    }
+
+    /** The teacher setting that keeps unverified profiles off the public site. */
+    public const HIDE_UNVERIFIED_SETTING = 'teacher_hide_unverified_publicly';
+
+    public static function hidesUnverifiedPublicly(): bool
+    {
+        return filter_var(Setting::get(self::HIDE_UNVERIFIED_SETTING, false), FILTER_VALIDATE_BOOLEAN);
     }
 
     /**

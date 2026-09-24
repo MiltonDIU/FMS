@@ -73,7 +73,7 @@ class SystemSettings extends Page
         }
 
         // Explicitly cast custom boolean settings
-        $boolKeys = ['export_overwrite', 'import_dry_run', 'import_skip_existing'];
+        $boolKeys = ['export_overwrite', 'import_dry_run', 'import_skip_existing', \App\Models\Teacher::HIDE_UNVERIFIED_SETTING];
         foreach (array_keys(static::getAvailableThemes()) as $slug) {
             $boolKeys[] = \App\Helpers\FontManager::settingKey($slug, 'footer_match_theme');
         }
@@ -150,6 +150,7 @@ class SystemSettings extends Page
             'import_dry_run' => false,
             'import_skip_existing' => true,
             'teacher_login_mode' => 'individual',
+            \App\Models\Teacher::HIDE_UNVERIFIED_SETTING => false,
             'teacher_integration_api_url' => 'http://localhost:8000/api/v1/teachers/preview',
             'teacher_integration_mapping' => 'erp_teacher_profile',
             'hr_api_base_url' => '',
@@ -340,6 +341,14 @@ class SystemSettings extends Page
                                             ])
                                             ->default('individual')
                                             ->required(),
+                                    ]),
+                                Section::make('Public Profile Visibility')
+                                    ->description('Which teacher profiles the public website, its search, its counts, the sitemap and the API show')
+                                    ->schema([
+                                        Toggle::make(\App\Models\Teacher::HIDE_UNVERIFIED_SETTING)
+                                            ->label('Hide unverified profiles from the public')
+                                            ->default(false)
+                                            ->helperText('On: a teacher whose verification status is Unverified is not shown publicly, even when active and not archived. Off: only the usual rules apply — active and not archived.'),
                                     ]),
                             ]),
                         Tab::make('Profile Integrity & Thresholds')

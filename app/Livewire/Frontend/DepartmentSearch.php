@@ -98,8 +98,7 @@ class DepartmentSearch extends Component
         $dept = $this->department;
         $assignedIds = $this->assignedTeacherIds();
 
-        return Teacher::where('teachers.is_active', true)
-            ->where('teachers.is_archived', false)
+        return Teacher::published()
             ->where(function ($q) use ($dept, $assignedIds) {
                 $q->where('teachers.department_id', $dept->id)
                     ->orWhereIn('teachers.id', $assignedIds);
@@ -192,8 +191,7 @@ class DepartmentSearch extends Component
                 ->orWhereIn('teachers.id', fn ($sub) => $sub->select('teacher_id')->from('department_teacher')
                     ->whereNull('department_teacher.deleted_at')
                     ->whereIn('department_id', fn ($s2) => $s2->select('id')->from('departments')->where('faculty_id', $facId)))))
-            ->where('teachers.is_active', true)
-            ->where('teachers.is_archived', false)
+            ->published()
             ->whereNotNull('teachers.designation_id')
             ->distinct()
             ->pluck('teachers.designation_id');
@@ -266,8 +264,7 @@ class DepartmentSearch extends Component
                 )));
         }
 
-        $query->where('teachers.is_active', true)
-            ->where('teachers.is_archived', false);
+        $query->published();
 
         // The same call the directory search makes. This page used to match
         // fewer fields than that one — no faculty name, no faculty short name —

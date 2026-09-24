@@ -52,8 +52,7 @@ class TeacherController extends Controller
                     ->orWhere('employee_id', $teacher_webpage)
                     ->orWhere('id', $teacher_webpage);
             })
-            ->where('is_active', true)
-            ->where('is_archived', false)
+            ->published()
             ->with([
                 'designation',
                 // designation_title falls back to the job type for the
@@ -254,8 +253,7 @@ class TeacherController extends Controller
                 ->where('webpage', $teacher_webpage)
                 ->orWhere('employee_id', $teacher_webpage)
                 ->orWhere('id', $teacher_webpage))
-            ->where('is_active', true)
-            ->where('is_archived', false)
+            ->published()
             ->when($with, fn ($q) => $q->with($with))
             ->firstOrFail();
     }

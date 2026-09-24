@@ -48,7 +48,7 @@ class HomeController extends Controller
                 ->get();
         }
 
-        $totalTeachers   = Teacher::where('is_active', true)->where('is_archived', false)->count();
+        $totalTeachers   = Teacher::published()->count();
 
         /*
          * A department is only reachable when its faculty is published too:

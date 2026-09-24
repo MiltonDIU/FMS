@@ -25,8 +25,7 @@ class PublicationController extends Controller
         // Find teacher under department
         $teacher = Teacher::where('webpage', $teacher_webpage)
             ->where('department_id', $department->id)
-            ->where('is_active', true)
-            ->where('is_archived', false)
+            ->published()
             ->firstOrFail();
 
         // Find publication by slug (computed from title as a fallback).

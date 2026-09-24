@@ -360,8 +360,7 @@ class GenerateSitemap extends Command
     protected function eachVisibleTeacher(callable $callback): void
     {
         Teacher::with('department.faculty')
-            ->where('is_active', true)
-            ->where('is_archived', false)
+            ->published()
             ->whereNotNull('webpage')
             ->chunkById(self::CHUNK, function ($teachers) use ($callback) {
                 foreach ($teachers as $teacher) {

@@ -108,8 +108,7 @@ class TeacherSearch extends Component
                 ->orWhereIn('teachers.id', fn ($sub) => $sub->select('teacher_id')->from('department_teacher')
                     ->whereNull('department_teacher.deleted_at')
                     ->whereIn('department_id', fn ($s2) => $s2->select('id')->from('departments')->where('faculty_id', $facId)))))
-            ->where('teachers.is_active', true)
-            ->where('teachers.is_archived', false)
+            ->published()
             ->whereNotNull('teachers.designation_id')
             ->distinct()
             ->pluck('teachers.designation_id');
@@ -172,8 +171,7 @@ class TeacherSearch extends Component
             // Joined for the ordering, not for the search — see the sort on the
             // two listing properties below.
             ->leftJoin('job_types', 'job_types.id', '=', 'teachers.job_type_id')
-            ->where('teachers.is_active', true)
-            ->where('teachers.is_archived', false);
+            ->published();
 
         // Every frontend search runs this same call, so what the box finds here
         // is what it finds on a department page and through the API. The fields
@@ -248,9 +246,7 @@ class TeacherSearch extends Component
         $deptId = $this->departmentId ? (int) $this->departmentId : null;
         $facId = $this->facultyId ? (int) $this->facultyId : null;
 
-        $query = Teacher::query()
-            ->where('teachers.is_active', true)
-            ->where('teachers.is_archived', false);
+        $query = Teacher::query()->published();
 
         if ($deptId) {
             $assignedIds = Teacher::whereHas('departments', fn ($q) => $q->whereNull('department_teacher.deleted_at')->where('department_teacher.department_id', $deptId))->pluck('id');

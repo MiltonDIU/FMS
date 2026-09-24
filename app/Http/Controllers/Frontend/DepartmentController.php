@@ -45,8 +45,7 @@ class DepartmentController extends Controller
          * cost around twenty queries on every page load. Only the count survives,
          * because the Schema.org payload quotes it.
          */
-        $totalMembers = Teacher::where('teachers.is_active', true)
-            ->where('teachers.is_archived', false)
+        $totalMembers = Teacher::published()
             ->where(fn ($q) => $q
                 ->where('teachers.department_id', $department->id)
                 ->orWhereIn('teachers.id', fn ($sub) => $sub

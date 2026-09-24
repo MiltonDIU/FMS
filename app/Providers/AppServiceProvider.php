@@ -62,7 +62,7 @@ class AppServiceProvider extends ServiceProvider
                 'departmentsCount' => Department::where('is_active', true)
                     ->whereHas('faculty', fn ($query) => $query->where('is_active', true))
                     ->count(),
-                'teachersCount' => Teacher::where('is_active', true)->where('is_archived', false)->count(),
+                'teachersCount' => Teacher::published()->count(),
             ]);
         });
 
