@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Designations\Tables;
 
+use App\Support\AdminScope;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -16,6 +17,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class DesignationsTable
 {
@@ -39,9 +41,11 @@ class DesignationsTable
                     ->searchable()
                     ->badge()
                     ->color('gray'),
+                // Every designation is listed for everyone; the count is only
+                // of the teachers in the viewer's faculty or department.
                 TextColumn::make('teachers_count')
                     ->label('Teachers')
-                    ->counts('teachers')
+                    ->counts(['teachers' => fn (Builder $query) => AdminScope::teachers($query)])
                     ->badge()
                     ->color('success'),
                 IconColumn::make('is_rank')

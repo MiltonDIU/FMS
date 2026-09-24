@@ -8,6 +8,7 @@ use App\Filament\Resources\Faculties\Pages\ListFaculties;
 use App\Filament\Resources\Faculties\Schemas\FacultyForm;
 use App\Filament\Resources\Faculties\Tables\FacultiesTable;
 use App\Models\Faculty;
+use App\Support\AdminScope;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -58,6 +59,21 @@ class FacultyResource extends Resource
             'create' => CreateFaculty::route('/create'),
             'edit' => EditFaculty::route('/{record}/edit'),
         ];
+    }
+
+    /**
+     * Apply role-based scoping to the query: a Dean sees their own faculty, a
+     * Head the faculty their department sits in.
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        if ($facultyId = AdminScope::facultyId()) {
+            $query->where('faculties.id', $facultyId);
+        }
+
+        return $query;
     }
 
     public static function getRecordRouteBindingEloquentQuery(): Builder

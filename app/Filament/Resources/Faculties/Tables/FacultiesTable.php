@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Faculties\Tables;
 
+use App\Support\AdminScope;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -16,6 +17,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class FacultiesTable
 {
@@ -41,19 +43,23 @@ class FacultiesTable
                     ->searchable()
                     ->badge()
                     ->color('gray'),
+                // A Head sees their faculty's row, but the numbers on it are
+                // their own department's: the rest of the faculty is not theirs.
                 TextColumn::make('departments_count')
                     ->label('Departments')
-                    ->counts('departments')
+                    ->counts(['departments' => fn (Builder $query) => $query
+                        ->when(AdminScope::departmentId(), fn (Builder $q, int $id) => $q->where('departments.id', $id))])
                     ->badge()
                     ->color('info'),
                 TextColumn::make('teachers_count')
                     ->label('Teachers')
-                    ->counts('teachers')
+                    ->counts(['teachers' => fn (Builder $query) => AdminScope::teachers($query)])
                     ->badge()
                     ->color('success'),
                 TextColumn::make('publications_count')
                     ->label('Publications')
-                    ->counts('publications')
+                    ->counts(['publications' => fn (Builder $query) => $query
+                        ->when(AdminScope::departmentId(), fn (Builder $q, int $id) => $q->where('publications.department_id', $id))])
                     ->badge()
                     ->color('warning'),
                 IconColumn::make('is_active')
