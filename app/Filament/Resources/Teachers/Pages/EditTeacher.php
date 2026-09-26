@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Teachers\Pages;
 
 use App\Filament\Concerns\HasWindowedRepeaters;
+use App\Filament\Concerns\SavesTeacherProfile;
 use App\Filament\Resources\Teachers\TeacherResource;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
@@ -12,6 +13,7 @@ use Filament\Resources\Pages\EditRecord;
 class EditTeacher extends EditRecord
 {
     use HasWindowedRepeaters;
+    use SavesTeacherProfile;
 
     protected static string $resource = TeacherResource::class;
 
@@ -48,17 +50,22 @@ class EditTeacher extends EditRecord
         $this->authorizeAccess();
 
         try {
-            // Get raw form data including relationships
-            $data = $this->form->getState();
-            
+            $data = $this->validatedStateWithoutSaving();
+
+            if ($data === null) {
+                return;
+            }
+
             // Handle specific overrides from mutateFormDataBeforeSave
             // Note: Filament internally calls mutateFormDataBeforeSave inside save() typically,
-            // but since we are overriding, we must handle it or pass raw data to service 
+            // but since we are overriding, we must handle it or pass raw data to service
             // and let service handle logic.
             // However, mutateFormDataBeforeSave in this class modifies User Email.
             // We should run that logic first.
             $data = $this->mutateFormDataBeforeSave($data);
-            
+
+            $data = array_merge($data, $this->relationStateForService());
+
             // Call our service
             /** @var \App\Services\TeacherVersionService $service */
             $service = app(\App\Services\TeacherVersionService::class);
@@ -77,26 +84,14 @@ class EditTeacher extends EditRecord
             // For now, let's assume if it didn't throw, it's good.
             // We can check if a pending status version was just created?
             // Or roughly check recent versions.
-            
-            if (isset($data['photo'])) {
-                $photoComponent = collect($this->form->getFlatComponents())
-                    ->first(function ($c) {
-                        return method_exists($c, 'getName') && $c->getName() === 'photo';
-                    });
 
-                if ($photoComponent) {
-                    $photoComponent->saveRelationships();
-                }
-            }
+            $this->saveTeacherMedia($this->record);
 
-            $this->record->refresh();
-            if ($this->record->hasMedia('avatar')) {
-                $avatarUrl = $this->record->getFirstMediaUrl('avatar');
-                if ($avatarUrl) {
-                    \App\Services\TeacherVersionService::$ignoreObserver = true;
-                    $this->record->updateQuietly(['photo' => $avatarUrl]);
-                }
-            }
+            // Back to what is stored. Rows added on this save only have
+            // placeholder keys in the form, so saving again without a refill
+            // would add them a second time; and changes waiting for approval
+            // should not look as if they had already been made.
+            $this->fillForm();
 
             // Simple generic notification
             \Filament\Notifications\Notification::make()

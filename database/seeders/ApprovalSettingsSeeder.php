@@ -176,7 +176,7 @@ class ApprovalSettingsSeeder extends Seeder
                 'section_label' => 'Profile Settings',
                 'requires_approval' => true,
                 'description' => 'Profile status, employment status, visibility settings',
-                'fields' => ['profile_status', 'employment_status', 'is_public', 'is_active', 'is_archived', 'sort_order'],
+                'fields' => ['profile_status', 'employment_status_id', 'job_type_id', 'login_allowed', 'is_public', 'is_active', 'is_archived', 'sort_order'],
                 'sort_order' => 15,
                 'is_active' => true,
             ],

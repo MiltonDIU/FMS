@@ -49,6 +49,12 @@ class TeacherForm
      */
     protected static array $relationCounts = [];
 
+    /** @return array<int, string> the repeaters that load a window at a time */
+    public static function windowedRelations(): array
+    {
+        return array_keys(static::WINDOWS);
+    }
+
     protected static function windowSize(string $relation): int
     {
         return static::WINDOWS[$relation] ?? 10;
@@ -496,21 +502,7 @@ class TeacherForm
                                     ->deletable(true)
                                     ->addable(true)
                                     ->saveRelationshipsUsing(function (Repeater $component, $state, $record) {
-                                        $record->researchInterests()->whereIn('id', static::removedIds($component, $state))->delete();
-
-                                        $sortOrder = 0;
-                                        foreach ($state ?? [] as $item) {
-                                            $data = [
-                                                'interest' => $item['interest'],
-                                                'description' => $item['description'] ?? null,
-                                                'sort_order' => $sortOrder++,
-                                            ];
-                                            if (isset($item['id'])) {
-                                                $record->researchInterests()->where('id', $item['id'])->update($data);
-                                            } else {
-                                                $record->researchInterests()->create($data);
-                                            }
-                                        }
+                                        \App\Support\TeacherRelationWriter::save($record, 'researchInterests', $state ?? [], static::removedIds($component, $state));
                                     }),
                                 static::loadMore('researchInterests', 'research interests'),
                             ]),
@@ -727,44 +719,7 @@ class TeacherForm
                                     ->deletable(true)
                                     ->addable(true)
                                     ->saveRelationshipsUsing(function (Repeater $component, $state, $record) {
-                                        // Delete removed items
-                                        $existingIds = collect($state)->pluck('id')->filter()->toArray();
-                                        $record->educations()->whereNotIn('id', $existingIds)->delete();
-
-                                        $sortOrder = 0;
-                                        foreach ($state ?? [] as $item) {
-                                            $instName = null;
-                                            if (!empty($item['educational_institution_id'])) {
-                                                $instName = \App\Models\Organization::find($item['educational_institution_id'])?->name;
-                                            }
-
-                                            $majorName = null;
-                                            if (!empty($item['major_id'])) {
-                                                $majorName = \App\Models\Major::find($item['major_id'])?->name;
-                                            }
-
-                                            $data = [
-                                                'degree_type_id' => $item['degree_type_id'],
-                                                'educational_institution_id' => $item['educational_institution_id'] ?? null,
-                                                'major_id' => $item['major_id'] ?? null,
-                                                'major' => $majorName,
-                                                'institution' => $instName,
-                                                'country_id' => $item['country_id'] ?? null,
-                                                'passing_year' => $item['passing_year'] ?? null,
-                                                'duration' => $item['duration'] ?? null,
-                                                'result_type_id' => $item['result_type_id'],
-                                                'cgpa' => $item['cgpa'] ?? null,
-                                                'scale' => $item['scale'] ?? null,
-                                                'marks' => $item['marks'] ?? null,
-                                                'grade' => $item['grade'] ?? null,
-                                                'sort_order' => $sortOrder++,
-                                            ];
-                                            if (isset($item['id'])) {
-                                                $record->educations()->where('id', $item['id'])->update($data);
-                                            } else {
-                                                $record->educations()->create($data);
-                                            }
-                                        }
+                                        \App\Support\TeacherRelationWriter::save($record, 'educations', $state ?? []);
                                     }),
                             ]),
 
@@ -944,145 +899,7 @@ class TeacherForm
                                     ->deletable(true)
                                     ->addable(true)
                                     ->saveRelationshipsUsing(function (Repeater $component, $state, $record) {
-                                        // Delete removed items - only ever rows that were loaded into the
-                                        // form, so publications outside the window are left untouched.
-                                        $record->publications()->whereIn('publications.id', static::removedIds($component, $state))->delete();
-
-                                        $sortOrder = 0;
-                                        foreach ($state ?? [] as $item) {
-                                            // Determine status based on approval settings
-                                            $requiresApproval = \App\Models\ApprovalSetting::requiresApproval('publication');
-                                            $status = $requiresApproval ? 'pending' : 'approved';
-
-                                            $deptId = $item['department_id'] ?? $record->department_id;
-                                            $facultyId = $item['faculty_id'] ?? ($deptId ? \App\Models\Department::find($deptId)?->faculty_id : $record->department?->faculty_id);
-
-                                            $user = auth()->user();
-                                            $canManageFeatured = $user && (
-                                                $user->hasRole(['super_admin', 'admin', 'registrar', 'dean', 'head', 'research_team']) ||
-                                                $user->administrativeRoles()->where('administrative_role_user.is_active', true)->exists()
-                                            );
-
-                                            $publication = isset($item['id']) ? \App\Models\Publication::find($item['id']) : null;
-                                            $isFeatured = $canManageFeatured
-                                                ? ($item['is_featured'] ?? false)
-                                                : ($publication ? $publication->is_featured : false);
-
-                                            $data = [
-                                                'faculty_id' => $facultyId,
-                                                'department_id' => $deptId,
-                                                'publication_type_id' => $item['publication_type_id'],
-                                                'publication_linkage_id' => $item['publication_linkage_id'],
-                                                'publication_quartile_id' => $item['publication_quartile_id'] ?? null,
-                                                'grant_type_id' => $item['grant_type_id'] ?? null,
-                                                'research_collaboration_id' => $item['research_collaboration_id'] ?? null,
-                                                'title' => $item['title'],
-                                                'abstract' => $item['abstract'] ?? null,
-                                                'research_area' => $item['research_area'] ?? null,
-                                                'keywords' => $item['keywords'] ?? null,
-                                                'journal_name' => $item['journal_name'] ?? null,
-                                                'journal_link' => $item['journal_link'] ?? null,
-                                                'publication_date' => $item['publication_date'] ?? null,
-                                                'publication_year' => $item['publication_year'] ?? null,
-                                                'h_index' => $item['h_index'] ?? null,
-                                                'citescore' => $item['citescore'] ?? null,
-                                                'impact_factor' => $item['impact_factor'] ?? null,
-                                                'student_involvement' => $item['student_involvement'] ?? false,
-                                                'is_featured' => $isFeatured,
-                                                // 'status' => $item['status'], // Field removed, handled below
-                                                'sort_order' => $sortOrder++,
-                                            ];
-
-                                            $publication = null;
-
-                                            if (isset($item['id'])) {
-                                                // Update
-                                                $publication = \App\Models\Publication::find($item['id']);
-                                                if ($publication) {
-                                                    $publication->update($data);
-                                                }
-                                            } else {
-                                                // Create
-                                                $data['status'] = $requiresApproval ? 'pending' : 'approved';
-                                                // Create via relation to link it to the teacher initially?
-                                                // No, if we use `teachers()->sync` below, we can create it isolated first.
-                                                // BUT, `saveRelationshipsUsing` hook implies we manage the relation.
-                                                // If I create it via `$record->publications()->create()`, it auto-attaches `$record` (current teacher).
-                                                // Then I will overwrite the attachments with `sync`.
-                                                // This is fine.
-                                                $publication = $record->publications()->create($data);
-                                            }
-
-                                            // Handle Authorship Sync (Polymorphic: Teachers & External Authors)
-                                            if ($publication) {
-                                                $carried = DB::table('publication_authors')
-                                                    ->where('publication_id', $publication->id)
-                                                    ->get()
-                                                    ->keyBy(fn ($row) => $row->authorable_type . ':' . $row->authorable_id . ':' . $row->author_role);
-
-                                                DB::table('publication_authors')->where('publication_id', $publication->id)->delete();
-
-                                                $previous = function (string $model, $id, string $role) use ($carried) {
-                                                    return $carried->get("{$model}:{$id}:{$role}")
-                                                        ?? $carried->first(fn ($row) => $row->authorable_type === $model
-                                                            && (string) $row->authorable_id === (string) $id);
-                                                };
-
-                                                $insertAuthor = function (string $model, $id, string $role, int $sortOrder) use ($publication, $previous) {
-                                                    $was = $previous($model, $id, $role);
-
-                                                    DB::table('publication_authors')->insert([
-                                                        'publication_id' => $publication->id,
-                                                        'authorable_type' => $model,
-                                                        'authorable_id' => $id,
-                                                        'author_role' => $role,
-                                                        'sort_order' => $sortOrder,
-                                                        'affiliation' => $was->affiliation ?? null,
-                                                        'used_our_affiliation' => $was->used_our_affiliation ?? null,
-                                                        'incentive_amount' => $was->incentive_amount ?? 0.00,
-                                                        'created_at' => $was->created_at ?? now(),
-                                                        'updated_at' => now(),
-                                                    ]);
-                                                };
-
-                                                $insertedKeys = [];
-
-                                                // First Author
-                                                if (!empty($item['first_author_id'])) {
-                                                    [$model, $id] = PublicationForm::parseKey($item['first_author_id']);
-                                                    if ($model && $id) {
-                                                        $insertAuthor($model, $id, 'first', 0);
-                                                        $insertedKeys[] = "{$model}:{$id}";
-                                                    }
-                                                }
-
-                                                // Corresponding Author
-                                                if (!empty($item['corresponding_author_id'])) {
-                                                    [$model, $id] = PublicationForm::parseKey($item['corresponding_author_id']);
-                                                    if ($model && $id) {
-                                                        $insertAuthor($model, $id, 'corresponding', 0);
-                                                        $insertedKeys[] = "{$model}:{$id}";
-                                                    }
-                                                }
-
-                                                // Co-Authors
-                                                if (!empty($item['co_author_ids']) && is_array($item['co_author_ids'])) {
-                                                    foreach ($item['co_author_ids'] as $index => $coAuthorKey) {
-                                                        [$model, $id] = PublicationForm::parseKey($coAuthorKey);
-                                                        if ($model && $id) {
-                                                            $insertAuthor($model, $id, 'co_author', $index + 1);
-                                                            $insertedKeys[] = "{$model}:{$id}";
-                                                        }
-                                                    }
-                                                }
-
-                                                // Ensure this teacher stays associated with their publication
-                                                $teacherKey = Teacher::class . ":{$record->id}";
-                                                if (!in_array($teacherKey, $insertedKeys)) {
-                                                    $insertAuthor(Teacher::class, $record->id, 'co_author', 99);
-                                                }
-                                            }
-                                        }
+                                        \App\Support\TeacherRelationWriter::save($record, 'publications', $state ?? [], static::removedIds($component, $state));
                                     }),
                                 static::loadMore('publications', 'publications'),
                             ]),
@@ -1193,40 +1010,7 @@ class TeacherForm
                                     ->deletable(true)
                                     ->addable(true)
                                     ->saveRelationshipsUsing(function (Repeater $component, $state, $record) {
-                                        $existingIds = collect($state)->pluck('id')->filter()->toArray();
-                                        $record->jobExperiences()->whereNotIn('id', $existingIds)->delete();
-
-                                        $sortOrder = 0;
-                                        foreach ($state ?? [] as $item) {
-                                            $posName = null;
-                                            if (!empty($item['position_id'])) {
-                                                $posName = \App\Models\Position::find($item['position_id'])?->name;
-                                            }
-
-                                            $orgName = null;
-                                            if (!empty($item['organization_id'])) {
-                                                $orgName = \App\Models\Organization::find($item['organization_id'])?->name;
-                                            }
-
-                                            $data = [
-                                                'position_id' => $item['position_id'] ?? null,
-                                                'position' => $posName ?? '',
-                                                'organization_id' => $item['organization_id'] ?? null,
-                                                'organization' => $orgName ?? '',
-                                                'country_id' => $item['country_id'] ?? null,
-                                                'start_date' => $item['start_date'],
-                                                'end_date' => $item['end_date'] ?? null,
-                                                'is_current' => $item['is_current'] ?? false,
-                                                'department' => $item['department'] ?? null,
-                                                'responsibilities' => $item['responsibilities'] ?? null,
-                                                'sort_order' => $sortOrder++,
-                                            ];
-                                            if (isset($item['id'])) {
-                                                $record->jobExperiences()->where('id', $item['id'])->update($data);
-                                            } else {
-                                                $record->jobExperiences()->create($data);
-                                            }
-                                        }
+                                        \App\Support\TeacherRelationWriter::save($record, 'jobExperiences', $state ?? []);
                                     }),
                             ]),
 
@@ -1299,33 +1083,7 @@ class TeacherForm
                                     ->deletable(true)
                                     ->addable(true)
                                     ->saveRelationshipsUsing(function (Repeater $component, $state, $record) {
-                                        $record->trainingExperiences()->whereIn('id', static::removedIds($component, $state))->delete();
-
-                                        $sortOrder = 0;
-                                        foreach ($state ?? [] as $item) {
-                                             $orgName = null;
-                                             if (!empty($item['organization_id'])) {
-                                                 $orgName = \App\Models\Organization::find($item['organization_id'])?->name;
-                                             }
-                                             $data = [
-                                                 'title' => $item['title'],
-                                                 'organization_id' => $item['organization_id'] ?? null,
-                                                 'organization' => $orgName ?? '',
-                                                'category' => $item['category'] ?? null,
-                                                'country_id' => $item['country_id'] ?? null,
-                                                'year' => $item['year'] ?? null,
-                                                'completion_date' => $item['completion_date'] ?? null,
-                                                'duration_days' => $item['duration_days'] ?? null,
-                                                'is_online' => $item['is_online'] ?? false,
-                                                'description' => $item['description'] ?? null,
-                                                'sort_order' => $sortOrder++,
-                                            ];
-                                            if (isset($item['id'])) {
-                                                $record->trainingExperiences()->where('id', $item['id'])->update($data);
-                                            } else {
-                                                $record->trainingExperiences()->create($data);
-                                            }
-                                        }
+                                        \App\Support\TeacherRelationWriter::save($record, 'trainingExperiences', $state ?? [], static::removedIds($component, $state));
                                     }),
                                 static::loadMore('trainingExperiences', 'trainings'),
                             ]),
@@ -1372,62 +1130,7 @@ class TeacherForm
                                     ->deletable(true)
                                     ->addable(true)
                                     ->saveRelationshipsUsing(function (Repeater $component, $state, $record) {
-                                        $existingIds = collect($state)->pluck('id')->filter()->toArray();
-                                        $record->awards()->whereNotIn('id', $existingIds)->delete();
-
-                                        $sortOrder = 0;
-                                        foreach ($state ?? [] as $item) {
-                                            $attachment = $item['attachment'] ?? null;
-                                            if (is_array($attachment)) {
-                                                $attachment = reset($attachment) ?: null;
-                                            }
-
-                                            $title = $item['title'] ?? 'Award';
-                                            if (is_array($title)) {
-                                                $title = reset($title) ?: 'Award';
-                                            }
-
-                                            $awardingBody = $item['awarding_body'] ?? null;
-                                            if (is_array($awardingBody)) {
-                                                $awardingBody = reset($awardingBody) ?: null;
-                                            }
-
-                                            $remarks = $item['remarks'] ?? null;
-                                            if (is_array($remarks)) {
-                                                $remarks = json_encode($remarks);
-                                            }
-
-                                            $type = $item['type'] ?? 'award';
-                                            if (is_array($type)) {
-                                                $type = 'award';
-                                            }
-
-                                            $date = $item['date'] ?? null;
-                                            if (is_array($date)) {
-                                                $date = null;
-                                            }
-
-                                            $year = $item['year'] ?? null;
-                                            if (is_array($year)) {
-                                                $year = null;
-                                            }
-
-                                            $data = [
-                                                'title' => $title,
-                                                'awarding_body' => $awardingBody,
-                                                'type' => $type,
-                                                'date' => $date,
-                                                'year' => $year,
-                                                'remarks' => $remarks,
-                                                'attachment' => $attachment,
-                                                'sort_order' => $sortOrder++,
-                                            ];
-                                            if (isset($item['id'])) {
-                                                $record->awards()->where('id', $item['id'])->update($data);
-                                            } else {
-                                                $record->awards()->create($data);
-                                            }
-                                        }
+                                        \App\Support\TeacherRelationWriter::save($record, 'awards', $state ?? []);
                                     }),
                             ]),
                         Tab::make('Skills')
@@ -1457,34 +1160,7 @@ class TeacherForm
                                     ->deletable(true)
                                     ->addable(true)
                                     ->saveRelationshipsUsing(function (Repeater $component, $state, $record) {
-                                        // Get existing IDs
-                                        $existingIds = collect($state)
-                                            ->pluck('id')
-                                            ->filter()
-                                            ->toArray();
-
-                                        // Delete removed items
-                                        $record->skills()->whereNotIn('id', $existingIds)->delete();
-
-                                        // Update or create items
-                                        $sortOrder = 0;
-                                        foreach ($state ?? [] as $item) {
-                                            if (isset($item['id'])) {
-                                                // Update existing
-                                                $record->skills()->where('id', $item['id'])->update([
-                                                    'name' => $item['name'],
-                                                    'proficiency' => $item['proficiency'] ?? null,
-                                                    'sort_order' => $sortOrder++,
-                                                ]);
-                                            } else {
-                                                // Create new
-                                                $record->skills()->create([
-                                                    'name' => $item['name'],
-                                                    'proficiency' => $item['proficiency'] ?? null,
-                                                    'sort_order' => $sortOrder++,
-                                                ]);
-                                            }
-                                        }
+                                        \App\Support\TeacherRelationWriter::save($record, 'skills', $state ?? []);
                                     }),
                             ]),
 
@@ -1510,21 +1186,7 @@ class TeacherForm
                                     ->deletable(true)
                                     ->addable(true)
                                     ->saveRelationshipsUsing(function (Repeater $component, $state, $record) {
-                                        $record->teachingAreas()->whereIn('id', static::removedIds($component, $state))->delete();
-
-                                        $sortOrder = 0;
-                                        foreach ($state ?? [] as $item) {
-                                            $data = [
-                                                'area' => $item['area'],
-                                                'description' => $item['description'] ?? null,
-                                                'sort_order' => $sortOrder++,
-                                            ];
-                                            if (isset($item['id'])) {
-                                                $record->teachingAreas()->where('id', $item['id'])->update($data);
-                                            } else {
-                                                $record->teachingAreas()->create($data);
-                                            }
-                                        }
+                                        \App\Support\TeacherRelationWriter::save($record, 'teachingAreas', $state ?? [], static::removedIds($component, $state));
                                     }),
                                 static::loadMore('teachingAreas', 'teaching areas'),
                             ]),
@@ -1618,31 +1280,7 @@ class TeacherForm
                                     ->deletable(true)
                                     ->addable(true)
                                     ->saveRelationshipsUsing(function (Repeater $component, $state, $record) {
-                                        $existingIds = collect($state)->pluck('id')->filter()->toArray();
-                                        $record->memberships()->whereNotIn('id', $existingIds)->delete();
-
-                                        $sortOrder = 0;
-                                        foreach ($state ?? [] as $item) {
-                                            $data = [
-                                                'membership_organization_id' => $item['membership_organization_id'],
-                                                'membership_type_id' => $item['membership_type_id'] ?? null,
-                                                'record_type' => $item['record_type'] ?? 'membership',
-                                                'position' => $item['position'] ?? null,
-                                                'scope' => $item['scope'] ?? null,
-                                                'url' => $item['url'] ?? null,
-                                                'membership_id' => $item['membership_id'] ?? null,
-                                                'start_date' => $item['start_date'] ?? null,
-                                                'end_date' => $item['end_date'] ?? null,
-                                                'status' => $item['status'] ?? 'active',
-                                                'description' => $item['description'] ?? null,
-                                                'sort_order' => $sortOrder++,
-                                            ];
-                                            if (isset($item['id'])) {
-                                                $record->memberships()->where('id', $item['id'])->update($data);
-                                            } else {
-                                                $record->memberships()->create($data);
-                                            }
-                                        }
+                                        \App\Support\TeacherRelationWriter::save($record, 'memberships', $state ?? []);
                                     }),
                             ]),
 
@@ -1711,22 +1349,7 @@ class TeacherForm
                                     ->deletable(true)
                                     ->addable(true)
                                     ->saveRelationshipsUsing(function (Repeater $component, $state, $record) {
-                                        $existingIds = collect($state)->pluck('id')->filter()->toArray();
-                                        $record->socialLinks()->whereNotIn('id', $existingIds)->delete();
-
-                                        foreach (array_values($state ?? []) as $index => $item) {
-                                            $data = [
-                                                'social_media_platform_id' => $item['social_media_platform_id'],
-                                                'username' => $item['username'],
-                                                'url' => $item['url'],
-                                                'sort_order' => $index + 1,
-                                            ];
-                                            if (isset($item['id'])) {
-                                                $record->socialLinks()->where('id', $item['id'])->update($data);
-                                            } else {
-                                                $record->socialLinks()->create($data);
-                                            }
-                                        }
+                                        \App\Support\TeacherRelationWriter::save($record, 'socialLinks', $state ?? []);
                                     }),
                             ]),
 

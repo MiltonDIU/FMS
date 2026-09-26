@@ -61,7 +61,11 @@ class TeacherVersionService
         'social_links' => ['socialLinks'],
         
         // Tab 15: Settings
-        'settings' => ['profile_status', 'employment_status', 'is_public', 'is_active', 'is_archived', 'sort_order'],
+        // The form's field names, not the old column: `employment_status` no
+        // longer exists, and a field missing from here is invisible to change
+        // detection — a save that only touched the job type was reported as
+        // "no changes" and dropped.
+        'settings' => ['profile_status', 'employment_status_id', 'job_type_id', 'login_allowed', 'is_public', 'is_active', 'is_archived', 'sort_order'],
     ];
 
     /**
@@ -381,6 +385,16 @@ class TeacherVersionService
         // Often DB returns "2024-11-28 00:00:00" or "2024-11-28T00:00:00.000000Z"
         // And form returns "2024-11-28"
         // Try to verify if it's a date-like string
+        // A related row's toArray() serialises its dates in UTC, so a date of
+        // 2 September comes back as "2026-09-01T18:00:00Z" here (+06). Cut to
+        // its first ten characters that is the 1st, and every row carrying a
+        // date read as edited on every save. Back to local time first.
+        if (preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/', $stringValue)) {
+            return \Illuminate\Support\Carbon::parse($stringValue)
+                ->setTimezone(config('app.timezone'))
+                ->format('Y-m-d');
+        }
+
         if (preg_match('/^(\d{4}-\d{2}-\d{2})/', $stringValue, $matches)) {
             // If the string is purely a date, return it
             if ($stringValue === $matches[1]) {
@@ -409,38 +423,15 @@ class TeacherVersionService
         DB::transaction(function () use ($teacher, $data) {
             $scalarData = Arr::except(
                 $data,
-                array_merge(self::PIVOT_RELATIONS, ...array_values($this->getRelationshipFields())),
+                array_merge(self::PIVOT_RELATIONS, self::MEDIA_FIELDS, ...array_values($this->getRelationshipFields())),
             );
 
-            self::$ignoreObserver = true;
+            $this->writeScalars($teacher, $scalarData);
 
-            try {
-                $teacher->update($scalarData);
-            } finally {
-                self::$ignoreObserver = false;
-            }
-
-            /*
-             * Pivots, synced with the order they were given in.
-             *
-             * MyProfile deliberately does not call the form's own
-             * saveRelationships — everything routes through here instead — so
-             * without this a teacher's qualifications would be read off the
-             * form and then quietly dropped.
-             */
-            foreach (self::PIVOT_RELATIONS as $relation) {
-                if (! array_key_exists($relation, $data)) {
-                    continue;
-                }
-
-                $ids = array_values(array_filter((array) $data[$relation]));
-
-                $teacher->$relation()->sync(
-                    collect($ids)->mapWithKeys(fn ($id, int $position): array => [
-                        (int) $id => ['sort_order' => $position],
-                    ])->all()
-                );
-            }
+            // Pivots, synced with the order they were given in. The pages do
+            // not let the form save relationships itself — everything routes
+            // through here — so without this the qualifications were dropped.
+            $this->syncPivots($teacher, Arr::only($data, self::PIVOT_RELATIONS));
 
             // Update relations
             foreach ($this->getRelationshipFields() as $section => $relations) {
@@ -599,188 +590,13 @@ class TeacherVersionService
     }
 
     /**
-     * Logic to sync HasMany/MorphToMany relationships
+     * Write one repeated section. The list is the complete section, so any
+     * existing row it leaves out is removed; the pages see to that by loading
+     * every row a window held back before they save.
      */
-    private function syncRelation(Teacher $teacher, string $relationName, array $items): void
+    private function syncRelation(Teacher $teacher, string $relationName, array $items, ?User $actor = null): void
     {
-        \Log::info("syncRelation called for: {$relationName}", [
-            'items_count' => count($items),
-            'sample_keys' => !empty($items) ? array_keys($items[0] ?? []) : [],
-        ]);
-
-        $relation = $teacher->$relationName();
-        $relatedModel = $relation->getRelated();
-        $relatedKeyName = $relatedModel->getKeyName(); // Usually 'id'
-        $fillable = $relatedModel->getFillable();
-        
-        // Get current existing IDs for this teacher's relation
-        // Use qualified table.column name to avoid ambiguity in joined queries (MorphToMany)
-        $tableName = $relatedModel->getTable();
-        $existingIds = $relation->pluck("{$tableName}.{$relatedKeyName}")->toArray();
-        
-        $keepIds = [];
-        $processedItems = 0;
-
-        foreach ($items as $index => $item) {
-            // Skip empty items
-            if (empty($item) || !is_array($item)) {
-                continue;
-            }
-            
-            $processedItems++;
-            
-            // Filter out virtual/computed fields (starting with _) and keep only fillable fields
-            // Also exclude author virtual fields for publications
-            $excludeVirtualFields = ['first_author_id', 'corresponding_author_id', 'co_author_ids', 'teachers'];
-            $cleanData = collect($item)
-                ->filter(function ($value, $key) use ($fillable, $relatedKeyName, $excludeVirtualFields) {
-                    // Exclude id, virtual fields starting with _, author virtual fields, and non-fillable fields
-                    return !str_starts_with($key, '_') 
-                        && $key !== $relatedKeyName 
-                        && $key !== 'id'  // Explicitly exclude 'id' 
-                        && !in_array($key, $excludeVirtualFields)
-                        && (empty($fillable) || in_array($key, $fillable));
-                })
-                ->toArray();
-            
-            // Get the ID from item (could be 'id' or the model's primary key name)
-            $itemId = $item[$relatedKeyName] ?? $item['id'] ?? null;
-            
-            \Log::info("syncRelation item {$index}", [
-                'item_id' => $itemId,
-                'has_id' => !empty($itemId),
-                'clean_data_keys' => array_keys($cleanData),
-                'clean_data' => $cleanData,
-            ]);
-
-            $record = null;
-
-            if (!empty($itemId)) {
-                // UPDATE existing record
-                $keepIds[] = $itemId;
-                
-                if ($relation instanceof \Illuminate\Database\Eloquent\Relations\HasMany) {
-                    // Use find() and update for more reliable updating
-                    $existingRecord = $relatedModel::find($itemId);
-                    if ($existingRecord) {
-                        $existingRecord->fill($cleanData);
-                        $existingRecord->save();
-                        $record = $existingRecord;
-                        \Log::info("Updated HasMany record", ['id' => $itemId, 'updated' => true]);
-                    } else {
-                        \Log::warning("HasMany record not found for update", ['id' => $itemId]);
-                    }
-                } elseif ($relation instanceof \Illuminate\Database\Eloquent\Relations\MorphToMany || 
-                          $relation instanceof \Illuminate\Database\Eloquent\Relations\BelongsToMany) {
-                    // For MorphToMany, update related record directly
-                    $existingRecord = $relatedModel::find($itemId);
-                    if ($existingRecord) {
-                        $existingRecord->fill($cleanData);
-                        $existingRecord->save();
-                        $record = $existingRecord;
-                        
-                        // Update pivot if needed
-                        $pivotData = Arr::only($item, ['author_role', 'sort_order', 'is_corresponding']);
-                        if (!empty($pivotData)) {
-                            $relation->updateExistingPivot($itemId, $pivotData);
-                        }
-                        \Log::info("Updated MorphToMany record", ['id' => $itemId]);
-                    }
-                }
-            } else {
-                // CREATE new record
-                if ($relation instanceof \Illuminate\Database\Eloquent\Relations\HasMany) {
-                    $newRecord = $relation->create($cleanData);
-                    $keepIds[] = $newRecord->$relatedKeyName;
-                    $record = $newRecord;
-                    \Log::info("Created HasMany record", ['new_id' => $newRecord->$relatedKeyName]);
-                } elseif ($relation instanceof \Illuminate\Database\Eloquent\Relations\MorphToMany ||
-                          $relation instanceof \Illuminate\Database\Eloquent\Relations\BelongsToMany) {
-                    $newModel = $relatedModel::create($cleanData);
-                    $pivotData = Arr::only($item, ['author_role', 'sort_order', 'is_corresponding']);
-                    $relation->attach($newModel->$relatedKeyName, $pivotData);
-                    $keepIds[] = $newModel->$relatedKeyName;
-                    $record = $newModel;
-                    \Log::info("Created MorphToMany record", ['new_id' => $newModel->$relatedKeyName]);
-                }
-            }
-
-            // Special handling for publications - sync authors
-            if ($relationName === 'publications' && $record) {
-                $this->syncPublicationAuthors($record, $item);
-            }
-        }
-        
-        // Handle Deletions - remove records that are NOT in keepIds
-        $idsToDelete = array_diff($existingIds, $keepIds);
-        
-        \Log::info("syncRelation deletion check for {$relationName}", [
-            'existing_ids' => $existingIds,
-            'keep_ids' => $keepIds,
-            'ids_to_delete' => $idsToDelete,
-        ]);
-        
-        if (!empty($idsToDelete)) {
-            if ($relation instanceof \Illuminate\Database\Eloquent\Relations\HasMany) {
-                $deletedCount = $relatedModel::whereIn($relatedKeyName, $idsToDelete)->delete();
-                \Log::info("Deleted HasMany records", ['deleted_count' => $deletedCount, 'deleted_ids' => $idsToDelete]);
-            } elseif ($relation instanceof \Illuminate\Database\Eloquent\Relations\MorphToMany ||
-                      $relation instanceof \Illuminate\Database\Eloquent\Relations\BelongsToMany) {
-                $relation->detach($idsToDelete);
-                \Log::info("Detached MorphToMany records", ['detached_ids' => $idsToDelete]);
-            }
-        }
-        
-        \Log::info("syncRelation complete for {$relationName}", [
-            'processed_items' => $processedItems,
-            'kept_ids' => count($keepIds),
-            'deleted_ids' => count($idsToDelete),
-        ]);
-    }
-
-    /**
-     * Sync publication authors (first_author_id, corresponding_author_id, co_author_ids)
-     */
-    private function syncPublicationAuthors(\App\Models\Publication $publication, array $item): void
-    {
-        $syncData = [];
-
-        // First Author
-        if (!empty($item['first_author_id'])) {
-            $syncData[$item['first_author_id']] = ['author_role' => 'first', 'sort_order' => 1];
-        }
-
-        // Corresponding Author
-        if (!empty($item['corresponding_author_id'])) {
-            // If already added (e.g. same as first), update role; last one wins
-            $existing = $syncData[$item['corresponding_author_id']] ?? [];
-            $syncData[$item['corresponding_author_id']] = array_merge($existing, ['author_role' => 'corresponding', 'sort_order' => 2]);
-        }
-
-        // Co-Authors
-        if (!empty($item['co_author_ids']) && is_array($item['co_author_ids'])) {
-            foreach ($item['co_author_ids'] as $index => $coAuthorId) {
-                // Don't overwrite higher priority roles
-                if (!isset($syncData[$coAuthorId])) {
-                    $syncData[$coAuthorId] = ['author_role' => 'co_author', 'sort_order' => 3 + $index];
-                }
-            }
-        }
-
-        // Sync teachers
-        if (!empty($syncData)) {
-            $publication->teachers()->sync($syncData);
-            \Log::info("syncPublicationAuthors: Synced authors for publication", [
-                'publication_id' => $publication->id,
-                'sync_data' => $syncData,
-            ]);
-        } else {
-            // Clear all authors if no author data provided
-            $publication->teachers()->sync([]);
-            \Log::info("syncPublicationAuthors: Cleared authors for publication", [
-                'publication_id' => $publication->id,
-            ]);
-        }
+        \App\Support\TeacherRelationWriter::save($teacher, $relationName, $items, actor: $actor);
     }
 
     /**
@@ -949,48 +765,84 @@ class TeacherVersionService
     {
         $teacher = $version->teacher;
         $data = $version->data;
-        
+
         if (empty($data)) {
             return;
         }
 
-        // Get fields for this section from FIELD_SECTION_MAP
         $sectionFields = self::FIELD_SECTION_MAP[$section] ?? [];
-        
-        // Check if this section contains relations
-        $isRelationSection = in_array($section, array_keys($this->getRelationshipFields()));
-        
-        if ($isRelationSection) {
-            // Handle relation data
-            $relationNames = $this->getRelationshipFields()[$section] ?? [];
-            foreach ($relationNames as $relationName) {
-                if (isset($data[$relationName]) && is_array($data[$relationName])) {
-                    $items = array_values($data[$relationName]);
-                    $this->syncRelation($teacher, $relationName, $items);
-                }
+
+        // Rows are written as the person who submitted them: whether a paper
+        // may be marked featured is their permission, not the approver's.
+        $submitter = $version->submitted_by ? User::find($version->submitted_by) : null;
+
+        foreach ($sectionFields as $field) {
+            if (in_array($field, self::RELATION_NAMES, true) && is_array($data[$field] ?? null)) {
+                $this->syncRelation($teacher, $field, array_values($data[$field]), $submitter);
             }
-        } else {
-            // Handle scalar data
-            $scalarData = [];
-            foreach ($sectionFields as $field) {
-                if (isset($data[$field]) && !in_array($field, self::MEDIA_FIELDS)) {
-                    $scalarData[$field] = $data[$field];
-                }
+        }
+
+        // array_key_exists, not isset: a field the change cleared is null, and
+        // isset() read that as "not in this version", so clearing a phone
+        // number or an address was approved and then never happened.
+        $scalars = [];
+        foreach ($sectionFields as $field) {
+            if (array_key_exists($field, $data)
+                && ! in_array($field, self::MEDIA_FIELDS, true)
+                && ! in_array($field, self::RELATION_NAMES, true)
+                && ! in_array($field, self::PIVOT_RELATIONS, true)) {
+                $scalars[$field] = $data[$field];
             }
-            
-            if (!empty($scalarData)) {
-                Teacher::withoutEvents(function () use ($teacher, $scalarData) {
-                    $teacher->update($scalarData);
-                    
-                    // Name sync if applicable
-                    if (isset($scalarData['first_name']) || isset($scalarData['last_name'])) {
-                        if ($teacher->user) {
-                            $fullName = trim("{$teacher->first_name} {$teacher->middle_name} {$teacher->last_name}");
-                            $teacher->user->update(['name' => $fullName]);
-                        }
-                    }
-                });
+        }
+
+        $this->writeScalars($teacher, $scalars);
+
+        // basic_info carries the qualifications, which are a pivot and were
+        // left out when that section was approved.
+        $this->syncPivots($teacher, Arr::only($data, array_intersect($sectionFields, self::PIVOT_RELATIONS)));
+    }
+
+    /**
+     * The teacher's own columns, from an approved or restored version.
+     *
+     * Not withoutEvents(): that also silenced the observer's status cascade,
+     * so an approved change of employment status never reached is_active or
+     * is_archived. $ignoreObserver stops only the versioning, which is the part
+     * that must not run again here.
+     *
+     * @param  array<string, mixed>  $scalars
+     */
+    private function writeScalars(Teacher $teacher, array $scalars): void
+    {
+        if ($scalars === []) {
+            return;
+        }
+
+        self::$ignoreObserver = true;
+
+        try {
+            // The observer's updated() keeps the account name in step.
+            $teacher->update($scalars);
+        } finally {
+            self::$ignoreObserver = false;
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $pivots  relation name => ids in the order chosen
+     */
+    private function syncPivots(Teacher $teacher, array $pivots): void
+    {
+        foreach ($pivots as $relation => $ids) {
+            if (! in_array($relation, self::PIVOT_RELATIONS, true) || ! is_array($ids)) {
+                continue;
             }
+
+            $teacher->$relation()->sync(
+                collect(array_values(array_filter($ids)))
+                    ->mapWithKeys(fn ($id, int $position): array => [(int) $id => ['sort_order' => $position]])
+                    ->all()
+            );
         }
     }
 
@@ -1090,27 +942,15 @@ class TeacherVersionService
             return;
         }
 
-        // Get all relation field names to exclude from scalar update
-        $relationFields = self::RELATION_NAMES;
-        $scalarData = Arr::except($data, array_merge($relationFields, self::MEDIA_FIELDS));
-        
-        Teacher::withoutEvents(function () use ($teacher, $scalarData) {
-            $teacher->update($scalarData);
-            
-            // Name sync
-            if (isset($scalarData['first_name']) || isset($scalarData['last_name'])) {
-                if ($teacher->user) {
-                    $fullName = trim("{$teacher->first_name} {$teacher->middle_name} {$teacher->last_name}");
-                    $teacher->user->update(['name' => $fullName]);
-                }
-            }
-        });
+        // Every section the version holds, except those rejected in it: those
+        // were never on the profile, so restoring this version must not put
+        // them there. It used to write the whole snapshot, rejected parts and
+        // all — and passed the qualifications array to update() as a column.
+        $rejected = $version->rejected_sections ?? [];
 
-        // Relationship Sync
-        foreach (self::RELATION_NAMES as $relationName) {
-            if (isset($data[$relationName]) && is_array($data[$relationName])) {
-                $items = array_values($data[$relationName]);
-                $this->syncRelation($teacher, $relationName, $items);
+        foreach (array_keys(self::FIELD_SECTION_MAP) as $section) {
+            if (! in_array($section, $rejected, true)) {
+                $this->applySectionData($version, $section);
             }
         }
     }

@@ -131,31 +131,51 @@ class TeacherObserver
             }
         }
 
+        // Before the early returns below, because the profile pages save
+        // through TeacherVersionService, which sets $ignoreObserver on every
+        // write. With this after them, changing someone's employment status on
+        // their profile never reached is_active or is_archived: a teacher set
+        // to Retired stayed active and public.
+        $this->cascadeStatus($teacher);
+
         // Check if update is being handled by Service to prevent recursion
         if (TeacherVersionService::$ignoreObserver) {
             return;
-        }
-        // 1. Check if third-party is updating (Admin etc.)
-        if (auth()->check() && $teacher->user_id && auth()->id() !== $teacher->user_id) {
-            // If someone else is updating, notify the teacher
-            // We use afterCommit to ensure notification is sent only if update succeeds
-            // But since Observer doesn't have afterCommit easily here without trait, we'll do it carefully
-            
-            // Note: If versioning is triggered, the actual update might be reverted.
-            // So we should only notify if it's NOT a versioned update OR if it's an auto-update.
-            // For simplicity, we'll handle this check inside processUpdate or here.
-            
-            // Let's defer to service if versioning is on, but if versioning OFF or Skipped, we notify here.
-            // Actually, we should check if we should notify.
         }
 
         // Check if versioning is enabled
         if (!config('app.teacher_versioning_enabled', true)) {
             // If versioning disabled, but third-party updated, notify teacher
             $this->notifyTeacherIfThirdPartyUpdate($teacher);
-            return; 
+            return;
         }
 
+        // Skip versioning for console/seeder operations
+        if (app()->runningInConsole()) {
+            return;
+        }
+
+        // Get dirty fields (excluding relationship updates)
+        $dirtyFields = array_keys($teacher->getDirty());
+
+        if (empty($dirtyFields)) {
+            return;
+        }
+
+        // Use service to process the update
+        // We pass the updater ID to handle third-party logic inside service if needed
+        app(TeacherVersionService::class)->processUpdate($teacher, $dirtyFields);
+
+        // Also check third party update here for auto-update parts
+        $this->notifyTeacherIfThirdPartyUpdate($teacher);
+    }
+
+    /**
+     * Employment status, is_active and is_archived kept consistent with each
+     * other, whichever of them changed.
+     */
+    private function cascadeStatus(Teacher $teacher): void
+    {
         // ** CASCADING STATUS LOGIC **
         // 1. Employment Status affects is_active (based on check_active field)
         if ($teacher->isDirty('employment_status_id') && $teacher->employment_status_id) {
@@ -200,25 +220,6 @@ class TeacherObserver
         if ($teacher->isDirty('is_active') && $teacher->is_active === false) {
             $teacher->is_public = false;
         }
-
-        // Skip versioning for console/seeder operations
-        if (app()->runningInConsole()) {
-            return;
-        }
-
-        // Get dirty fields (excluding relationship updates)
-        $dirtyFields = array_keys($teacher->getDirty());
-        
-        if (empty($dirtyFields)) {
-            return;
-        }
-
-        // Use service to process the update
-        // We pass the updater ID to handle third-party logic inside service if needed
-        app(TeacherVersionService::class)->processUpdate($teacher, $dirtyFields);
-        
-        // Also check third party update here for auto-update parts
-        $this->notifyTeacherIfThirdPartyUpdate($teacher);
     }
     
     private function notifyTeacherIfThirdPartyUpdate(Teacher $teacher): void
