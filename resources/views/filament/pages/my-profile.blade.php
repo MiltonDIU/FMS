@@ -31,6 +31,49 @@
         'gapReport' => $gapReport ?? [],
     ])
 
+    {{-- Profile declaration: apart from saving, made once, then gone for good. --}}
+    @if($this->needsDeclaration)
+        <x-filament::section
+            icon="heroicon-o-document-check"
+            icon-color="primary"
+            :heading="__('Please Review Your Profile')"
+            :description="__('A one-time request. Thank you for your time.')"
+        >
+            <div style="display:flex;flex-direction:column;gap:1rem;font-size:0.875rem;line-height:1.65;">
+                <div>
+                    <p style="margin:0 0 0.5rem;">{{ __('Dear Faculty Member,') }}</p>
+                    <p style="margin:0 0 0.5rem;">
+                        {{ __('Your profile has been moved to this new system from the previous faculty website. As this was done automatically, a few details may not have come across correctly.') }}
+                    </p>
+                    <p style="margin:0;">
+                        {{ __('We would be grateful if you could look through each tab, update anything that needs correcting, and save your changes. When you are happy with your profile, kindly confirm below.') }}
+                    </p>
+                </div>
+
+                <label style="display:flex;align-items:flex-start;gap:0.75rem;cursor:pointer;padding:0.75rem 1rem;border-radius:0.5rem;border:1px solid rgba(99,102,241,0.35);background:rgba(99,102,241,0.06);">
+                    <x-filament::input.checkbox wire:model.live="declarationAccepted" style="margin-top:0.25rem;" />
+                    <span>
+                        {{ __('I have reviewed my profile, and to the best of my knowledge the information is correct and ready to be shown on the faculty directory.') }}
+                    </span>
+                </label>
+
+                <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+                    <x-filament::button
+                        wire:click="confirmVerification"
+                        icon="heroicon-o-check-badge"
+                        color="success"
+                        :disabled="! $declarationAccepted"
+                        wire:loading.attr="disabled"
+                        wire:target="confirmVerification"
+                    >
+                        {{ __('Confirm My Profile') }}
+                    </x-filament::button>
+                    <span style="font-size:0.8rem;opacity:0.7;">{{ __('You only need to do this once.') }}</span>
+                </div>
+            </div>
+        </x-filament::section>
+    @endif
+
     <form wire:submit="save" class="space-y-6">
         {{ $this->form }}
 
@@ -43,171 +86,140 @@
 
     <script>
         /**
-         * Jump to a specific gap field inside Filament 5 vertical tabs.
-         * Handles repeater items: expands the correct collapsed item, then focuses the field.
+         * Jump from a Needs Attention item to the field it is about.
          *
-         * @param {string}      fieldId     - The Filament field name (e.g. 'membership_organization_id', 'degree_type_id')
-         * @param {string}      tabLabel    - The EXACT Filament Tab::make() label (e.g. 'Memberships', 'Educations')
-         * @param {number|null} recordIndex - The 0-based index of the repeater item (null for non-repeater fields)
+         * Written against Filament 5's markup. The version before this looked
+         * for ".fi-tabs-content" and for panels with a `hidden` attribute,
+         * neither of which Filament 5 renders: it always took Basic Info as the
+         * open panel, then fell back to the first repeater items on the page,
+         * which sit in another, hidden tab. Plain fields like those under
+         * Contact Info were found by name and worked; anything inside a
+         * repeated section (qualifications, publications, experience...)
+         * scrolled to something invisible.
+         *
+         * @param {string}      fieldId     - field name ('degree_type_id') or section name ('educations')
+         * @param {string}      tabLabel    - the Tab::make() label ('Educations')
+         * @param {number|null} recordIndex - 0-based row of a repeated section, or null
          */
         function jumpToGap(fieldId, tabLabel, recordIndex) {
-            // Step 1: Click the correct Filament 5 tab
-            if (tabLabel) {
-                const needle = tabLabel.trim().toLowerCase();
-                const allTabBtns = document.querySelectorAll('.fi-tabs-item button, [role="tab"], nav button');
-                for (const btn of allTabBtns) {
-                    if (btn.textContent.trim().toLowerCase().includes(needle)) {
-                        btn.click();
-                        break;
-                    }
-                }
+            const panel = openProfileTab(tabLabel);
+            const scope = panel || document;
+
+            const isRow = typeof recordIndex === 'number';
+            // A row past what the section has loaded (publications load ten at
+            // a time) is not on the page; point at the section, where "Load
+            // more" is, rather than at some other row.
+            const item = isRow ? (repeaterItemsIn(scope)[recordIndex] || null) : null;
+
+            if (item) {
+                // Filament's own reveal: the item listens for `expand` to open
+                // itself, and the tab panel to switch to it.
+                item.dispatchEvent(new CustomEvent('expand', { bubbles: true }));
             }
 
-            // Step 2: Retry loop to wait for Livewire/Filament tab switch to settle
-            let attempts = 0;
-            const checkAndRun = () => {
-                attempts++;
-                if (recordIndex !== null && recordIndex !== undefined && typeof recordIndex === 'number') {
-                    // Scope search to the active tab panel
-                    const activeTabContent = document.querySelector('.fi-tabs-content:not([style*="display: none"]), [role="tabpanel"]:not([hidden]), .fi-tabs-content');
-                    const items = activeTabContent ? activeTabContent.querySelectorAll('.fi-fo-repeater-item') : document.querySelectorAll('.fi-fo-repeater-item');
-
-                    if (items.length > 0 || attempts >= 4) {
-                        expandRepeaterAndFocus(fieldId, recordIndex, items);
-                    } else {
-                        setTimeout(checkAndRun, 150);
-                    }
-                } else {
-                    focusField(fieldId);
-                }
-            };
-
-            setTimeout(checkAndRun, 250);
-        }
-
-        /**
-         * Expand the Nth collapsed repeater item in active tab, then focus a field inside it.
-         */
-        function expandRepeaterAndFocus(fieldId, recordIndex, items) {
-            const repeaterItems = items && items.length > 0 ? items : document.querySelectorAll('.fi-fo-repeater-item');
-
-            if (!repeaterItems || repeaterItems.length === 0 || recordIndex >= repeaterItems.length) {
-                focusField(fieldId);
-                return;
-            }
-
-            const targetItem = repeaterItems[recordIndex];
-
-            // Locate collapse toggle button inside repeater item header
-            const headerBtns = targetItem.querySelectorAll('.fi-fo-repeater-item-header button, button[x-on\\:click*="collapse"], button[x-on\\:click*="isCollapsed"], button');
-            
-            // Check if item is currently collapsed
-            const contentArea = targetItem.querySelector('.fi-fo-repeater-item-content') || targetItem.querySelector('[x-show*="Collapsed"], [x-show*="collapsed"]');
-            const isCollapsed = !contentArea || (
-                contentArea.style.display === 'none' ||
-                contentArea.hasAttribute('x-cloak') ||
-                contentArea.offsetHeight === 0
-            );
-
-            if (isCollapsed && headerBtns.length > 0) {
-                // Click the toggle button to expand the item
-                headerBtns[0].click();
-                setTimeout(() => focusFieldInContainer(fieldId, targetItem), 350);
-            } else {
-                focusFieldInContainer(fieldId, targetItem);
-            }
-
-            // Scroll item into view
-            targetItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-            // Visual highlight box around repeater item
-            targetItem.style.outline = '3px solid #6366F1';
-            targetItem.style.outlineOffset = '2px';
-            targetItem.style.borderRadius = '8px';
+            // Give Alpine a moment to show the tab and the opened row.
             setTimeout(() => {
-                targetItem.style.outline = '';
-                targetItem.style.outlineOffset = '';
-            }, 4000);
+                const target = item
+                    ? (findProfileField(item, fieldId) || item)
+                    : (isRow ? scope.querySelector('.fi-fo-repeater') : findProfileField(scope, fieldId));
+
+                if (target) {
+                    highlightElement(target);
+                    return;
+                }
+
+                // Not where the checklist files it (Bio is listed under
+                // Personal Details but sits in Basic Info): find it anywhere
+                // and let it open its own tab.
+                const elsewhere = findProfileField(document, fieldId);
+                if (elsewhere) {
+                    elsewhere.dispatchEvent(new CustomEvent('expand', { bubbles: true }));
+                    setTimeout(() => highlightElement(elsewhere), 300);
+                } else if (panel) {
+                    highlightElement(panel);
+                }
+            }, 300);
+        }
+
+        /** Clicks the tab with this exact label and returns its panel. */
+        function openProfileTab(tabLabel) {
+            if (!tabLabel) return null;
+
+            const wanted = tabLabel.trim().toLowerCase();
+            const tab = Array.from(document.querySelectorAll('.fi-sc-tabs [role="tab"]')).find((btn) => {
+                const label = btn.querySelector('.fi-tabs-item-label');
+                return (label ? label.textContent : btn.textContent).trim().toLowerCase() === wanted;
+            });
+
+            if (!tab) return null;
+            tab.click();
+
+            const key = tab.getAttribute('data-tab-key');
+            return Array.from(document.querySelectorAll('[role="tabpanel"]'))
+                .find((panel) => key && panel.id.endsWith(key)) || null;
+        }
+
+        /** The rows of the first repeated section in a tab, in screen order. */
+        function repeaterItemsIn(scope) {
+            const repeater = scope.querySelector('.fi-fo-repeater');
+            if (!repeater) return [];
+
+            return Array.from(repeater.querySelectorAll('li.fi-fo-repeater-item'))
+                .filter((li) => li.closest('.fi-fo-repeater') === repeater);
         }
 
         /**
-         * Focus a specific field inside a container element (repeater item).
+         * A field by name inside a container. Inputs carry
+         * id="form.educations.record-12.passing_year"; selects are drawn by
+         * Alpine and are found by their wire:model / wire:key instead; a whole
+         * section is id="form.educations".
          */
-        function focusFieldInContainer(fieldId, container) {
-            const cleanId = (fieldId || '').replace('input_', '').replace('data.', '');
+        function findProfileField(container, fieldId) {
+            if (!fieldId) return null;
 
-            // Search for the field inside this specific repeater item
-            let el = container.querySelector(`[name*="${cleanId}"]`)
-                  || container.querySelector(`select[name*="${cleanId}"]`)
-                  || container.querySelector(`input[name*="${cleanId}"]`)
-                  || container.querySelector(`textarea[name*="${cleanId}"]`);
+            const name = String(fieldId).replace(/^data\./, '').replace(/^input_/, '');
+            const suffix = '.' + name;
+            const attrs = ['id', 'wire:model', 'wire:model.live', 'wire:key'];
 
-            // Fallback: search by label text inside the container
-            if (!el) {
-                const labels = container.querySelectorAll('label');
-                const searchText = cleanId.replaceAll('_', ' ').toLowerCase();
-                for (const lbl of labels) {
-                    if (lbl.textContent.toLowerCase().includes(searchText)) {
-                        const forId = lbl.getAttribute('for');
-                        if (forId) el = document.getElementById(forId);
-                        if (!el) el = lbl.closest('.fi-fo-field-wrp')?.querySelector('input, select, textarea, button');
-                        if (el) break;
+            for (const el of container.querySelectorAll('[id], [wire\\:model], [wire\\:model\\.live], [wire\\:key]')) {
+                for (const attr of attrs) {
+                    const value = el.getAttribute(attr);
+                    if (value && (value === 'form.' + name || value === 'data.' + name || value.endsWith(suffix) || value.includes(suffix + '.'))) {
+                        return el;
                     }
                 }
             }
 
-            if (el) {
-                highlightElement(el);
-            }
+            return null;
         }
 
         /**
-         * Focus a field anywhere in the page (non-repeater fields).
-         */
-        function focusField(fieldId) {
-            const cleanId = (fieldId || '').replace('input_', '').replace('data.', '');
-
-            let el = document.querySelector(`[name="data.${cleanId}"]`)
-                  || document.querySelector(`[name="${cleanId}"]`)
-                  || document.getElementById(`data.${cleanId}`)
-                  || document.getElementById(cleanId)
-                  || document.querySelector(`input[name*="${cleanId}"]`)
-                  || document.querySelector(`textarea[name*="${cleanId}"]`)
-                  || document.querySelector(`select[name*="${cleanId}"]`);
-
-            // Fallback: search by label text
-            if (!el) {
-                const labels = document.querySelectorAll('label');
-                const searchText = cleanId.replaceAll('_', ' ').toLowerCase();
-                for (const lbl of labels) {
-                    if (lbl.textContent.toLowerCase().includes(searchText)) {
-                        const forId = lbl.getAttribute('for');
-                        if (forId) el = document.getElementById(forId);
-                        if (!el) el = lbl.closest('.fi-fo-field-wrp')?.querySelector('input, select, textarea');
-                        if (el) break;
-                    }
-                }
-            }
-
-            if (el) {
-                highlightElement(el);
-            }
-        }
-
-        /**
-         * Scroll to, focus, and visually highlight an element.
+         * Scrolls to the field — its whole wrapper, label included — and marks
+         * it with one ring.
+         *
+         * One ring, drawn flush: this used to add an outline 4px out and also
+         * focus the input, so Filament's own focus ring appeared inside it and
+         * a row's border showed inside that — two borders every time.
          */
         function highlightElement(el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            if (typeof el.focus === 'function') el.focus();
+            const box = el.matches('[data-field-wrapper]')
+                ? el
+                : (el.querySelector('[data-field-wrapper]') || el.closest('[data-field-wrapper]') || el);
 
-            // Amber outline glow
-            el.style.outline = '3px solid #f59e0b';
-            el.style.outlineOffset = '2px';
-            el.style.transition = 'outline 0.3s ease';
+            box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            const previous = { boxShadow: box.style.boxShadow, borderRadius: box.style.borderRadius, transition: box.style.transition };
+
+            box.style.transition = 'box-shadow 0.3s ease';
+            box.style.borderRadius = '0.5rem';
+            box.style.boxShadow = '0 0 0 3px rgba(245, 158, 11, 0.85)';
+
             setTimeout(() => {
-                el.style.outline = '';
-                el.style.outlineOffset = '';
+                box.style.boxShadow = previous.boxShadow;
+                setTimeout(() => {
+                    box.style.borderRadius = previous.borderRadius;
+                    box.style.transition = previous.transition;
+                }, 300);
             }, 3500);
         }
     </script>

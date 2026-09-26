@@ -142,8 +142,9 @@ class MyProfile extends Page
 
             $this->saveTeacherMedia($teacher);
 
-            // Mark verification status as verified
-            $teacher->markAsVerified();
+            // Saving is not confirming. Verification used to be set here on
+            // every save, so pressing Save once counted as a declaration the
+            // teacher never made; it is now only the declaration panel's job.
 
             // Back to what is stored: rows added on this save only have
             // placeholder keys, so a second save would add them again.
@@ -152,7 +153,7 @@ class MyProfile extends Page
             Notification::make()
                 ->success()
                 ->title(__('Profile update submitted successfully'))
-                ->body(__('Your changes have been saved and profile data is confirmed.'))
+                ->body(__('Your changes have been saved.'))
                 ->send();
 
         } catch (Halt $exception) {
@@ -172,52 +173,66 @@ class MyProfile extends Page
         }
     }
 
-    public function confirmVerificationAction(): Action
+    /**
+     * The declaration checkbox. Nothing is stored until the teacher confirms.
+     */
+    public bool $declarationAccepted = false;
+
+    /**
+     * Whether the declaration panel is shown: until the teacher has confirmed
+     * once, and never again after.
+     */
+    public function getNeedsDeclarationProperty(): bool
     {
-        return Action::make('confirmVerification')
-            ->label(__('Confirm Profile Data Accuracy'))
-            ->icon('heroicon-o-check-badge')
-            ->color('success')
-            ->requiresConfirmation()
-            ->modalHeading(__('Confirm Profile Data Accuracy & Public Readiness'))
-            ->modalDescription(__('Are you sure that all your profile information (Education, Publications, Experience, Skills, etc.) is accurate, up-to-date, and ready for public display on the faculty portal?'))
-            ->modalSubmitActionLabel(__('Yes, Everything is Correct & Ready to Go Public'))
-            ->modalCancelActionLabel(__('Cancel'))
-            ->action(fn () => $this->confirmVerification());
+        $teacher = auth()->user()?->teacher;
+
+        return $teacher !== null && $teacher->verification_status !== 'verified';
     }
 
+    /**
+     * The teacher's own statement that their profile is complete and correct.
+     *
+     * Separate from saving the profile, and only with the declaration ticked —
+     * checked here as well as on the button, since the button's disabled state
+     * is only the browser's. Once made it is not asked for again.
+     */
     public function confirmVerification(): void
     {
         $teacher = auth()->user()?->teacher;
 
-        if ($teacher) {
-            $teacher->markAsVerified();
+        if (! $teacher || $teacher->verification_status === 'verified') {
+            return;
+        }
 
+        if (! $this->declarationAccepted) {
             Notification::make()
-                ->success()
-                ->title(__('Profile Confirmed & Verified!'))
-                ->body(__('Your profile information has been verified and is now ready for public display.'))
+                ->warning()
+                ->title(__('Please tick the box to confirm'))
+                ->body(__('Kindly tick the confirmation box once you have reviewed your profile.'))
                 ->send();
 
-            // Refresh Livewire component state
-            $this->mount();
+            return;
         }
+
+        $teacher->markAsVerified();
+        $this->declarationAccepted = false;
+
+        Notification::make()
+            ->success()
+            ->title(__('Thank you!'))
+            ->body(__('Your profile has been confirmed and is ready for the faculty directory.'))
+            ->send();
+
+        // Refresh Livewire component state
+        $this->mount();
     }
 
     public function getFormActions(): array
     {
-        $teacher = auth()->user()?->teacher;
-
-        $actions = [
+        return [
             Action::make('save')
                 ->label(__('Save Changes'))
                 ->submit('save'),
         ];
-
-        if ($teacher && $teacher->verification_status !== 'verified') {
-            $actions[] = $this->confirmVerificationAction();
-        }
-
-        return $actions;
     }
 }
