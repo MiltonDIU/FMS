@@ -369,7 +369,7 @@ class ExportTrainingExperiencesCommand extends Command
         }
 
         // Auto-detect: prefer DeepSeek/OpenRouter first if key exists, then others
-        $priority = ['vertex','deepseek', 'openrouter', 'gemini', 'groq', 'anthropic'];
+        $priority = ['gemini','deepseek','openrouter','groq','anthropic','vertex'];
         foreach ($priority as $provider) {
             $key = match($provider) {
                 'deepseek'  => env('DEEPSEEK_API_KEY'),

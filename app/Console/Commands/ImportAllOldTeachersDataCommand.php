@@ -48,9 +48,9 @@ class ImportAllOldTeachersDataCommand extends Command
 //            'import:old-teachers-publications',
             'import:old-teachers-teaching-areas',
             'import:training-experiences',
-//            'publications:convert-pipeline',
-//            'publications:import-pipeline',
-//            'import:researcher-profiles',
+            'publications:convert-pipeline',
+            'publications:import-pipeline',
+            'import:researcher-profiles',
 
         ];
 

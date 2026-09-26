@@ -38,19 +38,19 @@ class AdministrativeRoleUserSeeder extends Seeder
             return;
         }
 
-        $this->assign(
-            email:    'dean@fms.diu.edu.bd',
-            roleName: 'Dean',
-            scope:    ['faculty_id' => $faculty->id, 'department_id' => null],
-            label:    "Dean of {$faculty->short_name}"
-        );
-
-        $this->assign(
-            email:    'head@fms.diu.edu.bd',
-            roleName: 'Head of Department',
-            scope:    ['faculty_id' => null, 'department_id' => $department->id],
-            label:    "Head of {$department->short_name}"
-        );
+//        $this->assign(
+//            email:    'dean@fms.diu.edu.bd',
+//            roleName: 'Dean',
+//            scope:    ['faculty_id' => $faculty->id, 'department_id' => null],
+//            label:    "Dean of {$faculty->short_name}"
+//        );
+//
+//        $this->assign(
+//            email:    'head@fms.diu.edu.bd',
+//            roleName: 'Head of Department',
+//            scope:    ['faculty_id' => null, 'department_id' => $department->id],
+//            label:    "Head of {$department->short_name}"
+//        );
     }
 
     /**

@@ -58,26 +58,26 @@ class FMSSeeder extends Seeder
                 'email' => 'admin@fms.diu.edu.bd',
                 'name'  => 'System Admin',
             ],
-            'registrar' => [
-                'email' => 'registrar@fms.diu.edu.bd',
-                'name'  => 'Registrar Officer',
-            ],
-            'teacher' => [
-                'email' => 'teacher@fms.diu.edu.bd',
-                'name'  => 'Faculty Teacher',
-            ],
+//            'registrar' => [
+//                'email' => 'registrar@fms.diu.edu.bd',
+//                'name'  => 'Registrar Officer',
+//            ],
+//            'teacher' => [
+//                'email' => 'teacher@fms.diu.edu.bd',
+//                'name'  => 'Faculty Teacher',
+//            ],
             'research_team' => [
                 'email' => 'researcher@fms.diu.edu.bd',
                 'name'  => 'Research Staff',
             ],
-            'dean' => [
-                'email' => 'dean@fms.diu.edu.bd',
-                'name'  => 'Dean of Faculty',
-            ],
-            'head' => [
-                'email' => 'head@fms.diu.edu.bd',
-                'name'  => 'Head of Department',
-            ],
+//            'dean' => [
+//                'email' => 'dean@fms.diu.edu.bd',
+//                'name'  => 'Dean of Faculty',
+//            ],
+//            'head' => [
+//                'email' => 'head@fms.diu.edu.bd',
+//                'name'  => 'Head of Department',
+//            ],
         ];
 
         foreach ($users as $role => $data) {

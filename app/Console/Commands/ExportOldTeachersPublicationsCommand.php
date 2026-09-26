@@ -319,7 +319,7 @@ class ExportOldTeachersPublicationsCommand extends Command
             }
         }
 
-        $priority = ['vertex', 'gemini', 'deepseek', 'openrouter', 'groq', 'anthropic'];
+        $priority = ['gemini','deepseek','openrouter','groq','anthropic','vertex'];
         foreach ($priority as $provider) {
             $key = match($provider) {
                 'deepseek'   => env('DEEPSEEK_API_KEY'),
