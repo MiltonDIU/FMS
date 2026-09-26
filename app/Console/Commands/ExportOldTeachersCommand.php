@@ -496,6 +496,9 @@ class ExportOldTeachersCommand extends Command
      * both out of the same string into job_type_id.
      */
     private const RANK_KEYWORDS = [
+        // Before "professor", or it is read as a plain Professor. Only used
+        // where the designation exists; otherwise "professor" still catches it.
+        'emeritus professor'      => 'emeritus professor',
         'lecturer (senior scale)' => 'lecturer (senior scale)',
         'senior scale'            => 'lecturer (senior scale)',
         'associate professor'     => 'associate professor',
@@ -1371,6 +1374,7 @@ class ExportOldTeachersCommand extends Command
                 'visiting'          => 'visiting faculty',
                 'part-time'         => 'part time',
                 'part time'         => 'part time',
+                'emeritus'          => 'emeritus',
             ];
 
             foreach ($fromDesignation as $keyword => $jobType) {
