@@ -70,8 +70,7 @@ class SocialLinksRelationManager extends RelationManager
                         }
                     }),
 
-                TextInput::make('url')
-                    ->url()
+                \App\Support\LenientUrl::field(TextInput::make('url'))
                     ->required()
                     ->dehydrated(),
             ]);

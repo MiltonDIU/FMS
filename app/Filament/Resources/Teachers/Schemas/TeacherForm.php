@@ -787,7 +787,7 @@ class TeacherForm
                                                 \Filament\Schemas\Components\Section::make('Journal / Conference')
                                                     ->schema([
                                                         TextInput::make('journal_name'),
-                                                        TextInput::make('journal_link')->url(),
+                                                        \App\Support\LenientUrl::field(TextInput::make('journal_link')),
                                                         DatePicker::make('publication_date'),
                                                         TextInput::make('publication_year')->numeric(),
                                                     ])->columns(2)->collapsible(),
@@ -1262,9 +1262,8 @@ class TeacherForm
                                                 'expired' => 'Expired',
                                             ])
                                             ->default('active'),
-                                        TextInput::make('url')
+                                        \App\Support\LenientUrl::field(TextInput::make('url'))
                                             ->label('Verification URL')
-                                            ->url()
                                             ->maxLength(500)
                                             ->columnSpanFull(),
                                         Textarea::make('description')
@@ -1338,8 +1337,7 @@ class TeacherForm
                                                     }
                                                 }
                                             }),
-                                        TextInput::make('url')
-                                            ->url()
+                                        \App\Support\LenientUrl::field(TextInput::make('url'))
                                             ->required()
                                             ->dehydrated(),
                                     ])
@@ -1414,11 +1412,17 @@ class TeacherForm
                                         ->disabled($isOwnProfile)
                                         ->dehydrated(! $isOwnProfile),
                                     Select::make('profile_status')
+                                        // "archived" is a value the column allows and the
+                                        // import gave every archived teacher. Without it
+                                        // here the stored value was not an option, the
+                                        // required check failed, and no archived profile
+                                        // could be saved.
                                         ->options([
                                             'draft' => 'Draft',
                                             'pending' => 'Pending Review',
                                             'approved' => 'Approved',
                                             'rejected' => 'Rejected',
+                                            'archived' => 'Archived',
                                         ])
                                         ->default('draft')
                                         ->required()

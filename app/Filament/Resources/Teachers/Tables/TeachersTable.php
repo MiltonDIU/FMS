@@ -436,6 +436,7 @@ class TeachersTable
                         'pending' => 'Pending',
                         'approved' => 'Approved',
                         'rejected' => 'Rejected',
+                        'archived' => 'Archived',
                     ]),
                 SelectFilter::make('verification_status')
                     ->label('Verification Status')

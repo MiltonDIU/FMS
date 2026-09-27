@@ -83,7 +83,7 @@ class PublicationForm
                 \Filament\Schemas\Components\Section::make('Journal / Conference')
                     ->schema([
                         TextInput::make('journal_name'),
-                        TextInput::make('journal_link')->url(),
+                        \App\Support\LenientUrl::field(TextInput::make('journal_link')),
                         \Filament\Forms\Components\DatePicker::make('publication_date'),
                         TextInput::make('publication_year')->numeric(),
                     ])->columns(2),
