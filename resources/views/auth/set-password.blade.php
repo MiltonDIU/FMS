@@ -43,9 +43,22 @@
                            autocomplete="new-password"
                            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm
                                   focus:border-diu-primary focus:ring-2 focus:ring-diu-primary/30 focus:outline-none">
-                    <p class="mt-1 text-xs text-slate-500">
-                        At least 8 characters, with letters and numbers.
-                    </p>
+                    {{--
+                        The same rules TeacherPasswordSetupController::store()
+                        enforces — change one, change the other. Each line ticks
+                        as it is met, so the first attempt can be the right one
+                        instead of learning the rules from an error. The breach
+                        check cannot be done in the browser; it is stated so a
+                        rejection for it is not a surprise.
+                    --}}
+                    <ul id="password-rules" class="mt-2 space-y-1 text-xs text-slate-500" aria-live="polite">
+                        <li data-rule="length"><span class="mark">○</span> At least 8 characters</li>
+                        <li data-rule="letter"><span class="mark">○</span> At least one letter (a–z)</li>
+                        <li data-rule="number"><span class="mark">○</span> At least one number (0–9)</li>
+                        <li data-rule="symbol"><span class="mark">○</span> At least one symbol, e.g. ! @ # $ % &amp; * ?</li>
+                        <li data-rule="match"><span class="mark">○</span> Both passwords match</li>
+                        <li><span class="mark">•</span> Must not be a password known from a public data breach (checked when you submit)</li>
+                    </ul>
                 </div>
 
                 <div>
@@ -71,5 +84,39 @@
         </p>
     </main>
 
+    <script>
+        (function () {
+            var password = document.getElementById('password');
+            var confirmation = document.getElementById('password_confirmation');
+            var rules = document.getElementById('password-rules');
+
+            // Mirrors Laravel's Password rule: letters() is \p{L}, numbers()
+            // is \p{N}, symbols() is any symbol, punctuation or space.
+            var checks = {
+                length: function (v) { return v.length >= 8; },
+                letter: function (v) { return /\p{L}/u.test(v); },
+                number: function (v) { return /\p{N}/u.test(v); },
+                symbol: function (v) { return /[\p{Z}\p{S}\p{P}]/u.test(v); },
+                match: function (v) { return v.length > 0 && v === confirmation.value; }
+            };
+
+            function update() {
+                var value = password.value;
+
+                Object.keys(checks).forEach(function (rule) {
+                    var item = rules.querySelector('[data-rule="' + rule + '"]');
+                    var met = checks[rule](value);
+
+                    item.querySelector('.mark').textContent = met ? '✓' : '○';
+                    // Inline colours: this page's stylesheet is the theme's,
+                    // which is not built with classes from this file.
+                    item.style.color = met ? '#047857' : (value.length ? '#b91c1c' : '');
+                });
+            }
+
+            password.addEventListener('input', update);
+            confirmation.addEventListener('input', update);
+        })();
+    </script>
 </body>
 </html>

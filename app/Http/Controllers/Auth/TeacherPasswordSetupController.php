@@ -38,11 +38,12 @@ class TeacherPasswordSetupController extends Controller
             return redirect()->route('filament.admin.pages.dashboard');
         }
 
+        // resources/views/auth/set-password.blade.php lists these rules to the
+        // teacher and ticks them off while typing — keep the two in step.
         $request->validate([
             'password' => [
                 'required',
                 'confirmed',
-                //Password::min(8)->letters()->numbers()->uncompromised(),
                 Password::min(8)->letters()->numbers()->symbols()->uncompromised(),
             ],
         ], [
