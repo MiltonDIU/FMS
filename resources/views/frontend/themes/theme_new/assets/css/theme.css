@@ -146,22 +146,32 @@
 }
 
 .dark {
-    --page: #05080f;
-    --panel: rgba(255, 255, 255, 0.045);
-    --panel-solid: #0b1120;
-    --panel-raised: rgba(255, 255, 255, 0.07);
-    --hairline: rgba(255, 255, 255, 0.1);
-    --hairline-soft: rgba(255, 255, 255, 0.06);
-    --hairline-strong: rgba(255, 255, 255, 0.2);
+    --page: #080c14;
+    --panel: #0f172a;
+    --panel-solid: #0f172a;
+    --panel-raised: #1e293b;
+    --hairline: rgba(255, 255, 255, 0.12);
+    --hairline-soft: rgba(255, 255, 255, 0.07);
+    --hairline-strong: rgba(255, 255, 255, 0.22);
 
-    --ink: #f1f5f9;
-    --ink-2: #cbd5e1;
-    --ink-3: #9fadc2;
-    --ink-4: #74839a;
+    --ink: #f8fafc;
+    --ink-2: #e2e8f0;
+    --ink-3: #94a3b8;
+    --ink-4: #8191a6;
 
-    --brand-ink: var(--color-diu-accent-light);
+    --brand-ink: #38bdf8;
 
-    --aurora-strength: 1;
+    --tile-veil: linear-gradient(
+        to top,
+        rgba(8, 12, 20, 0.95) 0%,
+        rgba(8, 12, 20, 0.6) 40%,
+        rgba(8, 12, 20, 0.08) 70%,
+        rgba(8, 12, 20, 0) 100%
+    );
+
+    /* Ambient atmospheric glow in dark mode: subtle, elegant, never overpowering */
+    --aurora-strength: 0.32;
+    --glass-blur: 16px;
 
     color-scheme: dark;
 }
@@ -291,8 +301,16 @@ body {
 }
 
 .dark .glass {
-    backdrop-filter: blur(var(--glass-blur)) saturate(140%);
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+    background: rgba(15, 23, 42, 0.88);
+    backdrop-filter: blur(var(--glass-blur)) saturate(130%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(130%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.dark .glass-soft {
+    background: rgba(30, 41, 59, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .glass-soft {
@@ -1431,4 +1449,102 @@ footer.text-white .social-mark {
 .is-busy {
     opacity: 0.45;
     pointer-events: none;
+}
+
+
+/* ---------------------------------------------------------------------------
+   Dark Mode Component Enhancements
+   --------------------------------------------------------------------------- */
+.dark .btn-primary {
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    border-color: rgba(56, 189, 248, 0.35);
+    box-shadow: 0 4px 20px -4px rgba(2, 132, 199, 0.5);
+    color: #ffffff;
+}
+
+.dark .btn-primary:hover {
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    box-shadow: 0 6px 24px -4px rgba(14, 165, 233, 0.65);
+}
+
+.dark .btn-ghost {
+    background: #1e293b;
+    color: #f8fafc;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.dark .btn-ghost:hover {
+    background: #273549;
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.28);
+}
+
+.dark .btn-icon {
+    color: var(--ink-3);
+    border-color: transparent;
+}
+
+.dark .btn-icon:hover {
+    color: #f8fafc;
+    background: #1e293b;
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.dark .chip {
+    background: #0f172a;
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #cbd5e1;
+}
+
+.dark .chip:hover {
+    background: #1e293b;
+    border-color: rgba(255, 255, 255, 0.22);
+    color: #f8fafc;
+}
+
+.dark .chip.is-active {
+    background: linear-gradient(135deg, #0284c7, #0072bc);
+    border-color: transparent;
+    color: #ffffff;
+    box-shadow: 0 4px 16px -4px rgba(2, 132, 199, 0.4);
+}
+
+.dark .tile-plain {
+    background: #1e293b;
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.dark .rail-link {
+    color: var(--ink-4);
+    border-left-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .rail-link:hover {
+    color: var(--ink-2);
+    border-left-color: rgba(255, 255, 255, 0.25);
+}
+
+.dark .rail-link.is-active {
+    color: #38bdf8;
+    border-left-color: #38bdf8;
+    background: rgba(56, 189, 248, 0.04);
+}
+
+.dark .rail-strip {
+    background: rgba(8, 12, 20, 0.9);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dark .rail-strip a {
+    color: var(--ink-4);
+}
+
+.dark .rail-strip a.is-active {
+    background: linear-gradient(135deg, #0284c7, #0072bc);
+    color: #ffffff;
+}
+
+.dark a.record:hover {
+    background: rgba(30, 41, 59, 0.7);
 }
