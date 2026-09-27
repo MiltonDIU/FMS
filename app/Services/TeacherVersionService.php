@@ -116,9 +116,15 @@ class TeacherVersionService
      * Process teacher update request.
      * This is the MAIN entry point from Controller/Resource.
      * 
+     * $skipApproval applies every change at once, whatever the approval
+     * settings say. Approval exists so that a teacher's own edits are checked
+     * before they are published; an administrator editing a profile is the
+     * checker, and routing their change back to themselves only meant that
+     * switches like Publicly Visible appeared to save and did nothing.
+     *
      * @return bool True if changes were detected and processed, false if no changes
      */
-    public function handleUpdateFromForm(Teacher $teacher, array $allData): bool
+    public function handleUpdateFromForm(Teacher $teacher, array $allData, bool $skipApproval = false): bool
     {
         // DEBUG: Log incoming data keys to verify relations are included
         \Log::info('TeacherVersionService: Incoming data keys', [
@@ -146,7 +152,7 @@ class TeacherVersionService
         $autoUpdateSections = [];
 
         foreach ($changedSections as $section => $fields) {
-            if (ApprovalSetting::requiresApproval($section)) {
+            if (! $skipApproval && ApprovalSetting::requiresApproval($section)) {
                 $approvalSections[$section] = $fields;
             } else {
                 $autoUpdateSections[$section] = $fields;
@@ -156,6 +162,7 @@ class TeacherVersionService
         \Log::info('TeacherVersionService: Approval check', [
             'approval_sections' => array_keys($approvalSections),
             'auto_update_sections' => array_keys($autoUpdateSections),
+            'skip_approval' => $skipApproval,
         ]);
 
         // 3. If NO approval needed, just update everything directly

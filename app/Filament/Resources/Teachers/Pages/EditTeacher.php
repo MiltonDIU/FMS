@@ -34,6 +34,21 @@ class EditTeacher extends EditRecord
         ];
     }
 
+    /**
+     * Leave validation to the server.
+     *
+     * With the browser's own checks on, an invalid field on a tab that is not
+     * showing — an imported secondary email that is not an address, a job
+     * with no start date — blocks the submit before it is sent, and the
+     * browser's message bubble has nowhere visible to appear. Save then does
+     * nothing at all, as if the button had not been pressed. The server runs
+     * the same rules and says exactly which tab and row to fix.
+     */
+    public function getFormContentComponent(): \Filament\Schemas\Components\Component
+    {
+        return parent::getFormContentComponent()->extraAttributes(['novalidate' => true]);
+    }
+
     protected function getSaveFormAction(): \Filament\Actions\Action
     {
         return \Filament\Actions\Action::make('save')
@@ -66,24 +81,20 @@ class EditTeacher extends EditRecord
 
             $data = array_merge($data, $this->relationStateForService());
 
-            // Call our service
             /** @var \App\Services\TeacherVersionService $service */
             $service = app(\App\Services\TeacherVersionService::class);
-            
-            // This method handles:
-            // 1. Direct update if no approval needed
-            // 2. Version creation if approval needed (and stopping direct update)
-            $service->handleUpdateFromForm($this->record, $data);
-            
-            // If we are here, it means success.
-            // If a version was created pending approval, we should notify the user.
-            // If direct update happened, we notify saved.
-            
-            // How do we know result? 
-            // Ideally service returns a status enum or object. 
-            // For now, let's assume if it didn't throw, it's good.
-            // We can check if a pending status version was just created?
-            // Or roughly check recent versions.
+
+            $lastVersionId = (int) \App\Models\TeacherVersion::where('teacher_id', $this->record->id)->max('id');
+
+            // Direct update, or a version waiting for approval — unless an
+            // administrator is making the change, in which case it applies now.
+            $changed = $service->handleUpdateFromForm($this->record, $data, $this->editorSkipsApproval());
+
+            $pending = \App\Models\TeacherVersion::where('teacher_id', $this->record->id)
+                ->where('id', '>', $lastVersionId)
+                ->where('status', 'pending')
+                ->latest('id')
+                ->first();
 
             $this->saveTeacherMedia($this->record);
 
@@ -93,11 +104,28 @@ class EditTeacher extends EditRecord
             // should not look as if they had already been made.
             $this->fillForm();
 
-            // Simple generic notification
-            \Filament\Notifications\Notification::make()
-                ->success()
-                ->title('Profile updated successfully or submitted for approval.')
-                ->send();
+            // Say which of the three things happened. "Saved or submitted for
+            // approval" left an administrator unable to tell a change that took
+            // effect from one sitting in a queue.
+            if ($pending) {
+                \Filament\Notifications\Notification::make()
+                    ->warning()
+                    ->title('Submitted for approval — not live yet')
+                    ->body('Waiting for approval: ' . implode(', ', (array) $pending->pending_sections)
+                        . '. The profile keeps its current values until this is approved.')
+                    ->persistent()
+                    ->send();
+            } elseif ($changed) {
+                \Filament\Notifications\Notification::make()
+                    ->success()
+                    ->title('Profile saved')
+                    ->send();
+            } else {
+                \Filament\Notifications\Notification::make()
+                    ->info()
+                    ->title('No changes to save')
+                    ->send();
+            }
 
             if ($shouldRedirect && ($redirectUrl = $this->getRedirectUrl())) {
                 $this->redirect($redirectUrl);
@@ -106,6 +134,8 @@ class EditTeacher extends EditRecord
         } catch (\Filament\Support\Exceptions\Halt $exception) {
             return;
         } catch (\Illuminate\Validation\ValidationException $exception) {
+            $this->explainValidationErrors($exception);
+
             throw $exception;
         } catch (\Exception $exception) {
              \Filament\Notifications\Notification::make()
@@ -114,6 +144,92 @@ class EditTeacher extends EditRecord
                 ->body($exception->getMessage())
                 ->send();
         }
+    }
+
+    /**
+     * Administrators' edits take effect at once; approval is for a teacher's
+     * own changes. Someone editing their own teacher record still goes
+     * through approval, whatever their role.
+     */
+    protected function editorSkipsApproval(): bool
+    {
+        $user = auth()->user();
+
+        return $user !== null
+            && $user->hasAnyRole(['super_admin', 'admin'])
+            && $this->record->user_id !== $user->id;
+    }
+
+    /** Headings for the repeater tabs, as they read on the form. */
+    /** Plain-field labels for the error summary, where the message alone is vague. */
+    protected const FIELD_TABS = [
+        'secondary_email' => 'Contact Info',
+        'phone' => 'Contact Info',
+        'personal_phone' => 'Contact Info',
+        'webpage' => 'Basic Info',
+        'employee_id' => 'Basic Info',
+        'first_name' => 'Basic Info',
+        'last_name' => 'Basic Info',
+        'department_id' => 'Basic Info',
+        'designation_id' => 'Basic Info',
+    ];
+
+    protected const SECTION_LABELS = [
+        'educations' => 'Educations',
+        'publications' => 'Publications',
+        'jobExperiences' => 'Job Experience',
+        'trainingExperiences' => 'Training Experience',
+        'awards' => 'Awards',
+        'skills' => 'Skills',
+        'teachingAreas' => 'Teaching Areas',
+        'researchInterests' => 'Research Interest',
+        'memberships' => 'Memberships',
+        'socialLinks' => 'Social Links',
+    ];
+
+    /**
+     * Say what stopped the save, and where, at the top of the page.
+     *
+     * The form marks the offending fields, but they are usually on another
+     * tab — often a row imported from the old system with a blank Degree Type
+     * or Start Date — so a change on the Settings tab looked as if it had
+     * saved when nothing had. 215 of the 1,208 active teachers carry such a
+     * row. This lists each problem as tab, row and message.
+     */
+    protected function explainValidationErrors(\Illuminate\Validation\ValidationException $exception): void
+    {
+        $lines = [];
+
+        foreach ($exception->errors() as $key => $messages) {
+            $parts = explode('.', (string) $key);
+            $message = $messages[0] ?? 'Invalid value.';
+
+            if (($parts[0] ?? null) === 'data' && isset(self::SECTION_LABELS[$parts[1] ?? ''], $parts[2])) {
+                $rows = array_keys((array) data_get($this->data, $parts[1], []));
+                $position = array_search($parts[2], $rows, true);
+                $row = $position === false ? '' : ' — row ' . ($position + 1);
+
+                $lines[] = self::SECTION_LABELS[$parts[1]] . $row . ': ' . $message;
+            } elseif (isset(self::FIELD_TABS[$parts[1] ?? ''])) {
+                $lines[] = self::FIELD_TABS[$parts[1]] . ': ' . $message;
+            } else {
+                $lines[] = $message;
+            }
+        }
+
+        $lines = array_values(array_unique($lines));
+        $shown = array_slice($lines, 0, 8);
+
+        \Filament\Notifications\Notification::make()
+            ->danger()
+            ->title('Not saved — ' . count($lines) . ' field(s) need fixing')
+            ->body(new \Illuminate\Support\HtmlString(
+                implode('<br>', array_map('e', $shown))
+                . (count($lines) > count($shown) ? '<br>… and ' . (count($lines) - count($shown)) . ' more' : '')
+                . '<br><br>Open the tab named above, fill in the field, then save again.'
+            ))
+            ->persistent()
+            ->send();
     }
 
     /**
