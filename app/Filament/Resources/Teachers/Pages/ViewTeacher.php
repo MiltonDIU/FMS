@@ -22,6 +22,7 @@ class ViewTeacher extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            \App\Filament\Resources\Teachers\Actions\SendActivationEmailAction::make(),
             \Filament\Actions\EditAction::make(),
         ];
     }

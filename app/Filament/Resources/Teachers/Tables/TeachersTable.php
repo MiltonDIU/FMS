@@ -478,6 +478,7 @@ class TeachersTable
                             \App\Models\EmailBatch::SOURCE_INDIVIDUAL,
                         );
                     }),
+                \App\Filament\Resources\Teachers\Actions\SendActivationEmailAction::make(),
                 \App\Filament\Resources\Teachers\Actions\SyncPhotoAction::make(),
                 \Filament\Actions\Action::make('dashboard')
                     ->label('Dashboard')
