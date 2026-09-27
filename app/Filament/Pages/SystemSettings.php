@@ -100,6 +100,11 @@ class SystemSettings extends Page
                 $settings[$key] = \App\Helpers\ColorPalette::defaultValueFor($key);
             }
         }
+        foreach (\App\Helpers\ColorPalette::SURFACE_KEYS as $key) {
+            if (empty($settings[$key])) {
+                $settings[$key] = \App\Helpers\ColorPalette::SURFACE_META[$key]['default'] ?? null;
+            }
+        }
 
         $settings['global_custom_fonts'] = \App\Helpers\FontManager::customFonts();
 
@@ -171,7 +176,7 @@ class SystemSettings extends Page
             'global_custom_fonts' => [],
             'theme_color_mode' => $mode,
             'appearance_mode' => 'light',
-        ] + array_fill_keys(\App\Helpers\ColorPalette::OVERRIDE_KEYS, null), $settings));
+        ] + array_fill_keys(\App\Helpers\ColorPalette::OVERRIDE_KEYS, null) + array_fill_keys(\App\Helpers\ColorPalette::SURFACE_KEYS, null), $settings));
     }
 
     public function form(Schema $schema): Schema
@@ -840,6 +845,21 @@ class SystemSettings extends Page
                                             ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                                 self::updateOverridesLive($state, $set, $get);
                                             }),
+                                        \Filament\Schemas\Components\Section::make('Page & Card Surface Colors')
+                                            ->description('Manage the page background, card surfaces, and border colors dynamically. Default values match the active theme styling.')
+                                            ->columns(2)
+                                            ->columnSpanFull()
+                                            ->schema(
+                                                collect(\App\Helpers\ColorPalette::surfaceFields())
+                                                    ->map(function ($f) {
+                                                        return \Filament\Forms\Components\ColorPicker::make($f['key'])
+                                                            ->label($f['label'])
+                                                            ->hex()
+                                                            ->default($f['default'])
+                                                            ->helperText($f['usage'] . ' (Default: ' . $f['default'] . ')');
+                                                    })
+                                                    ->all()
+                                            ),
                                         \Filament\Schemas\Components\Actions::make([
                                             \Filament\Actions\Action::make('reset_colors')
                                                 ->label('Reset Colors to Default')
@@ -1437,7 +1457,8 @@ class SystemSettings extends Page
         // Clear cached color settings so the frontend reflects changes at once.
         if (array_intersect(array_keys($data), array_merge(
             ['diu_color_palette', 'diu_primary_color'],
-            \App\Helpers\ColorPalette::OVERRIDE_KEYS
+            \App\Helpers\ColorPalette::OVERRIDE_KEYS,
+            \App\Helpers\ColorPalette::SURFACE_KEYS
         ))) {
             \App\Helpers\ColorPalette::forgetCache();
         }
@@ -1462,10 +1483,16 @@ class SystemSettings extends Page
             $resetOverrides[$key] = \App\Helpers\ColorPalette::defaultValueFor($key);
         }
 
+        $resetSurfaces = [];
+        foreach (\App\Helpers\ColorPalette::SURFACE_KEYS as $key) {
+            $resetSurfaces[$key] = \App\Helpers\ColorPalette::SURFACE_META[$key]['default'] ?? null;
+        }
+
         $this->form->fill(array_merge(
             $this->form->getState(),
             ['theme_color_mode' => 'preset', 'diu_color_palette' => 'diu', 'diu_primary_color' => null]
             + $resetOverrides
+            + $resetSurfaces
         ));
 
         Notification::make()

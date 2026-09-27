@@ -63,6 +63,46 @@ class ColorPalette
     /**
      * Human-readable metadata for each color: label + where it is used.
      */
+    /**
+     * Setting keys for page and card surface color management.
+     */
+    public const SURFACE_KEYS = [
+        'page_background_color',
+        'card_background_color',
+        'card_raised_color',
+        'card_border_color',
+    ];
+
+    /**
+     * Metadata for surface and card background settings.
+     */
+    public const SURFACE_META = [
+        'page_background_color' => [
+            'label'   => 'Page Background Color',
+            'usage'   => 'Main background color of the public portal pages.',
+            'css'     => '--page',
+            'default' => '#ffffff',
+        ],
+        'card_background_color' => [
+            'label'   => 'Card / Panel Background Color',
+            'usage'   => 'Background color of profile cards, hero headers, command bars, and content panels.',
+            'css'     => ['--panel', '--panel-solid'],
+            'default' => '#f0f4f8',
+        ],
+        'card_raised_color' => [
+            'label'   => 'Card Raised / Inner Element Color',
+            'usage'   => 'Background color for buttons (Save Contact), portrait frames, and elevated sub-cards.',
+            'css'     => '--panel-raised',
+            'default' => '#ffffff',
+        ],
+        'card_border_color' => [
+            'label'   => 'Card Border / Hairline Color',
+            'usage'   => 'Border color for cards, panels, and subtle dividers.',
+            'css'     => '--hairline',
+            'default' => '#e2e8f0',
+        ],
+    ];
+
     public const COLOR_META = [
         'diu_primary'        => ['label' => 'Primary',        'usage' => 'Main brand color: buttons, links, active states, headers.'],
         'diu_primary_dark'   => ['label' => 'Primary Dark',   'usage' => 'Top micro-bar & statistics bar background (dark gradient).'],
@@ -156,6 +196,9 @@ class ColorPalette
         foreach (self::OVERRIDE_KEYS as $key) {
             \Illuminate\Support\Facades\Cache::forget("setting.{$key}");
         }
+        foreach (self::SURFACE_KEYS as $key) {
+            \Illuminate\Support\Facades\Cache::forget("setting.{$key}");
+        }
     }
 
     /**
@@ -163,6 +206,49 @@ class ColorPalette
      *
      * @return array<int,array{key:string,label:string,usage:string}>
      */
+    /**
+     * Returns surface fields for the admin form.
+     */
+    public static function surfaceFields(): array
+    {
+        return collect(self::SURFACE_META)
+            ->map(fn ($m, $key) => [
+                'key'     => $key,
+                'label'   => $m['label'],
+                'usage'   => $m['usage'],
+                'default' => $m['default'],
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Resolves the active surface CSS variables.
+     *
+     * @return array<string,string>
+     */
+    public static function resolveSurface(): array
+    {
+        $vars = [];
+        foreach (self::SURFACE_META as $key => $meta) {
+            $val = trim((string) Setting::get($key, ''));
+            if ($val === '' || ! self::isValidHex($val)) {
+                $val = $meta['default'];
+            }
+
+            $cssTargets = (array) $meta['css'];
+            foreach ($cssTargets as $cssVar) {
+                $vars[$cssVar] = $val;
+            }
+        }
+
+        $borderColor = $vars['--hairline'] ?? '#e2e8f0';
+        $vars['--hairline-soft'] = 'color-mix(in srgb, ' . $borderColor . ' 65%, transparent)';
+        $vars['--hairline-strong'] = 'color-mix(in srgb, ' . $borderColor . ' 85%, #0f172a)';
+
+        return $vars;
+    }
+
     public static function colorFields(): array
     {
         return collect(self::COLOR_META)
@@ -279,7 +365,15 @@ class ColorPalette
         $vars = self::resolve();
         $lines = array_map(fn ($k, $v) => "    {$k}: {$v};", array_keys($vars), array_values($vars));
 
-        return ":root {\n" . implode("\n", $lines) . "\n}";
+        $surfaceVars = self::resolveSurface();
+        $surfaceLines = array_map(fn ($k, $v) => "    {$k}: {$v};", array_keys($surfaceVars), array_values($surfaceVars));
+
+        $css = ":root {\n" . implode("\n", $lines) . "\n}";
+        if (! empty($surfaceLines)) {
+            $css .= "\n:root:not(.dark) {\n" . implode("\n", $surfaceLines) . "\n}";
+        }
+
+        return $css;
     }
 
     public static function isValidHex(string $value): bool
