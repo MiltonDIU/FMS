@@ -66,6 +66,15 @@ class EmailBatchesTable
                     ->color(fn ($state): string => $state > 0 ? 'success' : 'gray')
                     ->sortable(),
 
+                // Links followed. For an activation email this is the teacher
+                // using their link (credited on redemption), not a redirect.
+                TextColumn::make('clicked_count')
+                    ->label('Clicked')
+                    ->alignRight()
+                    ->badge()
+                    ->color(fn ($state): string => $state > 0 ? 'success' : 'gray')
+                    ->sortable(),
+
                 TextColumn::make('queued_count')
                     ->label('In queue')
                     ->alignRight()

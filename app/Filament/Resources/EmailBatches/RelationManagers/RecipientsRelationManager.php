@@ -84,7 +84,6 @@ class RecipientsRelationManager extends RelationManager
                     ->label('Clicked a link')
                     ->dateTime('d M Y, H:i')
                     ->placeholder('—')
-                    ->toggleable()
                     ->sortable(),
             ])
             ->filters([

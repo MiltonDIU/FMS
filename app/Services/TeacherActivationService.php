@@ -263,5 +263,29 @@ class TeacherActivationService
         if ($user && $user->email_verified_at === null) {
             $user->forceFill(['email_verified_at' => Carbon::now()])->save();
         }
+
+        $this->creditClick($teacher);
+    }
+
+    /**
+     * Record the click on the email the link came from.
+     *
+     * The activation link is deliberately not routed through the click
+     * tracker (see EmailTracking::shouldRewrite), so the delivery report never
+     * saw it being used — a teacher could activate and the batch would still
+     * read "not clicked". Every send mints a new token and kills the previous
+     * one, so the link that worked can only have come from the most recent
+     * activation email that reached them; that row is the one credited.
+     * registerClick() also marks it read, since a click is proof of that.
+     */
+    protected function creditClick(Teacher $teacher): void
+    {
+        EmailBatchRecipient::query()
+            ->where('teacher_id', $teacher->id)
+            ->where('status', EmailBatchRecipient::STATUS_SENT)
+            ->whereHas('batch', fn (Builder $q) => $q->where('uses_activation_link', true))
+            ->latest('id')
+            ->first()
+            ?->registerClick();
     }
 }
