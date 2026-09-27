@@ -1,5 +1,5 @@
 <!-- Overview Tab -->
-<div x-show="tab === 'overview'" class="space-y-6" x-cloak>
+<div id="overview" class="profile-section space-y-6">
     <div>
         <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider mb-2">Biography</h3>
         <p class="text-sm text-slate-600 leading-relaxed font-sans">{{ $teacher->bio ?: (implode(', ', $teacher->researchInterestNames()) ?: 'No biography added yet.') }}</p>

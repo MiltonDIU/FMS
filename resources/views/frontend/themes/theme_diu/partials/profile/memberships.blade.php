@@ -1,5 +1,5 @@
 <!-- Memberships Tab -->
-<div x-show="tab === 'memberships'" class="space-y-4" x-cloak>
+<div id="memberships" class="profile-section space-y-4">
     <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider mb-3 flex items-center gap-1.5">
         <svg class="w-4 h-4 text-diu-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-5-4-4 4-4-4-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         Professional Memberships &amp; Affiliations

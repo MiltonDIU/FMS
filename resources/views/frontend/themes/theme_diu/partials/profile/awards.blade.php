@@ -1,5 +1,5 @@
 <!-- Awards Tab -->
-<div x-show="tab === 'awards'" class="space-y-4" x-cloak>
+<div id="awards" class="profile-section space-y-4">
     <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider mb-3 flex items-center gap-1.5">
         <svg class="w-4 h-4 text-diu-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6m0 5h12m0-5h1.5a2.5 2.5 0 0 1 0 5H18m0 0v2a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4v-2m8 0h-4"/></svg>
         Special Awards, Fellowships &amp; Scholarships
