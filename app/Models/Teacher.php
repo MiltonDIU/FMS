@@ -362,15 +362,22 @@ class Teacher extends Model implements HasMedia
      * a test that counts what the endpoints return against this scope. The
      * website's pages, searches, counts and sitemap call it too.
      *
+     * A teacher must also be marked Publicly Visible (is_public). Every active,
+     * non-archived teacher already is, and the observer turns it off whenever
+     * one is deactivated or archived, so adding it hid nobody who was visible —
+     * it only makes switching it off by hand do what the switch says.
+     *
      * With the "hide unverified profiles" teacher setting on, a teacher who has
-     * never verified their profile is left out as well. Off, the two rules above
-     * are the whole of it, as they always were.
+     * never verified their profile is left out as well.
      */
     public function scopePublished(Builder $query): Builder
     {
         return $query
             ->where('teachers.is_active', true)
             ->where('teachers.is_archived', false)
+            // The "Publicly Visible" switch on the teacher form. It used to be
+            // saved and never read, so switching it off hid nobody.
+            ->where('teachers.is_public', true)
             ->when(static::hidesUnverifiedPublicly(), fn (Builder $q) => $q
                 // NULL is read as unverified everywhere else, so it is here too.
                 ->whereNotNull('teachers.verification_status')
