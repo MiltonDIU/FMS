@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Jobs\SendCustomTemplatedEmailJob;
 use App\Jobs\SendTeacherActivationEmailJob;
 use App\Models\EmailBatchRecipient;
+use App\Models\EmailSuppression;
 use App\Models\Teacher;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
@@ -165,6 +166,11 @@ class TeacherActivationService
                 return $this->skip($recipient, 'no email');
             }
 
+            // The address SendCustomTemplatedEmailJob will use.
+            if ($blocked = EmailSuppression::skipReasonFor($teacher->email ?? $teacher->user?->email)) {
+                return $this->skip($recipient, $blocked);
+            }
+
             SendCustomTemplatedEmailJob::dispatch($teacher, $subject, $body, $recipient?->id);
 
             return 'general';
@@ -176,6 +182,12 @@ class TeacherActivationService
 
         if (blank($teacher->user?->email)) {
             return $this->skip($recipient, 'no email');
+        }
+
+        // Checked before minting, so a known-bad address is not handed a live
+        // link. Resending to one only adds another bounce against the sender.
+        if ($blocked = EmailSuppression::skipReasonFor($teacher->user?->email ?? $teacher->email)) {
+            return $this->skip($recipient, $blocked);
         }
 
         // Minted before dispatching, so a queue failure cannot leave a live link

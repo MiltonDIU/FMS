@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Teachers\Pages;
 
 use App\Filament\Resources\Teachers\TeacherResource;
+use App\Filament\Resources\Teachers\Widgets\TeacherActivationStatsWidget;
 use App\Filament\Resources\Teachers\Widgets\TeacherVerificationStatsWidget;
 use App\Jobs\SyncErpTeacherProfilesJob;
 use App\Models\Teacher;
@@ -22,6 +23,7 @@ class ListTeachers extends ListRecords
     {
         return [
             TeacherVerificationStatsWidget::class,
+            TeacherActivationStatsWidget::class,
         ];
     }
 
@@ -582,6 +584,15 @@ class ListTeachers extends ListRecords
 
         if ($reachable < $total) {
             $lines[] = number_format($total - $reachable) . ' of them have no email address on file and will be skipped.';
+        }
+
+        // The account's address is the one teacher mail goes to.
+        $blocked = (clone $query)
+            ->whereHas('user', fn ($u) => $u->whereIn('email', \App\Models\EmailSuppression::query()->select('email')))
+            ->count();
+
+        if ($blocked > 0) {
+            $lines[] = number_format($blocked) . ' have an address on the Blocked Emails list (bounced or fake) and will be skipped.';
         }
 
         $applied = array_filter([

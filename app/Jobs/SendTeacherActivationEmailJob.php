@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\EmailBatchRecipient;
+use App\Models\EmailSuppression;
 use App\Models\EmailTemplate;
 use App\Models\Teacher;
 use App\Notifications\GenericTemplatedNotification;
@@ -54,6 +55,13 @@ class SendTeacherActivationEmailJob implements ShouldQueue
             $recipient?->markFailed('No email address on the teacher or their user account.');
 
             Log::warning('[activation] Teacher #' . $this->teacher->id . ' has no email address; skipped.');
+
+            return;
+        }
+
+        // Added to the block list while this was waiting in the queue.
+        if ($blocked = EmailSuppression::skipReasonFor($email)) {
+            $recipient?->markSkipped($blocked);
 
             return;
         }

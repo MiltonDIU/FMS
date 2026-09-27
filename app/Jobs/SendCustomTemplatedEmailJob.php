@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\EmailBatchRecipient;
+use App\Models\EmailSuppression;
 use App\Models\EmailTemplate;
 use App\Models\Teacher;
 use App\Notifications\GenericTemplatedNotification;
@@ -37,6 +38,13 @@ class SendCustomTemplatedEmailJob implements ShouldQueue
     public function handle(): void
     {
         $recipient = $this->recipient();
+
+        // Added to the block list while this was waiting in the queue.
+        if ($blocked = EmailSuppression::skipReasonFor($this->teacher->email ?? $this->teacher->user?->email)) {
+            $recipient?->markSkipped($blocked);
+
+            return;
+        }
 
         try {
             // Generate verification token if not present

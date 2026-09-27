@@ -4,7 +4,12 @@ namespace App\Filament\Resources\EmailBatches\RelationManagers;
 
 use App\Filament\Resources\Teachers\TeacherResource;
 use App\Models\EmailBatchRecipient;
+use App\Models\EmailSuppression;
 use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
@@ -12,6 +17,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
 /**
  * Everybody in the batch, one row each, and what became of their copy.
@@ -36,7 +42,8 @@ class RecipientsRelationManager extends RelationManager
             ->columns([
                 TextColumn::make('teacher_name')
                     ->label('Teacher')
-                    ->description(fn (EmailBatchRecipient $record): string => $record->email ?? 'No address')
+                    ->description(fn (EmailBatchRecipient $record): string => ($record->email ?? 'No address')
+                        . (EmailSuppression::isSuppressed($record->email) ? ' — blocked' : ''))
                     ->searchable(['teacher_name', 'email'])
                     ->sortable(),
 
@@ -109,7 +116,82 @@ class RecipientsRelationManager extends RelationManager
                         ? TeacherResource::getUrl('view', ['record' => $record->teacher_id])
                         : null)
                     ->visible(fn (EmailBatchRecipient $record): bool => $record->teacher_id !== null),
+
+                /*
+                 * Bounces come back to the sender's mailbox, not to the system,
+                 * so this is where somebody reading them records one. The row
+                 * itself is not changed — it stays the record of what the mail
+                 * server said at the time — the address goes on the block list.
+                 */
+                Action::make('mark_bounced')
+                    ->label('Mark as bounced')
+                    ->icon('heroicon-o-no-symbol')
+                    ->color('danger')
+                    ->visible(fn (EmailBatchRecipient $record): bool => filled($record->email)
+                        && (auth()->user()?->can('create', EmailSuppression::class) ?? false)
+                        && ! EmailSuppression::isSuppressed($record->email))
+                    ->modalHeading(fn (EmailBatchRecipient $record): string => 'Block ' . $record->email . '?')
+                    ->modalDescription('No email will be sent to this address again until it is unblocked under Blocked Emails.')
+                    ->form(static::blockForm())
+                    ->action(function (EmailBatchRecipient $record, array $data): void {
+                        EmailSuppression::suppress($record->email, $data['reason'], $data['note'] ?? null, $record);
+
+                        Notification::make()
+                            ->success()
+                            ->title('Address blocked')
+                            ->body($record->email . ' will be skipped from now on.')
+                            ->send();
+                    }),
             ])
-            ->toolbarActions([]);
+            ->toolbarActions([
+                BulkAction::make('mark_bounced_bulk')
+                    ->label('Mark selected as bounced')
+                    ->icon('heroicon-o-no-symbol')
+                    ->color('danger')
+                    ->visible(fn (): bool => auth()->user()?->can('create', EmailSuppression::class) ?? false)
+                    ->modalHeading('Block the selected addresses?')
+                    ->modalDescription('No email will be sent to these addresses again until they are unblocked under Blocked Emails.')
+                    ->form(static::blockForm())
+                    ->deselectRecordsAfterCompletion()
+                    ->action(function (Collection $records, array $data): void {
+                        abort_unless(auth()->user()?->can('create', EmailSuppression::class), 403);
+
+                        $added = 0;
+
+                        foreach ($records as $record) {
+                            if (blank($record->email)) {
+                                continue;
+                            }
+
+                            $added += EmailSuppression::suppress($record->email, $data['reason'], $data['note'] ?? null, $record)
+                                ->wasRecentlyCreated ? 1 : 0;
+                        }
+
+                        Notification::make()
+                            ->success()
+                            ->title('Addresses blocked')
+                            ->body("{$added} address(es) added to the block list.")
+                            ->send();
+                    }),
+            ]);
+    }
+
+    /**
+     * @return array<int, mixed>
+     */
+    protected static function blockForm(): array
+    {
+        return [
+            Select::make('reason')
+                ->label('Reason')
+                ->options(EmailSuppression::REASONS)
+                ->default(EmailSuppression::REASON_BOUNCED)
+                ->required(),
+
+            Textarea::make('note')
+                ->label('Note')
+                ->rows(2)
+                ->placeholder('e.g. "Mailbox does not exist" from the bounce message'),
+        ];
     }
 }
