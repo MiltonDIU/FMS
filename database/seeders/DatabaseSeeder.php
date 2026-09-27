@@ -67,6 +67,7 @@ class DatabaseSeeder extends Seeder
             IntegrationMappingSeeder::class,
             NotificationRoutingSeeder::class,
             ApprovalSettingsSeeder::class,
+            MaintenanceModeSettingsSeeder::class,
 
             // ── Email templates ─────────────────────────────────────────────
             // AccountActivation is kept apart from the other three so that

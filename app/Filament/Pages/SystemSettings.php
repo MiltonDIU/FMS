@@ -73,7 +73,7 @@ class SystemSettings extends Page
         }
 
         // Explicitly cast custom boolean settings
-        $boolKeys = ['export_overwrite', 'import_dry_run', 'import_skip_existing', \App\Models\Teacher::HIDE_UNVERIFIED_SETTING];
+        $boolKeys = ['export_overwrite', 'import_dry_run', 'import_skip_existing', \App\Models\Teacher::HIDE_UNVERIFIED_SETTING, \App\Helpers\MaintenanceMode::ENABLED_KEY, \App\Helpers\MaintenanceMode::ALLOW_ADMINS_KEY];
         foreach (array_keys(static::getAvailableThemes()) as $slug) {
             $boolKeys[] = \App\Helpers\FontManager::settingKey($slug, 'footer_match_theme');
         }
@@ -151,6 +151,8 @@ class SystemSettings extends Page
             'import_skip_existing' => true,
             'teacher_login_mode' => 'individual',
             \App\Models\Teacher::HIDE_UNVERIFIED_SETTING => false,
+            \App\Helpers\MaintenanceMode::ENABLED_KEY => false,
+            \App\Helpers\MaintenanceMode::ALLOW_ADMINS_KEY => true,
             'teacher_integration_api_url' => 'http://localhost:8000/api/v1/teachers/preview',
             'teacher_integration_mapping' => 'erp_teacher_profile',
             'hr_api_base_url' => '',
@@ -180,6 +182,49 @@ class SystemSettings extends Page
                 Tabs::make('Settings')
                     ->vertical()
                     ->tabs([
+                        Tab::make('Maintenance Mode')
+                            ->icon('heroicon-o-wrench-screwdriver')
+                            ->badge(fn (): ?string => \App\Helpers\MaintenanceMode::enabled() ? 'ON' : null)
+                            ->badgeColor('danger')
+                            ->schema([
+                                Section::make('Site Maintenance')
+                                    ->description('While on, every public page — including unknown URLs and error pages — shows only the maintenance message below, with a 503 status so search engines keep the site indexed. The admin panel keeps working so you can do the internal work and switch it back off.')
+                                    ->schema([
+                                        Toggle::make(\App\Helpers\MaintenanceMode::ENABLED_KEY)
+                                            ->label('Put the site in maintenance mode')
+                                            ->default(false)
+                                            ->live()
+                                            ->onColor('danger')
+                                            ->helperText('Takes effect as soon as you press Save Settings.'),
+
+                                        Toggle::make(\App\Helpers\MaintenanceMode::ALLOW_ADMINS_KEY)
+                                            ->label('Let signed-in admins see the site normally')
+                                            ->default(true)
+                                            ->helperText('On: anyone signed in with access to System Settings browses the public site as usual, to check the work. Off: they see the maintenance page too.'),
+
+                                        TextInput::make(\App\Helpers\MaintenanceMode::TITLE_KEY)
+                                            ->label('Heading')
+                                            ->placeholder(\App\Helpers\MaintenanceMode::DEFAULT_TITLE)
+                                            ->maxLength(120)
+                                            ->helperText('Leave empty to use the default.'),
+
+                                        \Filament\Forms\Components\Textarea::make(\App\Helpers\MaintenanceMode::MESSAGE_KEY)
+                                            ->label('Message')
+                                            ->placeholder(\App\Helpers\MaintenanceMode::DEFAULT_MESSAGE)
+                                            ->rows(3)
+                                            ->maxLength(1000)
+                                            ->helperText('Leave empty to use the default. Also returned to the mobile apps by the API.'),
+
+                                        \Filament\Forms\Components\FileUpload::make(\App\Helpers\MaintenanceMode::BACKGROUND_KEY)
+                                            ->label('Background Image')
+                                            ->disk('public')
+                                            ->directory('maintenance')
+                                            ->image()
+                                            ->imageEditor()
+                                            ->maxSize(5120)
+                                            ->helperText('Optional. Fills the whole page behind a dark overlay so the text stays readable. A wide landscape photo (1920×1080 or larger, JPG/WebP) works best. Remove it to go back to the plain page.'),
+                                    ]),
+                            ]),
                         Tab::make('Teacher API Integration')
                             ->icon('heroicon-o-cloud-arrow-down')
                             ->schema([
@@ -1342,13 +1387,15 @@ class SystemSettings extends Page
             }
         }
 
-        // Normalize the branding logo upload (FileUpload returns an array).
-        if (isset($data['branding_logo_image'])) {
-            $logo = $data['branding_logo_image'];
-            if (is_array($logo)) {
-                $logo = empty($logo) ? null : reset($logo);
+        // Normalize single-image uploads (FileUpload returns an array).
+        foreach (['branding_logo_image', \App\Helpers\MaintenanceMode::BACKGROUND_KEY] as $imageKey) {
+            if (array_key_exists($imageKey, $data)) {
+                $image = $data[$imageKey];
+                if (is_array($image)) {
+                    $image = empty($image) ? null : reset($image);
+                }
+                $data[$imageKey] = is_string($image) ? $image : null;
             }
-            $data['branding_logo_image'] = is_string($logo) ? $logo : null;
         }
 
         // Save base color settings first so that subsequent defaultValueFor() calls resolve using the new base color/palette!
