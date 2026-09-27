@@ -35,33 +35,33 @@
                aria-label="{{ $brand['site_name'] }} — {{ $brand['badge_text'] }}">
 
                 @if(! empty($brand['use_image_logo']) && ! empty($brand['logo_url']))
+                    {{-- When an uploaded image logo is configured, display only the logo --}}
                     <img src="{{ $brand['logo_url'] }}" alt="{{ $brand['site_name'] }}"
-                         class="h-9 w-auto shrink-0">
+                         class="h-9 md:h-10 w-auto max-w-[12rem] md:max-w-[16rem] object-contain shrink-0">
                 @else
-                    {{-- A small aurora of its own: the same gradient the rest of
-                         the theme is built from, at 36px. --}}
+                    {{-- Fallback when no image logo is uploaded: show monogram and site name / tagline --}}
                     <span class="shrink-0 grid place-items-center h-9 w-9 rounded-xl font-display text-sm font-extrabold text-white"
                           style="background: linear-gradient(135deg, var(--color-diu-primary), var(--color-diu-accent-light));
                                  box-shadow: 0 6px 18px -8px color-mix(in oklab, var(--color-diu-primary) 80%, transparent);">
                         {{ $brand['monogram'] }}
                     </span>
-                @endif
 
-                <span class="min-w-0">
-                    <span class="flex items-baseline gap-2">
-                        <span class="font-display text-[15px] font-extrabold tracking-tight truncate"
-                              style="color: var(--ink);">
-                            {{ $brand['site_short_name'] ?: $brand['short_name'] }}
+                    <span class="min-w-0">
+                        <span class="flex items-baseline gap-2">
+                            <span class="font-display text-[15px] font-extrabold tracking-tight truncate"
+                                  style="color: var(--ink);">
+                                {{ $brand['site_short_name'] ?: $brand['short_name'] }}
+                            </span>
+                            @if(filled($brand['badge_text']))
+                                <span class="hidden sm:inline eyebrow-quiet">{{ $brand['badge_text'] }}</span>
+                            @endif
                         </span>
-                        @if(filled($brand['badge_text']))
-                            <span class="hidden sm:inline eyebrow-quiet">{{ $brand['badge_text'] }}</span>
-                        @endif
+                        <span class="hidden sm:block truncate text-[11px] leading-tight mt-0.5"
+                              style="color: var(--ink-4);">
+                            {{ $brand['tagline'] ?: $brand['site_name'] }}
+                        </span>
                     </span>
-                    <span class="hidden sm:block truncate text-[11px] leading-tight mt-0.5"
-                          style="color: var(--ink-4);">
-                        {{ $brand['tagline'] ?: $brand['site_name'] }}
-                    </span>
-                </span>
+                @endif
             </a>
 
             {{-- The statistics band, reduced to what it was ever saying. --}}
