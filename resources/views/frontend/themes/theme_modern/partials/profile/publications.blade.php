@@ -1,5 +1,5 @@
 <!-- Publications Tab -->
-<div x-show="tab === 'publications'" class="space-y-4" x-cloak>
+<div id="publications" class="profile-section space-y-4">
     <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider mb-3 flex items-center gap-1.5">
         <svg class="w-4 h-4 text-diu-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
         List of Scholarly Papers
@@ -30,11 +30,15 @@
                 </div>
             @foreach($rows as $pub)
                 @php
-                    $pubUrl = ($faculty->short_name && $teacher->webpage)
+                    // Null rather than '#' — see teacher_card.
+                    $pubUrl = ($faculty->short_name && $department->code && $teacher->webpage)
                         ? route('publication.show', ['faculty_short_name' => strtolower($faculty->short_name), 'department_code' => strtolower($department->code), 'teacher_webpage' => $teacher->webpage, 'publication_slug' => $pub->slug ?: \Illuminate\Support\Str::slug($pub->title)])
-                        : '#';
+                        : null;
                 @endphp
-                <div class="p-4 rounded-2xl border border-slate-200 hover:border-diu-primary/40 shadow-2xs hover:shadow-xs transition-all flex items-start gap-4">
+                {{-- The whole row is the link, so there is no small "View Details"
+                     target to aim at on a phone. --}}
+                <{{ $pubUrl ? 'a' : 'div' }} @if($pubUrl) href="{{ $pubUrl }}" wire:navigate @endif
+                    class="group p-4 rounded-2xl border border-slate-200 hover:border-diu-primary/40 shadow-2xs hover:shadow-xs transition-all flex items-start gap-4">
                     <div class="bg-diu-primary/10 text-diu-primary p-2.5 rounded-xl shrink-0 mt-0.5">
                         <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
                     </div>
@@ -45,14 +49,18 @@
                             </span>
                         </div>
                         <h4 class="text-sm font-semibold text-slate-800 tracking-tight leading-snug group-hover:text-diu-primary transition-colors">{{ $pub->title }}</h4>
-                        <p class="text-xs text-slate-500 mt-1 italic font-sans">{{ $pub->journal_name ?? '' }}</p>
-                        <div class="flex items-center space-x-4 mt-4">
-                            <a href="{{ $pubUrl }}" wire:navigate class="inline-flex items-center text-xs font-bold text-diu-primary hover:underline">
-                                <span>View Details</span><span class="ml-1.5">→</span>
-                            </a>
-                        </div>
+                        @if($pub->journal_name)
+                            <p class="text-xs text-slate-500 mt-1 italic font-sans">{{ $pub->journal_name }}</p>
+                        @endif
+                        @if($pubUrl)
+                            <div class="flex items-center space-x-4 mt-4">
+                                <span class="inline-flex items-center text-xs font-bold text-diu-primary group-hover:underline">
+                                    <span>View Details</span><span class="ml-1.5" aria-hidden="true">→</span>
+                                </span>
+                            </div>
+                        @endif
                     </div>
-                </div>
+                </{{ $pubUrl ? 'a' : 'div' }}>
             @endforeach
             </div>
           @endforeach

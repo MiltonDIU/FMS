@@ -282,3 +282,223 @@ header.sticky {
 footer .social-mark {
     color: color-mix(in oklab, var(--mark, currentColor) 52%, #ffffff);
 }
+
+/* Anchor jumps clear the header and the section strip parked under it. */
+html {
+    scroll-behavior: smooth;
+    scroll-padding-top: calc(var(--header-h) + 4.5rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+}
+
+/* Livewire is in flight. The cards stay where they are and fade, because a list
+   that blanks and refills on every keystroke is far more jarring than one that
+   dims for 200ms. */
+.is-busy {
+    opacity: 0.5;
+    transition: opacity 120ms ease;
+}
+
+/* Safari draws its own clear control inside type=search and it lands on top of
+   ours. */
+.modern-search::-webkit-search-cancel-button { display: none; }
+
+/* ---------------------------------------------------------------------------
+   The search bar
+   ---------------------------------------------------------------------------
+ * Parks under the header from the large breakpoint up. Below it the header
+ * alone is a third of a phone, and a bar parked beneath that would leave room
+ * for about one card — so there it scrolls away with the page, and the fold
+ * button is what puts it out of the way. theme.js asks the computed style
+ * whether it is sticky rather than repeating the breakpoint.
+ *
+ * The padding never changes between resting and parked: a bar that grew as it
+ * stuck would move the results under the reader at the moment it parked.
+ * Parked, it only gains a glass surface and a shadow.
+ */
+.modern-command {
+    padding: 0.5rem;
+    margin-inline: -0.5rem;
+    border-radius: 1.5rem;
+    transition: background-color 200ms ease, box-shadow 200ms ease;
+}
+
+@media (min-width: 64rem) {
+    .modern-command {
+        position: sticky;
+        top: var(--header-h);
+        z-index: 30;
+    }
+}
+
+.modern-command.is-stuck {
+    background: var(--glass-bg);
+    backdrop-filter: blur(14px) saturate(150%);
+    -webkit-backdrop-filter: blur(14px) saturate(150%);
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    box-shadow: var(--shadow-card);
+}
+
+/* Folded, not merely collapsed: the bar leaves the flow altogether. theme.js
+   corrects the scroll by however much the page shifts underneath, so folding
+   and unfolding never move the cards the reader is looking at. */
+.modern-command.is-folded { display: none; }
+
+/* ---------------------------------------------------------------------------
+   The bubble the search bar folds into
+   ---------------------------------------------------------------------------
+ * Built by theme.js rather than written in Blade, because it has to outlive the
+ * Livewire component: every faculty and department link is a wire:navigate,
+ * which replaces the component and would take a bubble rendered inside it
+ * along. The same soft-cornered brand gradient as the hero panels.
+ */
+.command-bubble {
+    position: fixed;
+    /* Placeholders. theme.js writes the real numbers before it is ever
+       painted, and rewrites them throughout a drag. */
+    left: 0;
+    top: 0;
+    /* Above the header, which is z-40. */
+    z-index: 50;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 1.25rem;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: linear-gradient(135deg,
+        color-mix(in srgb, var(--color-diu-primary-dark) 90%, #0a0f1a),
+        color-mix(in srgb, var(--color-diu-accent) 70%, #0a0f1a));
+    color: #fff;
+    cursor: grab;
+    /* The bubble handles pointer movement itself, so the browser must not also
+       read a drag across it as a scroll of the page underneath. */
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    box-shadow: var(--shadow-card-hover);
+    transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.command-bubble:focus-visible {
+    outline: 2px solid var(--color-diu-accent);
+    outline-offset: 3px;
+}
+
+.command-bubble.is-dragging {
+    cursor: grabbing;
+    transform: scale(1.08);
+}
+
+/* Only while it settles back against an edge. Animating left and top during
+   the drag itself would leave it trailing the finger. */
+.command-bubble.is-settling {
+    transition: left 200ms ease, top 200ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .command-bubble,
+    .command-bubble.is-settling { transition: none; }
+
+    .command-bubble.is-dragging { transform: none; }
+}
+
+/* ---------------------------------------------------------------------------
+   The profile's section strip
+   ---------------------------------------------------------------------------
+ * Drawn as the tab bar it replaced, but every entry is an anchor into one
+ * continuous page, and the strip parks under the header while you read.
+ * `.is-active` comes from theme.js; these are plain classes rather than
+ * Tailwind strings because JavaScript toggles them and the scanner cannot see
+ * a class that only exists in a script.
+ */
+.modern-tabs {
+    display: flex;
+    gap: 0.25rem;
+    overflow-x: auto;
+    position: sticky;
+    top: var(--header-h);
+    z-index: 20;
+    background-color: var(--surface-page);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-soft);
+    border-bottom-left-radius: 0.75rem;
+    border-bottom-right-radius: 0.75rem;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+}
+
+@media (min-width: 64rem) {
+    .modern-tabs { padding-top: 1rem; }
+}
+
+.modern-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: none;
+    margin-bottom: -1px;
+    padding: 0.75rem 1rem;
+    border-bottom: 2px solid transparent;
+    border-top-left-radius: 0.75rem;
+    border-top-right-radius: 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+    color: var(--text-muted);
+    transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
+}
+
+.modern-tab:hover {
+    color: var(--text-strong);
+    background: var(--surface-subtle);
+}
+
+.modern-tab.is-active {
+    color: var(--color-diu-primary);
+    border-bottom-color: var(--color-diu-primary);
+    background: var(--surface-card);
+    font-weight: 700;
+}
+
+.dark .modern-tab.is-active {
+    color: var(--color-diu-accent-light);
+    border-bottom-color: var(--color-diu-accent-light);
+}
+
+.modern-tab-count {
+    font-size: 0.625rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    padding: 0.0625rem 0.4375rem;
+    border-radius: 9999px;
+    background: var(--surface-subtle);
+    color: var(--text-faint);
+}
+
+.modern-tab.is-active .modern-tab-count {
+    background: color-mix(in srgb, var(--color-diu-primary) 12%, transparent);
+    color: inherit;
+}
+
+/* One section after another, where there used to be one tab at a time. */
+.profile-section + .profile-section {
+    margin-top: 2.5rem;
+    padding-top: 2.5rem;
+    border-top: 1px solid var(--border-faint);
+}
+
+/* Print: the parked bars and the bubble are screen furniture, and the whole
+   profile now prints rather than whichever tab was open. */
+@media print {
+    body > header,
+    footer,
+    .modern-command,
+    .command-bubble,
+    .modern-tabs { display: none !important; }
+}

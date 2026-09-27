@@ -21,10 +21,14 @@
                 {{-- Moon (shown in light mode) --}}
                 <svg class="w-4 h-4 block dark:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
             </button>
-            <a href="{{ $brand['main_site_url'] }}" target="_blank" rel="noopener noreferrer" class="hover:text-diu-accent-light transition-colors flex items-center gap-1.5 font-semibold">
-                {{ $brand['main_site_label'] }}
-                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-            </a>
+            {{-- Only when one is configured: an empty href is a link to the page
+                 you are already on. --}}
+            @if(! empty($brand['main_site_url']))
+                <a href="{{ $brand['main_site_url'] }}" target="_blank" rel="noopener noreferrer" class="hover:text-diu-accent-light transition-colors flex items-center gap-1.5 font-semibold">
+                    {{ $brand['main_site_label'] }}
+                    <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                </a>
+            @endif
         </div>
     </div>
 

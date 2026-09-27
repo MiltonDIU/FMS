@@ -17,6 +17,22 @@
             <div class="flex flex-col items-center md:items-end gap-3">
                 <span class="text-diu-accent">{{ $brand['address_footer'] }}</span>
 
+                {{-- How to reach the institution itself. Set in System Settings
+                     and shown by every theme; only rendered when there is one. --}}
+                @if(! empty($brand['email']) || ! empty($brand['phone']))
+                    <p class="flex flex-wrap items-center justify-center md:justify-end gap-x-3 gap-y-1">
+                        @if(! empty($brand['email']))
+                            <a href="mailto:{{ $brand['email'] }}" class="hover:text-white transition-colors">{{ $brand['email'] }}</a>
+                        @endif
+                        @if(! empty($brand['email']) && ! empty($brand['phone']))
+                            <span class="text-slate-600" aria-hidden="true">·</span>
+                        @endif
+                        @if(! empty($brand['phone']))
+                            <span>{{ $brand['phone'] }}</span>
+                        @endif
+                    </p>
+                @endif
+
                 @if(! empty($brand['social_links']))
                     <div class="flex items-center gap-2">
                         @foreach($brand['social_links'] as $link)

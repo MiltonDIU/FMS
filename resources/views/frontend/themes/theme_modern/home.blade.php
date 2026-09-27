@@ -169,8 +169,14 @@
                                             </a>
                                         @endforeach
 
+                                        {{-- x-show rather than x-if: an x-if template is
+                                             not in the page until someone clicks, so the
+                                             rest of the department map was invisible to
+                                             the browser's find and to search engines —
+                                             which is how a department page gets found
+                                             at all. --}}
                                         @if($hiddenDepts->isNotEmpty())
-                                            <template x-if="expanded">
+                                            <div x-show="expanded" x-cloak class="contents">
                                                 <div class="flex flex-wrap gap-1.5">
                                                     @foreach($hiddenDepts as $dept)
                                                         @php
@@ -185,7 +191,7 @@
                                                         </a>
                                                     @endforeach
                                                 </div>
-                                            </template>
+                                            </div>
 
                                             <button @click="expanded = ! expanded"
                                                     class="inline-flex items-center text-slate-500 bg-slate-100 border border-slate-200 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full cursor-pointer transition-colors duration-150 hover:bg-slate-200 hover:text-slate-700">

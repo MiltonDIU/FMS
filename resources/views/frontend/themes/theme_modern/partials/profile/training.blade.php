@@ -1,5 +1,5 @@
 <!-- Training Tab -->
-<div x-show="tab === 'training'" class="space-y-4" x-cloak>
+<div id="training" class="profile-section space-y-4">
     <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider mb-3 flex items-center gap-1.5">
         <svg class="w-4 h-4 text-diu-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
         Special Training &amp; Pedagogy Programs
