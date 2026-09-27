@@ -542,6 +542,116 @@ html {
     color: var(--paper);
 }
 
+/*
+ * Parked against the masthead.
+ *
+ * CSS cannot ask whether a sticky element is currently stuck, so `.is-stuck`
+ * comes from theme.js. Nothing depends on it — the finder is opaque paper
+ * either way — it only closes the finder off with a rule so the rows passing
+ * underneath read as going under something rather than into it.
+ */
+.finder.is-stuck {
+    border-bottom: 1px solid var(--rule-strong);
+    padding-bottom: 0.25rem;
+}
+
+/*
+ * Parked on a screen between the small and the large breakpoint, the finder
+ * tightens rather than sheds. The index rails stay — they are both the fastest
+ * way to the next department and the only statement of which list this is — and
+ * pay for their place with shorter rows. The refine drawer is what actually made
+ * the finder unaffordable, and theme.js closes that through Alpine, because
+ * x-show writes an inline style and inline beats a class.
+ *
+ * .finder-collapsible marks a finder with a search field above the rails. The
+ * department contacts view has only the rails, and they are the whole point of
+ * that page, so it never compacts them.
+ */
+@media (max-width: 63.99rem) {
+    .finder.finder-collapsible.is-stuck { padding-top: 0.5rem; }
+
+    .finder.finder-collapsible.is-stuck .index-link {
+        padding-block: 0.1875rem;
+        font-size: 0.75rem;
+    }
+}
+
+/* ---------------------------------------------------------------------------
+   Folding the finder away — the minimise control and the marker it becomes
+   ---------------------------------------------------------------------------
+ * A reader who has found the right list and is reading down it is still giving
+ * the top of the window to a control they have finished with. So the finder can
+ * be put away: it folds into a marker that floats over the page, is dragged
+ * wherever the reader prefers, and opens the finder again on a tap.
+ *
+ * Offered at every width, and opt-in: nothing folds until the reader asks, and
+ * the choice lasts the browsing session and no longer.
+ *
+ * The marker is built by theme.js rather than written here, because it has to
+ * outlive the Livewire component — every faculty link is a wire:navigate, which
+ * replaces the component and would take a marker rendered inside it along too.
+ */
+.finder .finder-fold { display: inline-flex; }
+
+/* Folded, not merely collapsed: the finder leaves the flow altogether. theme.js
+   corrects the scroll by however much the page shifts underneath, so folding
+   and unfolding never move the row the reader is looking at. */
+.finder.is-folded { display: none; }
+
+/* Square and solid ink, the same shape as the monogram — the one filled mark in
+   the theme, which is what makes a floating control read as belonging to it. */
+.finder-bubble {
+    position: fixed;
+    /* Placeholders. theme.js writes the real numbers before it is ever
+       painted, and rewrites them throughout a drag. */
+    left: 0;
+    top: 0;
+    /* Above the masthead, which is z-40. */
+    z-index: 50;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    border: 1px solid var(--ink);
+    background: var(--ink);
+    color: var(--paper);
+    cursor: grab;
+    /* The marker handles pointer movement itself, so the browser must not also
+       read a drag across it as a scroll of the page underneath. */
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    box-shadow: 4px 4px 0 var(--rule-strong);
+    transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.finder-bubble:hover { box-shadow: 5px 5px 0 var(--rule-strong); }
+
+.finder-bubble:focus-visible {
+    outline: 2px solid var(--brand-ink);
+    outline-offset: 3px;
+}
+
+.finder-bubble.is-dragging {
+    cursor: grabbing;
+    transform: translate(-2px, -2px);
+    box-shadow: 7px 7px 0 var(--rule-strong);
+}
+
+/* Only while it settles back against an edge. Animating left and top during
+   the drag itself would leave it trailing the finger. */
+.finder-bubble.is-settling {
+    transition: left 200ms ease, top 200ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .finder-bubble,
+    .finder-bubble.is-settling { transition: none; }
+
+    .finder-bubble.is-dragging { transform: none; }
+}
+
 /* ---------------------------------------------------------------------------
    The ledger itself
    ---------------------------------------------------------------------------
@@ -1059,6 +1169,7 @@ a.record:hover .record-what { color: var(--brand-ink); }
 @media print {
     .masthead,
     .finder,
+    .finder-bubble,
     .section-strip,
     .section-list,
     .ledger-head,

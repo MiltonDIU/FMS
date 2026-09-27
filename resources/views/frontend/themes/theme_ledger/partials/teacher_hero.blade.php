@@ -88,9 +88,19 @@
          * key the university's own systems use for a person, it is already
          * searchable in the finder above, and this is a ledger — an entry with
          * no reference number is half an entry.
+         *
+         * Both addresses when there are two. The secondary one is often the one
+         * a person actually reads, and showing only the first silently dropped
+         * it; the same address twice is shown once.
          */
+        $primaryEmail = $teacher->user?->email;
+        $secondaryEmail = ($teacher->secondary_email && $teacher->secondary_email !== $primaryEmail)
+            ? $teacher->secondary_email
+            : null;
+
         $contact = array_filter([
-            'Email' => $teacher->user->email ?? $teacher->secondary_email,
+            'Email' => $primaryEmail,
+            'Alt. email' => $secondaryEmail,
             'Phone' => $teacher->phone ?: $teacher->personal_phone,
             'Office' => $teacher->office_room,
             'ID' => $teacher->employee_id,
@@ -114,10 +124,10 @@
             <dl>
                 <p class="label pb-1.5 rule-hard" style="border-top: 0; border-bottom: 1px solid var(--rule-strong);">Contact</p>
                 @foreach($contact as $label => $value)
-                    <div class="pair" style="grid-template-columns: 3.75rem minmax(0, 1fr);">
+                    <div class="pair" style="grid-template-columns: {{ $secondaryEmail ? '4.75rem' : '3.75rem' }} minmax(0, 1fr);">
                         <dt>{{ $label }}</dt>
                         <dd>
-                            @if($label === 'Email')
+                            @if($label === 'Email' || $label === 'Alt. email')
                                 <a href="mailto:{{ $value }}" class="link font-mono text-[11.5px]">{{ $value }}</a>
                             @elseif($label === 'ID')
                                 <span class="font-mono text-[11.5px]">{{ $value }}</span>
@@ -177,12 +187,30 @@
 
     {{-- ── The head of a profile ─────────────────────────────────────────── --}}
     @php
-        $adminRoleName = $teacher->administrativeRoles->first()?->administrativeRole?->name;
+        /*
+         * The post, with where it is held. "Head" alone does not say of what,
+         * and a dean and a head of department are otherwise indistinguishable
+         * on the page that is supposed to say who they are.
+         */
+        $adminRoleFirst = $teacher->administrativeRoles->first();
+        $adminRoleName = $adminRoleFirst?->administrativeRole?->name;
+        $adminRoleScope = $adminRoleFirst?->faculty?->name ?: $adminRoleFirst?->department?->name;
+        $adminRoleTitle = $adminRoleName
+            ? ($adminRoleScope ? "{$adminRoleName}, {$adminRoleScope}" : $adminRoleName)
+            : null;
+
+        // A short numeric summary of what the sheet below holds. Zeroes are
+        // dropped rather than printed: "0 awards" is not a fact about anyone.
+        $summary = array_filter([
+            'Publications' => $teacher->publications->count(),
+            'Teaching areas' => $teacher->teachingAreas->count(),
+            'Awards' => $teacher->awards->count(),
+        ]);
     @endphp
 
     <div class="pb-5 rule-double-b">
-        @if($adminRoleName)
-            <p class="label label-ink mb-3">{{ $adminRoleName }}</p>
+        @if($adminRoleTitle)
+            <p class="label label-ink mb-3">{{ $adminRoleTitle }}</p>
         @endif
 
         <h1 class="title-xl">{{ $teacher->full_name }}</h1>
@@ -206,6 +234,19 @@
                 <a href="{{ $faculty->url }}" wire:navigate class="hover:underline">{{ $faculty->name }}</a>
             @endif
         </p>
+
+        @if($summary)
+            <dl class="mt-5 flex flex-wrap gap-x-8 gap-y-3">
+                @foreach($summary as $label => $value)
+                    <div>
+                        <dt class="label">{{ $label }}</dt>
+                        <dd class="title-md mt-1.5 font-mono" style="font-variant-numeric: tabular-nums;">
+                            {{ number_format($value) }}
+                        </dd>
+                    </div>
+                @endforeach
+            </dl>
+        @endif
     </div>
 
 @endif

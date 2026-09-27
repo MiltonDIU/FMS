@@ -53,9 +53,10 @@
          keystroke changes how many rows there are. --}}
     <div data-finder-anchor aria-hidden="true"></div>
 
-    <div class="finder"
+    <div class="finder finder-collapsible"
          x-data="{
             open: false,
+            remember: true,
             init() {
                 /*
                  * Faculty and department are wire:navigate links, so clicking
@@ -74,8 +75,25 @@
                 if (@js($activeFilters > 0)) this.open = true;
 
                 this.$watch('open', (value) => {
+                    if (! this.remember) return;
+
                     try { sessionStorage.setItem('ledger-refine', value ? 'open' : 'shut'); } catch (e) {}
                 });
+            },
+            /*
+             * Called from theme.js when the finder parks itself under the
+             * masthead on a screen too small to carry both it and the rows.
+             *
+             * The write to sessionStorage is suppressed: this is the page
+             * tidying up after itself, not the reader changing their mind, and
+             * it must not overwrite the choice they actually made.
+             */
+            collapse() {
+                if (! this.open) return;
+
+                this.remember = false;
+                this.open = false;
+                this.$nextTick(() => { this.remember = true; });
             }
          }">
 
@@ -110,6 +128,19 @@
                     @endif
                 </button>
             @endif
+
+            {{-- Fold the whole finder away into a marker that can be dragged
+                 wherever the reader wants it, and tapped to bring the finder
+                 back. Offered at every width; see .finder-bubble in theme.css
+                 and the fold module in theme.js, which owns the marker, its
+                 place and the drag. --}}
+            <button type="button" data-finder-fold class="btn-icon finder-fold shrink-0"
+                    aria-label="Hide search and filters" title="Hide search and filters">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/>
+                </svg>
+            </button>
         </div>
 
         {{-- Faculties, as an index. Real links rather than component state, so a
