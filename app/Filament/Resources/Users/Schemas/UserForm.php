@@ -2,8 +2,9 @@
 
 namespace App\Filament\Resources\Users\Schemas;
 
+use App\Models\User;
 use Closure;
-use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -61,11 +62,17 @@ class UserForm
                         }
                     }),
 
-                DateTimePicker::make('email_verified_at')
+                /*
+                 * Shown, never edited. The time is recorded once — when an
+                 * admin creates the account (CreateUser) or when a teacher
+                 * redeems their activation link — and a later edit must not
+                 * move it. This used to be a picker that filled in now() for
+                 * an unverified account, so every edit showed a fresh time.
+                 */
+                Placeholder::make('email_verified_at_display')
                     ->label('Email Verified At')
-                    ->default(now())
-                    ->formatStateUsing(fn ($state) => $state ?? now())
-                    ->nullable(),
+                    ->content(fn (?User $record): string => $record?->email_verified_at?->format('M j, Y g:i A') ?? 'Not verified')
+                    ->visibleOn('edit'),
 
                 Toggle::make('is_active')
                     ->label('Is Active')
