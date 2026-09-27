@@ -67,6 +67,8 @@ class DepartmentTeachersTable
                 // queries per row.
                 'teacher.namePrefix',
                 'teacher.academicSuffixes',
+                // The optional email column reads the account's address.
+                'teacher.user',
                 'department.faculty',
             ]))
             ->defaultSort(function (Builder $query, string $direction, $livewire) use ($currentDepartmentId) {
@@ -118,6 +120,8 @@ class DepartmentTeachersTable
                     ->searchable()
                     ->sortable()
                     ->toggleable(),
+
+                \App\Filament\Resources\Teachers\Support\TeacherEmailColumn::make('teacher'),
 
                 TextColumn::make('admin_roles')
                     ->label('Admin Role')

@@ -203,6 +203,7 @@ class TeachersTable
                 TextColumn::make('phone')
                     ->searchable()
                     ->toggleable(),
+                \App\Filament\Resources\Teachers\Support\TeacherEmailColumn::make(),
                 TextColumn::make('employmentStatus.name')
                     ->badge()
                     ->color(fn ($record) => $record->employmentStatus?->color ?? 'gray')
