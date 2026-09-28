@@ -78,6 +78,8 @@ jobs:
             # "Permission denied".
             chmod -R +x node_modules/.bin || true
             npm run build
+            # Ensure the web server (www-data) can read the compiled manifest & assets
+            chmod -R a+rX public/build || true
 
             # Public disk symlink: gitignored, so it can go missing after a
             # fresh checkout and take every uploaded photo down with it.
@@ -110,6 +112,7 @@ jobs:
             # created (sessions, cache, uploads) cannot be chmod'ed by this user.
             find storage bootstrap/cache -type d -exec chmod 2775 {} + 2>/dev/null || true
             find storage bootstrap/cache -type f -exec chmod 664 {} + 2>/dev/null || true
+            chmod -R a+rX public || true
             chmod 640 .env || true
             chmod +x artisan || true
 
