@@ -219,25 +219,20 @@
 
 
                 <p
-                    class="mt-2 text-[15px]"
+                    class="mt-2 text-[15px] font-medium"
                     style="color: var(--ink-2);"
                 >
                     {{ $teacher->designation_title ?? 'Faculty Member' }}
                 </p>
 
+                @if($department?->name)
+                    @php
+                        $deptDisplayName = \Illuminate\Support\Str::startsWith($department->name, 'Department of')
+                            ? $department->name
+                            : 'Department of ' . $department->name;
+                    @endphp
 
-                <p
-                    class="mt-1 text-[13px]"
-                    style="color: var(--ink-4);"
-                >
-
-                    @if($department?->name)
-                        @php
-                            $deptDisplayName = \Illuminate\Support\Str::startsWith($department->name, 'Department of')
-                                ? $department->name
-                                : 'Department of ' . $department->name;
-                        @endphp
-
+                    <p class="mt-1 text-[14px]" style="color: var(--ink-3);">
                         @if($facSlug && $deptSlug)
                             <a
                                 href="{{ route('department.show', [
@@ -245,19 +240,24 @@
                                     'department_code' => $deptSlug,
                                 ]) }}"
                                 wire:navigate
-                                class="row-link"
-                            >{{ $deptDisplayName }}</a>@if($faculty?->name), @endif
+                                class="row-link font-medium"
+                            >
+                                {{ $deptDisplayName }}
+                            </a>
                         @else
-                            {{ $deptDisplayName }}@if($faculty?->name), @endif
+                            <span class="font-medium">{{ $deptDisplayName }}</span>
                         @endif
-                    @endif
+                    </p>
+                @endif
 
-                    @if($faculty?->name)
-                        @php
-                            $facDisplayName = \Illuminate\Support\Str::startsWith($faculty->name, 'Faculty of')
-                                ? $faculty->name
-                                : 'Faculty of ' . $faculty->name;
-                        @endphp
+                @if($faculty?->name)
+                    @php
+                        $facDisplayName = \Illuminate\Support\Str::startsWith($faculty->name, 'Faculty of')
+                            ? $faculty->name
+                            : 'Faculty of ' . $faculty->name;
+                    @endphp
+
+                    <p class="mt-0.5 text-[13px]" style="color: var(--ink-4);">
                         <a
                             href="{{ $faculty->url }}"
                             wire:navigate
@@ -265,9 +265,8 @@
                         >
                             {{ $facDisplayName }}
                         </a>
-                    @endif
-
-                </p>
+                    </p>
+                @endif
 
 
                 {{-- How they are engaged, when that is not the ordinary way --}}
