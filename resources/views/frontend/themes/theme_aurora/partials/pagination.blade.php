@@ -18,6 +18,7 @@
         @else
             <button type="button" rel="prev" class="btn btn-ghost"
                     wire:click="previousPage('{{ $paginator->getPageName() }}')"
+                    @click="document.getElementById('results')?.scrollIntoView({ behavior: 'smooth' })"
                     wire:loading.attr="disabled">Previous</button>
         @endif
 
@@ -34,6 +35,7 @@
                     @else
                         <button type="button" class="chip" style="min-width: 2.25rem; justify-content: center;"
                                 wire:click="gotoPage({{ $page }}, '{{ $paginator->getPageName() }}')"
+                                @click="document.getElementById('results')?.scrollIntoView({ behavior: 'smooth' })"
                                 wire:loading.attr="disabled">{{ $page }}</button>
                     @endif
                 @endforeach
@@ -43,6 +45,7 @@
         @if($paginator->hasMorePages())
             <button type="button" rel="next" class="btn btn-ghost"
                     wire:click="nextPage('{{ $paginator->getPageName() }}')"
+                    @click="document.getElementById('results')?.scrollIntoView({ behavior: 'smooth' })"
                     wire:loading.attr="disabled">Next</button>
         @else
             <span class="btn btn-ghost" style="opacity: 0.4; cursor: not-allowed;" aria-disabled="true">Next</span>
