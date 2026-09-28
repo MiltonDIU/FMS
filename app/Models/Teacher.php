@@ -351,6 +351,127 @@ class Teacher extends Model implements HasMedia
     }
 
     /**
+     * Generate a high-quality 3:4 portrait photo Data URI for CV/Resume PDF generation.
+     *
+     * Standardizes all teacher photographs into a uniform 3:4 portrait ratio with
+     * intelligent top-weighted framing (matching the web profile hero tile) and renders
+     * high-DPI JPEG data to eliminate DomPDF aspect-ratio distortion and jagged borders.
+     */
+    public function cvPhotoDataUri(): ?string
+    {
+        if (! $this->exists) {
+            return null;
+        }
+
+        // Try avatar master first for highest resolution, then profile conversion
+        $sourcePath = null;
+        $media = $this->getFirstMedia('avatar');
+        if ($media && is_file($media->getPath())) {
+            $sourcePath = $media->getPath();
+        } elseif ($local = $this->localPhotoPath()) {
+            $sourcePath = $local;
+        }
+
+        if (! $sourcePath || ! is_file($sourcePath)) {
+            $url = $this->serverFetchablePhotoUrl();
+            if (! $url) {
+                return null;
+            }
+            try {
+                $imgData = @file_get_contents($url, false, stream_context_create([
+                    'http' => ['timeout' => 5],
+                    'ssl' => ['verify_peer' => false, 'verify_peer_name' => false],
+                ]));
+            } catch (\Throwable) {
+                return null;
+            }
+        } else {
+            $imgData = @file_get_contents($sourcePath);
+        }
+
+        if (! $imgData || ! extension_loaded('gd')) {
+            return null;
+        }
+
+        try {
+            $src = @imagecreatefromstring($imgData);
+            if (! $src) {
+                return null;
+            }
+
+            // Correct EXIF orientation if available
+            if (function_exists('exif_read_data') && $sourcePath && is_file($sourcePath)) {
+                $exif = @exif_read_data($sourcePath);
+                if (! empty($exif['Orientation'])) {
+                    switch ($exif['Orientation']) {
+                        case 3:
+                            $src = imagerotate($src, 180, 0);
+                            break;
+                        case 6:
+                            $src = imagerotate($src, -90, 0);
+                            break;
+                        case 8:
+                            $src = imagerotate($src, 90, 0);
+                            break;
+                    }
+                }
+            }
+
+            $origW = imagesx($src);
+            $origH = imagesy($src);
+            if ($origW <= 0 || $origH <= 0) {
+                imagedestroy($src);
+                return null;
+            }
+
+            // Target 3:4 portrait ratio (matching the web profile card & passport ratio)
+            $targetRatio = 3 / 4;
+            $origRatio = $origW / $origH;
+
+            if ($origRatio > $targetRatio) {
+                // Wider than 3:4: crop left/right, keep full height, center horizontally
+                $cropH = $origH;
+                $cropW = (int) round($origH * $targetRatio);
+                $cropX = (int) round(($origW - $cropW) / 2);
+                $cropY = 0;
+            } else {
+                // Taller than 3:4: crop top/bottom, top-bias (20%) to keep head/hair in frame
+                $cropW = $origW;
+                $cropH = (int) round($origW / $targetRatio);
+                $cropX = 0;
+                $cropY = (int) max(0, min($origH - $cropH, round(($origH - $cropH) * 0.20)));
+            }
+
+            // Standardize output to 360x480 (~300 DPI for 96x128pt display in DomPDF)
+            $outW = 360;
+            $outH = 480;
+            $dest = imagecreatetruecolor($outW, $outH);
+
+            // Fill solid white background in case of PNG transparency
+            $white = imagecolorallocate($dest, 255, 255, 255);
+            imagefilledrectangle($dest, 0, 0, $outW, $outH, $white);
+
+            imagecopyresampled($dest, $src, 0, 0, $cropX, $cropY, $outW, $outH, $cropW, $cropH);
+
+            ob_start();
+            imagejpeg($dest, null, 95);
+            $jpegData = ob_get_clean();
+
+            imagedestroy($dest);
+            imagedestroy($src);
+
+            if ($jpegData) {
+                return 'data:image/jpeg;base64,' . base64_encode($jpegData);
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("Failed to generate CV photo for teacher {$this->id}: " . $e->getMessage());
+        }
+
+        return null;
+    }
+
+
+    /**
      * Only the teachers the public is allowed to see.
      *
      * The website has always applied these two conditions by hand in each

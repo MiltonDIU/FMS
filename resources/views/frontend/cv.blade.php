@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>{{ $teacher->full_name }} — CV</title>
+    <title>{{ $teacher->display_name ?? $teacher->full_name }} — CV</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -58,26 +58,35 @@
             vertical-align: top;
         }
         .header-photo {
-            width: 78px;
-            padding-left: 18px;
+            width: 96px;
+            padding-left: 20px;
+            vertical-align: top;
+            text-align: right;
         }
         .photo {
-            width: 78px;
-            border-radius: 10px;
-            border: 2px solid #e5e7eb;
+            width: 96px;
+            height: 128px;
+            border-radius: 6px;
+            border: 1px solid #d1d5db;
+            display: block;
         }
         .photo-fallback {
-            width: 78px; height: 104px;
-            border-radius: 10px;
+            width: 96px;
+            height: 128px;
+            border-radius: 6px;
             background: #034ea2;
             color: #fff;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 30px; font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: 700;
             flex-shrink: 0;
         }
-        .name { font-size: 23px; font-weight: 700; color: #0b1120; letter-spacing: -0.01em; }
+        .name { font-size: 22px; font-weight: 700; color: #0b1120; letter-spacing: -0.01em; }
         .title { font-size: 13px; color: #034ea2; font-weight: 600; margin-top: 1px; }
-        .org { font-size: 11px; color: #6b7280; margin-top: 2px; }
+        .dept { font-size: 11px; color: #374151; font-weight: 500; margin-top: 3px; }
+        .fac { font-size: 10.5px; color: #6b7280; margin-top: 1px; }
         .contact { font-size: 9.5px; color: #374151; margin-top: 7px; }
         .contact span { margin-right: 12px; white-space: nowrap; }
         /* Word labels, not pictograms: the embedded theme font is a text face and
@@ -210,29 +219,36 @@
                 // localPhotoPath() hands back the profile conversion when there
                 // is one — the same 600px copy the profile page shows, rather
                 // than a full studio master resized down for an 80px slot.
-                $cvPhotoUrl = $teacher->localPhotoPath() ?? $teacher->serverFetchablePhotoUrl();
+                $cvPhotoUrl = $teacher->cvPhotoDataUri() ?? $teacher->localPhotoPath() ?? $teacher->serverFetchablePhotoUrl();
             @endphp
             {{-- Name first, photograph on the right.
 
-                 The name now starts at the left margin, on the same line every
-                 section heading below it starts on — with the photograph
-                 leading, the whole header sat 96px in and nothing in the
-                 document lined up with anything else. It also puts the first
-                 thing read where reading starts: a CV is a document about a
-                 person, and the person's name is its headline, not their
-                 passport picture. --}}
+                 The name starts at the left margin, aligned with content sections below.
+                 Photograph is cropped to 3:4 portrait matching the web profile with
+                 high-density resolution and subtle framing. --}}
             <table class="header-grid">
             <tr>
             <td class="header-text">
-                <div class="name">{{ $teacher->full_name }}</div>
+                <div class="name">{{ $teacher->display_name ?? $teacher->full_name }}</div>
                 @if($teacher->designation_title)
                     <div class="title">{{ $teacher->designation_title }}</div>
                 @endif
-                @if($teacher->department?->faculty?->name || $teacher->department?->name)
-                    <div class="org">
-                        {{ $teacher->department?->faculty?->name ?? $brand['site_name'] }}
-                        @if($teacher->department?->name) &middot; {{ $teacher->department->name }} @endif
-                    </div>
+                @php
+                    $deptName = $teacher->department?->name;
+                    $deptDisplayName = $deptName
+                        ? (\Illuminate\Support\Str::startsWith($deptName, 'Department of') ? $deptName : 'Department of ' . $deptName)
+                        : null;
+
+                    $facultyName = $teacher->department?->faculty?->name ?? $teacher->faculty?->name;
+                    $facDisplayName = $facultyName
+                        ? (\Illuminate\Support\Str::startsWith($facultyName, 'Faculty of') ? $facultyName : 'Faculty of ' . $facultyName)
+                        : null;
+                @endphp
+                @if($deptDisplayName)
+                    <div class="dept">{{ $deptDisplayName }}</div>
+                @endif
+                @if($facDisplayName)
+                    <div class="fac">{{ $facDisplayName }}</div>
                 @endif
                 <div class="contact">
                     @if($teacher->user?->email || $teacher->secondary_email)
@@ -249,7 +265,7 @@
 
             <td class="header-photo">
                 @if($cvPhotoUrl)
-                    <img class="photo" src="{{ $cvPhotoUrl }}">
+                    <img class="photo" src="{{ $cvPhotoUrl }}" alt="{{ $teacher->display_name ?? $teacher->full_name }}">
                 @else
                     <div class="photo-fallback">{{ strtoupper(substr($teacher->first_name ?? '?', 0, 1)) }}</div>
                 @endif

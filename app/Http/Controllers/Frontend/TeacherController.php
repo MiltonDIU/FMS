@@ -227,7 +227,7 @@ class TeacherController extends Controller
             ->setPaper('a4')
             ->setOption('isRemoteEnabled', true);
 
-        $filename = Str::slug($teacher->full_name) . '-cv.pdf';
+        $filename = Str::slug($teacher->display_name ?? $teacher->full_name) . '-cv.pdf';
 
         return $pdf->download($filename);
     }
