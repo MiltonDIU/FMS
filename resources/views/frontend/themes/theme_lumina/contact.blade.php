@@ -1,4 +1,4 @@
-@extends('frontend.themes.theme_new.layouts.app')
+@extends('frontend.themes.theme_lumina.layouts.app')
 
 @section('title', ($department->name ?? 'Department') . ' — Contact' . \App\Helpers\Branding::get('meta_title_suffix'))
 

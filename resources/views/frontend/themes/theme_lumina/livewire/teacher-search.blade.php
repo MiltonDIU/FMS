@@ -280,7 +280,7 @@
                     <div class="tile-grid">
                         @foreach($this->adminTeachers as $teacher)
                             @if($teacher->department)
-                                @include('frontend.themes.theme_new.partials.teacher_card', [
+                                @include('frontend.themes.theme_lumina.partials.teacher_card', [
                                     'teacher' => $teacher,
                                     'faculty' => $teacher->department->faculty,
                                     'department' => $teacher->department,
@@ -300,7 +300,7 @@
                     <div class="tile-grid">
                         @foreach($this->teachers as $teacher)
                             @if($teacher->department)
-                                @include('frontend.themes.theme_new.partials.teacher_card', [
+                                @include('frontend.themes.theme_lumina.partials.teacher_card', [
                                     'teacher' => $teacher,
                                     'faculty' => $teacher->department->faculty,
                                     'department' => $teacher->department,
@@ -310,7 +310,7 @@
                         @endforeach
                     </div>
 
-                    {{ $this->teachers->links('frontend.themes.theme_new.partials.pagination') }}
+                    {{ $this->teachers->links('frontend.themes.theme_lumina.partials.pagination') }}
                 </section>
             @endif
 

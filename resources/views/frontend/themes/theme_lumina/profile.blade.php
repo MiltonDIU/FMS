@@ -1,4 +1,4 @@
-@extends('frontend.themes.theme_new.layouts.app')
+@extends('frontend.themes.theme_lumina.layouts.app')
 
 {{-- Sharing and structured data. Built once and used for the title, the
      description and the tags, so a preview card and a search result cannot
@@ -11,7 +11,7 @@
 @section('meta_description', $seo['description'])
 
 @section('seo')
-    @include('frontend.themes.theme_new.partials.seo-tags', ['seo' => $seo])
+    @include('frontend.themes.theme_lumina.partials.seo-tags', ['seo' => $seo])
 @endsection
 
 @section('content')
@@ -67,7 +67,7 @@
         <span style="color: var(--ink-2);">{{ $teacher->display_name }}</span>
     </nav>
 
-    @include('frontend.themes.theme_new.partials.teacher_hero')
+    @include('frontend.themes.theme_lumina.partials.teacher_hero')
 
     {{-- Below the head, the profile is one continuous document.
 
@@ -106,38 +106,38 @@
         </nav>
 
         <div class="min-w-0">
-            @include('frontend.themes.theme_new.partials.profile.overview')
+            @include('frontend.themes.theme_lumina.partials.profile.overview')
 
             @if(in_array('academic', $shown, true))
-                @include('frontend.themes.theme_new.partials.profile.academic')
+                @include('frontend.themes.theme_lumina.partials.profile.academic')
             @endif
 
             @if(in_array('teaching', $shown, true))
-                @include('frontend.themes.theme_new.partials.profile.courses')
+                @include('frontend.themes.theme_lumina.partials.profile.courses')
             @endif
 
             @if(in_array('research', $shown, true))
-                @include('frontend.themes.theme_new.partials.profile.research', ['projects' => $projects])
+                @include('frontend.themes.theme_lumina.partials.profile.research', ['projects' => $projects])
             @endif
 
             @if(in_array('publications', $shown, true))
-                @include('frontend.themes.theme_new.partials.profile.publications')
+                @include('frontend.themes.theme_lumina.partials.profile.publications')
             @endif
 
             @if(in_array('experience', $shown, true))
-                @include('frontend.themes.theme_new.partials.profile.experience')
+                @include('frontend.themes.theme_lumina.partials.profile.experience')
             @endif
 
             @if(in_array('training', $shown, true))
-                @include('frontend.themes.theme_new.partials.profile.training')
+                @include('frontend.themes.theme_lumina.partials.profile.training')
             @endif
 
             @if(in_array('awards', $shown, true))
-                @include('frontend.themes.theme_new.partials.profile.awards')
+                @include('frontend.themes.theme_lumina.partials.profile.awards')
             @endif
 
             @if(in_array('memberships', $shown, true))
-                @include('frontend.themes.theme_new.partials.profile.memberships')
+                @include('frontend.themes.theme_lumina.partials.profile.memberships')
             @endif
         </div>
     </div>

@@ -1,4 +1,4 @@
-@extends('frontend.themes.theme_new.layouts.app')
+@extends('frontend.themes.theme_lumina.layouts.app')
 
 {{-- Sharing and structured data. ScholarlyArticle, because this is the one page
      on the site that is a citation target. --}}
@@ -10,7 +10,7 @@
 @section('meta_description', $seo['description'])
 
 @section('seo')
-    @include('frontend.themes.theme_new.partials.seo-tags', ['seo' => $seo])
+    @include('frontend.themes.theme_lumina.partials.seo-tags', ['seo' => $seo])
 @endsection
 
 @section('content')
@@ -125,7 +125,7 @@
                  this is the roll, and it is where the roles and affiliations
                  are. --}}
             <div class="{{ $publication->abstract ? 'mt-10' : '' }}">
-                @include('frontend.themes.theme_new.partials.publication_authors', ['publication' => $publication])
+                @include('frontend.themes.theme_lumina.partials.publication_authors', ['publication' => $publication])
             </div>
 
             {{-- Somewhere to go that is not "back". --}}
@@ -187,7 +187,7 @@
             {{-- Whose work this is. A citation read on its own loses the thread,
                  and this is the same identity partial the profile head uses, so
                  the two cannot describe the same person differently. --}}
-            @include('frontend.themes.theme_new.partials.teacher_hero', ['variant' => 'compact'])
+            @include('frontend.themes.theme_lumina.partials.teacher_hero', ['variant' => 'compact'])
 
             @if(! empty($facts))
                 <section>

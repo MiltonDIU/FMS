@@ -396,7 +396,7 @@
                                 >
 
                                     @include(
-                                        'frontend.themes.theme_new.partials.social_icon',
+                                        'frontend.themes.theme_lumina.partials.social_icon',
                                         [
                                             'platform' => optional(
                                                 $link->platform

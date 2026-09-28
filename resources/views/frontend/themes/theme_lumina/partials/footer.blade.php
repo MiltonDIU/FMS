@@ -14,7 +14,7 @@
 
     $brand = Branding::all();
     $matchFooter = filter_var(
-        \App\Models\Setting::get(\App\Helpers\FontManager::settingKey('theme_new', 'footer_match_theme'), false),
+        \App\Models\Setting::get(\App\Helpers\FontManager::settingKey('theme_lumina', 'footer_match_theme'), false),
         FILTER_VALIDATE_BOOLEAN,
     );
 @endphp
@@ -78,7 +78,7 @@
                                 @if(! empty($url))
                                     <a href="{{ $url }}" target="_blank" rel="noopener noreferrer"
                                        class="btn-icon" title="{{ ucfirst($link['platform'] ?? '') }}">
-                                        @include('frontend.themes.theme_new.partials.social_icon', ['platform' => $link['platform'] ?? 'website'])
+                                        @include('frontend.themes.theme_lumina.partials.social_icon', ['platform' => $link['platform'] ?? 'website'])
                                     </a>
                                 @endif
                             @endforeach

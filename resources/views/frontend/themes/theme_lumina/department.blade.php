@@ -1,6 +1,6 @@
-@extends('frontend.themes.theme_new.layouts.app')
+@extends('frontend.themes.theme_lumina.layouts.app')
 
-{{-- Sharing and structured data; see frontend.themes.theme_new.partials.seo-tags. --}}
+{{-- Sharing and structured data; see frontend.themes.theme_lumina.partials.seo-tags. --}}
 @php
     $seo = \App\Helpers\SeoPayload::forDepartment($faculty, $department, $totalMembers ?? 0);
 @endphp
@@ -9,7 +9,7 @@
 @section('meta_description', $seo['description'])
 
 @section('seo')
-    @include('frontend.themes.theme_new.partials.seo-tags', ['seo' => $seo])
+    @include('frontend.themes.theme_lumina.partials.seo-tags', ['seo' => $seo])
 @endsection
 
 @section('content')

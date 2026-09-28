@@ -2,18 +2,18 @@
 <html lang="en" class="{{ \App\Helpers\Appearance::htmlClass() }}">
 <head>
     <script>{!! \App\Helpers\Appearance::preloadScript() !!}</script>
-    @include('frontend.themes.theme_new.partials.head')
+    @include('frontend.themes.theme_lumina.partials.head')
     @vite([
-        'resources/views/frontend/themes/theme_new/assets/css/theme.css',
-        'resources/views/frontend/themes/theme_new/assets/js/theme.js',
+        'resources/views/frontend/themes/theme_lumina/assets/css/theme.css',
+        'resources/views/frontend/themes/theme_lumina/assets/js/theme.js',
     ])
 
-    {!! \App\Helpers\FontManager::googleLinks('theme_new') !!}
-    {!! \App\Helpers\FontManager::customStylesheetLinks('theme_new') !!}
+    {!! \App\Helpers\FontManager::googleLinks('theme_lumina') !!}
+    {!! \App\Helpers\FontManager::customStylesheetLinks('theme_lumina') !!}
     <style>
         {!! \App\Helpers\ColorPalette::cssRootBlock() !!}
     </style>
-    {!! \App\Helpers\FontManager::cssBlock('theme_new') !!}
+    {!! \App\Helpers\FontManager::cssBlock('theme_lumina') !!}
 </head>
 <body class="min-h-screen flex flex-col font-sans antialiased">
 
@@ -25,13 +25,13 @@
         <span></span><span></span><span></span><span></span>
     </div>
 
-    @include('frontend.themes.theme_new.partials.header')
+    @include('frontend.themes.theme_lumina.partials.header')
 
     <main class="flex-1 shell py-8 md:py-12">
         @yield('content')
     </main>
 
-    @include('frontend.themes.theme_new.partials.footer')
+    @include('frontend.themes.theme_lumina.partials.footer')
 
     @livewireScripts
 </body>
