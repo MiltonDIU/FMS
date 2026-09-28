@@ -56,3 +56,6 @@ docs/API-Information.pdf
 # already ignored.
 public/documents/scopas/
 public/documents/all profile.json
+
+# Final (third) revision of the BRD and SRS, kept locally only.
+public/documents/3rd_version/

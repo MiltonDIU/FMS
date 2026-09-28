@@ -4,20 +4,25 @@
 
 ---
 
-> ## Reconciliation note — 2026-08-30
+> ## Reconciliation note — 2026-09-28 (final)
 >
-> This is a **Milestone-1 baseline document**, written before development and approved as the plan. It is kept unchanged in intent as the record of what was agreed. Since it was written, the system has been built, so the points below have been corrected in place and the current description now lives in:
+> This is a **Milestone-1 baseline document**, written before development and approved as the plan. It is kept unchanged in intent as the record of what was agreed. **The project is now complete and its scope is closed.** The final specification lives in:
 >
-> - *BRD - Faculty Management System.md* (revision 2.1)
-> - *SRS - Faculty Management System.md* (revision 2.1)
+> - *SRS - Faculty Management System - v3.0.md* (revision 3.0 — Final)
+> - *BRD - Faculty Management System - v3.0.md* (revision 3.0 — Final)
 >
-> **Where this document diverged from the built system:**
+> **How each part of this baseline was settled:**
 >
 > - **Phase-2 (ERP) and Phase-3 (Research & Publications) were treated as optional and are both built.** Phase-3 is in production use with 17,510 publications and 1,759 incentive records; Phase-2's client is complete and awaits production credentials.
 > - **"Backend: API-driven architecture" was not what was built.** The system is a server-rendered Laravel 13 / Filament 5 monolith. An early Next.js frontend and its API layer were removed; a token API remains only for the department directory apps.
 > - **The role list was incomplete.** Nine roles exist: super_admin, admin, registrar, teacher, dean, associate_dean, head, associate_head, research_team. There is no separate IT/Developer role.
 > - **FR-31 (author identity verified via ERP) is not how it works.** Author identity is resolved through the Scopus export review and the author-to-teacher merge, not through an ERP lookup.
+> - **Multi-office approval routing (§3.0.1, §11), marked "Future Enhancement", is delivered.** Approval Settings decides which sections need approval; Notification Routing sends each section to its approving office(s): roles, named users or department heads.
+> - **Removed from scope by decision:** teacher draft versions and deleting one's own draft, and a teacher reading their own version history (§3.0.4). A teacher's save is submitted at once; version history is for reviewers and administrators.
+> - **Met by existing behaviour:** Registrar "request revision" by rejection with mandatory remarks; research-team "subject to approval" by the publication status field; role deactivation by removing a role's permissions or holders; audit logs by profile versions, incentive logs and the activity log.
 > - **Section and requirement numbering skipped.** Section 4 was missing between 3 and 5, and FR-4 to FR-24 were never issued. Both are marked below.
+>
+> Nothing in this baseline remains open as future work. What was delivered beyond it is listed in the final SRS §8.2.
 
 ---
 
@@ -370,6 +375,7 @@ as external authors without a public profile.)*
 
 ---
 
-**Document Status:** Milestone-1 baseline — superseded for current behaviour by
-*SRS - Faculty Management System.md* (revision 2.1, 2026-08-30)  
+**Document Status:** Milestone-1 baseline — superseded by the final
+specification, *SRS - Faculty Management System - v3.0.md* (revision 3.0 — Final,
+2026-09-28)
 **Purpose:** Historical record of what was approved before development

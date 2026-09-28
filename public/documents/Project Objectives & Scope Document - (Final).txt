@@ -4,18 +4,25 @@
 
 ---
 
-> ## Reconciliation note — 2026-08-30
+> ## Reconciliation note — 2026-09-28 (final)
 >
 > This is a **Milestone-1 baseline document**, written before development and approved as the plan. It is kept unchanged in intent as the record of what was agreed. Since it was written, the system has been built, so the points below have been corrected in place and the current description now lives in:
 >
-> - *BRD - Faculty Management System.md* (revision 2.1)
-> - *SRS - Faculty Management System.md* (revision 2.1)
+> - *BRD - Faculty Management System - v3.0.md* (revision 3.0 — Final)
+> - *SRS - Faculty Management System - v3.0.md* (revision 3.0 — Final)
+>
+> **The project is now complete and its scope is closed.**
 >
 > **Where this document diverged from the built system:**
 >
 > - **Phase-2 (ERP) and Phase-3 (Research & Publications) were both scoped as optional. Both were built**, alongside Phase-1 rather than after it.
 > - **"ERP-based author identity verification" (section 7) is not how publications resolve authors.** Identity is settled by the Scopus export review and the author-to-teacher merge.
-> - **The document status line claimed alignment with the latest SRS.** That SRS has since been rewritten twice; this document is now the historical scope baseline.
+> - **The document status line claimed alignment with the latest SRS.** That SRS has since been rewritten; this document is now the historical scope baseline.
+> - **Advanced multi-office approval (§5.2.1), marked "Future", is delivered.** Approval Settings decides which sections need approval; Notification Routing sends each section to its approving office(s): roles, named users or department heads, configurable by Super Admin.
+> - **Removed from scope by decision:** "all changes are saved as draft versions" (§3) and the draft stage of the lifecycle (§5.1), and a version history visible to the teacher. A teacher's save is submitted for approval at once; the full version history, with rollback, is held for reviewers and administrators.
+> - **Experience generated automatically from administrative roles (§3, §4.1, §5.1) is met differently.** Each administrative role assignment carries its own start and end dates and is shown as its own dated block on the public profile; no separate experience record is generated.
+>
+> Nothing in this baseline remains open as future work. What was delivered beyond it is listed in BRD §5.4.
 
 ---
 
@@ -175,6 +182,6 @@ The Faculty Management System is designed as a **governance-driven, scalable, an
 
 ---
 
-**Document Status:** Milestone-1 scope baseline — superseded for current scope
-by *BRD - Faculty Management System.md* §5 (revision 2.1, 2026-08-30)  
+**Document Status:** Milestone-1 scope baseline — superseded by the final scope
+in *BRD - Faculty Management System - v3.0.md* §5 (revision 3.0 — Final, 2026-09-28)
 **Purpose:** Historical record of the scope approved before development
