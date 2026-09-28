@@ -58,7 +58,7 @@
             @if($photoUrl)
                 <img
                     src="{{ $photoUrl }}"
-                    alt="{{ $teacher->full_name }}"
+                    alt="{{ $teacher->display_name }}"
                     loading="lazy"
                 >
             @else
@@ -84,10 +84,10 @@
                         wire:navigate
                         class="hover:underline"
                     >
-                        {{ $teacher->full_name }}
+                        {{ $teacher->display_name }}
                     </a>
                 @else
-                    {{ $teacher->full_name }}
+                    {{ $teacher->display_name }}
                 @endif
             </p>
 
@@ -102,7 +102,7 @@
                         ·
                     </span>
 
-                    {{ $department->name }}
+                    {{ \Illuminate\Support\Str::startsWith($department->name, 'Department of') ? $department->name : 'Department of ' . $department->name }}
                 @endif
             </p>
 
@@ -181,7 +181,7 @@
 
                     <img
                         src="{{ $photoUrl }}"
-                        alt="{{ $teacher->full_name }}"
+                        alt="{{ $teacher->display_name }}"
                         loading="eager"
                     >
 
@@ -214,7 +214,7 @@
 
 
                 <h1 class="display-lg">
-                    {{ $teacher->full_name }}
+                    {{ $teacher->display_name }}
                 </h1>
 
 
@@ -232,9 +232,13 @@
                 >
 
                     @if($department?->name)
+                        @php
+                            $deptDisplayName = \Illuminate\Support\Str::startsWith($department->name, 'Department of')
+                                ? $department->name
+                                : 'Department of ' . $department->name;
+                        @endphp
 
                         @if($facSlug && $deptSlug)
-
                             <a
                                 href="{{ route('department.show', [
                                     'faculty_short_name' => $facSlug,
@@ -242,33 +246,25 @@
                                 ]) }}"
                                 wire:navigate
                                 class="row-link"
-                            >
-                                {{ $department->name }}
-                            </a>
-
+                            >{{ $deptDisplayName }}</a>@if($faculty?->name), @endif
                         @else
-
-                            {{ $department->name }}
-
+                            {{ $deptDisplayName }}@if($faculty?->name), @endif
                         @endif
-
                     @endif
 
-
                     @if($faculty?->name)
-
-                        <span style="color: var(--hairline-strong);">
-                            ·
-                        </span>
-
+                        @php
+                            $facDisplayName = \Illuminate\Support\Str::startsWith($faculty->name, 'Faculty of')
+                                ? $faculty->name
+                                : 'Faculty of ' . $faculty->name;
+                        @endphp
                         <a
                             href="{{ $faculty->url }}"
                             wire:navigate
                             class="row-link"
                         >
-                            {{ $faculty->name }}
+                            {{ $facDisplayName }}
                         </a>
-
                     @endif
 
                 </p>

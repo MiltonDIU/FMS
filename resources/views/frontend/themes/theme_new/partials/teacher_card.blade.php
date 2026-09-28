@@ -78,34 +78,37 @@
 
 <a @if($profileUrl) href="{{ $profileUrl }}" wire:navigate @endif
    class="tile group"
-   aria-label="{{ $teacher->full_name }}{{ $teacher->designation_title ? ', ' . $teacher->designation_title : '' }}">
+   aria-label="{{ $teacher->display_name }}{{ $teacher->designation_title ? ', ' . $teacher->designation_title : '' }}">
 
     @if($photoUrl)
-        <img src="{{ $photoUrl }}" alt="{{ $teacher->full_name }}" loading="lazy" decoding="async">
+        <img src="{{ $photoUrl }}" alt="{{ $teacher->display_name }}" loading="lazy" decoding="async">
     @else
         <span class="tile-initials" aria-hidden="true">{{ $teacher->initials ?: '—' }}</span>
     @endif
 
-    @if($adminRoleBadge)
-        <span class="tile-badge">{{ $adminRoleBadge }}</span>
-    @endif
+    {{-- Top card tags: Admin role on left, Status / Engagement on right --}}
+    <div class="tile-tags">
+        @if($adminRoleBadge)
+            <span class="tile-badge" title="{{ $adminRoleBadge }}">{{ $adminRoleBadge }}</span>
+        @else
+            <span></span>
+        @endif
 
-    {{-- Says so when this person is not currently at their desk — on leave, on
-         deputation. Silent for anyone working normally, so it only appears when
-         it carries information. --}}
-    <x-teacher-engagement :teacher="$teacher" class="tile-status" />
-
-    <x-teacher-status :teacher="$teacher" class="tile-status" />
+        <div class="tile-statuses">
+            <x-teacher-engagement :teacher="$teacher" class="tile-status-pill" />
+            <x-teacher-status :teacher="$teacher" class="tile-status-pill" />
+        </div>
+    </div>
 
     <span class="tile-plate">
-        <span class="tile-name block">{{ $teacher->full_name }}</span>
+        <span class="tile-name block">{{ $teacher->display_name }}</span>
 
         @if($teacher->designation_title)
             <span class="tile-meta block">{{ $teacher->designation_title }}</span>
         @endif
 
         @if($department?->code || $department?->name)
-            <span class="tile-meta block" style="opacity: 0.7; letter-spacing: 0.06em; text-transform: uppercase; font-size: 0.6875rem;">
+            <span class="tile-meta block" style="opacity: 0.92; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; font-size: 0.6875rem; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);">
                 {{ $department->code ?: $department->name }}
             </span>
         @endif

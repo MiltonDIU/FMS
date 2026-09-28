@@ -67,7 +67,7 @@
         <span style="color: var(--hairline-strong);">/</span>
         <a href="{{ $deptUrl }}" wire:navigate class="hover:underline">{{ $department->code }}</a>
         <span style="color: var(--hairline-strong);">/</span>
-        <a href="{{ $teacherUrl }}" wire:navigate class="hover:underline">{{ $teacher->full_name }}</a>
+        <a href="{{ $teacherUrl }}" wire:navigate class="hover:underline">{{ $teacher->display_name }}</a>
         <span style="color: var(--hairline-strong);">/</span>
         <span style="color: var(--ink-2);">Publication</span>
     </nav>
@@ -170,7 +170,7 @@
 
             <p class="mt-12">
                 <a href="{{ $publicationsUrl }}" wire:navigate class="link-brand text-[13px]">
-                    &larr; All publications by {{ $teacher->full_name }}
+                    &larr; All publications by {{ $teacher->display_name }}
                 </a>
             </p>
         </article>

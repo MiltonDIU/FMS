@@ -64,7 +64,7 @@
         <span style="color: var(--hairline-strong);">/</span>
         <a href="{{ $deptUrl }}" wire:navigate class="hover:underline">{{ $department->code }}</a>
         <span style="color: var(--hairline-strong);">/</span>
-        <span style="color: var(--ink-2);">{{ $teacher->full_name }}</span>
+        <span style="color: var(--ink-2);">{{ $teacher->display_name }}</span>
     </nav>
 
     @include('frontend.themes.theme_new.partials.teacher_hero')

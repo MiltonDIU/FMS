@@ -78,10 +78,10 @@
 
 <a @if($profileUrl) href="{{ $profileUrl }}" wire:navigate @endif
    class="tile group"
-   aria-label="{{ $teacher->full_name }}{{ $teacher->designation_title ? ', ' . $teacher->designation_title : '' }}">
+   aria-label="{{ $teacher->display_name }}{{ $teacher->designation_title ? ', ' . $teacher->designation_title : '' }}">
 
     @if($photoUrl)
-        <img src="{{ $photoUrl }}" alt="{{ $teacher->full_name }}" loading="lazy" decoding="async">
+        <img src="{{ $photoUrl }}" alt="{{ $teacher->display_name }}" loading="lazy" decoding="async">
     @else
         <span class="tile-initials" aria-hidden="true">{{ $teacher->initials ?: '—' }}</span>
     @endif
@@ -98,7 +98,7 @@
     <x-teacher-status :teacher="$teacher" class="tile-status" />
 
     <span class="tile-plate">
-        <span class="tile-name block">{{ $teacher->full_name }}</span>
+        <span class="tile-name block">{{ $teacher->display_name }}</span>
 
         @if($teacher->designation_title)
             <span class="tile-meta block">{{ $teacher->designation_title }}</span>

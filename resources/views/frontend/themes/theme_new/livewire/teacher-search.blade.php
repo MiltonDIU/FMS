@@ -245,7 +245,7 @@
 
          The id gives the listing a stable address — #results on any directory
          URL lands on the faces rather than the top of the page. --}}
-    <div id="results" class="mt-8" wire:loading.class="is-busy" wire:target="q, setDesignation, setAdmin, gotoPage, nextPage, previousPage">
+    <div id="results" class="mt-8" style="scroll-margin-top: calc(var(--header-h) + 5rem);" wire:loading.class="is-busy" wire:target="q, setDesignation, setAdmin, gotoPage, nextPage, previousPage">
 
         <div class="flex flex-wrap items-baseline justify-between gap-3 mb-5">
             <h2 class="display-md">
@@ -256,6 +256,9 @@
                     {{ $this->selectedFaculty->name }}
                 @else
                     Everyone at {{ \App\Helpers\Branding::get('short_name') }}
+                @endif
+                @if($this->teachers->currentPage() > 1)
+                    <span class="text-sm font-normal text-muted opacity-75 ml-2">(Page {{ $this->teachers->currentPage() }})</span>
                 @endif
             </h2>
 
@@ -271,7 +274,7 @@
 
         @else
 
-            @if(count($this->adminTeachers) > 0)
+            @if($this->teachers->currentPage() === 1 && count($this->adminTeachers) > 0)
                 <section class="mb-10">
                     <p class="eyebrow mb-4">Administration</p>
                     <div class="tile-grid">
@@ -290,7 +293,7 @@
 
             @if($this->teachers->total() > 0)
                 <section>
-                    @if(count($this->adminTeachers) > 0)
+                    @if($this->teachers->currentPage() === 1 && count($this->adminTeachers) > 0)
                         <p class="eyebrow-quiet mb-4">Faculty members</p>
                     @endif
 

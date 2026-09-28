@@ -75,7 +75,9 @@ class TeacherController extends Controller
                 'awards',
                 'jobExperiences',
                 'socialLinks.platform',
-                'administrativeRoles'
+                'administrativeRoles',
+                'namePrefix',
+                'academicSuffixes'
             ])
             ->firstOrFail();
 

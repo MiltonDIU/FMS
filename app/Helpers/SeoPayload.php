@@ -160,7 +160,7 @@ class SeoPayload
             'teacher_webpage' => $teacher->webpage,
         ]);
 
-        $name = $teacher->full_name ?: trim("{$teacher->first_name} {$teacher->middle_name} {$teacher->last_name}");
+        $name = $teacher->display_name ?: ($teacher->full_name ?: trim("{$teacher->first_name} {$teacher->middle_name} {$teacher->last_name}"));
         $designation = $teacher->designation_title ?: 'Faculty Member';
 
         /*

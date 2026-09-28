@@ -274,7 +274,7 @@
         @endif
     </div>
 
-    <div class="mt-8" wire:loading.class="is-busy" wire:target="q, setDesignation, setAdmin, gotoPage, nextPage, previousPage">
+    <div id="results" class="mt-8" style="scroll-margin-top: calc(var(--header-h) + 5rem);" wire:loading.class="is-busy" wire:target="q, setDesignation, setAdmin, gotoPage, nextPage, previousPage">
 
         @if($this->view === 'contact')
 
@@ -299,7 +299,7 @@
                 </p>
             @endif
 
-            @if(count($this->adminTeachers) > 0)
+            @if($this->teachers->currentPage() === 1 && count($this->adminTeachers) > 0)
                 <section class="mb-10">
                     <p class="eyebrow mb-4">Administration</p>
                     <div class="tile-grid">
@@ -318,7 +318,7 @@
 
             @if($this->teachers->total() > 0)
                 <section>
-                    @if(count($this->adminTeachers) > 0)
+                    @if($this->teachers->currentPage() === 1 && count($this->adminTeachers) > 0)
                         <p class="eyebrow-quiet mb-4">Faculty members</p>
                     @endif
 

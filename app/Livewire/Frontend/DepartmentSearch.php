@@ -299,7 +299,7 @@ class DepartmentSearch extends Component
             // jobType because designation_title falls back to it for the rows
             // that are not ranks; without it the card asks per teacher.
             ->with(['designation', 'jobType', 'department.faculty', 'teachingAreas',
-                'administrativeRoles.administrativeRole', 'administrativeRoles.faculty', 'administrativeRoles.department', 'employmentStatus', 'user'])
+                'administrativeRoles.administrativeRole', 'administrativeRoles.faculty', 'administrativeRoles.department', 'employmentStatus', 'user', 'namePrefix', 'academicSuffixes'])
             // publications_count instead of loading every paper to call count()
             // on it: three of the four themes print the number on each card,
             // which fetched a teacher's whole bibliography per card.
@@ -317,13 +317,13 @@ class DepartmentSearch extends Component
             // jobType because designation_title falls back to it for the rows
             // that are not ranks; without it the card asks per teacher.
             ->with(['designation', 'jobType', 'department.faculty', 'teachingAreas',
-                'administrativeRoles.administrativeRole', 'administrativeRoles.faculty', 'administrativeRoles.department', 'employmentStatus', 'user'])
+                'administrativeRoles.administrativeRole', 'administrativeRoles.faculty', 'administrativeRoles.department', 'employmentStatus', 'user', 'namePrefix', 'academicSuffixes'])
             // publications_count instead of loading every paper to call count()
             // on it: three of the four themes print the number on each card,
             // which fetched a teacher's whole bibliography per card.
             ->withCount('publications');
 
-        return TeacherDirectoryOrder::apply($listing)->paginate(12);
+        return TeacherDirectoryOrder::apply($listing)->paginate(20);
     }
 
     public function render(): View

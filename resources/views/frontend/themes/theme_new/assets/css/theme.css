@@ -926,30 +926,127 @@ body {
     text-shadow: 0 1px 8px rgba(4, 9, 20, 0.5);
 }
 
-.tile-badge {
+/* Card top tags container */
+.tile-tags {
     position: absolute;
-    top: 0.625rem;
-    left: 0.625rem;
-    z-index: 1;
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.375rem;
-    background: rgba(4, 9, 20, 0.55);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    font-size: 0.625rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: #fff;
+    top: 0.35rem;
+    left: 0.45rem;
+    right: 0.45rem;
+    z-index: 2;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.375rem;
+    pointer-events: none;
 }
 
-/* Where a tile carries the leave / deputation notice. Sits opposite the role
-   badge so the two never collide. */
-.tile-status {
+.tile-tags > * {
+    pointer-events: auto;
+}
+
+/* Administrative role badge (top-left) */
+.tile-badge {
+    position: relative;
+    top: auto;
+    left: auto;
+    display: inline-flex;
+    align-items: center;
+    max-width: 13.5rem;
+    padding: 0.16rem 0.45rem;
+    border-radius: 0.3rem;
+    background: rgba(10, 18, 30, 0.90);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-left: 2.5px solid var(--color-diu-accent, #f58220);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #ffffff !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.15;
+}
+
+.tile > .tile-badge {
     position: absolute;
-    top: 0.625rem;
-    right: 0.625rem;
-    z-index: 1;
+    top: 0.35rem;
+    left: 0.45rem;
+}
+
+/* Right-side statuses (engagement & public status) */
+.tile-statuses {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.2rem;
+    max-width: 55%;
+}
+
+.tile > .tile-status {
+    position: absolute;
+    top: 0.35rem;
+    right: 0.45rem;
+}
+
+/* Base style for tags on the card */
+.tile .tile-status-pill,
+.tile .tile-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.16rem 0.45rem !important;
+    border-radius: 0.3rem !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+    font-size: 0.65rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.04em !important;
+    text-transform: uppercase !important;
+    line-height: 1.15 !important;
+    white-space: nowrap !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8) !important;
+}
+
+/* Specific tone colors for high contrast and readability on any card photo */
+.tile [class*="bg-teal-500"] {
+    background: rgba(13, 78, 67, 0.92) !important;
+    border: 1px solid rgba(45, 212, 191, 0.55) !important;
+    color: #ffffff !important;
+}
+
+.tile [class*="bg-amber-500"] {
+    background: rgba(120, 53, 15, 0.92) !important;
+    border: 1px solid rgba(251, 191, 36, 0.6) !important;
+    color: #ffffff !important;
+}
+
+.tile [class*="bg-sky-500"] {
+    background: rgba(12, 74, 110, 0.92) !important;
+    border: 1px solid rgba(56, 189, 248, 0.6) !important;
+    color: #ffffff !important;
+}
+
+.tile [class*="bg-rose-500"] {
+    background: rgba(159, 18, 57, 0.92) !important;
+    border: 1px solid rgba(251, 113, 133, 0.6) !important;
+    color: #ffffff !important;
+}
+
+.tile [class*="bg-indigo-500"] {
+    background: rgba(30, 58, 138, 0.92) !important;
+    border: 1px solid rgba(147, 197, 253, 0.6) !important;
+    color: #ffffff !important;
+}
+
+.tile [class*="bg-zinc-500"] {
+    background: rgba(24, 24, 27, 0.90) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    color: #ffffff !important;
 }
 
 /*
