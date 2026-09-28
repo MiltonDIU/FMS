@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class NotificationRouting extends Model
 {
@@ -24,8 +25,12 @@ class NotificationRouting extends Model
 
     /**
      * Get recipients for a specific trigger
+     *
+     * $teacher is whose profile the trigger is about. A "department_head"
+     * routing resolves only against it — the heads of that teacher's own
+     * department — so without a teacher it resolves to nobody.
      */
-    public static function getRecipientsFor(string $triggerType, ?string $section = null): Collection
+    public static function getRecipientsFor(string $triggerType, ?string $section = null, ?Teacher $teacher = null): Collection
     {
         $query = static::where('trigger_type', $triggerType)
             ->where('is_active', true);
@@ -54,13 +59,40 @@ class NotificationRouting extends Model
                     User::whereIn('id', (array) ($routing->recipient_identifiers ?? []))->get()
                 ),
                 'department_head' => $recipients = $recipients->merge(
-                    User::permission('approve:own-department-teacher')->get()
+                    static::departmentHeadsFor($teacher)
                 ),
                 default => null
             };
         }
 
         return $recipients->filter()->unique('id');
+    }
+
+    /**
+     * The heads of a teacher's home department.
+     *
+     * Holding approve:own-department-teacher is not enough on its own: every
+     * head holds it, so the permission alone let the head of one department
+     * approve changes to another department's teachers. The user must also
+     * hold an active, unended administrative role over the teacher's home
+     * department. The teacher is left out even when they are a head there, so
+     * nobody approves a change to their own profile.
+     */
+    protected static function departmentHeadsFor(?Teacher $teacher): Collection
+    {
+        if (! $teacher?->department_id) {
+            return collect();
+        }
+
+        return User::permission('approve:own-department-teacher')
+            ->whereIn('id', DB::table('administrative_role_user')
+                ->select('user_id')
+                ->where('department_id', $teacher->department_id)
+                ->where('is_active', true)
+                ->whereNull('end_date')
+                ->whereNull('deleted_at'))
+            ->when($teacher->user_id, fn ($query, $userId) => $query->whereKeyNot($userId))
+            ->get();
     }
 
     /**

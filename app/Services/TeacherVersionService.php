@@ -514,7 +514,7 @@ class TeacherVersionService
         $allRecipients = collect();
         
         foreach ($sections as $section) {
-            $recipients = NotificationRouting::getRecipientsFor('teacher_profile_update', $section);
+            $recipients = NotificationRouting::getRecipientsFor('teacher_profile_update', $section, $version->teacher);
             $allRecipients = $allRecipients->merge($recipients);
         }
         
@@ -546,7 +546,7 @@ class TeacherVersionService
 
         // Identify authorized sections
         foreach ($pendingSections as $section) {
-            if ($this->canUserApproveSection(auth()->user(), $section)) {
+            if ($this->canUserApproveSection(auth()->user(), $section, $version->teacher)) {
                 $authorizedSections[] = $section;
             }
         }
@@ -616,7 +616,7 @@ class TeacherVersionService
 
         // Identify authorized sections
         foreach ($pendingSections as $section) {
-            if ($this->canUserApproveSection(auth()->user(), $section)) {
+            if ($this->canUserApproveSection(auth()->user(), $section, $version->teacher)) {
                 $authorizedSections[] = $section;
             }
         }
@@ -668,7 +668,7 @@ class TeacherVersionService
     public function approveSection(TeacherVersion $version, string $section): void
     {
         // Permission Check
-        if (!$this->canUserApproveSection(auth()->user(), $section)) {
+        if (!$this->canUserApproveSection(auth()->user(), $section, $version->teacher)) {
             throw new \Exception("You are not authorized to approve the '{$section}' section.");
         }
 
@@ -708,7 +708,7 @@ class TeacherVersionService
     public function rejectSection(TeacherVersion $version, string $section, string $remarks = ''): void
     {
         // Permission Check
-        if (!$this->canUserApproveSection(auth()->user(), $section)) {
+        if (!$this->canUserApproveSection(auth()->user(), $section, $version->teacher)) {
             throw new \Exception("You are not authorized to reject the '{$section}' section.");
         }
 
@@ -756,11 +756,12 @@ class TeacherVersionService
     /**
      * Check if a user is authorized to approve/reject a specific section
      */
-    public function canUserApproveSection(\App\Models\User $user, string $section): bool
+    public function canUserApproveSection(\App\Models\User $user, string $section, ?Teacher $teacher = null): bool
     {
         // Strictly follow NotificationRouting configuration
         // Even Super Admins must be explicitly added to the routing table if they need approval rights
-        $allowedRecipients = \App\Models\NotificationRouting::getRecipientsFor('teacher_profile_update', $section);
+        // The teacher narrows a "department head" routing to that teacher's own department's heads
+        $allowedRecipients = \App\Models\NotificationRouting::getRecipientsFor('teacher_profile_update', $section, $teacher);
         
         return $allowedRecipients->contains('id', $user->id);
     }

@@ -146,7 +146,7 @@ class TeacherVersionsTable
 
                                 $options = [];
                                 foreach ($pending as $section) {
-                                    if ($service->canUserApproveSection($user, $section)) {
+                                    if ($service->canUserApproveSection($user, $section, $record->teacher)) {
                                         $options[$section] = ucwords(str_replace('_', ' ', $section));
                                     }
                                 }
@@ -187,7 +187,7 @@ class TeacherVersionsTable
 
                                 $options = [];
                                 foreach ($pending as $section) {
-                                    if ($service->canUserApproveSection($user, $section)) {
+                                    if ($service->canUserApproveSection($user, $section, $record->teacher)) {
                                         $options[$section] = ucwords(str_replace('_', ' ', $section));
                                     }
                                 }
@@ -331,7 +331,7 @@ class TeacherVersionsTable
 
             // Check permission for this section
             // User requested to completely HIDE the section if they don't have approval permission
-            if (!$service->canUserApproveSection($user, $section)) {
+            if (!$service->canUserApproveSection($user, $section, $record->teacher)) {
                 continue;
             }
 
