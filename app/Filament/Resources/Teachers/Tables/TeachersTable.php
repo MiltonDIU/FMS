@@ -296,6 +296,11 @@ class TeachersTable
                     ->date()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('leaving_date')
+                    ->label('Leaving Date')
+                    ->date()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -378,6 +383,30 @@ class TeachersTable
                     ->relationship('gender', 'name')
                     ->label('Gender')
                     ->preload(),
+                Filter::make('leaving_date')
+                    ->label('Leaving Date')
+                    ->form([
+                        \Filament\Forms\Components\DatePicker::make('from')
+                            ->label('Left From'),
+                        \Filament\Forms\Components\DatePicker::make('until')
+                            ->label('Left To'),
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        $query
+                            ->when($data['from'] ?? null, fn (Builder $q, $date) => $q->whereDate('leaving_date', '>=', $date))
+                            ->when($data['until'] ?? null, fn (Builder $q, $date) => $q->whereDate('leaving_date', '<=', $date));
+                    }),
+                // Teachers who left and came back: more than one period of service.
+                \Filament\Tables\Filters\TernaryFilter::make('rejoined')
+                    ->label('Rejoined')
+                    ->placeholder('Everyone')
+                    ->trueLabel('Served more than one period')
+                    ->falseLabel('One period only')
+                    ->queries(
+                        true: fn (Builder $query) => $query->has('servicePeriods', '>', 1),
+                        false: fn (Builder $query) => $query->has('servicePeriods', '<=', 1),
+                        blank: fn (Builder $query) => $query,
+                    ),
                 Filter::make('joining_date')
                     ->label('Joining Date')
                     ->form([

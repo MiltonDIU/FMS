@@ -43,6 +43,7 @@ class ErpProfileFields
     {
         return [
             'joining_date' => 'Joining Date',
+            'leaving_date' => 'Leaving Date',
             'date_of_birth' => 'Date of Birth',
             'phone' => 'Work Phone',
             'personal_phone' => 'Personal Phone',

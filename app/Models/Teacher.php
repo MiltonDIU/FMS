@@ -60,6 +60,8 @@ class Teacher extends Model implements HasMedia
         'present_address',
         'permanent_address',
         'joining_date',
+        // Last working day of the current (or last) period of service.
+        'leaving_date',
         'work_location',
         'office_room',
         'photo',
@@ -86,6 +88,7 @@ class Teacher extends Model implements HasMedia
     protected $casts = [
         'date_of_birth' => 'date',
         'joining_date' => 'date',
+        'leaving_date' => 'date',
         'verified_at' => 'datetime',
         'is_public' => 'boolean',
         'is_researcher' => 'boolean',
@@ -1009,6 +1012,19 @@ class Teacher extends Model implements HasMedia
 
 
 
+
+    /**
+     * Periods of service at the university, earliest first. More than one
+     * for a teacher who left and came back. Kept in step with joining date,
+     * leaving date and status by App\Support\TeacherServicePeriods.
+     */
+    public function servicePeriods(): HasMany
+    {
+        return $this->hasMany(TeacherServicePeriod::class)
+            ->orderByRaw('joined_on is null')
+            ->orderBy('joined_on')
+            ->orderBy('id');
+    }
 
     /**
      * Get the versions for the teacher.

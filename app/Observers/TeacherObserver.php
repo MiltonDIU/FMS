@@ -107,6 +107,9 @@ class TeacherObserver
      */
     public function created(Teacher $teacher): void
     {
+        // The first period of service.
+        \App\Support\TeacherServicePeriods::sync($teacher);
+
         // Auto-create department_teacher record if department_id is set
         if ($teacher->department_id) {
             $teacher->departments()->attach($teacher->department_id, [
@@ -241,6 +244,12 @@ class TeacherObserver
      */
     public function updated(Teacher $teacher): void
     {
+        // Leaving closes the current period of service; coming back opens a
+        // new one. Profile saves and rollbacks both arrive here.
+        if ($teacher->isDirty(['joining_date', 'leaving_date', 'employment_status_id'])) {
+            \App\Support\TeacherServicePeriods::sync($teacher);
+        }
+
         if ($teacher->isDirty(['first_name', 'middle_name', 'last_name']) && $teacher->user) {
             $teacher->user->update([
                 'name' => $this->resolveTeacherDisplayName($teacher, $teacher->user->email),

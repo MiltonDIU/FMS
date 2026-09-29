@@ -65,7 +65,7 @@ class TeacherVersionService
         // longer exists, and a field missing from here is invisible to change
         // detection — a save that only touched the job type was reported as
         // "no changes" and dropped.
-        'settings' => ['profile_status', 'employment_status_id', 'job_type_id', 'login_allowed', 'is_public', 'is_active', 'is_archived', 'sort_order'],
+        'settings' => ['profile_status', 'employment_status_id', 'leaving_date', 'job_type_id', 'login_allowed', 'is_public', 'is_active', 'is_archived', 'sort_order'],
     ];
 
     /**

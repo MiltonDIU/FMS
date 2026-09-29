@@ -335,7 +335,30 @@ class TeacherForm
                                         ->dehydrated(! $isOwnProfile),
                                 ]),
                                 Grid::make(3)->schema([
+                                    /*
+                                     * Joining date (here) and leaving date (on
+                                     * the Settings tab, beside the status)
+                                     * describe the current or last period of
+                                     * service; earlier periods are kept by
+                                     * TeacherServicePeriods. HR's record, so a
+                                     * teacher cannot change it on their own
+                                     * profile.
+                                     */
                                     DatePicker::make('joining_date')
+                                        ->label('Joining Date')
+                                        ->helperText('Of the current period of service — for a teacher who came back, the date they rejoined.')
+                                        ->rule(fn (?\App\Models\Teacher $record, $get): \Closure => function (string $attribute, $value, \Closure $fail) use ($record, $get): void {
+                                            // Rejoining: the new period must start after the last one ended.
+                                            if (! $record || blank($value)
+                                                || \App\Support\TeacherServicePeriods::isEndingStatus($get('employment_status_id'))
+                                                || $record->servicePeriods()->where('ended', false)->exists()) {
+                                                return;
+                                            }
+                                            $lastLeft = $record->servicePeriods()->where('ended', true)->max('left_on');
+                                            if ($lastLeft && substr((string) $value, 0, 10) <= substr((string) $lastLeft, 0, 10)) {
+                                                $fail('The teacher left on ' . substr((string) $lastLeft, 0, 10) . '; a rejoining date must come after that.');
+                                            }
+                                        })
                                         ->disabled($isOwnProfile)
                                         ->dehydrated(! $isOwnProfile),
                                     TextInput::make('work_location')->default('Main Campus')
@@ -1398,11 +1421,53 @@ class TeacherForm
                                                     if (!$status->allow_login) {
                                                         $set('login_allowed', false);
                                                     }
+
+                                                    // Active means serving: no leaving date. Choosing
+                                                    // it again for someone who left is how a rejoin
+                                                    // starts, and the old date would block the save.
+                                                    if ($status->slug === 'active') {
+                                                        $set('leaving_date', null);
+                                                    }
                                                 }
                                             }
                                         })
                                         ->disabled($isOwnProfile)
                                         ->dehydrated(! $isOwnProfile),
+                                    /*
+                                     * Last working day of the current or last
+                                     * period of service. It goes with the
+                                     * employment status, so it follows the same
+                                     * rule: whoever may change the status sets
+                                     * the date, and a teacher changes neither
+                                     * on their own profile. Both sit in the
+                                     * Settings section, so they are approved
+                                     * together where approval applies.
+                                     */
+                                    DatePicker::make('leaving_date')
+                                        ->label('Leaving Date')
+                                        ->helperText('Last working day. Read-only while the status is Active; choose another status to set it. Required for Retired, Resigned or Terminated.')
+                                        ->required(fn ($get): bool => ! $isOwnProfile
+                                            && in_array(
+                                                \App\Support\TeacherServicePeriods::statusSlug($get('employment_status_id')),
+                                                \App\Support\TeacherServicePeriods::LEAVING_DATE_REQUIRED,
+                                                true,
+                                            ))
+                                        ->rule(fn ($get): \Closure => function (string $attribute, $value, \Closure $fail) use ($get, $isOwnProfile): void {
+                                            if ($isOwnProfile) {
+                                                return;
+                                            }
+                                            $joined = $get('joining_date');
+                                            if (filled($value) && filled($joined) && substr((string) $value, 0, 10) < substr((string) $joined, 0, 10)) {
+                                                $fail('The leaving date is before the joining date. If the teacher has rejoined, clear the leaving date and set the new joining date.');
+                                            }
+                                        })
+                                        ->disabled(fn ($get): bool => $isOwnProfile
+                                            || \App\Support\TeacherServicePeriods::statusSlug($get('employment_status_id')) === 'active')
+                                        ->dehydrated(! $isOwnProfile),
+                                    \Filament\Forms\Components\Placeholder::make('service_periods')
+                                        ->label('Service at DIU')
+                                        ->visible(fn (?\App\Models\Teacher $record): bool => $record !== null)
+                                        ->content(fn (?\App\Models\Teacher $record): \Illuminate\Support\HtmlString => \App\Support\TeacherServicePeriods::describe($record)),
                                     Select::make('job_type_id')
                                         ->relationship('jobType', 'name')
                                         ->label('Job Type')
@@ -1555,6 +1620,7 @@ class TeacherForm
                     ->columnSpanFull(),
             ]);
     }
+
 
     /**
      * Every department a teacher is assigned to, as one read-only tag each.

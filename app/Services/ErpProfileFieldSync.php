@@ -166,6 +166,12 @@ class ErpProfileFieldSync
          */
         $teacher->saveQuietly();
 
+        // Saved quietly, so the observer does not see it: keep the periods
+        // of service in step here.
+        if (array_intersect($changed, ['joining_date', 'leaving_date'])) {
+            \App\Support\TeacherServicePeriods::sync($teacher, 'erp');
+        }
+
         return $this->result('updated', $changed, untouched: $untouched);
     }
 
