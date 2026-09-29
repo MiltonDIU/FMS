@@ -16,6 +16,8 @@ class TeacherVersion extends Model
         'teacher_id',
         'version_number',
         'data',
+        'previous_data',
+        'replaced_data',
         'change_summary',
         'status',
         'is_active',
@@ -34,6 +36,8 @@ class TeacherVersion extends Model
 
     protected $casts = [
         'data' => 'array',
+        'previous_data' => 'array',
+        'replaced_data' => 'array',
         'is_active' => 'boolean',
         'submitted_at' => 'datetime',
         'reviewed_at' => 'datetime',
@@ -108,6 +112,27 @@ class TeacherVersion extends Model
         return ($this->section_remarks ?? [])[$section] ?? null;
     }
 
+    /**
+     * What a decided section replaced: its state when it was approved or
+     * rejected, else when the change was submitted. Null when neither was
+     * recorded — versions created before the history was kept. A pending
+     * section has no stored "before"; compare it with the live profile.
+     */
+    public function beforeStateFor(string $section): ?array
+    {
+        return ($this->replaced_data ?? [])[$section]
+            ?? ($this->previous_data ?? [])[$section]
+            ?? null;
+    }
+
+    /** Whether this version is about the given user's own profile. */
+    public function belongsToUser(?User $user): bool
+    {
+        $teacherId = $user?->teacher?->id;
+
+        return $teacherId !== null && (int) $this->teacher_id === (int) $teacherId;
+    }
+
     // ==========================================
     // Relationships
     // ==========================================
@@ -157,6 +182,14 @@ class TeacherVersion extends Model
     }
 
     /**
+     * Scope to changes published without approval.
+     */
+    public function scopeAppliedDirectly($query)
+    {
+        return $query->where('status', 'applied_directly');
+    }
+
+    /**
      * Scope a query to only include active versions.
      */
     public function scopeActive($query)
@@ -172,5 +205,3 @@ class TeacherVersion extends Model
         return $query->whereJsonLength('pending_sections', '>', 0);
     }
 }
-
-

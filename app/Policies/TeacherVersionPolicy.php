@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
+use App\Models\User;
 use Illuminate\Foundation\Auth\User as AuthUser;
 use App\Models\TeacherVersion;
 use Illuminate\Auth\Access\HandlesAuthorization;
@@ -11,15 +12,22 @@ use Illuminate\Auth\Access\HandlesAuthorization;
 class TeacherVersionPolicy
 {
     use HandlesAuthorization;
-    
+
+    /**
+     * A teacher may list the history of their own profile — the resource
+     * limits the list to it — without holding ViewAny:TeacherVersion, which
+     * is what lets a reviewer see everyone's.
+     */
     public function viewAny(AuthUser $authUser): bool
     {
-        return $authUser->can('ViewAny:TeacherVersion');
+        return $authUser->can('ViewAny:TeacherVersion')
+            || ($authUser instanceof User && $authUser->teacher !== null);
     }
 
     public function view(AuthUser $authUser, TeacherVersion $teacherVersion): bool
     {
-        return $authUser->can('View:TeacherVersion');
+        return $authUser->can('View:TeacherVersion')
+            || ($authUser instanceof User && $teacherVersion->belongsToUser($authUser));
     }
 
     public function create(AuthUser $authUser): bool

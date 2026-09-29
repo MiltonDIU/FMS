@@ -2,10 +2,9 @@
 
 namespace App\Filament\Resources\TeacherVersions;
 
-use App\Filament\Resources\TeacherVersions\Pages\CreateTeacherVersion;
-use App\Filament\Resources\TeacherVersions\Pages\EditTeacherVersion;
 use App\Filament\Resources\TeacherVersions\Pages\ListTeacherVersions;
-use App\Filament\Resources\TeacherVersions\Schemas\TeacherVersionForm;
+use App\Filament\Resources\TeacherVersions\Pages\ViewTeacherVersion;
+use App\Filament\Resources\TeacherVersions\Schemas\TeacherVersionInfolist;
 use App\Filament\Resources\TeacherVersions\Tables\TeacherVersionsTable;
 use App\Models\TeacherVersion;
 use BackedEnum;
@@ -35,10 +34,44 @@ class TeacherVersionResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'change_summary';
 
+    /**
+     * Whether the signed-in user reviews everyone's changes, rather than only
+     * reading the history of their own profile.
+     */
+    public static function reviewsAllProfiles(): bool
+    {
+        return (bool) auth()->user()?->can('ViewAny:TeacherVersion');
+    }
+
+    /**
+     * A teacher without ViewAny:TeacherVersion is shown their own profile's
+     * versions and nobody else's.
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        if (! static::reviewsAllProfiles()) {
+            $query->where('teacher_id', auth()->user()?->teacher?->id ?? 0);
+        }
+
+        return $query;
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return static::reviewsAllProfiles() ? 'Pending Approvals' : 'My Profile History';
+    }
+
+    public static function getNavigationGroup(): string|UnitEnum|null
+    {
+        return static::reviewsAllProfiles() ? static::$navigationGroup : null;
+    }
+
     // Show badge with pending count
     public static function getNavigationBadge(): ?string
     {
-        $count = static::getModel()::where('status', 'pending')->count();
+        $count = static::getEloquentQuery()->where('status', 'pending')->count();
         return $count > 0 ? (string) $count : null;
     }
 
@@ -47,9 +80,13 @@ class TeacherVersionResource extends Resource
         return 'warning';
     }
 
-    public static function form(Schema $schema): Schema
+    /**
+     * Read-only. A version records what happened to a profile; there is no
+     * create or edit page, so the record cannot be rewritten afterwards.
+     */
+    public static function infolist(Schema $schema): Schema
     {
-        return TeacherVersionForm::configure($schema);
+        return TeacherVersionInfolist::configure($schema);
     }
 
     public static function table(Table $table): Table
@@ -68,8 +105,7 @@ class TeacherVersionResource extends Resource
     {
         return [
             'index' => ListTeacherVersions::route('/'),
-            'create' => CreateTeacherVersion::route('/create'),
-            'edit' => EditTeacherVersion::route('/{record}/edit'),
+            'view' => ViewTeacherVersion::route('/{record}'),
         ];
     }
 

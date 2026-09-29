@@ -5,7 +5,7 @@ namespace App\Filament\Resources\TeacherVersions\Tables;
 use App\Services\TeacherVersionService;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Notifications\Notification;
@@ -35,12 +35,14 @@ class TeacherVersionsTable
                     ->sortable(),
                 TextColumn::make('status')
                     ->badge()
+                    ->formatStateUsing(fn (string $state): string => \Illuminate\Support\Str::headline($state))
                     ->color(fn (string $state): string => match ($state) {
                         'pending' => 'warning',
                         'partially_approved' => 'info',
                         'approved' => 'success',
                         'completed' => 'success',
                         'rejected' => 'danger',
+                        'applied_directly' => 'gray',
                         default => 'gray',
                     })
                     ->searchable()
@@ -121,19 +123,20 @@ class TeacherVersionsTable
                         'approved' => 'Approved',
                         'completed' => 'Completed',
                         'rejected' => 'Rejected',
+                        'applied_directly' => 'Applied Directly',
                     ]),
             ])
             ->recordUrl(null) // Row click disable করা হলো
             ->recordAction(null) // Row click action disable করা হলো
             ->recordActions([
-                EditAction::make(),
+                ViewAction::make(),
 
                 // Section-Level Approve Action
                 Action::make('approve_sections')
                     ->label('Approve Sections')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
-                    ->visible(fn ($record) => !empty($record->pending_sections))
+                    ->visible(fn ($record) => self::canDecideAny($record))
                     ->modalHeading('Approve Sections')
                     ->modalDescription(fn ($record) => 'Select sections to approve. Data will be applied immediately.')
                     ->form(fn ($record) => [
@@ -175,7 +178,7 @@ class TeacherVersionsTable
                     ->label('Reject Sections')
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
-                    ->visible(fn ($record) => !empty($record->pending_sections))
+                    ->visible(fn ($record) => self::canDecideAny($record))
                     ->modalHeading('Reject Sections')
                     ->form(fn ($record) => [
                         \Filament\Forms\Components\CheckboxList::make('sections')
@@ -220,7 +223,7 @@ class TeacherVersionsTable
                     ->label('Approve All')
                     ->icon('heroicon-o-check-badge')
                     ->color('success')
-                    ->visible(fn ($record) => $record->status === 'pending')
+                    ->visible(fn ($record) => $record->status === 'pending' && self::canDecideAny($record))
                     ->requiresConfirmation()
                     ->modalHeading('Approve All Sections')
                     ->modalDescription('This will approve ALL pending sections at once.')
@@ -238,7 +241,7 @@ class TeacherVersionsTable
                     ->label('Reject All')
                     ->icon('heroicon-o-x-mark')
                     ->color('danger')
-                    ->visible(fn ($record) => $record->status === 'pending')
+                    ->visible(fn ($record) => $record->status === 'pending' && self::canDecideAny($record))
                     ->requiresConfirmation()
                     ->modalHeading('Reject All Sections')
                     ->form([
@@ -319,7 +322,28 @@ class TeacherVersionsTable
             ->defaultSort('created_at', 'desc');
     }
 
-    protected static function getComparisonFormSchema(\App\Models\TeacherVersion $record, array $sections, bool $showActions = true): array
+    /** Every section a version touched, including those of older versions. */
+    public static function sectionsOf(\App\Models\TeacherVersion $record): array
+    {
+        return array_values(array_unique(array_merge(
+            $record->changed_sections ?? [],
+            $record->pending_sections ?? [],
+            $record->approved_sections ?? [],
+            $record->rejected_sections ?? [],
+        )));
+    }
+
+    /** Whether the signed-in user may decide at least one pending section. */
+    public static function canDecideAny(\App\Models\TeacherVersion $record): bool
+    {
+        $service = app(TeacherVersionService::class);
+        $user = auth()->user();
+
+        return $user !== null && collect($record->pending_sections ?? [])
+            ->contains(fn (string $section): bool => $service->canUserApproveSection($user, $section, $record->teacher));
+    }
+
+    public static function getComparisonFormSchema(\App\Models\TeacherVersion $record, array $sections, bool $showActions = true): array
     {
         $schema = [];
         $comparisons = self::getComparisonData($record, $sections);
@@ -329,9 +353,17 @@ class TeacherVersionsTable
         foreach ($comparisons as $section => $data) {
             $isRelation = ($data['type'] ?? 'scalar') === 'relation';
 
-            // Check permission for this section
-            // User requested to completely HIDE the section if they don't have approval permission
-            if (!$service->canUserApproveSection($user, $section, $record->teacher)) {
+            // A pending change is shown to the approvers of its section, and
+            // read-only to the teacher whose profile it is. A decided change
+            // is history: shown to anyone who may view versions, and to the
+            // teacher it belongs to.
+            $canApprove = $service->canUserApproveSection($user, $section, $record->teacher);
+            $isOwner = $record->belongsToUser($user);
+            $mayView = $showActions
+                ? ($canApprove || $isOwner)
+                : ($isOwner || (bool) $user?->can('View:TeacherVersion'));
+
+            if (! $mayView) {
                 continue;
             }
 
@@ -364,6 +396,10 @@ class TeacherVersionsTable
                 }
             }
 
+            if ($data['unrecorded'] ?? false) {
+                $changeSummary .= ' · Earlier state not recorded (this version predates the change history)';
+            }
+
             $sectionComponent = Section::make(\Illuminate\Support\Str::headline($section))
                 ->description($changeSummary)
                 ->schema(function() use ($data, $isRelation, $section) {
@@ -375,7 +411,7 @@ class TeacherVersionsTable
                 ->collapsible();
 
             // Only show actions if explicitly requested AND user has permission
-            if ($showActions) {
+            if ($showActions && $canApprove) {
                 $sectionComponent->headerActions([
                     FormAction::make('approve_section_' . $section)
                         ->label('Approve')
@@ -526,9 +562,16 @@ class TeacherVersionsTable
     {
         $data = [];
         $teacher = $record->teacher;
+        $service = app(TeacherVersionService::class);
 
         foreach ($sections as $section) {
-            $oldData = self::getOldSectionData($teacher, $section);
+            // A pending section is compared with the profile as it is now; a
+            // decided one with what it actually replaced, kept on the version.
+            $oldData = $record->isSectionPending($section)
+                ? $service->sectionSnapshot($teacher, $section)
+                : $record->beforeStateFor($section);
+            $unrecorded = $oldData === null;
+            $oldData ??= [];
             $newData = self::getNewSectionData($record, $section);
 
             // Check if this is a relational list (indexed array)
@@ -543,13 +586,15 @@ class TeacherVersionsTable
                 $processed = self::pairRelationItems($oldData, $newData);
                 $data[$section] = [
                     'type' => 'relation',
-                    'items' => $processed
+                    'items' => $processed,
+                    'unrecorded' => $unrecorded,
                 ];
             } else {
                 $data[$section] = [
                     'type' => 'scalar',
                     'old' => $oldData,
-                    'new' => $newData
+                    'new' => $newData,
+                    'unrecorded' => $unrecorded,
                 ];
             }
         }
@@ -598,33 +643,6 @@ class TeacherVersionsTable
         }
 
         return $items;
-    }
-
-    protected static function getOldSectionData(\App\Models\Teacher $teacher, string $section)
-    {
-        $map = TeacherVersionService::FIELD_SECTION_MAP[$section] ?? [];
-        $relations = TeacherVersionService::RELATION_NAMES;
-
-        $fields = $map;
-
-        $relationFields = array_intersect($fields, $relations);
-
-        if (!empty($relationFields)) {
-            $relationName = reset($relationFields);
-            if (method_exists($teacher, $relationName)) {
-                $results = $teacher->$relationName()->get()->toArray();
-                return $results;
-            }
-            return [];
-        }
-
-        $data = [];
-        foreach ($fields as $field) {
-            if (!in_array($field, TeacherVersionService::MEDIA_FIELDS)) {
-                $data[$field] = $teacher->$field;
-            }
-        }
-        return $data;
     }
 
     protected static function getNewSectionData(\App\Models\TeacherVersion $version, string $section)

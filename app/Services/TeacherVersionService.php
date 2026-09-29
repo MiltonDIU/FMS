@@ -167,7 +167,7 @@ class TeacherVersionService
 
         // 3. If NO approval needed, just update everything directly
         if (empty($approvalSections)) {
-            $this->applyUpdates($teacher, $allData);
+            $this->applyDirectly($teacher, $allData, array_keys($changedSections));
             return true;
         }
 
@@ -182,7 +182,7 @@ class TeacherVersionService
                 }
             }
             $autoData = \Illuminate\Support\Arr::only($allData, $autoUpdateKeys);
-            $this->applyUpdates($teacher, $autoData);
+            $this->applyDirectly($teacher, $autoData, array_keys($autoUpdateSections));
         }
 
         // 4.2 Create version for Pending sections
@@ -460,6 +460,140 @@ class TeacherVersionService
         }
     }
 
+    /**
+     * Apply a change that needs no approval, and keep a record of it.
+     *
+     * An administrator's edit, or a section that does not require approval,
+     * used to change the profile and leave nothing behind: nobody could say
+     * afterwards what a field had been or who changed it. The sections are
+     * captured first, then written, then filed as an "applied_directly"
+     * version carrying both states.
+     */
+    private function applyDirectly(Teacher $teacher, array $data, array $sections): void
+    {
+        $before = $this->snapshotSections($teacher, $sections);
+
+        $this->applyUpdates($teacher, $data);
+
+        $this->recordDirectChange($teacher, $data, $sections, $before);
+    }
+
+    private function recordDirectChange(Teacher $teacher, array $data, array $sections, array $before): TeacherVersion
+    {
+        $fields = collect($sections)
+            ->flatMap(fn (string $section): array => self::FIELD_SECTION_MAP[$section] ?? [])
+            ->all();
+
+        $latestVersion = $teacher->versions()->latest('version_number')->first();
+
+        // The change is live now, so this record is the teacher's active
+        // version — the same as an approved one becomes.
+        TeacherVersion::where('teacher_id', $teacher->id)
+            ->where('is_active', true)
+            ->update(['is_active' => false]);
+
+        return TeacherVersion::create([
+            'teacher_id' => $teacher->id,
+            'version_number' => ($latestVersion?->version_number ?? 0) + 1,
+            'data' => Arr::only($data, $fields),
+            'previous_data' => $before,
+            'change_summary' => implode(', ', $sections),
+            'status' => 'applied_directly',
+            'is_active' => true,
+            'submitted_by' => auth()->id(),
+            'submitted_at' => now(),
+            'reviewed_by' => auth()->id(),
+            'reviewed_at' => now(),
+            'changed_sections' => $sections,
+            'pending_sections' => [],
+            'approved_sections' => $sections,
+            'rejected_sections' => [],
+            'section_remarks' => [],
+        ]);
+    }
+
+    /**
+     * Each section's current state, in the form the comparison screen reads.
+     *
+     * @return array<string, array>
+     */
+    private function snapshotSections(Teacher $teacher, array $sections): array
+    {
+        $snapshot = [];
+        foreach ($sections as $section) {
+            $snapshot[$section] = $this->sectionSnapshot($teacher, $section);
+        }
+
+        return $snapshot;
+    }
+
+    /**
+     * One section of the profile as it stands in the database.
+     *
+     * Read from the stored attributes rather than toArray(): a related row's
+     * toArray() writes its dates in UTC, so a date of 2 September is recorded
+     * as the 1st here (+06). JSON columns are decoded so they compare with
+     * what the form sends.
+     */
+    public function sectionSnapshot(Teacher $teacher, string $section): array
+    {
+        $fields = self::FIELD_SECTION_MAP[$section] ?? [];
+        $relation = collect($fields)->first(fn (string $field): bool => in_array($field, self::RELATION_NAMES, true));
+
+        if ($relation !== null) {
+            return $teacher->$relation()->get()
+                ->map(fn ($row): array => $this->storedAttributes($row))
+                ->values()
+                ->all();
+        }
+
+        $stored = $this->storedAttributes($teacher);
+        $data = [];
+        foreach ($fields as $field) {
+            if (in_array($field, self::MEDIA_FIELDS, true)) {
+                continue;
+            }
+
+            $data[$field] = in_array($field, self::PIVOT_RELATIONS, true)
+                ? $teacher->$field()->get()->pluck('id')->map(fn ($id): int => (int) $id)->all()
+                : ($stored[$field] ?? null);
+        }
+
+        return $data;
+    }
+
+    private function storedAttributes(\Illuminate\Database\Eloquent\Model $model): array
+    {
+        $attributes = $model->getAttributes();
+
+        foreach ($model->getCasts() as $key => $cast) {
+            if (is_string($attributes[$key] ?? null)
+                && in_array(strtolower((string) $cast), ['array', 'json', 'collection', 'object'], true)) {
+                $attributes[$key] = json_decode($attributes[$key], true);
+            }
+        }
+
+        if ($model->relationLoaded('pivot') && $model->getRelation('pivot')) {
+            $attributes['pivot'] = $model->getRelation('pivot')->getAttributes();
+        }
+
+        return $attributes;
+    }
+
+    /**
+     * Keep what each section held at the moment it is decided: what an
+     * approval replaces, or what a rejection left in place.
+     */
+    private function recordReplacedState(TeacherVersion $version, array $sections): void
+    {
+        $replaced = $version->replaced_data ?? [];
+        foreach ($sections as $section) {
+            $replaced[$section] = $this->sectionSnapshot($version->teacher, $section);
+        }
+
+        $version->update(['replaced_data' => $replaced]);
+    }
+
     private function getRelationshipFields(): array
     {
         return [
@@ -488,6 +622,8 @@ class TeacherVersionService
             'teacher_id' => $teacher->id,
             'version_number' => $newVersionNumber,
             'data' => $allData, // Store EVERYTHING
+            // The changed sections as they stood when the change was submitted
+            'previous_data' => $this->snapshotSections($teacher, $changedSectionNames),
             'change_summary' => implode(', ', $changedSectionNames),
             'status' => 'pending',
             'submitted_by' => auth()->id(),
@@ -564,6 +700,8 @@ class TeacherVersionService
              // Actually, the teacher profile is single source of truth.
              // So we just apply data. 
 
+             $this->recordReplacedState($version, $authorizedSections);
+
              // Move approved sections
              $currentPending = $version->pending_sections ?? [];
              $newPending = array_values(array_diff($currentPending, $authorizedSections));
@@ -625,6 +763,8 @@ class TeacherVersionService
             throw new \Exception("You do not have permission to reject any of the pending sections.");
         }
 
+        $this->recordReplacedState($version, $authorizedSections);
+
         // Move authorized pending sections to rejected
         $currentPending = $version->pending_sections ?? [];
         $newPending = array_values(array_diff($currentPending, $authorizedSections));
@@ -678,6 +818,8 @@ class TeacherVersionService
         }
 
         DB::transaction(function () use ($version, $section) {
+            $this->recordReplacedState($version, [$section]);
+
             // Move section from pending to approved
             $pendingSections = array_values(array_diff($version->pending_sections ?? [], [$section]));
             $approvedSections = array_merge($version->approved_sections ?? [], [$section]);
@@ -718,6 +860,8 @@ class TeacherVersionService
         }
 
         DB::transaction(function () use ($version, $section, $remarks) {
+            $this->recordReplacedState($version, [$section]);
+
             // Move section from pending to rejected
             $pendingSections = array_values(array_diff($version->pending_sections ?? [], [$section]));
             $rejectedSections = array_merge($version->rejected_sections ?? [], [$section]);
