@@ -380,6 +380,8 @@ class TeacherVersionsTable
                 if ($newCount) $parts[] = "$newCount New";
                 if ($modCount) $parts[] = "$modCount Modified";
                 if ($delCount) $parts[] = "$delCount Deleted";
+                $sameCount = collect($items)->where('status', 'unchanged')->count();
+                if ($sameCount) $parts[] = "$sameCount Unchanged";
 
                 $changeSummary = 'Changes: ' . (empty($parts) ? 'No Changes' : implode(', ', $parts));
             } else {
@@ -531,8 +533,42 @@ class TeacherVersionsTable
         return (string) $value;
     }
 
+    /**
+     * Whether a row differs from its earlier state, by the same rule the
+     * version service uses to detect a change: only fields both sides carry,
+     * ignoring keys, timestamps, pivot data and virtual form fields.
+     */
+    protected static function rowChanged(array $old, array $new): bool
+    {
+        $skip = [
+            'id', 'teacher_id', 'created_at', 'updated_at', 'deleted_at',
+            'pivot', 'laravel_through_key', 'teachers',
+            'authorable_type', 'authorable_id', 'publication_id', 'incentive_amount',
+            'first_author_id', 'corresponding_author_id', 'co_author_ids',
+        ];
+
+        foreach ($new as $key => $value) {
+            if (in_array($key, $skip, true) || str_starts_with((string) $key, '_') || ! array_key_exists($key, $old)) {
+                continue;
+            }
+
+            if (self::normalizeDiffValue($old[$key]) !== self::normalizeDiffValue($value)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     protected static function getRelationSchema(array $items, string $sectionKey): array
     {
+        // What changed comes first, so a long list does not hide it.
+        $order = ['new' => 0, 'modified' => 1, 'deleted' => 2, 'unchanged' => 3];
+        $items = collect($items)
+            ->sortBy(fn (array $item, int $index): array => [$order[$item['status']] ?? 9, $index])
+            ->values()
+            ->all();
+
         $components = [];
         foreach ($items as $index => $item) {
             $status = $item['status'];
@@ -552,7 +588,8 @@ class TeacherVersionsTable
                 })
                 ->schema(self::getScalarSchema($item['old'], $item['new'], $uniqueId))
                 ->collapsible()
-                ->collapsed(true)
+                // Open what changed; fold what did not.
+                ->collapsed($status === 'unchanged')
                 ->extraAttributes(['class' => "border-l-4 border-l-{$color}-500"]);
         }
         return $components;
@@ -612,10 +649,10 @@ class TeacherVersionsTable
         foreach ($new as $newItem) {
             $id = $newItem['id'] ?? null;
             if ($id && isset($oldKeyed[$id])) {
-                // Exists in old -> Modified (or Unchanged)
-                // We show it anyway to confirm state.
+                // Exists in old: modified only if a field actually differs,
+                // so the screen can open what changed and fold the rest.
                 $items[] = [
-                    'status' => 'modified',
+                    'status' => self::rowChanged($oldKeyed[$id], $newItem) ? 'modified' : 'unchanged',
                     'old' => $oldKeyed[$id],
                     'new' => $newItem,
                     'id' => $id
