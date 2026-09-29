@@ -39,12 +39,19 @@
         $facts = array_filter([
             'Journal / Conference' => $venue,
             'Published Year'       => $publication->publication_year,
+            'Published On'         => $publication->publication_date?->format('j M Y'),
             'Type'                 => optional($publication->type)->name,
+            'Indexed In'           => $publication->indexedIn(),
+            'Quartile'             => $publication->quartileLabel(),
             'Impact Factor'        => $publication->impact_factor,
             'CiteScore'            => $publication->citescore,
             'H-Index'              => $publication->h_index,
             'Research Area'        => $publication->research_area,
+            'Student Involvement'  => $publication->student_involvement ? 'Yes' : null,
             'Created By'           => $publication->created_by_name,
+            // Lists, set across the full width below the figures.
+            'Keywords'             => $publication->keywordList(),
+            'Read the Paper'       => $publication->publicLinks(),
         ], fn ($value) => filled($value));
 
         // The accent each figure has always been set in.
@@ -100,9 +107,24 @@
             @if(! empty($facts))
                 <dl class="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 text-xs ring-1 ring-slate-900/5">
                     @foreach($facts as $label => $value)
-                        <div class="min-w-0">
+                        <div class="min-w-0 {{ is_array($value) ? 'col-span-2 md:col-span-4' : '' }}">
                             <dt class="text-[10px] text-slate-400 font-bold uppercase">{{ $label }}</dt>
-                            @if($label === 'Research Area')
+                            @if($label === 'Keywords')
+                                <dd class="flex flex-wrap gap-1.5 mt-1.5">
+                                    @foreach($value as $keyword)
+                                        <span class="text-[11px] font-semibold text-slate-700 bg-white border border-slate-200 px-2 py-0.5 rounded-md">{{ $keyword }}</span>
+                                    @endforeach
+                                </dd>
+                            @elseif($label === 'Read the Paper')
+                                <dd class="flex flex-wrap gap-x-4 gap-y-1 mt-1.5">
+                                    @foreach($value as $linkLabel => $url)
+                                        <a href="{{ $url }}" target="_blank" rel="noopener" class="font-semibold text-diu-primary hover:text-diu-accent hover:underline inline-flex items-center gap-1" style="overflow-wrap: anywhere;">
+                                            {{ $linkLabel }}
+                                            <svg class="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg>
+                                        </a>
+                                    @endforeach
+                                </dd>
+                            @elseif($label === 'Research Area')
                                 <dd class="text-xs font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md inline-block mt-1">{{ $value }}</dd>
                             @elseif($label === 'Published Year')
                                 <dd class="font-semibold text-slate-800 mt-1 flex items-center gap-1">

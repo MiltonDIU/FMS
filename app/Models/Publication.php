@@ -262,6 +262,82 @@ class Publication extends Model
     }
 
     /**
+     * Where the paper is indexed, for a public page.
+     *
+     * "Non-Indexed" is a value on the record, but printed on the paper's own
+     * page it says nothing a reader can use, so it is left out like an empty one.
+     */
+    public function indexedIn(): ?string
+    {
+        $name = $this->linkage?->name;
+
+        return filled($name) && strcasecmp(trim($name), 'Non-Indexed') !== 0 ? $name : null;
+    }
+
+    /** The quartile, without the "N/A" placeholder every unranked paper carries. */
+    public function quartileLabel(): ?string
+    {
+        $name = $this->quartile?->name;
+
+        return filled($name) && strcasecmp(trim($name), 'N/A') !== 0 ? $name : null;
+    }
+
+    /**
+     * The keywords as a list.
+     *
+     * They were typed by hand and imported from several sources, so the
+     * separator is a comma in one record and a semicolon in the next, with
+     * stray padding either side. A record with no separator at all stays one
+     * entry rather than being guessed apart at its spaces.
+     *
+     * @return array<int, string>
+     */
+    public function keywordList(): array
+    {
+        if (blank($this->keywords)) {
+            return [];
+        }
+
+        return collect(preg_split('/[,;]/', (string) $this->keywords))
+            ->map(fn ($keyword) => trim(preg_replace('/\s+/', ' ', $keyword), " \t\n\r\0\x0B.>\"'"))
+            ->filter()
+            ->unique(fn ($keyword) => mb_strtolower($keyword))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Where else the paper can be read, as label => URL.
+     *
+     * Only links that will open: a journal link that is not a web address
+     * (a few hundred are bare text) is not offered as one.
+     *
+     * @return array<string, string>
+     */
+    public function publicLinks(): array
+    {
+        $links = [];
+
+        if (filled($this->doi)) {
+            $doi = preg_replace('#^(https?://(dx\.)?doi\.org/|doi:\s*)#i', '', trim($this->doi));
+            $links['DOI: ' . $doi] = 'https://doi.org/' . $doi;
+        }
+
+        if (filled($this->journal_link) && preg_match('#^https?://#i', trim($this->journal_link))
+            && ! in_array(rtrim(trim($this->journal_link), '/'), array_map(fn ($url) => rtrim($url, '/'), $links), true)) {
+            $url = trim($this->journal_link);
+            $host = preg_replace('/^www\./i', '', (string) parse_url($url, PHP_URL_HOST));
+            $links[$host ?: 'Publisher page'] = $url;
+        }
+
+        if (filled($this->scopus_eid)) {
+            $links['Scopus'] = 'https://www.scopus.com/record/display.uri?eid=' . rawurlencode(trim($this->scopus_eid)) . '&origin=resultslist';
+        }
+
+        return $links;
+    }
+
+    /**
      * Publications that fall inside a date range, including the ones that only
      * know their year.
      *

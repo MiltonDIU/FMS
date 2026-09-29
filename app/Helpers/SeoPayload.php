@@ -303,7 +303,10 @@ class SeoPayload
                 'datePublished' => $publication->publication_date?->format('Y-m-d')
                     ?: ($publication->publication_year ? (string) $publication->publication_year : null),
                 'abstract' => static::clean($publication->abstract, 500) ?: null,
-                'keywords' => filled($publication->keywords) ? $publication->keywords : null,
+                'keywords' => implode(', ', $publication->keywordList()) ?: null,
+                // The paper's other homes — DOI, publisher, Scopus — tell a
+                // search engine this page and those are the same work.
+                'sameAs' => array_values($publication->publicLinks()) ?: null,
                 'isPartOf' => $venue ? ['@type' => 'Periodical', 'name' => $venue] : null,
                 'publisher' => static::organisation(),
                 'breadcrumb' => static::breadcrumb([

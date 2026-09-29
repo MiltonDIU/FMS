@@ -41,7 +41,7 @@ class PublicationController extends Controller
             abort(404);
         }
 
-        $publication->load('creator', 'teachers.department.faculty');
+        $publication->load('creator', 'type', 'linkage', 'quartile', 'teachers.department.faculty');
 
         // Build citations here (kept out of the view for separation of concerns)
         $authors = trim($teacher->first_name . ' ' . $teacher->last_name);

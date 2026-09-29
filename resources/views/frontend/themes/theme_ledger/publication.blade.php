@@ -46,11 +46,17 @@
         $facts = array_filter([
             'Journal / Conference' => $venue,
             'Year'                 => $publication->publication_year,
+            'Published on'         => $publication->publication_date?->format('j M Y'),
             'Type'                 => optional($publication->type)->name,
+            'Indexed in'           => $publication->indexedIn(),
+            'Quartile'             => $publication->quartileLabel(),
             'Research area'        => $publication->research_area,
             'Impact factor'        => $publication->impact_factor,
             'CiteScore'            => $publication->citescore,
             'H-index'              => $publication->h_index,
+            'Student involvement'  => $publication->student_involvement ? 'Yes' : null,
+            'Keywords'             => $publication->keywordList(),
+            'Read the paper'       => $publication->publicLinks(),
             'Recorded by'          => $publication->created_by_name,
         ], fn ($value) => filled($value));
 
@@ -110,7 +116,15 @@
                     @foreach($facts as $label => $value)
                         <div class="pair" style="grid-template-columns: 8.5rem minmax(0, 1fr);">
                             <dt>{{ $label }}</dt>
-                            <dd>{{ $value }}</dd>
+                            @if(is_array($value) && ! array_is_list($value))
+                                <dd class="space-y-1">
+                                    @foreach($value as $linkLabel => $url)
+                                        <a href="{{ $url }}" target="_blank" rel="noopener" class="block hover:underline" style="overflow-wrap: anywhere;">{{ $linkLabel }} &nearr;</a>
+                                    @endforeach
+                                </dd>
+                            @else
+                                <dd>{{ is_array($value) ? implode(', ', $value) : $value }}</dd>
+                            @endif
                         </div>
                     @endforeach
                 </dl>
