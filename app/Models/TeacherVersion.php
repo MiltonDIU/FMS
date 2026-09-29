@@ -125,6 +125,33 @@ class TeacherVersion extends Model
             ?? null;
     }
 
+    /**
+     * Whether the version holds the whole profile rather than only the
+     * sections it changed: every repeated section is present in its data.
+     */
+    public function isFullSnapshot(): bool
+    {
+        $data = $this->data ?? [];
+
+        foreach (TeacherVersionService::RELATION_NAMES as $relation) {
+            if (! array_key_exists($relation, $data)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Whether the profile can be rolled back to this version: an approved
+     * one (it holds the whole submitted form) or a full snapshot.
+     */
+    public function isRestorable(): bool
+    {
+        return in_array($this->status, ['approved', 'partially_approved', 'completed'], true)
+            || ($this->status === 'applied_directly' && $this->isFullSnapshot());
+    }
+
     /** Whether this version is about the given user's own profile. */
     public function belongsToUser(?User $user): bool
     {

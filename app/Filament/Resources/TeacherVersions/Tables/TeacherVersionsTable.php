@@ -50,6 +50,14 @@ class TeacherVersionsTable
                 IconColumn::make('is_active')
                     ->boolean()
                     ->label('Active'),
+                TextColumn::make('restore_point')
+                    ->label('Restore point')
+                    ->state(fn ($record): ?string => $record->isRestorable()
+                        ? ($record->status === 'applied_directly' ? 'Full snapshot' : 'Yes')
+                        : null)
+                    ->badge()
+                    ->color('info')
+                    ->placeholder('—'),
                 // Section status columns
                 TextColumn::make('pending_sections')
                     ->label('Pending')
@@ -116,6 +124,17 @@ class TeacherVersionsTable
             ])
             ->filters([
                 TrashedFilter::make(),
+                // Thousands of versions once teachers are live: find one
+                // teacher's by typing their name or employee id. Options are
+                // searched, not preloaded. A teacher only ever sees their own,
+                // so the filter is for reviewers.
+                SelectFilter::make('teacher')
+                    ->label('Teacher')
+                    ->relationship('teacher', 'first_name')
+                    ->searchable(['first_name', 'middle_name', 'last_name', 'employee_id'])
+                    ->getOptionLabelFromRecordUsing(fn (\App\Models\Teacher $record): string => $record->display_name
+                        . ($record->employee_id ? " ({$record->employee_id})" : ''))
+                    ->visible(fn (): bool => \App\Filament\Resources\TeacherVersions\TeacherVersionResource::reviewsAllProfiles()),
                 SelectFilter::make('status')
                     ->options([
                         'pending' => 'Pending',
@@ -268,11 +287,11 @@ class TeacherVersionsTable
                     // approve/reject, the service does no authorisation of its
                     // own, so status alone was the only thing gating it.
                     ->visible(fn ($record) => auth()->user()?->can('Update:TeacherVersion')
-                        && in_array($record->status, ['approved', 'partially_approved', 'completed'])
+                        && $record->isRestorable()
                         && !$record->is_active)
                     ->requiresConfirmation()
-                    ->modalHeading('Activate Version (Rollback)')
-                    ->modalDescription('This will restore the teacher profile to this version\'s COMPLETE state. All data from this version will be applied.')
+                    ->modalHeading(fn ($record) => "Roll back to version {$record->version_number}?")
+                    ->modalDescription('Every section of the profile returns to how it was at this version, except Publications, which the research team manages. Changes made since — including any from the ERP or made by an administrator — are undone. The rollback itself is recorded and the teacher is notified. Open the version first to see exactly what will change.')
                     ->action(function ($record) {
                         app(TeacherVersionService::class)->activateVersion($record);
                         Notification::make()
@@ -320,6 +339,55 @@ class TeacherVersionsTable
                 ]),
             ])
             ->defaultSort('created_at', 'desc');
+    }
+
+    /**
+     * The whole profile as a restore point holds it, section by section,
+     * beside the profile as it is now: what a rollback to it would change.
+     * Sections that match are folded. Publications are shown but a rollback
+     * leaves them alone.
+     */
+    public static function getFullProfileSchema(\App\Models\TeacherVersion $record): array
+    {
+        $service = app(TeacherVersionService::class);
+        $teacher = $record->teacher;
+        $held = array_keys($record->data ?? []);
+        $labels = ['Profile now', 'At this version'];
+        $schema = [];
+
+        foreach (TeacherVersionService::FIELD_SECTION_MAP as $section => $fields) {
+            if (! array_intersect($fields, $held)) {
+                continue;
+            }
+
+            $now = $service->sectionSnapshot($teacher, $section);
+            $then = self::getNewSectionData($record, $section);
+
+            if (array_intersect($fields, TeacherVersionService::RELATION_NAMES)) {
+                $items = self::pairRelationItems($now, $then);
+                $differs = collect($items)->contains(fn (array $item): bool => $item['status'] !== 'unchanged');
+                $components = self::getRelationSchema($items, 'full_' . $section, $labels);
+            } else {
+                $now = array_intersect_key($now, $then);
+                $differs = collect($then)->contains(
+                    fn ($value, $key): bool => self::normalizeDiffValue($now[$key] ?? null) !== self::normalizeDiffValue($value)
+                );
+                $components = self::getScalarSchema($now, $then, 'full_' . $section, $labels);
+            }
+
+            $note = $differs ? 'Differs from the profile now' : 'Same as the profile now';
+            if (in_array($section, TeacherVersionService::ROLLBACK_EXCLUDED_SECTIONS, true)) {
+                $note .= ' · not restored by a rollback (managed by the research team)';
+            }
+
+            $schema[] = Section::make(\Illuminate\Support\Str::headline($section))
+                ->description($note)
+                ->schema($components)
+                ->collapsible()
+                ->collapsed(! $differs);
+        }
+
+        return $schema;
     }
 
     /** Every section a version touched, including those of older versions. */
@@ -404,11 +472,17 @@ class TeacherVersionsTable
 
             $sectionComponent = Section::make(\Illuminate\Support\Str::headline($section))
                 ->description($changeSummary)
-                ->schema(function() use ($data, $isRelation, $section) {
+                ->schema(function() use ($data, $isRelation, $section, $record) {
+                    // A pending change is set against the profile as it is; a
+                    // decided one against what it replaced.
+                    $labels = $record->isSectionPending($section)
+                        ? ['Current data', 'Proposed changes']
+                        : ['Before', 'After'];
+
                     if ($isRelation) {
-                        return self::getRelationSchema($data['items'], $section);
+                        return self::getRelationSchema($data['items'], $section, $labels);
                     }
-                    return self::getScalarSchema($data['old'], $data['new'], $section);
+                    return self::getScalarSchema($data['old'], $data['new'], $section, $labels);
                 })
                 ->collapsible();
 
@@ -441,7 +515,7 @@ class TeacherVersionsTable
         return $schema;
     }
 
-    protected static function getScalarSchema(array $old, array $new, string $uniqueId = ''): array
+    protected static function getScalarSchema(array $old, array $new, string $uniqueId = '', array $labels = ['Current data', 'Proposed changes']): array
     {
         $keys = array_unique(array_merge(array_keys($old), array_keys($new)));
         // Filter out system keys
@@ -454,11 +528,12 @@ class TeacherVersionsTable
             $newVal = $new[$key] ?? null;
             $hasChanged = self::normalizeDiffValue($oldVal) !== self::normalizeDiffValue($newVal);
 
+            // Compared by id, shown by name: "Gender: Female", not "Gender Id: 2".
             $rows[] = [
                 'key' => $key,
-                'label' => \Illuminate\Support\Str::headline($key),
-                'old' => self::formatDiffValue($oldVal),
-                'new' => self::formatDiffValue($newVal),
+                'label' => \Illuminate\Support\Str::headline(preg_replace('/_id$/', '', (string) $key)),
+                'old' => self::formatDiffValue(self::displayValue((string) $key, $oldVal)),
+                'new' => self::formatDiffValue(self::displayValue((string) $key, $newVal)),
                 'status' => match (true) {
                     !$hasChanged => 'same',
                     blank($oldVal) && filled($newVal) => 'added',
@@ -472,6 +547,8 @@ class TeacherVersionsTable
             View::make('filament.modals.teacher-version-diff')
                 ->viewData([
                     'rows' => $rows,
+                    'oldLabel' => $labels[0],
+                    'newLabel' => $labels[1],
                     'uid' => 'teacher-version-diff-' . md5($uniqueId ?: implode('|', $keys)),
                 ]),
         ];
@@ -514,6 +591,75 @@ class TeacherVersionsTable
         }
 
         return $stringValue;
+    }
+
+    /**
+     * Foreign keys found in versioned data, with the model and column that
+     * name them. The comparison still decides "changed" on the ids; only what
+     * is shown is the name.
+     */
+    protected const LOOKUPS = [
+        'department_id' => [\App\Models\Department::class, 'name'],
+        'faculty_id' => [\App\Models\Faculty::class, 'name'],
+        'designation_id' => [\App\Models\Designation::class, 'name'],
+        'name_prefix_id' => [\App\Models\NamePrefix::class, 'name'],
+        'gender_id' => [\App\Models\Gender::class, 'name'],
+        'blood_group_id' => [\App\Models\BloodGroup::class, 'name'],
+        'country_id' => [\App\Models\Country::class, 'name'],
+        'religion_id' => [\App\Models\Religion::class, 'name'],
+        'employment_status_id' => [\App\Models\EmploymentStatus::class, 'name'],
+        'job_type_id' => [\App\Models\JobType::class, 'name'],
+        'degree_type_id' => [\App\Models\DegreeType::class, 'name'],
+        'result_type_id' => [\App\Models\ResultType::class, 'type_name'],
+        'major_id' => [\App\Models\Major::class, 'name'],
+        'position_id' => [\App\Models\Position::class, 'name'],
+        'organization_id' => [\App\Models\Organization::class, 'name'],
+        'educational_institution_id' => [\App\Models\Organization::class, 'name'],
+        'awarding_body_organization_id' => [\App\Models\Organization::class, 'name'],
+        'membership_organization_id' => [\App\Models\Organization::class, 'name'],
+        'membership_type_id' => [\App\Models\MembershipType::class, 'name'],
+        'social_media_platform_id' => [\App\Models\SocialMediaPlatform::class, 'name'],
+        'publication_type_id' => [\App\Models\PublicationType::class, 'name'],
+        'publication_quartile_id' => [\App\Models\PublicationQuartile::class, 'name'],
+        'publication_linkage_id' => [\App\Models\PublicationLinkage::class, 'name'],
+        'grant_type_id' => [\App\Models\GrantType::class, 'name'],
+        'research_collaboration_id' => [\App\Models\ResearchCollaboration::class, 'name'],
+    ];
+
+    /** A value as a reader should see it: a lookup id becomes its name. */
+    protected static function displayValue(string $key, mixed $value): mixed
+    {
+        if ($key === 'academicSuffixes' && is_array($value)) {
+            return implode(', ', array_map(
+                fn ($id): string => self::lookupName(\App\Models\AcademicSuffix::class, 'name', $id),
+                array_filter($value, fn ($id): bool => filled($id)),
+            ));
+        }
+
+        if (! isset(self::LOOKUPS[$key]) || blank($value) || is_array($value)) {
+            return $value;
+        }
+
+        [$class, $column] = self::LOOKUPS[$key];
+
+        return self::lookupName($class, $column, $value);
+    }
+
+    /**
+     * One lookup row's name, fetched once per request whatever the number of
+     * rows showing it. Soft-deleted rows still resolve; a missing one says so.
+     */
+    protected static function lookupName(string $class, string $column, mixed $id): string
+    {
+        static $names = [];
+        $cacheKey = "{$class}:{$id}";
+
+        if (! array_key_exists($cacheKey, $names)) {
+            $name = $class::withoutGlobalScopes()->whereKey($id)->value($column);
+            $names[$cacheKey] = filled($name) ? (string) $name : "#{$id} (not found)";
+        }
+
+        return $names[$cacheKey];
     }
 
     protected static function formatDiffValue(mixed $value): string
@@ -560,7 +706,7 @@ class TeacherVersionsTable
         return false;
     }
 
-    protected static function getRelationSchema(array $items, string $sectionKey): array
+    protected static function getRelationSchema(array $items, string $sectionKey, array $labels = ['Current data', 'Proposed changes']): array
     {
         // What changed comes first, so a long list does not hide it.
         $order = ['new' => 0, 'modified' => 1, 'deleted' => 2, 'unchanged' => 3];
@@ -586,7 +732,7 @@ class TeacherVersionsTable
                     $val = !empty($item['new']) ? $item['new'] : $item['old'];
                     return $val['institution'] ?? $val['name'] ?? $val['title'] ?? '-';
                 })
-                ->schema(self::getScalarSchema($item['old'], $item['new'], $uniqueId))
+                ->schema(self::getScalarSchema($item['old'], $item['new'], $uniqueId, $labels))
                 ->collapsible()
                 // Open what changed; fold what did not.
                 ->collapsed($status === 'unchanged')

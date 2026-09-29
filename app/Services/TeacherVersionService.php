@@ -124,7 +124,7 @@ class TeacherVersionService
      *
      * @return bool True if changes were detected and processed, false if no changes
      */
-    public function handleUpdateFromForm(Teacher $teacher, array $allData, bool $skipApproval = false): bool
+    public function handleUpdateFromForm(Teacher $teacher, array $allData, bool $skipApproval = false, bool $fullSnapshot = false): bool
     {
         // DEBUG: Log incoming data keys to verify relations are included
         \Log::info('TeacherVersionService: Incoming data keys', [
@@ -167,7 +167,14 @@ class TeacherVersionService
 
         // 3. If NO approval needed, just update everything directly
         if (empty($approvalSections)) {
-            $this->applyDirectly($teacher, $allData, array_keys($changedSections));
+            // A full snapshot when asked for, or when the teacher has no
+            // restore point yet, so every profile has at least one.
+            $this->applyDirectly(
+                $teacher,
+                $allData,
+                array_keys($changedSections),
+                $fullSnapshot || ! $this->hasRestorePoint($teacher),
+            );
             return true;
         }
 
@@ -449,15 +456,6 @@ class TeacherVersionService
                 }
             }
         });
-
-        // Notify if Third Party Update
-        if (auth()->check() && $teacher->user && auth()->id() !== $teacher->user_id) {
-            try {
-                $teacher->user->notify(new \App\Notifications\TeacherProfileUpdatedByAdmin($teacher, auth()->user()));
-            } catch (\Exception $e) {
-                \Log::error('Failed to send TeacherProfileUpdatedByAdmin notification: ' . $e->getMessage());
-            }
-        }
     }
 
     /**
@@ -469,16 +467,69 @@ class TeacherVersionService
      * captured first, then written, then filed as an "applied_directly"
      * version carrying both states.
      */
-    private function applyDirectly(Teacher $teacher, array $data, array $sections): void
+    private function applyDirectly(Teacher $teacher, array $data, array $sections, bool $fullSnapshot = false): void
     {
         $before = $this->snapshotSections($teacher, $sections);
 
         $this->applyUpdates($teacher, $data);
 
-        $this->recordDirectChange($teacher, $data, $sections, $before);
+        $version = $this->recordDirectChange($teacher, $data, $sections, $before, $fullSnapshot);
+
+        $this->notifyTeacherOfDirectChange($teacher, $version);
     }
 
-    private function recordDirectChange(Teacher $teacher, array $data, array $sections, array $before): TeacherVersion
+    /**
+     * Tell the teacher when someone else changed their profile, naming the
+     * sections and linking to the record of the change. Sent after the record
+     * exists; it used to go out before, with nothing to link to.
+     */
+    private function notifyTeacherOfDirectChange(Teacher $teacher, TeacherVersion $version): void
+    {
+        if (! auth()->check() || ! $teacher->user || auth()->id() === $teacher->user_id) {
+            return;
+        }
+
+        try {
+            $teacher->user->notify(new \App\Notifications\TeacherProfileUpdatedByAdmin($teacher, auth()->user(), $version));
+        } catch (\Exception $e) {
+            \Log::error('Failed to send TeacherProfileUpdatedByAdmin notification: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Whether the teacher already has a version the profile can be rolled
+     * back to. Until there is one, a direct save keeps a full snapshot on its
+     * own, so every profile gets at least one restore point.
+     */
+    private function hasRestorePoint(Teacher $teacher): bool
+    {
+        return TeacherVersion::where('teacher_id', $teacher->id)
+            ->where(function ($query) {
+                $query->whereIn('status', ['approved', 'partially_approved', 'completed'])
+                    ->orWhere(function ($query) {
+                        $query->where('status', 'applied_directly');
+                        foreach (self::RELATION_NAMES as $relation) {
+                            $query->whereNotNull("data->{$relation}");
+                        }
+                    });
+            })
+            ->exists();
+    }
+
+    /**
+     * Keep the whole profile as a restore point without changing anything —
+     * asked for on a save that had nothing to change.
+     */
+    public function recordFullSnapshot(Teacher $teacher, array $data): TeacherVersion
+    {
+        return $this->recordDirectChange($teacher, $data, [], [], true);
+    }
+
+    /**
+     * $fullSnapshot keeps the whole form rather than only the changed
+     * sections, which makes the version a restore point.
+     */
+    private function recordDirectChange(Teacher $teacher, array $data, array $sections, array $before, bool $fullSnapshot = false): TeacherVersion
     {
         $fields = collect($sections)
             ->flatMap(fn (string $section): array => self::FIELD_SECTION_MAP[$section] ?? [])
@@ -495,9 +546,9 @@ class TeacherVersionService
         return TeacherVersion::create([
             'teacher_id' => $teacher->id,
             'version_number' => ($latestVersion?->version_number ?? 0) + 1,
-            'data' => Arr::only($data, $fields),
+            'data' => $fullSnapshot ? $data : Arr::only($data, $fields),
             'previous_data' => $before,
-            'change_summary' => implode(', ', $sections),
+            'change_summary' => $sections ? implode(', ', $sections) : 'Full snapshot',
             'status' => 'applied_directly',
             'is_active' => true,
             'submitted_by' => auth()->id(),
@@ -1042,41 +1093,90 @@ class TeacherVersionService
     }
 
     /**
-     * Activate any approved version (rollback feature)
-     * This allows restoring the teacher profile to any previous version's state
+     * Sections a rollback leaves alone. A publication belongs to every one of
+     * its authors and is kept by the research team; rolling one teacher back
+     * must not detach papers added to their profile since.
+     */
+    public const ROLLBACK_EXCLUDED_SECTIONS = ['publications'];
+
+    /**
+     * Roll the profile back to a restore point: every section it holds,
+     * except those rejected in it and the publications.
+     *
+     * The rollback is a change like any other, so it is recorded as one —
+     * who did it, when, and what each section held before — and the teacher
+     * is told, with a link to it.
      */
     public function activateVersion(TeacherVersion $version): void
     {
-        // Allow activating approved, partially_approved, or completed versions
-        if (!in_array($version->status, ['approved', 'partially_approved', 'completed'])) {
-            throw new \Exception('Only approved/completed versions can be activated for rollback.');
+        if (! $version->isRestorable()) {
+            throw new \Exception('This version holds only the sections it changed, so the profile cannot be restored to it.');
         }
 
-        \Log::info('activateVersion called (rollback)', [
-            'version_id' => $version->id,
-            'version_number' => $version->version_number,
-        ]);
+        $teacher = $version->teacher;
+        $sections = array_values(array_diff(
+            array_keys(self::FIELD_SECTION_MAP),
+            $version->rejected_sections ?? [],
+            self::ROLLBACK_EXCLUDED_SECTIONS,
+        ));
 
-        DB::transaction(function () use ($version) {
-            // Deactivate current active version
-            TeacherVersion::where('teacher_id', $version->teacher_id)
+        $record = DB::transaction(function () use ($version, $teacher, $sections) {
+            $before = $this->snapshotSections($teacher, $sections);
+
+            foreach ($sections as $section) {
+                $this->applySectionData($version, $section);
+            }
+
+            $after = $this->snapshotSections($teacher->fresh(), $sections);
+            $changed = array_values(array_filter(
+                $sections,
+                fn (string $section): bool => json_encode($this->withoutTimestamps($before[$section]))
+                    !== json_encode($this->withoutTimestamps($after[$section])),
+            ));
+
+            TeacherVersion::where('teacher_id', $teacher->id)
                 ->where('is_active', true)
                 ->update(['is_active' => false]);
-            
-            // Activate this version
-            $version->update([
-                'is_active' => true,
-            ]);
-            
-            // Apply Data to Teacher (same logic as approveVersion)
-            $this->applyVersionData($version);
-            
-            \Log::info('activateVersion complete (rollback)', [
-                'version_id' => $version->id,
+
+            $version->update(['is_active' => true]);
+
+            $fields = collect($changed)
+                ->flatMap(fn (string $section): array => self::FIELD_SECTION_MAP[$section] ?? [])
+                ->all();
+            $latestVersion = $teacher->versions()->latest('version_number')->first();
+
+            return TeacherVersion::create([
+                'teacher_id' => $teacher->id,
+                'version_number' => ($latestVersion?->version_number ?? 0) + 1,
+                'data' => Arr::only($version->data ?? [], $fields),
+                'previous_data' => Arr::only($before, $changed),
+                'change_summary' => "Rollback to version {$version->version_number}",
+                'status' => 'applied_directly',
+                'is_active' => false,
+                'submitted_by' => auth()->id(),
+                'submitted_at' => now(),
+                'reviewed_by' => auth()->id(),
+                'reviewed_at' => now(),
+                'changed_sections' => $changed,
+                'pending_sections' => [],
+                'approved_sections' => $changed,
+                'rejected_sections' => [],
+                'section_remarks' => [],
             ]);
         });
+
+        $this->notifyTeacherOfDirectChange($teacher, $record);
     }
 
+    /** A snapshot without the timestamps a rewrite of the same rows changes. */
+    private function withoutTimestamps(array $snapshot): array
+    {
+        $strip = fn (array $row): array => array_diff_key($row, array_flip(['created_at', 'updated_at']));
+
+        return array_is_list($snapshot)
+            ? array_map(fn ($row) => is_array($row) ? $strip($row) : $row, $snapshot)
+            : $strip($snapshot);
+    }
     /**
      * Apply version data to teacher profile
      * PUBLIC method - can be called from model observer or controller

@@ -1542,6 +1542,17 @@ class TeacherForm
                                     )),
                             ]),
                     ])->columnSpanFull(),
+
+                // On the administrator's edit page only: keep this save as a
+                // full restore point. Not a teacher column, never saved.
+                \Filament\Forms\Components\Checkbox::make('save_full_snapshot')
+                    ->label('Save a full snapshot of this profile (restore point)')
+                    ->helperText('Keeps the whole profile as it stands after this save, so it can be rolled back to later. Without it, only the sections you change are recorded.')
+                    ->default(false)
+                    ->dehydrated(false)
+                    ->visible(fn ($livewire): bool => $livewire instanceof \App\Filament\Resources\Teachers\Pages\EditTeacher
+                        && $livewire->canSaveFullSnapshot())
+                    ->columnSpanFull(),
             ]);
     }
 

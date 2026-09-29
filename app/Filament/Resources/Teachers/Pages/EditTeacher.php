@@ -88,7 +88,16 @@ class EditTeacher extends EditRecord
 
             // Direct update, or a version waiting for approval — unless an
             // administrator is making the change, in which case it applies now.
-            $changed = $service->handleUpdateFromForm($this->record, $data, $this->editorSkipsApproval());
+            // The "full snapshot" box is not a teacher column: read it from
+            // the form, and only for an editor whose changes apply directly.
+            $fullSnapshot = $this->canSaveFullSnapshot() && (bool) data_get($this->data, 'save_full_snapshot');
+
+            $changed = $service->handleUpdateFromForm($this->record, $data, $this->editorSkipsApproval(), $fullSnapshot);
+
+            // A restore point asked for on a save that changed nothing.
+            if ($fullSnapshot && ! $changed) {
+                $service->recordFullSnapshot($this->record, $data);
+            }
 
             $pending = \App\Models\TeacherVersion::where('teacher_id', $this->record->id)
                 ->where('id', '>', $lastVersionId)
@@ -115,10 +124,11 @@ class EditTeacher extends EditRecord
                         . '. The profile keeps its current values until this is approved.')
                     ->persistent()
                     ->send();
-            } elseif ($changed) {
+            } elseif ($changed || $fullSnapshot) {
                 \Filament\Notifications\Notification::make()
                     ->success()
-                    ->title('Profile saved')
+                    ->title($changed ? 'Profile saved' : 'Full snapshot saved')
+                    ->body($fullSnapshot ? 'A full snapshot of the profile was kept as a restore point.' : null)
                     ->send();
             } else {
                 \Filament\Notifications\Notification::make()
@@ -158,6 +168,16 @@ class EditTeacher extends EditRecord
         return $user !== null
             && $user->hasAnyRole(['super_admin', 'admin'])
             && $this->record->user_id !== $user->id;
+    }
+
+    /**
+     * Whether this editor may keep a save as a full snapshot — a restore
+     * point the profile can later be rolled back to. Offered where changes
+     * apply directly; a teacher's own submissions already keep the whole form.
+     */
+    public function canSaveFullSnapshot(): bool
+    {
+        return $this->editorSkipsApproval();
     }
 
     /** Headings for the repeater tabs, as they read on the form. */

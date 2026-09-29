@@ -279,7 +279,8 @@
         <div class="tv-diff__header">
             <div class="tv-diff__title">
                 <span>Teacher profile diff</span>
-                <span class="tv-diff__meta">{{ count($rows) }} field{{ count($rows) === 1 ? '' : 's' }} changed</span>
+                @php $changedCount = collect($rows)->where('status', '!=', 'same')->count(); @endphp
+                <span class="tv-diff__meta">{{ $changedCount }} of {{ count($rows) }} field{{ count($rows) === 1 ? '' : 's' }} differ</span>
             </div>
 
             <div class="tv-diff__switch" role="group" aria-label="Diff layout">
@@ -300,8 +301,8 @@
                 <thead>
                     <tr>
                         <th class="tv-diff__field-head">Field</th>
-                        <th colspan="2">Current data</th>
-                        <th colspan="2">Proposed changes</th>
+                        <th colspan="2">{{ $oldLabel ?? 'Current data' }}</th>
+                        <th colspan="2">{{ $newLabel ?? 'Proposed changes' }}</th>
                     </tr>
                 </thead>
                 <tbody>
