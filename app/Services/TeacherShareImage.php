@@ -227,6 +227,18 @@ class TeacherShareImage
     /** @return \GdImage|null */
     protected static function photo(Teacher $teacher)
     {
+        /*
+         * Our own photograph is read from the disk, as the CV reads it. Its URL
+         * points back at this application, so fetching it made the server
+         * request itself while busy drawing the card — the request the CV
+         * renderer was already taken off for wedging `artisan serve`.
+         */
+        if (($path = $teacher->localPhotoPath()) !== null) {
+            $image = @imagecreatefromstring((string) @file_get_contents($path));
+
+            return $image ?: null;
+        }
+
         // The guarded accessor: this runs inside the network, so an address the
         // legacy import wrote is not automatically safe to request.
         $url = $teacher->serverFetchablePhotoUrl();

@@ -57,6 +57,10 @@
             "@php artisan config:clear --ansi",
             "@php artisan test"
         ],
+        "test:db": [
+            "Composer\\Config::disableProcessTimeout",
+            "bash tests/refresh-database.sh"
+        ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi",
