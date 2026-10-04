@@ -33,6 +33,8 @@
 
     @include('frontend.themes.theme_lumina.partials.footer')
 
+    <x-back-to-top />
+
     @livewireScripts
 </body>
 </html>

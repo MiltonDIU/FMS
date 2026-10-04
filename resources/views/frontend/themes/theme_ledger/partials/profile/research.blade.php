@@ -16,7 +16,7 @@
 <section id="research" class="doc-section">
 
     <div class="doc-head">
-        <h2 class="title-md">Research</h2>
+        <h2 class="title-md">Research Interest</h2>
         <span class="figure">{{ $teacher->researchInterests->count() + $projects->count() }}</span>
     </div>
 

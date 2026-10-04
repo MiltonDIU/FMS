@@ -25,6 +25,8 @@
 
     @include('frontend.themes.theme_modern.partials.footer')
 
+    <x-back-to-top />
+
     @livewireScripts
 </body>
 </html>

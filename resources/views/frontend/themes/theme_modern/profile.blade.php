@@ -78,11 +78,13 @@
      */
     $projects = $teacher->researchProjects;
 
+    $hasOverview = filled($teacher->bio) || $teacher->skills->isNotEmpty();
+
     $sections = collect([
-        ['id' => 'overview',     'label' => 'Overview',            'count' => null, 'show' => true],
+        ['id' => 'overview',     'label' => 'Overview',            'count' => null, 'show' => $hasOverview],
         ['id' => 'academic',     'label' => 'Academic Background', 'count' => $teacher->educations->count()],
         ['id' => 'teaching',     'label' => 'Teaching Area',       'count' => $teacher->teachingAreas->count()],
-        ['id' => 'research',     'label' => 'Research',            'count' => $teacher->researchInterests->count() + $projects->count()],
+        ['id' => 'research',     'label' => 'Research Interest',            'count' => $teacher->researchInterests->count() + $projects->count()],
         ['id' => 'publications', 'label' => 'Publications',        'count' => $teacher->publications->count()],
         ['id' => 'experience',   'label' => 'Experience',          'count' => $teacher->jobExperiences->count()],
         // Certifications are rendered inside the training section, so they count
@@ -262,7 +264,9 @@
             </nav>
 
             <div>
-                @include('frontend.themes.theme_modern.partials.profile.overview')
+                @if(in_array('overview', $shown, true))
+                    @include('frontend.themes.theme_modern.partials.profile.overview')
+                @endif
 
                 @if(in_array('academic', $shown, true))
                     @include('frontend.themes.theme_modern.partials.profile.academic')

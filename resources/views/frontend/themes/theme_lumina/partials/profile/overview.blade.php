@@ -21,10 +21,6 @@
 
     @if(filled($bio))
         <p class="prose-body">{{ $bio }}</p>
-    @else
-        <p class="text-[15px]" style="color: var(--ink-4);">
-            No biography has been added yet.
-        </p>
     @endif
 
     @if($teacher->skills->isNotEmpty())

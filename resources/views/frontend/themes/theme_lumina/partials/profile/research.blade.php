@@ -16,7 +16,7 @@
 <section id="research" class="doc-section">
 
     <div class="flex items-baseline justify-between mb-3">
-        <h2 class="display-md">Research</h2>
+        <h2 class="display-md">Research Interest</h2>
         <span class="numeral">{{ $teacher->researchInterests->count() + $projects->count() }}</span>
     </div>
 

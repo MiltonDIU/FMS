@@ -27,6 +27,8 @@
 
     @include('frontend.themes.theme_ledger.partials.footer')
 
+    <x-back-to-top />
+
     @livewireScripts
 </body>
 </html>

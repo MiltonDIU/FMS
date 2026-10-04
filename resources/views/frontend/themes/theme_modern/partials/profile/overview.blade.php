@@ -1,9 +1,11 @@
 <!-- Overview Tab -->
 <div id="overview" class="profile-section space-y-6">
+    @if(filled($teacher->bio))
     <div>
         <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider mb-2">Biography</h3>
-        <p class="text-sm text-slate-600 leading-relaxed font-sans">{{ $teacher->bio ?: (implode(', ', $teacher->researchInterestNames()) ?: 'No biography added yet.') }}</p>
+        <p class="text-sm text-slate-600 leading-relaxed font-sans">{{ $teacher->bio }}</p>
     </div>
+    @endif
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
         <div class="card p-5">

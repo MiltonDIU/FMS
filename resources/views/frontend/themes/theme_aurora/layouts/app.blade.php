@@ -33,6 +33,8 @@
 
     @include('frontend.themes.theme_aurora.partials.footer')
 
+    <x-back-to-top />
+
     @livewireScripts
 </body>
 </html>
