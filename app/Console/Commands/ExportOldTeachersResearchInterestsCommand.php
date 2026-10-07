@@ -722,8 +722,9 @@ PROMPT;
         // names like "Signal and Image Processing".
         $parts = [];
         foreach (explode("\n", $text) as $line) {
-            $line = preg_replace('/^\s*(?:\d+|[a-z]|[ivx]+)[.)]\s+/iu', '', $line);
-            foreach (preg_split('/\s*[,;|]\s*/u', $line) as $part) {
+            $line = preg_replace('/^\s*(?:\d+[.)]\s*|(?:[a-z]|[ivx]+)[.)]\s+)/iu', '', $line);
+            // Numbering written inline — "Mathematics 2.Management 3.Finance" — is a list too
+            foreach (preg_split('/\s*[,;|]\s*|\s+\d+[.)]\s*/u', $line) as $part) {
                 $part = trim($part, " \t\n\r\0\x0B\xc2\xa0.:-•*");
                 if ($part !== '') {
                     $parts[] = ['interest' => $part, 'description' => null];

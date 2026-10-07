@@ -45,6 +45,7 @@ class ExportAllOldTeachersDataCommand extends Command
             'export:old-teachers-awards'            => ['--provider' => $provider],
             'export:old-teachers-publications'      => ['--provider' => $provider],
             'export:old-teachers-teaching-areas'   => [],
+            'export:old-teachers-research-interests' => ['--provider' => $provider],
             'export:training-experiences'          => [],
         ];
 

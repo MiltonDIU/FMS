@@ -47,6 +47,7 @@ class ImportAllOldTeachersDataCommand extends Command
             'import:old-teachers-awards',
             'import:old-teachers-publications',
             'import:old-teachers-teaching-areas',
+            'import:old-teachers-research-interests',
             'import:training-experiences',
             'publications:convert-pipeline',
             'publications:import-pipeline',

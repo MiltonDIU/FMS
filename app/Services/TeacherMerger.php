@@ -41,6 +41,7 @@ class TeacherMerger
         'job_experiences' => 'teacher_id',
         'memberships' => 'teacher_id',
         'research_interests' => 'teacher_id',
+        'area_of_expertises' => 'teacher_id',
         'research_projects' => 'teacher_id',
         'skills' => 'teacher_id',
         'social_links' => 'teacher_id',

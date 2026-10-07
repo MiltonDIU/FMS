@@ -2,7 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Models\ResearchInterest;
+use App\Models\AreaOfExpertise;
 use App\Models\SocialLink;
 use App\Models\SocialMediaPlatform;
 use App\Models\Teacher;
@@ -16,6 +16,12 @@ use Illuminate\Support\Facades\DB;
  * expertise areas, and the scholarly profiles a researcher is reachable at.
  * None of it was in the system, and all of it is the sort of thing a teacher
  * would otherwise be asked to type in again.
+ *
+ * The expertise list goes to area_of_expertises, not research_interests. Those
+ * are the teacher's own, parsed from the old site by
+ * export:old-teachers-research-interests; this file is the directorate's view
+ * of what a researcher is expert in, and the two are kept apart so either
+ * import can be re-run without touching the other's rows.
  *
  * Matching goes through the DIU portfolio URL. Every entry carries one —
  * https://faculty.daffodilvarsity.edu.bd/profile/mct/akhter.html — and the name
@@ -114,7 +120,7 @@ class ImportResearcherProfilesCommand extends Command
             : '🚀 Importing researcher profiles...');
 
         $platforms = $this->platforms();
-        $stats = ['matched' => 0, 'bios' => 0, 'bios_kept' => 0, 'interests' => 0, 'links' => 0, 'usernames' => 0, 'flagged' => 0];
+        $stats = ['matched' => 0, 'bios' => 0, 'bios_kept' => 0, 'expertise' => 0, 'links' => 0, 'usernames' => 0, 'flagged' => 0];
 
         $bar = $this->output->createProgressBar(count($researchers));
         $bar->start();
@@ -143,7 +149,7 @@ class ImportResearcherProfilesCommand extends Command
 
             DB::transaction(function () use ($teacher, $researcher, $platforms, &$stats) {
                 $this->applyBiography($teacher, $researcher, $stats);
-                $this->applyInterests($teacher, $researcher, $stats);
+                $this->applyExpertise($teacher, $researcher, $stats);
                 $this->applyLinks($teacher, $researcher, $platforms, $stats);
                 $this->markAsResearcher($teacher, $stats);
             });
@@ -161,7 +167,7 @@ class ImportResearcherProfilesCommand extends Command
             ['Matched to a teacher', $stats['matched']],
             ['Biographies written', $stats['bios']],
             ['Biographies left alone', $stats['bios_kept']],
-            ['Research interests added', $stats['interests']],
+            ['Areas of expertise added', $stats['expertise']],
             ['Profile links added', $stats['links']],
             ['Usernames filled in on existing links', $stats['usernames']],
             ['Newly marked as researchers', $stats['flagged']],
@@ -366,30 +372,30 @@ class ImportResearcherProfilesCommand extends Command
     }
 
     /** @param  array<string, mixed>  $researcher */
-    protected function applyInterests(Teacher $teacher, array $researcher, array &$stats): void
+    protected function applyExpertise(Teacher $teacher, array $researcher, array &$stats): void
     {
-        $existing = $teacher->researchInterests()
-            ->pluck('interest')
-            ->map(fn ($interest) => mb_strtolower(trim((string) $interest)))
+        $existing = $teacher->areasOfExpertise()
+            ->pluck('expertise')
+            ->map(fn ($expertise) => mb_strtolower(trim((string) $expertise)))
             ->flip();
 
-        $sortOrder = (int) $teacher->researchInterests()->max('sort_order');
+        $sortOrder = (int) $teacher->areasOfExpertise()->max('sort_order');
 
-        foreach ($researcher['expertise'] ?? [] as $interest) {
-            $interest = trim((string) $interest);
+        foreach ($researcher['expertise'] ?? [] as $expertise) {
+            $expertise = trim((string) $expertise);
 
-            if ($interest === '' || $existing->has(mb_strtolower($interest))) {
+            if ($expertise === '' || $existing->has(mb_strtolower($expertise))) {
                 continue;
             }
 
-            ResearchInterest::create([
+            AreaOfExpertise::create([
                 'teacher_id' => $teacher->id,
-                'interest' => $interest,
+                'expertise' => $expertise,
                 'sort_order' => ++$sortOrder,
             ]);
 
-            $existing->put(mb_strtolower($interest), true);
-            $stats['interests']++;
+            $existing->put(mb_strtolower($expertise), true);
+            $stats['expertise']++;
         }
     }
 
@@ -575,17 +581,17 @@ class ImportResearcherProfilesCommand extends Command
             }
         }
 
-        $existing = $teacher->researchInterests()
-            ->pluck('interest')
-            ->map(fn ($interest) => mb_strtolower(trim((string) $interest)))
+        $existing = $teacher->areasOfExpertise()
+            ->pluck('expertise')
+            ->map(fn ($expertise) => mb_strtolower(trim((string) $expertise)))
             ->flip();
 
-        foreach ($researcher['expertise'] ?? [] as $interest) {
-            $interest = trim((string) $interest);
+        foreach ($researcher['expertise'] ?? [] as $expertise) {
+            $expertise = trim((string) $expertise);
 
-            if ($interest !== '' && ! $existing->has(mb_strtolower($interest))) {
-                $existing->put(mb_strtolower($interest), true);
-                $stats['interests']++;
+            if ($expertise !== '' && ! $existing->has(mb_strtolower($expertise))) {
+                $existing->put(mb_strtolower($expertise), true);
+                $stats['expertise']++;
             }
         }
 

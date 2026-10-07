@@ -947,6 +947,14 @@ class Teacher extends Model implements HasMedia
     }
 
     /**
+     * Get the areas of expertise for the teacher, from the research directory.
+     */
+    public function areasOfExpertise(): HasMany
+    {
+        return $this->hasMany(AreaOfExpertise::class)->orderBy('sort_order');
+    }
+
+    /**
      * Get the memberships for the teacher.
      */
     public function memberships(): HasMany

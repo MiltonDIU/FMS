@@ -124,6 +124,9 @@ class TeacherResource extends JsonResource
             // `research_interest`, which was one comma-separated string that
             // every caller then split apart for itself.
             'research_interests' => $this->whenLoaded('researchInterests', fn () => $this->researchInterests->pluck('interest')),
+            // The research directory's own list, which until it had a table of
+            // its own was what research_interests above returned.
+            'areas_of_expertise' => $this->whenLoaded('areasOfExpertise', fn () => $this->areasOfExpertise->pluck('expertise')),
             'skills' => $this->whenLoaded('skills', fn () => $this->skills->pluck('name')),
 
             'research_projects' => $this->whenLoaded('researchProjects', fn () => $this->researchProjects->map(fn ($p) => [

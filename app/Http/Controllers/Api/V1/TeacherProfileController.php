@@ -70,6 +70,7 @@ class TeacherProfileController extends Controller
             'memberships' => ['memberships.membershipType', 'memberships.membershipOrganization'],
             'teaching_areas' => ['teachingAreas'],
             'research_interests' => ['researchInterests'],
+            'areas_of_expertise' => ['areasOfExpertise'],
             'skills' => ['skills'],
             'research' => ['researchProjects'],
             'social_links' => ['socialLinks.platform'],
