@@ -69,7 +69,7 @@ class TeacherController extends Controller
                 'trainingExperiences',
                 'certifications',
                 'skills',
-                'teachingAreas', 'researchInterests',
+                'teachingAreas', 'researchInterests', 'areasOfExpertise',
                 'memberships.membershipType',
                 'memberships.membershipOrganization',
                 'awards',

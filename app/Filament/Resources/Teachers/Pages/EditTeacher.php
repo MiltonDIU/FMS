@@ -203,6 +203,7 @@ class EditTeacher extends EditRecord
         'skills' => 'Skills',
         'teachingAreas' => 'Teaching Areas',
         'researchInterests' => 'Research Interest',
+        'areasOfExpertise' => 'Area of Expertise',
         'memberships' => 'Memberships',
         'socialLinks' => 'Social Links',
     ];

@@ -59,7 +59,18 @@ class ApprovalSettingsSeeder extends Seeder
                 'sort_order' => 4,
                 'is_active' => true,
             ],
-            
+
+            // Area of Expertise — the research directory's list, beside Research Interest
+            [
+                'section_key' => 'area_of_expertise',
+                'section_label' => 'Area of Expertise',
+                'requires_approval' => true,
+                'description' => 'Areas of expertise from the research directory',
+                'fields' => ['areasOfExpertise'],
+                'sort_order' => 4,
+                'is_active' => true,
+            ],
+
             // Tab 5: Educations
             [
                 'section_key' => 'educations',

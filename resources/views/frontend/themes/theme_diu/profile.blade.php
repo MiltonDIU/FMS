@@ -88,6 +88,7 @@
             ['id' => 'academic',     'label' => 'Academic Background', 'count' => $teacher->educations->count()],
             ['id' => 'teaching',     'label' => 'Teaching Area',       'count' => $teacher->teachingAreas->count()],
             ['id' => 'research',     'label' => 'Research Interest',            'count' => $teacher->researchInterests->count() + $projects->count()],
+            ['id' => 'expertise',    'label' => 'Area of Expertise',   'count' => $teacher->areasOfExpertise->count()],
             ['id' => 'publications', 'label' => 'Publications',        'count' => $teacher->publications->count()],
             ['id' => 'experience',   'label' => 'Experience',          'count' => $teacher->jobExperiences->count()],
             // Certifications are rendered inside the training section, so they
@@ -279,6 +280,10 @@
 
                 @if(in_array('research', $shown, true))
                     @include('frontend.themes.theme_diu.partials.profile.research')
+                @endif
+
+                @if(in_array('expertise', $shown, true))
+                    @include('frontend.themes.theme_diu.partials.profile.expertise')
                 @endif
 
                 @if(in_array('publications', $shown, true))

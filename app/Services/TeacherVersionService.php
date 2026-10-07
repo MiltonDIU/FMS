@@ -32,7 +32,11 @@ class TeacherVersionService
         // Tab 4: Research Interest (Relation) — the section key stays
         // `academic_info` because approval settings are stored under it.
         'academic_info' => ['researchInterests'],
-        
+
+        // Area of Expertise (Relation) — the research directory's list, kept
+        // apart from research interests and approved on its own.
+        'area_of_expertise' => ['areasOfExpertise'],
+
         // Tab 5: Educations (Relation)
         'educations' => ['educations'],
         
@@ -78,7 +82,7 @@ class TeacherVersionService
      */
     public const RELATION_NAMES = [
         'educations', 'publications', 'jobExperiences', 'trainingExperiences',
-        'awards', 'skills', 'teachingAreas', 'researchInterests', 'memberships', 'socialLinks'
+        'awards', 'skills', 'teachingAreas', 'researchInterests', 'areasOfExpertise', 'memberships', 'socialLinks'
     ];
 
     /**
@@ -656,6 +660,7 @@ class TeacherVersionService
             'skills' => ['skills'],
             'teaching_areas' => ['teachingAreas'],
             'academic_info' => ['researchInterests'],
+            'area_of_expertise' => ['areasOfExpertise'],
             'memberships' => ['memberships'],
             'social_links' => ['socialLinks'],
         ];

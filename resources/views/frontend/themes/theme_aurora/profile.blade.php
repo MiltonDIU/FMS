@@ -45,6 +45,7 @@
             ['id' => 'academic',     'label' => 'Education',  'count' => $teacher->educations->count()],
             ['id' => 'teaching',     'label' => 'Teaching',   'count' => $teacher->teachingAreas->count()],
             ['id' => 'research',     'label' => 'Research Interest',   'count' => $teacher->researchInterests->count() + $projects->count()],
+            ['id' => 'expertise',    'label' => 'Area of Expertise',   'count' => $teacher->areasOfExpertise->count()],
             ['id' => 'publications', 'label' => 'Publications', 'count' => $teacher->publications->count()],
             ['id' => 'experience',   'label' => 'Experience', 'count' => $teacher->jobExperiences->count()],
             // Certifications are rendered inside the training section — the two
@@ -122,6 +123,10 @@
 
             @if(in_array('research', $shown, true))
                 @include('frontend.themes.theme_aurora.partials.profile.research', ['projects' => $projects])
+            @endif
+
+            @if(in_array('expertise', $shown, true))
+                @include('frontend.themes.theme_aurora.partials.profile.expertise')
             @endif
 
             @if(in_array('publications', $shown, true))

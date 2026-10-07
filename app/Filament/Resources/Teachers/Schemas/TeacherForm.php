@@ -39,6 +39,7 @@ class TeacherForm
         'trainingExperiences' => 10,
         'teachingAreas' => 30,
         'researchInterests' => 30,
+        'areasOfExpertise' => 30,
     ];
 
     /**
@@ -528,6 +529,39 @@ class TeacherForm
                                         \App\Support\TeacherRelationWriter::save($record, 'researchInterests', $state ?? [], static::removedIds($component, $state));
                                     }),
                                 static::loadMore('researchInterests', 'research interests'),
+                            ]),
+
+                        /*
+                         * The research directory's list of what a researcher is
+                         * expert in, imported from researchers.json. Kept apart
+                         * from Research Interest, which is the teacher's own, and
+                         * kept the same way: a row each, in an order chosen here.
+                         */
+                        Tab::make('Area of Expertise')
+                            ->icon('heroicon-o-star')
+                            ->badge(fn ($record) => $record?->areasOfExpertise()->count())
+                            ->schema([
+                                Repeater::make('areasOfExpertise')
+                                    ->relationship(modifyQueryUsing: static::window('areasOfExpertise'))
+                                    ->itemLabel(fn (array $state): ?string => $state['expertise'] ?? null)
+                                    ->schema([
+                                        TextInput::make('expertise')
+                                            ->label('Area of Expertise')
+                                            ->required(),
+                                        TextInput::make('description')
+                                            ->label('Description / Notes'),
+                                    ])
+                                    ->columns(2)
+                                    ->defaultItems(0)
+                                    ->collapsed()
+                                    ->reorderable()
+                                    ->orderColumn('sort_order')
+                                    ->deletable(true)
+                                    ->addable(true)
+                                    ->saveRelationshipsUsing(function (Repeater $component, $state, $record) {
+                                        \App\Support\TeacherRelationWriter::save($record, 'areasOfExpertise', $state ?? [], static::removedIds($component, $state));
+                                    }),
+                                static::loadMore('areasOfExpertise', 'areas of expertise'),
                             ]),
 
                         Tab::make('Educations')

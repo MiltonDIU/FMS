@@ -33,7 +33,7 @@ final class TeacherRelationWriter
     /** The sections written here, by relation name. */
     public const RELATIONS = [
         'educations', 'publications', 'jobExperiences', 'trainingExperiences', 'awards',
-        'skills', 'teachingAreas', 'researchInterests', 'memberships', 'socialLinks',
+        'skills', 'teachingAreas', 'researchInterests', 'areasOfExpertise', 'memberships', 'socialLinks',
     ];
 
     /**
@@ -112,6 +112,11 @@ final class TeacherRelationWriter
         return match ($relation) {
             'researchInterests' => [
                 'interest' => $item['interest'],
+                'description' => $item['description'] ?? null,
+                'sort_order' => $position,
+            ],
+            'areasOfExpertise' => [
+                'expertise' => $item['expertise'],
                 'description' => $item['description'] ?? null,
                 'sort_order' => $position,
             ],
