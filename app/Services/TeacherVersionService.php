@@ -329,6 +329,11 @@ class TeacherVersionService
 
             $existingItem = $existingById[$incomingId];
 
+            if ($relationName === 'publications' && $this->authorsChanged((int) $incomingId, $incomingItem)) {
+                \Log::info("Relation Authors Mismatch in publications, id {$incomingId}");
+                return true;
+            }
+
             // Compare each field in incoming item against existing
             foreach ($incomingItem as $key => $val) {
                 // Skip metadata and virtual fields
@@ -357,6 +362,51 @@ class TeacherVersionService
         }
 
         return false;
+    }
+
+    /**
+     * Whether a publication row names different authors than the paper has.
+     *
+     * The author fields are not columns on the publication, so the generic
+     * comparison above skips them — and a save that only added a co-author was
+     * judged to have changed nothing: no version, nothing written, while the
+     * profile page still said the update was submitted.
+     *
+     * Compared as the forms show the list: by role, co-authors in order, and
+     * leaving out anyone who declined (the forms do not offer them back).
+     *
+     * @param  array<string, mixed>  $item
+     */
+    private function authorsChanged(int $publicationId, array $item): bool
+    {
+        if (! array_key_exists('first_author_id', $item)
+            && ! array_key_exists('corresponding_author_id', $item)
+            && ! array_key_exists('co_author_ids', $item)) {
+            return false;
+        }
+
+        $key = function ($value): ?string {
+            [$model, $id] = \App\Filament\Resources\Publications\Schemas\PublicationForm::parseKey($value);
+
+            return $model && $id ? "{$model}:{$id}" : null;
+        };
+
+        $rows = DB::table('publication_authors')
+            ->where('publication_id', $publicationId)
+            ->where('confirmation_status', '!=', \App\Support\PublicationAuthorship::DECLINED)
+            ->orderBy('sort_order')
+            ->get();
+
+        $stored = fn (string $role) => $rows->where('author_role', $role)
+            ->map(fn ($row) => $row->authorable_type . ':' . $row->authorable_id)
+            ->values()
+            ->all();
+
+        $incomingCo = array_values(array_unique(array_filter(array_map($key, (array) ($item['co_author_ids'] ?? [])))));
+
+        return $key($item['first_author_id'] ?? null) !== ($stored('first')[0] ?? null)
+            || $key($item['corresponding_author_id'] ?? null) !== ($stored('corresponding')[0] ?? null)
+            || $incomingCo !== array_values(array_unique($stored('co_author')));
     }
 
     /**

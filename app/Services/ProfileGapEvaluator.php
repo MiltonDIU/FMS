@@ -110,6 +110,7 @@ class ProfileGapEvaluator
                 return \Illuminate\Support\Facades\DB::table('publication_authors')
                     ->join('teachers', 'publication_authors.authorable_id', '=', 'teachers.id')
                     ->where('publication_authors.authorable_type', \App\Models\Teacher::class)
+                    ->where('publication_authors.confirmation_status', \App\Support\PublicationAuthorship::CONFIRMED)
                     ->where('teachers.designation_id', $designationId)
                     ->whereNull('teachers.deleted_at')
                     ->selectRaw('count(*) as aggregate')

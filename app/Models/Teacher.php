@@ -862,10 +862,17 @@ class Teacher extends Model implements HasMedia
 
     /**
      * Get the publications for the teacher.
+     *
+     * Only the ones they are confirmed on. A paper a colleague named them on
+     * waits for their answer (see PublicationAuthorship) and is not theirs —
+     * not on their profile, in their counts, their incentives or their form —
+     * until they agree; a declined one never is. Everything that reads a
+     * teacher's papers goes through here, which is why the rule lives here.
      */
     public function publications(): \Illuminate\Database\Eloquent\Relations\MorphToMany
     {
         return $this->morphToMany(Publication::class, 'authorable', 'publication_authors')
+            ->wherePivot('confirmation_status', \App\Support\PublicationAuthorship::CONFIRMED)
             // affiliation and used_our_affiliation say which of these papers
             // this teacher wrote as one of ours — the ones from a previous
             // employer are theirs to list and not the university's to count.

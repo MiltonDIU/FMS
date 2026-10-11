@@ -115,6 +115,10 @@ class AdminPanelProvider extends PanelProvider
             // somebody who actually has a teacher record
                 \App\Filament\Widgets\TeacherQuickActionsWidget::class,
                 \App\Filament\Widgets\TeacherProfileStatsWidget::class,
+
+            // Papers a colleague named this teacher on, waiting for their
+            // answer. Not permission-gated: see the widget for why.
+                \App\Filament\Widgets\PublicationAuthorshipRequestsWidget::class,
             ])
 
             ->livewireComponents([

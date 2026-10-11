@@ -335,6 +335,7 @@ class GenerateSitemap extends Command
         $publications = \Illuminate\Support\Facades\DB::table('publication_authors')
             ->join('publications', 'publications.id', '=', 'publication_authors.publication_id')
             ->where('publication_authors.authorable_type', Teacher::class)
+            ->where('publication_authors.confirmation_status', \App\Support\PublicationAuthorship::CONFIRMED)
             ->select(
                 'publication_authors.authorable_id as teacher_id',
                 \Illuminate\Support\Facades\DB::raw('MAX(publications.updated_at) as latest'),

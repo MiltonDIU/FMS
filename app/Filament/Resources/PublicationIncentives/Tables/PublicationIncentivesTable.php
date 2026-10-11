@@ -56,6 +56,7 @@ class PublicationIncentivesTable
 
                         $pivots = \DB::table('publication_authors')
                             ->where('publication_id', $record->publication_id)
+                            ->where('confirmation_status', \App\Support\PublicationAuthorship::CONFIRMED)
                             ->get();
 
                         if ($pivots->isEmpty()) {
@@ -188,6 +189,7 @@ class PublicationIncentivesTable
                         if ($publication) {
                             $pivots = \DB::table('publication_authors')
                                 ->where('publication_id', $publication->id)
+                                ->where('confirmation_status', \App\Support\PublicationAuthorship::CONFIRMED)
                                 ->get();
 
                             $teacherIds = $pivots->where('authorable_type', \App\Models\Teacher::class)->pluck('authorable_id');

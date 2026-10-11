@@ -99,6 +99,7 @@ class PublicationSourceStatsWidget extends BaseWidget
     {
         return DB::table('publication_authors')
             ->where('authorable_type', Teacher::class)
+            ->where('confirmation_status', \App\Support\PublicationAuthorship::CONFIRMED)
             ->whereIn(
                 'publication_id',
                 $this->pdQuery()->select('publications.id')->toBase(),

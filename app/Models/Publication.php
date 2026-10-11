@@ -94,9 +94,15 @@ class Publication extends Model
      */
     protected const AUTHOR_PIVOT = ['author_role', 'sort_order', 'incentive_amount', 'affiliation', 'used_our_affiliation'];
 
+    /**
+     * The teachers confirmed as authors. A colleague named by another teacher
+     * is not listed — on the paper's page, its byline, exports or incentives —
+     * until they agree to it (see PublicationAuthorship).
+     */
     public function teachers()
     {
         return $this->morphedByMany(Teacher::class, 'authorable', 'publication_authors')
+            ->wherePivot('confirmation_status', \App\Support\PublicationAuthorship::CONFIRMED)
             ->withPivot(self::AUTHOR_PIVOT)
             ->withTimestamps();
     }

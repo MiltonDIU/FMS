@@ -25,6 +25,7 @@ class EditPublicationIncentive extends EditRecord
         if ($publication) {
             $pivots = \DB::table('publication_authors')
                 ->where('publication_id', $publication->id)
+                ->where('confirmation_status', \App\Support\PublicationAuthorship::CONFIRMED)
                 ->get();
 
             $teacherIds = $pivots->where('authorable_type', \App\Models\Teacher::class)->pluck('authorable_id');

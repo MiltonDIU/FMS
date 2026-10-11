@@ -376,6 +376,7 @@ class TeacherOverview extends Widget
         // where authorable_type is Teacher and authorable_id is in our filtered teachers
         $publicationsCount = DB::table('publication_authors')
             ->where('authorable_type', Teacher::class)
+            ->where('confirmation_status', \App\Support\PublicationAuthorship::CONFIRMED)
             ->whereIn('authorable_id', $query->select('teachers.id'))
             ->count();
 

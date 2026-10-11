@@ -138,9 +138,14 @@ class MyProfile extends Page
             // This handles:
             // 1. Direct update if no approval needed
             // 2. Version creation if approval needed
-            $service->handleUpdateFromForm($teacher, $data);
+            $changed = $service->handleUpdateFromForm($teacher, $data);
 
+            // Photo and documents are saved apart from the service, so a new
+            // photo alone is a change it never sees.
+            $mediaState = fn () => (array) $teacher->media()->toBase()->selectRaw('COUNT(*) c, MAX(updated_at) u')->first();
+            $mediaBefore = $mediaState();
             $this->saveTeacherMedia($teacher);
+            $changed = $changed || $mediaBefore !== $mediaState();
 
             // Saving is not confirming. Verification used to be set here on
             // every save, so pressing Save once counted as a declaration the
@@ -149,6 +154,19 @@ class MyProfile extends Page
             // Back to what is stored: rows added on this save only have
             // placeholder keys, so a second save would add them again.
             $this->mount();
+
+            // Said only when something was saved. It used to be said every
+            // time, so a change the service did not pick up looked saved and
+            // was simply gone after a refresh.
+            if (! $changed) {
+                Notification::make()
+                    ->info()
+                    ->title(__('No changes to save'))
+                    ->body(__('Nothing on your profile differs from what is already saved.'))
+                    ->send();
+
+                return;
+            }
 
             Notification::make()
                 ->success()

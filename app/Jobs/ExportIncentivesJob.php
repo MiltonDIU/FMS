@@ -329,8 +329,11 @@ class ExportIncentivesJob implements ShouldQueue
             return collect();
         }
 
+        // Confirmed authors only: an incentive is not paid to somebody who has
+        // not agreed to being on the paper.
         $pivots = DB::table('publication_authors')
             ->where('publication_id', $publicationId)
+            ->where('confirmation_status', \App\Support\PublicationAuthorship::CONFIRMED)
             ->get();
 
         if ($pivots->isEmpty()) {

@@ -977,6 +977,7 @@ class TeachersTable
         return $cache[$teacher->id] ??= \Illuminate\Support\Facades\DB::table('publication_authors')
             ->where('authorable_type', Teacher::class)
             ->where('authorable_id', $teacher->id)
+            ->where('confirmation_status', \App\Support\PublicationAuthorship::CONFIRMED)
             ->count();
     }
 }

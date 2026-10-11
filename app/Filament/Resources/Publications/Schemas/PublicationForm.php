@@ -114,6 +114,8 @@ class PublicationForm
                                 if (!$record) return null;
                                 $pivot = DB::table('publication_authors')
                                     ->where('publication_id', $record->id)
+                                    // A refusal is not shown as a choice to undo; PublicationAuthorship keeps it.
+                                    ->where('confirmation_status', '!=', \App\Support\PublicationAuthorship::DECLINED)
                                     ->where('author_role', 'first')
                                     ->first();
                                 if ($pivot) {
@@ -130,6 +132,8 @@ class PublicationForm
                                 if (!$record) return null;
                                 $pivot = DB::table('publication_authors')
                                     ->where('publication_id', $record->id)
+                                    // A refusal is not shown as a choice to undo; PublicationAuthorship keeps it.
+                                    ->where('confirmation_status', '!=', \App\Support\PublicationAuthorship::DECLINED)
                                     ->where('author_role', 'corresponding')
                                     ->first();
                                 if ($pivot) {
@@ -147,6 +151,8 @@ class PublicationForm
                                 if (!$record) return null;
                                 $pivots = DB::table('publication_authors')
                                     ->where('publication_id', $record->id)
+                                    // A refusal is not shown as a choice to undo; PublicationAuthorship keeps it.
+                                    ->where('confirmation_status', '!=', \App\Support\PublicationAuthorship::DECLINED)
                                     ->where('author_role', 'co_author')
                                     ->orderBy('sort_order')
                                     ->get();

@@ -280,7 +280,9 @@ final class TeacherRelationWriter
             $publication = $teacher->publications()->create($data + ['status' => 'approved']);
         }
 
-        PublicationAuthorship::write($publication, $item, $teacher);
+        // The actor decides whether the colleagues named here are asked first:
+        // the submitter when a version is approved, not the approver.
+        PublicationAuthorship::write($publication, $item, $teacher, $actor);
     }
 
     /**

@@ -157,6 +157,7 @@ class PublicationIncentive extends Model
     {
         return (float) \DB::table('publication_authors')
             ->where('publication_id', $this->publication_id)
+            ->where('confirmation_status', \App\Support\PublicationAuthorship::CONFIRMED)
             ->sum('incentive_amount');
     }
 
