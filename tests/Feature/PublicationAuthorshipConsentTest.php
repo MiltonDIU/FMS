@@ -217,6 +217,45 @@ class PublicationAuthorshipConsentTest extends TestCase
             ->assertNotified('No changes to save');
     }
 
+    /**
+     * "Assigned to Me" keeps the record after the answer: who added the
+     * teacher, when, and what they said — and only for papers somebody else
+     * put them on.
+     */
+    public function test_assigned_to_me_keeps_who_added_the_teacher_when_and_their_answer(): void
+    {
+        $this->saveAsAuthor([Teacher::class . ':' . $this->colleague->id]);
+
+        $row = \App\Models\PublicationAuthor::where('publication_id', $this->publication->id)
+            ->where('authorable_id', $this->colleague->id)->firstOrFail();
+        $this->assertSame($this->author->user->id, (int) $row->added_by);
+
+        $this->actingAs($this->colleague->user);
+
+        Livewire::test(\App\Filament\Pages\AssignedPublications::class)
+            ->assertCanSeeTableRecords([$row])
+            ->assertSee($this->author->full_name)
+            ->assertSee('Pending')
+            ->callTableAction('decline', $row)
+            ->assertCanSeeTableRecords([$row])
+            ->assertSee('Declined');
+
+        $this->assertNotNull($row->fresh()->answered_at);
+    }
+
+    public function test_assigned_to_me_leaves_out_the_teachers_own_papers(): void
+    {
+        $this->saveAsAuthor([Teacher::class . ':' . $this->colleague->id]);
+
+        $own = \App\Models\PublicationAuthor::where('publication_id', $this->publication->id)
+            ->where('authorable_id', $this->author->id)->firstOrFail();
+
+        $this->actingAs($this->author->user);
+
+        Livewire::test(\App\Filament\Pages\AssignedPublications::class)
+            ->assertCanNotSeeTableRecords([$own]);
+    }
+
     public function test_the_dashboard_lists_what_is_waiting_and_confirms_it(): void
     {
         $this->saveAsAuthor([Teacher::class . ':' . $this->colleague->id]);

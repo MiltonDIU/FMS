@@ -2,7 +2,7 @@
 
 namespace App\Notifications;
 
-use App\Filament\Pages\Dashboard;
+use App\Filament\Pages\AssignedPublications;
 use App\Models\Publication;
 use App\Models\User;
 use Filament\Actions\Action;
@@ -14,7 +14,7 @@ use Illuminate\Support\Str;
  * A teacher has been named as an author by a colleague and is asked to agree.
  *
  * In the panel only, by decision: no email. The answer is given from the
- * dashboard, where the waiting papers are listed.
+ * dashboard or the "Assigned to Me" page, which keeps the whole record.
  */
 class PublicationAuthorshipRequested extends Notification
 {
@@ -39,8 +39,8 @@ class PublicationAuthorshipRequested extends Notification
             ->iconColor('warning')
             ->actions([
                 Action::make('review')
-                    ->label('Review on dashboard')
-                    ->url(Dashboard::getUrl())
+                    ->label('Review')
+                    ->url(AssignedPublications::getUrl())
                     ->markAsRead(),
             ])
             ->getDatabaseMessage();

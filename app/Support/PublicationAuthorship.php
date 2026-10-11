@@ -104,6 +104,7 @@ final class PublicationAuthorship
                 'confirmation_status' => $status,
                 'added_by' => $was ? $was->added_by : $actor?->id,
                 'confirmed_at' => $was ? $was->confirmed_at : ($status === self::CONFIRMED ? now() : null),
+                'answered_at' => $was->answered_at ?? null,
                 'sort_order' => $sortOrder,
                 'affiliation' => $was->affiliation ?? null,
                 'used_our_affiliation' => $was->used_our_affiliation ?? null,
@@ -184,6 +185,7 @@ final class PublicationAuthorship
         $changed = $rows->update([
             'confirmation_status' => $accept ? self::CONFIRMED : self::DECLINED,
             'confirmed_at' => $accept ? now() : null,
+            'answered_at' => now(),
             'updated_at' => now(),
         ]);
 

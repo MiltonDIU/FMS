@@ -47,6 +47,12 @@ class PublicationAuthorshipRequestsWidget extends TableWidget
         return $table
             ->heading('Publications waiting for your confirmation')
             ->description('A colleague has added you as an author. These do not appear on your profile until you confirm them.')
+            ->headerActions([
+                Action::make('history')
+                    ->label('All assigned to me')
+                    ->link()
+                    ->url(\App\Filament\Pages\AssignedPublications::getUrl()),
+            ])
             ->query(
                 Publication::query()
                     ->whereIn('publications.id', static::pending($teacherId ?? 0)->select('publication_id'))
