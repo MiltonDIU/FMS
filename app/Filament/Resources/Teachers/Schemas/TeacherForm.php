@@ -50,6 +50,49 @@ class TeacherForm
      */
     protected static array $relationCounts = [];
 
+    /**
+     * The organisations a row's institution, employer or training-centre
+     * select offers: those of the right kind, in the row's country, that are
+     * active or the teacher's own — and always the one the row already holds.
+     *
+     * The country narrows the list for picking; it was never meant to judge
+     * what is already saved. Imported rows hold the organiser's country on the
+     * organisation and the venue's on the row — a course run in Bangladesh by
+     * Universiti Sains Malaysia — and 117 training rows were in that state.
+     * Filtered out, the saved organisation showed as a bare id and the select
+     * rejected it as invalid, so the whole profile refused to save over a
+     * row nobody had touched. Kept in, it shows by name and saves as it is;
+     * the teacher can still pick a better match.
+     *
+     * One group, so the search Filament adds afterwards narrows all of it
+     * rather than only the half after the OR.
+     */
+    protected static function organizationOptions($query, Get $get, string $kind, string $field)
+    {
+        $teacherId = auth()->user()?->teacher?->id;
+        $countryId = $get('country_id');
+        $current = $get($field);
+
+        return $query
+            ->where(function ($q) use ($kind, $countryId, $teacherId, $current) {
+                $q->where(function ($q) use ($kind, $countryId, $teacherId) {
+                    $q->where($kind, true)
+                        ->when($countryId, fn ($q) => $q->where('country_id', $countryId))
+                        ->where(function ($q) use ($teacherId) {
+                            $q->where('is_active', true);
+                            if ($teacherId) {
+                                $q->orWhere('created_by', $teacherId);
+                            }
+                        });
+                });
+
+                if (filled($current) && is_scalar($current)) {
+                    $q->orWhere($q->getModel()->getQualifiedKeyName(), $current);
+                }
+            })
+            ->orderBy('name');
+    }
+
     /** @return array<int, string> the repeaters that load a window at a time */
     public static function windowedRelations(): array
     {
@@ -667,18 +710,7 @@ class TeacherForm
                                             ->relationship(
                                                 'educationalInstitution',
                                                 'name',
-                                                modifyQueryUsing: function ($query,Get $get) {
-                                                    $teacherId = auth()->user()?->teacher?->id;
-                                                    $countryId = $get('country_id');
-                                                    return $query->where('is_educational_institution', true)
-                                                        ->when($countryId, fn ($q) => $q->where('country_id', $countryId))
-                                                        ->where(function ($q) use ($teacherId) {
-                                                            $q->where('is_active', true);
-                                                            if ($teacherId) {
-                                                                $q->orWhere('created_by', $teacherId);
-                                                            }
-                                                        })->orderBy('name');
-                                                }
+                                                modifyQueryUsing: fn ($query, Get $get) => static::organizationOptions($query, $get, 'is_educational_institution', 'educational_institution_id')
                                             )
                                             ->allowHtml()
                                             ->getOptionLabelFromRecordUsing(function ($record) {
@@ -1019,18 +1051,7 @@ class TeacherForm
                                             ->relationship(
                                                 'organizationRelation',
                                                 'name',
-                                                modifyQueryUsing: function ($query, Get $get) {
-                                                    $teacherId = auth()->user()?->teacher?->id;
-                                                    $countryId = $get('country_id');
-                                                    return $query->where('is_employer', true)
-                                                        ->when($countryId, fn ($q) => $q->where('country_id', $countryId))
-                                                        ->where(function ($q) use ($teacherId) {
-                                                            $q->where('is_active', true);
-                                                            if ($teacherId) {
-                                                                $q->orWhere('created_by', $teacherId);
-                                                            }
-                                                        })->orderBy('name');
-                                                }
+                                                modifyQueryUsing: fn ($query, Get $get) => static::organizationOptions($query, $get, 'is_employer', 'organization_id')
                                             )
                                             ->allowHtml()
                                             ->getOptionLabelFromRecordUsing(function ($record) {
@@ -1092,18 +1113,7 @@ class TeacherForm
                                              ->relationship(
                                                  'organizationRelation',
                                                  'name',
-                                                 modifyQueryUsing: function ($query, Get $get) {
-                                                     $teacherId = auth()->user()?->teacher?->id;
-                                                     $countryId = $get('country_id');
-                                                     return $query->where('is_training_center', true)
-                                                         ->when($countryId, fn ($q) => $q->where('country_id', $countryId))
-                                                         ->where(function ($q) use ($teacherId) {
-                                                             $q->where('is_active', true);
-                                                             if ($teacherId) {
-                                                                 $q->orWhere('created_by', $teacherId);
-                                                             }
-                                                         })->orderBy('name');
-                                                 }
+                                                 modifyQueryUsing: fn ($query, Get $get) => static::organizationOptions($query, $get, 'is_training_center', 'organization_id')
                                              )
                                              ->allowHtml()
                                              ->getOptionLabelFromRecordUsing(function ($record) {
