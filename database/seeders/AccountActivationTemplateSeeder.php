@@ -31,27 +31,24 @@ class AccountActivationTemplateSeeder extends Seeder
         $body = <<<'BODY'
 Dear {teacher_name},
 
-Your faculty profile has been set up on the Faculty Management System, and your
-information has been carried over from our previous records.
+Your faculty profile has been set up on the Faculty Management System, and your information has been carried over from our previous records.
 
-To get started, open the link below. It will sign you in and ask you to choose
-your own password — you do not need an existing one.
+To get started, please click the button below to sign in and choose your own password:
 
+[button:Activate Your Account|{activation_link}]
+
+If the button above does not work, copy and paste this link into your browser:
 {activation_link}
 
-This link is valid for {link_validity_days} day(s) and can only be used once. If
-it expires before you use it, contact the administration and a new one will be
-sent.
+This link is valid for {link_validity_days} day(s) and can only be used once. If it expires before you use it, contact the administration and a new one will be sent.
 
-Once inside, please review your profile and complete anything that is missing.
-Your profile is currently {profile_score} complete.
+Once inside, please review your profile and complete anything that is missing. Your profile is currently {profile_score} complete.
 
 Employee ID: {employee_id}
 Department: {department}
 Designation: {designation}
 
-Please do not forward this email — anyone who opens the link can sign in as you
-until you set your password.
+Please do not forward this email — anyone who opens the link can sign in as you until you set your password.
 
 Best regards,
 Administration

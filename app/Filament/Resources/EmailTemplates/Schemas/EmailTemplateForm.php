@@ -37,9 +37,9 @@ class EmailTemplateForm
                 Textarea::make('body')
                     ->label('Email Content Body (Supports dynamic placeholders)')
                     ->required()
-                    ->rows(10)
+                    ->rows(12)
                     ->columnSpanFull()
-                    ->helperText('Available placeholders: {teacher_name}, {employee_id}, {department}, {designation}, {profile_score}, {verification_link}'),
+                    ->helperText('Available placeholders: {teacher_name}, {employee_id}, {department}, {designation}, {profile_score}, {verification_link}, {activation_link}, {link_validity_days}. To add a button: [button:Button Label|{link}]'),
 
                 Toggle::make('is_active')
                     ->label('Active')

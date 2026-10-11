@@ -7,6 +7,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 
@@ -54,6 +55,10 @@ class TeacherPasswordSetupController extends Controller
             'password' => Hash::make($request->string('password')->toString()),
             'password_set_at' => Carbon::now(),
         ])->save();
+
+        // Re-authenticate user so the session password hash matches the new password,
+        // preventing AuthenticateSession middleware from terminating the session.
+        Auth::login($user);
 
         // A new session id now that the credentials have changed, so anything
         // that observed the pre-password session cannot ride it afterwards.

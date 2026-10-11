@@ -47,13 +47,18 @@ class EmailTemplate extends Model
         }
 
         $replacements = [
-            '{teacher_name}'      => $teacher->full_name,
-            '{employee_id}'       => $teacher->employee_id ?? 'N/A',
-            '{department}'        => $teacher->department?->name ?? 'N/A',
-            '{designation}'       => $teacher->designation_title ?? 'N/A',
-            '{profile_score}'     => ($teacher->profile_score ?? 0) . '%',
-            '{verification_link}' => $verificationLink,
+            '{teacher_name}'        => $teacher->full_name,
+            '{employee_id}'         => $teacher->employee_id ?? 'N/A',
+            '{department}'          => $teacher->department?->name ?? 'N/A',
+            '{designation}'         => $teacher->designation_title ?? 'N/A',
+            '{profile_score}'       => ($teacher->profile_score ?? 0) . '%',
+            '{verification_link}'   => $verificationLink,
+            '{verification_button}' => "[button:Review & Confirm Profile|{$verificationLink}]",
         ];
+
+        if (isset($extra['{activation_link}'])) {
+            $replacements['{activation_button}'] = "[button:Activate Your Account|{$extra['{activation_link}']}]";
+        }
 
         $replacements = array_merge($replacements, $extra);
 

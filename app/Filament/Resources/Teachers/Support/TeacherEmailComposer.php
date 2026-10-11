@@ -86,7 +86,8 @@ class TeacherEmailComposer
                 ->live(onBlur: true)
                 ->default(fn () => EmailTemplate::where('key', self::DEFAULT_TEMPLATE_KEY)->value('body') ?? '')
                 ->helperText('Placeholders: {teacher_name}, {employee_id}, {department}, {designation}, '
-                    . '{profile_score}, {verification_link}, {activation_link}, {link_validity_days}'),
+                    . '{profile_score}, {verification_link}, {activation_link}, {link_validity_days}. '
+                    . 'Button syntax: [button:Button Label|{link}]'),
 
             TextInput::make('link_validity_days')
                 ->label('Activation Link Valid For (days)')

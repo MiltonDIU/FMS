@@ -14,7 +14,7 @@ class EmailTemplateSeeder extends Seeder
                 'name'    => 'Profile Verification Request',
                 'key'     => 'profile_verification_request',
                 'subject' => 'Action Required: Please Review & Confirm Your Profile Data',
-                'body'    => "Dear {teacher_name},\n\nOur Faculty Management System is now ready. We request you to review your imported profile information, fill in any missing details, and confirm its accuracy.\n\nYour Current Profile Completion: {profile_score}\nVerification Link: {verification_link}\n\nIf you find any missing or incomplete information, you can complete it directly on your profile page.\n\nThank you for your cooperation!\nBest regards,\nAdministration",
+                'body'    => "Dear {teacher_name},\n\nOur Faculty Management System is now ready. We request you to review your imported profile information, fill in any missing details, and confirm its accuracy.\n\nYour Current Profile Completion: {profile_score}\n\nPlease review and confirm your profile data by clicking the button below:\n\n[button:Review & Confirm Profile|{verification_link}]\n\nIf the button above does not work, copy and paste this link into your browser:\n{verification_link}\n\nIf you find any missing or incomplete information, you can complete it directly on your profile page.\n\nThank you for your cooperation!\n\nBest regards,\nAdministration",
                 'variables_json' => [
                     '{teacher_name}'      => 'Full name of the faculty member',
                     '{employee_id}'       => 'Employee ID',
@@ -29,7 +29,7 @@ class EmailTemplateSeeder extends Seeder
                 'name'    => 'Profile Completion Reminder',
                 'key'     => 'profile_completion_reminder',
                 'subject' => 'Reminder: Complete Your Profile Information ({profile_score} Completed)',
-                'body'    => "Dear {teacher_name},\n\nThis is a friendly reminder to complete your faculty profile on our portal.\n\nYour current completion score is {profile_score}. Completing your profile ensures accurate accreditation and institutional reporting.\n\nPlease log in and update your missing information:\n{verification_link}\n\nThank you for your prompt attention to this matter.\n\nBest regards,\nAcademic Affairs & FMS Team",
+                'body'    => "Dear {teacher_name},\n\nThis is a friendly reminder to complete your faculty profile on our portal.\n\nYour current completion score is {profile_score}. Completing your profile ensures accurate accreditation and institutional reporting.\n\nPlease update your missing profile information by clicking the button below:\n\n[button:Complete Your Profile|{verification_link}]\n\nIf the button above does not work, copy and paste this link into your browser:\n{verification_link}\n\nThank you for your prompt attention to this matter.\n\nBest regards,\nAcademic Affairs & FMS Team",
                 'variables_json' => [
                     '{teacher_name}'      => 'Full name of the faculty member',
                     '{employee_id}'       => 'Employee ID',
