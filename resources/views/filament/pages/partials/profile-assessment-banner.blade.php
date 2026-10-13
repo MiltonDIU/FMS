@@ -274,34 +274,46 @@
                 </div>
             </div>
 
-            {{-- Integrity Score Ring --}}
-            <div class="gap-integrity">
-                <div class="gap-integrity-ring">
-                    <svg style="width:48px;height:48px;transform:rotate(-90deg)" viewBox="0 0 36 36">
-                        <path stroke="#E2E8F0" stroke-width="3.5" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
-                        <path stroke="{{ $ringColor }}" stroke-dasharray="{{ $score }}, 100" stroke-width="3.5" stroke-linecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
-                    </svg>
-                    <span class="gap-integrity-score gap-mono">{{ $score }}%</span>
-                </div>
-                <div>
-                    <span style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#94A3B8;display:block">OVERALL INTEGRITY</span>
-                    <div style="display:flex;align-items:center;gap:6px">
-                        <span style="font-size:14px;font-weight:800;color:#0F172A">{{ $statusLabel }}</span>
-                        <span class="gap-pill gap-mono" style="background:{{ $scoreBoxBg }};border-color:{{ $scoreBoxBorder }};color:{{ $scoreBoxText }}">{{ $score }}%</span>
+            {{-- Integrity Score Ring & Collapse Action right beside it --}}
+            <div style="display:flex;align-items:center;gap:12px;margin-left:auto;flex-wrap:wrap">
+                <div class="gap-integrity" style="margin-left:0">
+                    <div class="gap-integrity-ring">
+                        <svg style="width:48px;height:48px;transform:rotate(-90deg)" viewBox="0 0 36 36">
+                            <path stroke="#E2E8F0" stroke-width="3.5" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                            <path stroke="{{ $ringColor }}" stroke-dasharray="{{ $score }}, 100" stroke-width="3.5" stroke-linecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                        </svg>
+                        <span class="gap-integrity-score gap-mono">{{ $score }}%</span>
                     </div>
-                    <span style="font-size:10px;color:#94A3B8;display:block;margin-top:1px">Compliance shortfalls detected</span>
-                    <button type="button"
-                            wire:click="refreshProfileScore"
-                            wire:loading.attr="disabled"
-                            wire:target="refreshProfileScore"
-                            class="gap-btn gap-mono"
-                            style="margin-top:6px;padding:3px 8px;font-size:9px"
-                            title="Recalculate score">
-                        <svg wire:loading.remove wire:target="refreshProfileScore" style="width:12px;height:12px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                        <svg wire:loading wire:target="refreshProfileScore" style="width:12px;height:12px;animation:spin 1s linear infinite" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle style="opacity:0.25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path style="opacity:0.75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
-                        REFRESH SCORE
-                    </button>
+                    <div>
+                        <span style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#94A3B8;display:block">OVERALL INTEGRITY</span>
+                        <div style="display:flex;align-items:center;gap:6px">
+                            <span style="font-size:14px;font-weight:800;color:#0F172A">{{ $statusLabel }}</span>
+                            <span class="gap-pill gap-mono" style="background:{{ $scoreBoxBg }};border-color:{{ $scoreBoxBorder }};color:{{ $scoreBoxText }}">{{ $score }}%</span>
+                        </div>
+                        <span style="font-size:10px;color:#94A3B8;display:block;margin-top:1px">Compliance shortfalls detected</span>
+                        <button type="button"
+                                wire:click="refreshProfileScore"
+                                wire:loading.attr="disabled"
+                                wire:target="refreshProfileScore"
+                                class="gap-btn gap-mono"
+                                style="margin-top:6px;padding:3px 8px;font-size:9px"
+                                title="Recalculate score">
+                            <svg wire:loading.remove wire:target="refreshProfileScore" style="width:12px;height:12px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                            <svg wire:loading wire:target="refreshProfileScore" style="width:12px;height:12px;animation:spin 1s linear infinite" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle style="opacity:0.25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path style="opacity:0.75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+                            REFRESH SCORE
+                        </button>
+                    </div>
                 </div>
+
+                {{-- Hide Button right beside Overall Integrity & Refresh Score --}}
+                <button type="button"
+                        @click="showDiag = false"
+                        class="gap-btn gap-btn-slate gap-mono"
+                        style="align-self:stretch;display:inline-flex;align-items:center;justify-content:center;padding:0 14px;border-color:#CBD5E1;background:#F8FAFC;color:#334155"
+                        title="Hide diagnostics and metrics">
+                    <svg style="width:14px;height:14px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+                    HIDE METRICS & GAPS
+                </button>
             </div>
         </div>
 
@@ -325,12 +337,6 @@
                         <p style="font-size:12px;color:#64748B;margin:3px 0 0">Mandatory fields show red warnings. Optional empty fields show blue optional badges for profile enrichment.</p>
                     </div>
                 </div>
-
-                {{-- Collapse Button placed prominently at top right --}}
-                <button type="button" @click="showDiag = false" class="gap-btn gap-btn-slate gap-mono" style="margin-top:4px">
-                    <svg style="width:14px;height:14px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18"/></svg>
-                    COLLAPSE DIAGNOSTICS & AUDIT PANEL
-                </button>
             </div>
 
             {{-- All 13 Section Cards Grid with Earned Score Breakdown --}}
