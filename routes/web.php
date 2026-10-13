@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\TeacherActivationController;
 use App\Http\Controllers\Auth\TeacherPasswordSetupController;
 use App\Http\Controllers\EmailTrackingController;
 use App\Http\Controllers\Frontend\HomeController;
+use App\Http\Controllers\Frontend\DocumentationController;
 use App\Http\Controllers\Frontend\DepartmentController;
 use App\Http\Controllers\Frontend\TeacherController;
 use App\Http\Controllers\Frontend\PublicationController;
@@ -79,6 +80,10 @@ Route::middleware('auth')->group(function () {
 | panel sits outside this group on purpose — it is where the fix happens.
 */
 Route::middleware(EnsureThemeInstalled::class)->group(function () {
+    // Public Documentation & User Guides (above /{faculty_short_name} catch-all)
+    Route::get('/documents', [DocumentationController::class, 'index'])->name('documents.index');
+    Route::get('/documents/{slug}', [DocumentationController::class, 'show'])->name('documents.show');
+
     Route::get('/', [HomeController::class, 'index'])->name('home');
     Route::get('/{faculty_short_name}', [HomeController::class, 'index'])->name('faculty.show');
     Route::get('/{faculty_short_name}/{department_code}', [DepartmentController::class, 'show'])->name('department.show');

@@ -200,41 +200,22 @@
             box-shadow: 0 8px 25px rgba(99, 102, 241, 0.15);
         }
 
-        .teacher-rank {
+        .teacher-serial {
             position: absolute;
             top: 1rem;
             right: 1rem;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
+            min-width: 32px;
+            height: 28px;
+            padding: 0 8px;
+            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
-            font-size: 1rem;
-        }
-
-        .rank-1 {
-            background: linear-gradient(135deg, #fbbf24, #f59e0b);
-            color: white;
-            box-shadow: 0 4px 15px rgba(251, 191, 36, 0.4);
-        }
-
-        .rank-2 {
-            background: linear-gradient(135deg, #94a3b8, #64748b);
-            color: white;
-            box-shadow: 0 4px 15px rgba(148, 163, 184, 0.4);
-        }
-
-        .rank-3 {
-            background: linear-gradient(135deg, #fb923c, #f97316);
-            color: white;
-            box-shadow: 0 4px 15px rgba(251, 146, 60, 0.4);
-        }
-
-        .rank-other {
-            background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
-            color: #475569;
+            font-weight: 700;
+            font-size: 0.8rem;
+            background: #f1f5f9;
+            color: #64748b;
+            border: 1px solid #e2e8f0;
         }
 
         .teacher-header {
@@ -519,9 +500,10 @@
             box-shadow: 0 8px 25px rgba(99, 102, 241, 0.25);
         }
 
-        .dark .rank-other {
-            background: linear-gradient(135deg, #374151, #4b5563);
-            color: #d1d5db;
+        .dark .teacher-serial {
+            background: #1e293b;
+            color: #94a3b8;
+            border-color: #334155;
         }
 
         .dark .teacher-name {
@@ -860,10 +842,10 @@
             <div class="content-section">
                 <h3 class="section-title">🌟 Top Performers</h3>
                 <div class="top-performers-grid">
-                    {{-- Top Profile Scorers (from cached DB column) --}}
+                    {{-- Top Profile Completion Scores (from cached DB column) --}}
                     <div class="performer-card" style="border:2px solid #E0E7FF">
                         <div class="performer-title" style="color:#4338CA">
-                            🎯 Top Profile Scores
+                            🎯 Top Profile Completion Scores
                             <span style="font-size:10px;font-weight:500;color:#94A3B8;margin-left:auto">from DB cache</span>
                             @if($canBrowseTeachers)
                                 <a class="view-all-link" style="margin-left:8px"
@@ -978,12 +960,12 @@
                 </div>
             </div>
 
-            <!-- Teacher Rankings -->
+            <!-- Faculty Directory & Profile Completion -->
             <div class="content-section">
                 <h3 class="section-title">
-                    📋 Teacher Rankings
+                    📋 Faculty Directory &amp; Profile Completion
                     @if($sortBy === 'profile_score')
-                        <span style="font-size:11px;font-weight:500;color:#4338CA;background:#EEF2FF;padding:2px 10px;border-radius:20px;border:1px solid #E0E7FF;margin-left:8px">🎯 Sorted by Profile Score (cached)</span>
+                        <span style="font-size:11px;font-weight:500;color:#4338CA;background:#EEF2FF;padding:2px 10px;border-radius:20px;border:1px solid #E0E7FF;margin-left:8px">🎯 Sorted by Profile Completion Score</span>
                     @endif
                 </h3>
 
@@ -1001,8 +983,8 @@
                          page — so it cannot be one big link any more: an anchor cannot be nested
                          inside another. The name opens the record, the badge opens the site. --}}
                     <div class="teacher-card animate-slide-up" style="animation-delay: {{ $index * 0.05 }}s">
-                        <div class="teacher-rank {{ $index < 3 ? 'rank-' . ($index + 1) : 'rank-other' }}">
-                            {{ $index + 1 }}
+                        <div class="teacher-serial">
+                            #{{ $index + 1 }}
                         </div>
 
                         <div class="teacher-header">
@@ -1118,7 +1100,7 @@
                 @endforelse
 
                 @if($canBrowseTeachers && count($teacherStats))
-                    {{-- The ranking above is capped. This carries the same filters and the same
+                    {{-- The list above is capped. This carries the same filters and the same
                          ordering into the teachers list, where the rest of them are. --}}
                     <div class="view-all-bar">
                         <a href="{{ $this->teacherListUrl() }}" class="view-all-btn">

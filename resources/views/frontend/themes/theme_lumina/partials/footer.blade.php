@@ -92,7 +92,11 @@
              style="{{ $matchFooter
                 ? 'border-top: 1px solid rgba(255,255,255,0.18); color: rgba(255,255,255,0.7);'
                 : 'border-top: 1px solid var(--hairline-soft); color: var(--ink-4);' }}">
-            <p>&copy; {{ date('Y') }} {{ $brand['footer_copyright'] }}. All rights reserved.</p>
+            <p class="flex flex-wrap items-center gap-2">
+                <span>&copy; {{ date('Y') }} {{ $brand['footer_copyright'] }}. All rights reserved.</span>
+                <span class="text-slate-400">·</span>
+                <a href="{{ route('documents.index') }}" class="hover:underline font-medium">User Guides & Documentation</a>
+            </p>
             <p>{{ $brand['footer_accreditation'] }}</p>
         </div>
     </div>

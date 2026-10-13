@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FMS — Research Division &amp; Scopus Guide</title>
+<style>
+  body { font-family: Arial, Helvetica, sans-serif; color: #1f2937; max-width: 860px; margin: 0 auto; padding: 24px 16px 48px; line-height: 1.6; background: #fff; }
+  h1 { color: #003366; font-size: 1.6rem; margin-bottom: 0; }
+  h2 { color: #003366; font-size: 1.2rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 4px; margin-top: 32px; }
+  .sub { color: #64748b; margin-top: 4px; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: .92rem; }
+  th, td { border: 1px solid #e2e8f0; padding: 7px 9px; text-align: left; vertical-align: top; }
+  th { background: #f8fafc; }
+  code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: .88rem; }
+  .box { background: #f0f7ff; border-left: 4px solid #0055a0; padding: 10px 14px; margin: 14px 0; }
+  .warn { background: #fffbeb; border-left: 4px solid #d97706; padding: 10px 14px; margin: 14px 0; }
+  ol li, ul li { margin-bottom: 4px; }
+  a { color: #0055a0; }
+</style>
+</head>
+<body>
+<p><a href="index.html">&larr; All guides</a></p>
+<h1>Research Division &amp; Scopus Operations Guide</h1>
+<p class="sub">Faculty Management System (FMS) · Institutional Research &amp; Incentives</p>
+
+<div class="box">
+  <strong>In short:</strong> download university Scopus publication export &rarr; upload workbook under <strong>Scopus Operations</strong> &rarr; review author matches in the online disambiguation interface &rarr; bind Scopus Author IDs to faculty records &rarr; calculate and export financial incentive sheets for Accounts &amp; Finance.
+</div>
+
+<h2>1. Uploading the Scopus Dataset</h2>
+<ol>
+  <li>Export institutional publications from Elsevier Scopus in CSV or Excel format. Ensure columns for Author Names, Affiliation, Title, DOI, Source Title, and Scopus Author ID are included.</li>
+  <li>In FMS, navigate to <strong>Scopus Operations &rarr; Review Runs</strong> and click <strong>New Review Run</strong>.</li>
+  <li>Upload the workbook. The engine automatically handles UTF-8 BOM, validates headers, and separates internal university authors from external international collaborators.</li>
+</ol>
+
+<h2>2. Online Disambiguation Review Interface</h2>
+<p>Because multiple faculty members may share common surnames or initials:</p>
+<ul>
+  <li>Open the active review run and click <strong>Online Review</strong>.</li>
+  <li><strong>Automatic Matches:</strong> papers whose DOI or author Scopus ID already exists in FMS are matched with 100% confidence.</li>
+  <li><strong>Candidate Selection:</strong> for ambiguous names, the interface suggests potential departmental candidates. Reviewers select the exact faculty member based on research discipline.</li>
+</ul>
+
+<h2>3. Binding Scopus Author IDs</h2>
+<p>When you confirm an author match in the review run:</p>
+<ol>
+  <li>The teacher's official <strong>Scopus Author ID</strong> is permanently bound to their profile record.</li>
+  <li>All future dataset uploads automatically recognize that author ID, eliminating manual disambiguation on future runs.</li>
+  <li>The paper is added to the teacher's publications list and appears on their public directory CV.</li>
+</ol>
+
+<h2>4. Generating Research Incentive Workbooks</h2>
+<p>To reward faculty research under university incentive policies:</p>
+<ul>
+  <li>Navigate to <strong>Research Incentives</strong>.</li>
+  <li>Filter papers by publication year, index, quartile (Q1, Q2, Q3, Q4), or department.</li>
+  <li>The incentive engine calculates monetary rewards based on first author, corresponding author, and co-author split weightings.</li>
+  <li>Click <strong>Export Incentives Sheet</strong> to download an audited Excel workbook ready for submission to the university Finance Office.</li>
+</ul>
+
+</body>
+</html>

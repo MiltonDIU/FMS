@@ -224,7 +224,7 @@ class TeachersTable
                         default => 'gray',
                     }),
                 TextColumn::make('profile_score')
-                    ->label('Profile Score')
+                    ->label('Completion Score')
                     ->sortable()
                     ->badge()
                     ->color(fn (?int $state): string => match (true) {
@@ -703,7 +703,7 @@ class TeachersTable
                         ->color('info')
                         ->visible(fn (): bool => auth()->user()?->can('syncProfileScore', Teacher::class) ?? false)
                         ->requiresConfirmation()
-                        ->modalHeading('Sync Profile Scores for Selected Teachers')
+                        ->modalHeading('Sync Profile Completion Scores for Selected Teachers')
                         ->modalDescription('Recalculate and save profile completion scores for the selected teachers.')
                         ->action(function (\Illuminate\Database\Eloquent\Collection $records) {
                             $evaluator = new ProfileGapEvaluator();

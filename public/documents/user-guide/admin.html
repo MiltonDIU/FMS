@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FMS — Administrator &amp; Registrar Guide</title>
+<style>
+  body { font-family: Arial, Helvetica, sans-serif; color: #1f2937; max-width: 860px; margin: 0 auto; padding: 24px 16px 48px; line-height: 1.6; background: #fff; }
+  h1 { color: #003366; font-size: 1.6rem; margin-bottom: 0; }
+  h2 { color: #003366; font-size: 1.2rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 4px; margin-top: 32px; }
+  .sub { color: #64748b; margin-top: 4px; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: .92rem; }
+  th, td { border: 1px solid #e2e8f0; padding: 7px 9px; text-align: left; vertical-align: top; }
+  th { background: #f8fafc; }
+  code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: .88rem; }
+  .box { background: #f0f7ff; border-left: 4px solid #0055a0; padding: 10px 14px; margin: 14px 0; }
+  .warn { background: #fffbeb; border-left: 4px solid #d97706; padding: 10px 14px; margin: 14px 0; }
+  ol li, ul li { margin-bottom: 4px; }
+  a { color: #0055a0; }
+</style>
+</head>
+<body>
+<p><a href="index.html">&larr; All guides</a></p>
+<h1>Administrator &amp; Registrar Guide</h1>
+<p class="sub">Faculty Management System (FMS) · Institutional Administration</p>
+
+<div class="box">
+  <strong>In short:</strong> create or import teacher profiles &rarr; send secure activation emails &rarr; sync &amp; compare records with the University ERP &rarr; assign Spatie roles and permissions &rarr; run batch profile completeness scores for UGC/IQAC accreditation &rarr; manage active themes and university branding.
+</div>
+
+<h2>1. Creating teachers &amp; sending activation emails</h2>
+<ol>
+  <li>In the admin panel, open <strong>Teachers &rarr; Create</strong> (or import via roster).</li>
+  <li>Enter the teacher's Employee ID, Full Name, official institutional email, faculty, and primary department.</li>
+  <li>To send them their first login link, open <strong>Email Batches</strong> or trigger the activation email action on the teacher's row.</li>
+  <li>The teacher receives an email with an unguessable 64-character token valid for single-use password setup.</li>
+  <li>The <strong>Email Batches</strong> screen tracks who opened and clicked their activation email.</li>
+</ol>
+
+<h2>2. ERP Synchronization &amp; Conflict Resolution</h2>
+<p>To keep the faculty directory aligned with the central University ERP:</p>
+<ul>
+  <li>Under <strong>Teachers</strong>, open any teacher record and click <strong>Sync with ERP</strong>.</li>
+  <li>The modal displays FMS data on the left and live ERP API data on the right.</li>
+  <li>The engine maps: Employee details, Educations (CGPA, Marks, Total Marks, Division/Class), Job Experience, Awards, and Certifications.</li>
+  <li>You can inspect differences section-by-section and selectively overwrite or merge ERP data into FMS.</li>
+</ul>
+
+<h2>3. User Roles &amp; Permissions</h2>
+<table>
+  <tr><th>Role</th><th>Primary Capabilities</th><th>Typical Assignee</th></tr>
+  <tr>
+    <td><strong>Teacher</strong></td>
+    <td>Accesses <em>My Profile</em>, edits credentials, manages publications, confirms co-authors, and recalculates own score.</td>
+    <td>All active teaching faculty.</td>
+  </tr>
+  <tr>
+    <td><strong>Department Head</strong></td>
+    <td>Reviews pending profile version submissions, approves/rejects with remarks, monitors departmental completeness.</td>
+    <td>Heads of Academic Departments &amp; Deans.</td>
+  </tr>
+  <tr>
+    <td><strong>Research Team</strong></td>
+    <td>Uploads Scopus workbooks, conducts online review of author matches, binds Scopus author IDs, exports incentive sheets.</td>
+    <td>Research Division Officers.</td>
+  </tr>
+  <tr>
+    <td><strong>Super Admin</strong></td>
+    <td>Full system-wide configuration, ERP mappings, theme settings, user role assignment.</td>
+    <td>System Administrators &amp; Registrar IT.</td>
+  </tr>
+</table>
+
+<h2>4. Batch Calculating Profile Scores</h2>
+<p>For institutional quality assurance (IQAC / UGC audit reporting):</p>
+<ol>
+  <li>Open the <strong>Teachers</strong> list table.</li>
+  <li>Select all teachers (or filter by specific department).</li>
+  <li>From the bulk actions dropdown, select <strong>Batch Calculate Profile Scores</strong>.</li>
+  <li>The system iterates through all selected faculty, runs the <code>ProfileGapEvaluator</code>, and updates their score (0&ndash;100%) and <code>profile_score_synced_at</code> timestamp.</li>
+</ol>
+
+<h2>5. Appearance, Branding &amp; Active Theme</h2>
+<p>Under <strong>System Settings &rarr; Appearance Settings</strong>:</p>
+<ul>
+  <li><strong>Active Theme:</strong> select among the 5 installed themes (<em>Theme DIU, Lumina, Aurora, Ledger, Modern</em>).</li>
+  <li><strong>Branding:</strong> update university logo, favicon, site name, institutional address, contact email, and footer copyright text.</li>
+</ul>
+
+</body>
+</html>

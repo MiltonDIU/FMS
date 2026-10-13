@@ -31,11 +31,11 @@ class ListTeachers extends ListRecords
     {
         return [
             Action::make('sync_batch_profile_scores')
-                ->label('Batch Calculate Profile Scores')
+                ->label('Batch Calculate Completion Scores')
                 ->icon('heroicon-o-calculator')
                 ->color('info')
                 ->visible(fn (): bool => auth()->user()?->can('batchCalculateProfileScores', Teacher::class) ?? false)
-                ->modalHeading('Batch Recalculate Teacher Profile Scores')
+                ->modalHeading('Batch Recalculate Profile Completion Scores')
                 ->modalDescription('Calculate and save updated profile completion scores for selected teachers based on current criteria.')
                 ->form([
                     \Filament\Forms\Components\Select::make('employment_status_ids')

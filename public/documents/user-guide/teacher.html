@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FMS — Teacher / Faculty Member Guide</title>
+<style>
+  body { font-family: Arial, Helvetica, sans-serif; color: #1f2937; max-width: 860px; margin: 0 auto; padding: 24px 16px 48px; line-height: 1.6; background: #fff; }
+  h1 { color: #003366; font-size: 1.6rem; margin-bottom: 0; }
+  h2 { color: #003366; font-size: 1.2rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 4px; margin-top: 32px; }
+  .sub { color: #64748b; margin-top: 4px; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: .93rem; }
+  th, td { border: 1px solid #e2e8f0; padding: 7px 9px; text-align: left; vertical-align: top; }
+  th { background: #f8fafc; }
+  .ok { color: #15803d; font-weight: bold; } .no { color: #b91c1c; font-weight: bold; }
+  .box { background: #f0f7ff; border-left: 4px solid #0055a0; padding: 10px 14px; margin: 14px 0; }
+  .warn { background: #fffbeb; border-left: 4px solid #d97706; padding: 10px 14px; margin: 14px 0; }
+  ol li, ul li { margin-bottom: 4px; }
+  a { color: #0055a0; }
+  code { background: #f1f5f9; padding: 2px 5px; border-radius: 4px; font-size: .9rem; }
+</style>
+</head>
+<body>
+<p><a href="index.html">&larr; All guides</a></p>
+<h1>Teacher / Faculty Member Guide</h1>
+<p class="sub">Faculty Management System (FMS) · Daffodil International University</p>
+
+<div class="box">
+  <strong>In short:</strong> receive activation email &rarr; set your password &rarr; sign in to <code>/admin</code> &rarr; open <strong>My Profile</strong> &rarr; complete the 13 profile tabs &rarr; add degrees with division/marks &rarr; add publications and name co-authors &rarr; confirm papers in <em>"Assigned to Me"</em> &rarr; tick the <strong>Accuracy Declaration</strong> checkbox &rarr; click <strong>Save Changes</strong> &rarr; once audited by your Department Head, click <strong>REFRESH SCORE</strong> to update your percentage ring.
+</div>
+
+<h2>1. Activating your account</h2>
+<ol>
+  <li>The Registrar or ICT team creates your account and sends an activation email with a secure link.</li>
+  <li>Open the email and click <strong>Activate Faculty Profile</strong>.</li>
+  <li>Set a permanent password (at least 8 characters) and confirm it.</li>
+  <li>Go to <code>http://localhost:8000/admin</code> and sign in using your official institutional email and password.</li>
+</ol>
+
+<h2>2. Opening your profile</h2>
+<p>Once signed in, click <strong>My Profile</strong> from the left sidebar navigation (or go to <code>/admin/my-profile</code>).
+Your profile contains 13 vertical tabs on the left:</p>
+
+<table>
+  <tr><th>Tab Name</th><th>What to enter</th><th>Required / Optional</th></tr>
+  <tr><td><strong>Basic Info</strong></td><td>Employee ID, name, designation, department. (Administrative fields are locked).</td><td><span class="ok">Mandatory</span></td></tr>
+  <tr><td><strong>Contact Info</strong></td><td>Work mobile, personal mobile, PBX extension, email addresses, campus office room.</td><td><span class="ok">Mandatory</span></td></tr>
+  <tr><td><strong>Personal Details</strong></td><td>Date of birth, blood group, gender, nationality, religion, and a brief Bio.</td><td><span class="ok">Mandatory</span></td></tr>
+  <tr><td><strong>Research Interest</strong></td><td>Keywords and research areas (used for search and collaborator matching).</td><td><span class="ok">Mandatory</span></td></tr>
+  <tr><td><strong>Educations</strong></td><td>SSC, HSC, Bachelor, Master, PhD degrees, institutions, passing year, result.</td><td><span class="ok">Mandatory</span></td></tr>
+  <tr><td><strong>Publications</strong></td><td>Journal articles, conference papers, books, DOI, Scopus IDs, co-authors.</td><td>Recommended</td></tr>
+  <tr><td><strong>Job Experience</strong></td><td>Previous academic or corporate positions, duration, organization names.</td><td>Optional</td></tr>
+  <tr><td><strong>Training Experience</strong></td><td>Workshops, pedagogical training, certificate courses.</td><td>Optional</td></tr>
+  <tr><td><strong>Awards</strong></td><td>Honors, scholarships, research awards, university recognitions.</td><td>Optional</td></tr>
+  <tr><td><strong>Skills</strong></td><td>Technical tools, lab instruments, programming languages, methodologies.</td><td>Optional</td></tr>
+  <tr><td><strong>Teaching Areas</strong></td><td>Subjects taught, courses, academic topics.</td><td>Optional</td></tr>
+  <tr><td><strong>Memberships</strong></td><td>Professional bodies (IEEE, ACM, IEB, BCS, etc.).</td><td>Optional</td></tr>
+  <tr><td><strong>Social Links</strong></td><td>Google Scholar URL, ORCID ID, ResearchGate, LinkedIn, GitHub.</td><td>Optional</td></tr>
+</table>
+
+<h2>3. Entering Educational Qualifications (Marks &amp; Division)</h2>
+<p>Under the <strong>Educations</strong> tab, click <strong>Add Education</strong> for each degree:</p>
+<ul>
+  <li>Choose the <strong>Degree Type</strong> (e.g. B.Sc., M.Sc., Ph.D., H.S.C, S.S.C).</li>
+  <li>Select or type the <strong>Educational Institution</strong> and Country.</li>
+  <li>Choose the <strong>Result Type</strong>:
+    <ul>
+      <li><strong>CGPA / Grade:</strong> enter your CGPA (e.g. 3.85) and Scale (e.g. 4.00).</li>
+      <li><strong>First / Second Division or Class:</strong> enter your marks obtained (e.g. 750) and Total Marks (e.g. 1000). Both fields are supported.</li>
+    </ul>
+  </li>
+  <li>Select your passing year and duration.</li>
+</ul>
+
+<h2>4. Adding Publications &amp; Co-Authors</h2>
+<ol>
+  <li>Open the <strong>Publications</strong> tab and click <strong>Add to Publications</strong>.</li>
+  <li>Enter the title, journal/conference name, year, volume, issue, and DOI.</li>
+  <li>Specify authorship roles:
+    <ul>
+      <li><strong>First Author:</strong> select yourself or another colleague.</li>
+      <li><strong>Corresponding Author:</strong> select who handles publication correspondence.</li>
+      <li><strong>Co-authors:</strong> select all contributing DIU faculty members from the dropdown.</li>
+    </ul>
+  </li>
+</ol>
+
+<div class="box">
+  <strong>Co-author notification:</strong> When you select a colleague as a co-author, they receive a notification. The paper waits in their <em>"Assigned to Me"</em> tab for their confirmation before appearing on their public profile.
+</div>
+
+<h2>5. Confirming papers added by colleagues ("Assigned to Me")</h2>
+<p>If another teacher adds a publication and lists you as an author, you will see it in the <strong>Assigned to Me</strong> tab inside Publications:</p>
+<ul>
+  <li>Review the paper title and who added you.</li>
+  <li>Click <strong>Confirm</strong> if you are an author &mdash; the publication immediately appears on your CV.</li>
+  <li>Click <strong>Decline</strong> if you were tagged by mistake &mdash; you will not be listed.</li>
+</ul>
+
+<h2>6. Saving your profile (The Accuracy Declaration)</h2>
+<p>Whenever you make changes to your profile:</p>
+<ol>
+  <li>Scroll down to the bottom of the page.</li>
+  <li>You will notice the <strong>Save Changes</strong> button is in a <span class="no">Disabled</span> state by default.</li>
+  <li>Directly above the button, read the <strong>Profile Information Accuracy Declaration</strong> box.</li>
+  <li>Tick the checkbox: <em>"I hereby declare and confirm that all information, credentials, experiences, and records provided across all sections of my profile are authentic, accurate, and completely up to date."</em></li>
+  <li>The <strong>Save Changes</strong> button will immediately become <span class="ok">Active</span>.</li>
+  <li>Click <strong>Save Changes</strong>.</li>
+</ol>
+
+<div class="warn">
+  <strong>Why is the checkbox required every time?</strong> Under institutional governance rules, you take personal legal responsibility for the authenticity of your submitted degrees, marks, and publications. Each time you save, confirming the checkbox is mandatory.
+</div>
+
+<h2>7. Understanding your Profile Score &amp; the REFRESH SCORE button</h2>
+<p>At the top of your profile is the <strong>Overall Integrity &amp; Assessment Banner</strong>:</p>
+<ul>
+  <li><strong>Score Percentage (0&ndash;100%):</strong> shows your profile completeness based on UGC and university accreditation requirements.</li>
+  <li><strong>SHOW METRICS &amp; GAPS:</strong> click this button to open the audit checklist. It shows which tabs have empty mandatory or optional fields, with a <strong>GO &rsaquo;</strong> button to jump right to each field.</li>
+  <li><strong>HIDE METRICS &amp; GAPS:</strong> click this button (beside the score ring) to collapse the panel.</li>
+  <li><strong>REFRESH SCORE:</strong> whenever you update your profile or after your Department Head approves your updates, click <strong>REFRESH SCORE</strong>. The system recalculates your percentage ring in real time.</li>
+</ul>
+
+<div class="box">
+  <strong>Why doesn't the score jump up immediately upon saving?</strong> FMS uses an approval review system. When you submit new degrees or designations, they undergo review by your Department Head first. Only approved, verified data contributes to your official score.
+</div>
+
+<h2>8. Syncing with ERP</h2>
+<p>If your official records (promotions, contact details, degrees) have been updated in the university ERP:</p>
+<ol>
+  <li>Click the <strong>Sync with ERP</strong> button at the top header of My Profile.</li>
+  <li>A comparison window will show your current FMS records on the left and ERP data on the right.</li>
+  <li>You can inspect differences and apply updates to merge them directly into your profile.</li>
+</ol>
+
+</body>
+</html>

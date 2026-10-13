@@ -97,6 +97,12 @@
                     </a>
                 @endif
 
+                <a href="{{ route('documents.index') }}"
+                   class="nav-link hidden md:inline-flex px-3 py-1.5 text-[13px] font-semibold rounded-lg"
+                   title="User Guides and Documentation">
+                    User Guides
+                </a>
+
                 <button type="button" id="appearance-toggle" class="btn-icon" aria-label="Toggle dark mode">
                     <svg class="w-[18px] h-[18px] dark:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                          stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">

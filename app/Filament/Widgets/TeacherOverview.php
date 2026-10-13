@@ -85,7 +85,7 @@ class TeacherOverview extends Widget
     }
 
     /**
-     * A teacher's profile page, for the names shown in the rankings and the top
+     * A teacher's profile page, for the names shown in the directory and the top
      * performer cards.
      */
     public function teacherProfileUrl(int | string $teacherId): string
@@ -527,7 +527,7 @@ class TeacherOverview extends Widget
     }
 
     /**
-     * Get top N teachers ranked by cached profile_score (read from DB — no calculation).
+     * Get top N teachers by cached profile completion score (read from DB — no calculation).
      */
     protected function getTopProfileScorers(int $limit): array
     {
@@ -653,7 +653,7 @@ class TeacherOverview extends Widget
     protected function getSortOptions(): array
     {
         return [
-            'profile_score' => '🎯 Profile Score',
+            'profile_score' => '🎯 Profile Completion Score',
             'publications'  => '📚 Publications',
             'awards'        => '🏆 Awards',
             'certifications'=> '📜 Certifications',
