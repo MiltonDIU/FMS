@@ -42,7 +42,9 @@
                                 filled($edu->cgpa) && filled($edu->scale) => 'CGPA ' . $edu->cgpa . ' / ' . $edu->scale,
                                 filled($edu->cgpa) => 'CGPA ' . $edu->cgpa,
                                 filled($edu->grade) => 'Grade ' . $edu->grade,
-                                filled($edu->marks) => $edu->marks . '%',
+                                filled($edu->grade) && filled($edu->marks) => $edu->grade . ' (Marks: ' . $edu->marks . (filled($edu->total_marks) ? '/' . $edu->total_marks : '') . ')',
+                                filled($edu->marks) && filled($edu->total_marks) => 'Marks: ' . $edu->marks . ' / ' . $edu->total_marks,
+                                filled($edu->marks) => $edu->resultType?->type_name === 'Percentage' ? $edu->marks . '%' : 'Marks: ' . $edu->marks,
                                 default => optional($edu->resultType)->name,
                             };
                         @endphp

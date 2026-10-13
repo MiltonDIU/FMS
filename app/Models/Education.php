@@ -27,6 +27,7 @@ class Education extends Model
         'cgpa',
         'scale',
         'marks',
+        'total_marks',
         'grade',
         'sort_order',
     ];
@@ -35,6 +36,7 @@ class Education extends Model
         'cgpa' => 'decimal:2',
         'scale' => 'decimal:1',
         'marks' => 'decimal:2',
+        'total_marks' => 'decimal:2',
     ];
 
     /**

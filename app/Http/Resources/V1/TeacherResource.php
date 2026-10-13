@@ -75,6 +75,11 @@ class TeacherResource extends JsonResource
                 'major' => $e->major ?: optional($e->majorRelation)->name,
                 'institution' => $e->institution ?: optional($e->educationalInstitution)->name,
                 'passing_year' => $e->passing_year,
+                'cgpa' => $e->cgpa,
+                'scale' => $e->scale,
+                'marks' => $e->marks,
+                'total_marks' => $e->total_marks,
+                'grade' => $e->grade,
                 'result' => $this->educationResult($e),
             ])),
 
@@ -165,7 +170,10 @@ class TeacherResource extends JsonResource
         return match (true) {
             filled($education->cgpa) && filled($education->scale) => $education->cgpa . ' / ' . $education->scale,
             filled($education->cgpa) => (string) $education->cgpa,
+            filled($education->grade) && filled($education->marks) && filled($education->total_marks) => $education->grade . ' (Marks: ' . $education->marks . '/' . $education->total_marks . ')',
+            filled($education->grade) && filled($education->marks) => $education->grade . ' (Marks: ' . $education->marks . ')',
             filled($education->grade) => (string) $education->grade,
+            filled($education->marks) && filled($education->total_marks) => $education->marks . ' / ' . $education->total_marks,
             filled($education->marks) => (string) $education->marks,
             default => optional($education->resultType)->name,
         };

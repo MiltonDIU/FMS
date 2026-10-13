@@ -81,6 +81,20 @@ class FormPayloadResolver
     }
 
     /**
+     * Sanitize marks for decimal(8,2) column.
+     */
+    protected static function marks(mixed $value): ?float
+    {
+        if (! is_numeric($value)) {
+            return null;
+        }
+
+        $number = (float) $value;
+
+        return ($number > 0 && $number <= 999999.99) ? round($number, 2) : null;
+    }
+
+    /**
      * Where this teacher belongs in their department's ordering.
      *
      * A department is listed by seniority — designations carry a rank, 1 being
@@ -191,11 +205,22 @@ class FormPayloadResolver
         // 3. Resolve Educations
         $formData['educations'] = collect($rel['Education'] ?? [])->map(function ($item) use ($defaultCountryId) {
             $degreeTypeId = $item['degree_type_id'] ?? null;
-            if (!$degreeTypeId && !empty($item['degree_type'])) {
-                $degreeTypeId = DegreeType::where('name', 'LIKE', '%' . $item['degree_type'] . '%')->first()?->id;
+            $degreeRaw = $item['degree'] ?? $item['degree_type'] ?? '';
+            preg_match('/\(([^)]+)\)/', (string) $degreeRaw, $codeMatches);
+            $extractedCode = $codeMatches[1] ?? ($item['degree_code'] ?? null);
+            $cleanTitle = trim((string) preg_replace('/\([^)]+\)/', '', (string) $degreeRaw));
+
+            if (!$degreeTypeId && !empty($extractedCode)) {
+                $degreeTypeId = DegreeType::where('code', $extractedCode)->orWhere('name', 'LIKE', '%' . $extractedCode . '%')->first()?->id;
             }
-            if (!$degreeTypeId && !empty($item['degree'])) {
-                $degreeTypeId = DegreeType::where('name', 'LIKE', '%' . $item['degree'] . '%')->first()?->id;
+            if (!$degreeTypeId && !empty($cleanTitle)) {
+                $degreeTypeId = DegreeType::where('name', 'LIKE', '%' . $cleanTitle . '%')->orWhere('code', 'LIKE', '%' . $cleanTitle . '%')->first()?->id;
+            }
+            if (!$degreeTypeId && !empty($degreeRaw)) {
+                $degreeTypeId = DegreeType::where('name', 'LIKE', '%' . $degreeRaw . '%')->first()?->id;
+            }
+            if (!$degreeTypeId && !empty($item['level'])) {
+                $degreeTypeId = DegreeType::where('name', 'LIKE', '%' . $item['level'] . '%')->first()?->id;
             }
             if (!$degreeTypeId) {
                 $degreeTypeId = DegreeType::first()?->id;
@@ -225,19 +250,12 @@ class FormPayloadResolver
                 )->id;
             }
 
-            $resultTypeId = $item['result_type_id'] ?? null;
-            if (!$resultTypeId) {
-                if (!empty($item['cgpa'])) {
-                    $resultTypeId = ResultType::where('type_name', 'CGPA')->first()?->id;
-                } elseif (!empty($item['marks'])) {
-                    $resultTypeId = ResultType::where('type_name', 'Percentage')->first()?->id;
-                } else {
-                    $resultTypeId = ResultType::where('type_name', 'Grade')->first()?->id;
-                }
-            }
-            if (!$resultTypeId) {
-                $resultTypeId = ResultType::first()?->id;
-            }
+            $resultTypeId = static::resolveResultTypeId($item);
+
+            $scaleRaw = $item['scale'] ?? null;
+            $marksRaw = $item['marks'] ?? ($item['mark'] ?? null);
+            $totalMarksRaw = $item['total_marks'] ?? (is_numeric($scaleRaw) && (float) $scaleRaw > 100 ? $scaleRaw : null);
+            $cleanScale = (is_numeric($scaleRaw) && (float) $scaleRaw <= 100) ? static::gradePoint($scaleRaw, 99.9) : null;
 
             return array_merge($item, [
                 '_degree_level_id' => $degreeLevelId,
@@ -251,8 +269,11 @@ class FormPayloadResolver
                 'passing_year' => $item['passing_year'] ?? null,
                 'duration' => $item['duration'] ?? null,
                 'cgpa' => static::gradePoint($item['cgpa'] ?? null, 99.99),
-                'scale' => static::gradePoint($item['scale'] ?? null, 99.9),
-                'grade' => $item['grade'] ?? null,
+                'scale' => $cleanScale,
+                'marks' => static::marks($marksRaw),
+                'total_marks' => static::marks($totalMarksRaw),
+                'grade' => $item['grade'] ?? ($item['result'] ?? null),
+                'result' => $item['result'] ?? ($item['grade'] ?? null),
             ]);
         })->toArray();
 
@@ -395,9 +416,17 @@ class FormPayloadResolver
                     $platformId = SocialMediaPlatform::where('name', 'LIKE', '%google scholar%')->orWhere('name', 'LIKE', '%scholar%')->first()?->id;
                 } elseif (str_contains($url, 'researchgate') || str_contains(strtolower($platformName), 'researchgate')) {
                     $platformId = SocialMediaPlatform::where('name', 'LIKE', '%researchgate%')->first()?->id;
+                } elseif (str_contains($url, 'youtube') || str_contains(strtolower($platformName), 'youtube')) {
+                    $platformId = SocialMediaPlatform::where('name', 'LIKE', '%youtube%')->first()?->id;
                 } elseif (str_contains($url, 'twitter') || str_contains($url, 'x.com') || str_contains(strtolower($platformName), 'twitter')) {
                     $platformId = SocialMediaPlatform::where('name', 'LIKE', '%twitter%')->first()?->id;
+                } elseif (str_contains($url, 'instagram') || str_contains(strtolower($platformName), 'instagram')) {
+                    $platformId = SocialMediaPlatform::where('name', 'LIKE', '%instagram%')->first()?->id;
                 }
+            }
+
+            if (!$platformId && !empty($platformName)) {
+                $platformId = SocialMediaPlatform::where('name', 'LIKE', '%' . $platformName . '%')->first()?->id;
             }
 
             if (!$platformId) {
@@ -494,6 +523,98 @@ class FormPayloadResolver
         $formData['teachingAreas'] = $rel['TeachingArea'] ?? [];
 
         return $formData;
+    }
+
+    /**
+     * Accurately resolve ResultType ID (Division, CGPA, Grade, Percentage, Pass/Fail) from raw ERP educational item.
+     */
+    public static function resolveResultTypeId(array $item): int
+    {
+        $resultRaw = trim((string) ($item['result'] ?? ($item['grade'] ?? '')));
+        $lowerResult = strtolower($resultRaw);
+        $cgpaRaw = $item['cgpa'] ?? null;
+        $marksRaw = $item['marks'] ?? ($item['mark'] ?? null);
+        $scaleRaw = $item['scale'] ?? null;
+
+        // 1. Division / Class (e.g. "First Division/Class", "First Division", "Second Class", "Distinction")
+        if (str_contains($lowerResult, 'division') || str_contains($lowerResult, 'class') || str_contains($lowerResult, 'distinction')) {
+            $divId = ResultType::where('type_name', 'Division')->first()?->id;
+            if ($divId) {
+                return $divId;
+            }
+        }
+
+        // 2. CGPA / GPA (has numeric CGPA or result text says CGPA/GPA)
+        if (filled($cgpaRaw) && (is_numeric($cgpaRaw) && (float) $cgpaRaw > 0)) {
+            $cgpaId = ResultType::where('type_name', 'CGPA')->first()?->id;
+            if ($cgpaId) {
+                return $cgpaId;
+            }
+        }
+        if (str_contains($lowerResult, 'cgpa')) {
+            $cgpaId = ResultType::where('type_name', 'CGPA')->first()?->id;
+            if ($cgpaId) {
+                return $cgpaId;
+            }
+        }
+        if (str_contains($lowerResult, 'gpa')) {
+            $gpaId = ResultType::where('type_name', 'GPA')->first()?->id ?? ResultType::where('type_name', 'CGPA')->first()?->id;
+            if ($gpaId) {
+                return $gpaId;
+            }
+        }
+
+        // 3. Pass / Fail
+        if (in_array($lowerResult, ['pass', 'fail', 'passed', 'failed'])) {
+            $pfId = ResultType::where('type_name', 'Pass/Fail')->first()?->id;
+            if ($pfId) {
+                return $pfId;
+            }
+        }
+
+        // 4. Exact or partial match with database type_name
+        if (!empty($resultRaw)) {
+            $types = ResultType::all();
+            foreach ($types as $t) {
+                if (strcasecmp($t->type_name, $resultRaw) === 0) {
+                    return $t->id;
+                }
+            }
+            foreach ($types as $t) {
+                if (stripos($resultRaw, $t->type_name) !== false) {
+                    return $t->id;
+                }
+            }
+        }
+
+        // 5. Explicit result_type_id in item if already set
+        if (!empty($item['result_type_id'])) {
+            return (int) $item['result_type_id'];
+        }
+
+        // 6. Marks / Percentage / Division based on mark value
+        if (filled($marksRaw)) {
+            // If marks > 100 or total scale > 100, this is traditional marks (Division system)
+            if ((is_numeric($marksRaw) && (float) $marksRaw > 100) || (is_numeric($scaleRaw) && (float) $scaleRaw > 100)) {
+                $divId = ResultType::where('type_name', 'Division')->first()?->id;
+                if ($divId) {
+                    return $divId;
+                }
+            }
+
+            $percentId = ResultType::where('type_name', 'Percentage')->first()?->id;
+            if ($percentId) {
+                return $percentId;
+            }
+        }
+
+        // 7. Letter Grade fallback
+        $gradeId = ResultType::where('type_name', 'Grade')->first()?->id;
+        if ($gradeId) {
+            return $gradeId;
+        }
+
+        return ResultType::first()?->id ?? 1;
     }
 
     /**

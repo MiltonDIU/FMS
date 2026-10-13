@@ -48,16 +48,22 @@ class Setting extends Model
      */
     public static function set(string $key, mixed $value): bool
     {
-        // Convert value to string for storage
+        $attributes = ['value' => $value, 'group' => 'system'];
+
+        // Convert value to string for storage and detect type
         if (is_bool($value)) {
-            $value = $value ? 'true' : 'false';
+            $attributes['value'] = $value ? 'true' : 'false';
+            $attributes['type'] = 'boolean';
         } elseif (is_array($value)) {
-            $value = json_encode($value);
+            $attributes['value'] = json_encode($value);
+            $attributes['type'] = 'json';
+        } elseif (is_int($value)) {
+            $attributes['type'] = 'integer';
         }
 
         $setting = static::updateOrCreate(
              ['key' => $key],
-             ['value' => $value, 'group' => 'system'] // Default group if creating
+             $attributes
         );
 
         // Clear cache

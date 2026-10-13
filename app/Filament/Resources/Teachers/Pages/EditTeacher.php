@@ -20,10 +20,16 @@ class EditTeacher extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            \App\Filament\Resources\Teachers\Actions\CompareTeacherErpAction::make(),
             DeleteAction::make(),
             ForceDeleteAction::make(),
             RestoreAction::make(),
         ];
+    }
+
+        public function fillForm(): void
+    {
+        parent::fillForm();
     }
 
     protected function getFormActions(): array

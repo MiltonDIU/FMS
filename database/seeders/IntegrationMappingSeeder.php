@@ -86,6 +86,12 @@ class IntegrationMappingSeeder extends Seeder
             ['source_field' => 'employeeEducationalInformations.duration', 'target_model' => 'Education', 'target_field' => 'duration', 'is_identifier' => false],
             ['source_field' => 'employeeEducationalInformations.cgpa', 'target_model' => 'Education', 'target_field' => 'cgpa', 'is_identifier' => false],
             ['source_field' => 'employeeEducationalInformations.scale', 'target_model' => 'Education', 'target_field' => 'scale', 'is_identifier' => false],
+            ['source_field' => 'employeeEducationalInformations.degree.name', 'target_model' => 'Education', 'target_field' => 'degree', 'is_identifier' => false],
+            ['source_field' => 'employeeEducationalInformations.degree.code', 'target_model' => 'Education', 'target_field' => 'degree_code', 'is_identifier' => false],
+            ['source_field' => 'employeeEducationalInformations.levelOfEducation.name', 'target_model' => 'Education', 'target_field' => 'level', 'is_identifier' => false],
+            ['source_field' => 'employeeEducationalInformations.resultType.name', 'target_model' => 'Education', 'target_field' => 'result', 'is_identifier' => false],
+            ['source_field' => 'employeeEducationalInformations.mark', 'target_model' => 'Education', 'target_field' => 'marks', 'is_identifier' => false],
+            ['source_field' => 'employeeEducationalInformations.country.name', 'target_model' => 'Education', 'target_field' => 'country', 'is_identifier' => false],
 
             // Training Experiences
             ['source_field' => 'training_experiences.title', 'target_model' => 'TrainingExperience', 'target_field' => 'title', 'is_identifier' => false],
@@ -94,11 +100,25 @@ class IntegrationMappingSeeder extends Seeder
             ['source_field' => 'training_experiences.duration_days', 'target_model' => 'TrainingExperience', 'target_field' => 'duration_days', 'is_identifier' => false],
             ['source_field' => 'training_experiences.completion_date', 'target_model' => 'TrainingExperience', 'target_field' => 'completion_date', 'is_identifier' => false],
             ['source_field' => 'training_experiences.year', 'target_model' => 'TrainingExperience', 'target_field' => 'year', 'is_identifier' => false],
+            ['source_field' => 'employeeTrainingRecords.name', 'target_model' => 'TrainingExperience', 'target_field' => 'title', 'is_identifier' => false],
+            ['source_field' => 'employeeTrainingRecords.organizedBy', 'target_model' => 'TrainingExperience', 'target_field' => 'organization', 'is_identifier' => false],
+            ['source_field' => 'employeeTrainingRecords.trainingCategory.name', 'target_model' => 'TrainingExperience', 'target_field' => 'category', 'is_identifier' => false],
+            ['source_field' => 'employeeTrainingRecords.durationDays', 'target_model' => 'TrainingExperience', 'target_field' => 'duration_days', 'is_identifier' => false],
+            ['source_field' => 'employeeTrainingRecords.completionDate', 'target_model' => 'TrainingExperience', 'target_field' => 'completion_date', 'is_identifier' => false],
+            ['source_field' => 'employeeTrainingRecords.year', 'target_model' => 'TrainingExperience', 'target_field' => 'year', 'is_identifier' => false],
+            ['source_field' => 'employeeTrainingRecords.country.name', 'target_model' => 'TrainingExperience', 'target_field' => 'country', 'is_identifier' => false],
+            ['source_field' => 'employeeTrainingRecords.url', 'target_model' => 'TrainingExperience', 'target_field' => 'url', 'is_identifier' => false],
 
             // Certifications
             ['source_field' => 'certifications.title', 'target_model' => 'Certification', 'target_field' => 'title', 'is_identifier' => false],
             ['source_field' => 'certifications.issuing_authority', 'target_model' => 'Certification', 'target_field' => 'issuing_authority', 'is_identifier' => false],
             ['source_field' => 'certifications.credential_id', 'target_model' => 'Certification', 'target_field' => 'credential_id', 'is_identifier' => false],
+            ['source_field' => 'employeeProfessionalCertifications.certificationLicenseTitle', 'target_model' => 'Certification', 'target_field' => 'title', 'is_identifier' => false],
+            ['source_field' => 'employeeProfessionalCertifications.issuingAuthority', 'target_model' => 'Certification', 'target_field' => 'issuing_authority', 'is_identifier' => false],
+            ['source_field' => 'employeeProfessionalCertifications.certificateLicenseType.name', 'target_model' => 'Certification', 'target_field' => 'type', 'is_identifier' => false],
+            ['source_field' => 'employeeProfessionalCertifications.issueDate', 'target_model' => 'Certification', 'target_field' => 'issue_date', 'is_identifier' => false],
+            ['source_field' => 'employeeProfessionalCertifications.expiryDate', 'target_model' => 'Certification', 'target_field' => 'expiry_date', 'is_identifier' => false],
+            ['source_field' => 'employeeProfessionalCertifications.remarks', 'target_model' => 'Certification', 'target_field' => 'remarks', 'is_identifier' => false],
 
             // Skills
             ['source_field' => 'skills.name', 'target_model' => 'Skill', 'target_field' => 'name', 'is_identifier' => false],
@@ -113,10 +133,21 @@ class IntegrationMappingSeeder extends Seeder
             // Memberships
             ['source_field' => 'memberships.membership_id', 'target_model' => 'Membership', 'target_field' => 'membership_id', 'is_identifier' => false],
             ['source_field' => 'memberships.position', 'target_model' => 'Membership', 'target_field' => 'position', 'is_identifier' => false],
+            ['source_field' => 'employeeProfessionalMemberships.organization', 'target_model' => 'Membership', 'target_field' => 'organization', 'is_identifier' => false],
+            ['source_field' => 'employeeProfessionalMemberships.membershipOrganizationName', 'target_model' => 'Membership', 'target_field' => 'organization', 'is_identifier' => false],
+            ['source_field' => 'employeeProfessionalMemberships.position', 'target_model' => 'Membership', 'target_field' => 'position', 'is_identifier' => false],
+            ['source_field' => 'employeeProfessionalMemberships.membershipType', 'target_model' => 'Membership', 'target_field' => 'membership_type', 'is_identifier' => false],
+            ['source_field' => 'employeeProfessionalMemberships.membershipId', 'target_model' => 'Membership', 'target_field' => 'membership_id', 'is_identifier' => false],
 
             // Awards
             ['source_field' => 'awards.title', 'target_model' => 'Award', 'target_field' => 'title', 'is_identifier' => false],
             ['source_field' => 'awards.awarding_body', 'target_model' => 'Award', 'target_field' => 'awarding_body', 'is_identifier' => false],
+            ['source_field' => 'employeeAwards.awardTitle', 'target_model' => 'Award', 'target_field' => 'title', 'is_identifier' => false],
+            ['source_field' => 'employeeAwards.title', 'target_model' => 'Award', 'target_field' => 'title', 'is_identifier' => false],
+            ['source_field' => 'employeeAwards.awardingBody', 'target_model' => 'Award', 'target_field' => 'awarding_body', 'is_identifier' => false],
+            ['source_field' => 'employeeAwards.organization', 'target_model' => 'Award', 'target_field' => 'awarding_body', 'is_identifier' => false],
+            ['source_field' => 'employeeAwards.year', 'target_model' => 'Award', 'target_field' => 'year', 'is_identifier' => false],
+            ['source_field' => 'employeeAwards.awardDate', 'target_model' => 'Award', 'target_field' => 'date', 'is_identifier' => false],
 
             // Job Experiences
             ['source_field' => 'job_experiences.position', 'target_model' => 'JobExperience', 'target_field' => 'position', 'is_identifier' => false],
@@ -128,6 +159,9 @@ class IntegrationMappingSeeder extends Seeder
             ['source_field' => 'employeeJobExperiences.designation', 'target_model' => 'JobExperience', 'target_field' => 'position', 'is_identifier' => false],
             ['source_field' => 'employeeJobExperiences.startDate', 'target_model' => 'JobExperience', 'target_field' => 'start_date', 'is_identifier' => false],
             ['source_field' => 'employeeJobExperiences.endDate', 'target_model' => 'JobExperience', 'target_field' => 'end_date', 'is_identifier' => false],
+            ['source_field' => 'employeeJobExperiences.department', 'target_model' => 'JobExperience', 'target_field' => 'department', 'is_identifier' => false],
+            ['source_field' => 'employeeJobExperiences.companyLocation', 'target_model' => 'JobExperience', 'target_field' => 'location', 'is_identifier' => false],
+            ['source_field' => 'employeeJobExperiences.country.name', 'target_model' => 'JobExperience', 'target_field' => 'country', 'is_identifier' => false],
 
             // Publications
             ['source_field' => 'publications.title', 'target_model' => 'Publication', 'target_field' => 'title', 'is_identifier' => false],
@@ -142,6 +176,7 @@ class IntegrationMappingSeeder extends Seeder
             ['source_field' => 'social_links.url', 'target_model' => 'SocialLink', 'target_field' => 'url', 'is_identifier' => false],
             ['source_field' => 'employeeSocialMedias.name', 'target_model' => 'SocialLink', 'target_field' => 'username', 'is_identifier' => false],
             ['source_field' => 'employeeSocialMedias.socialMediaProfileUrl', 'target_model' => 'SocialLink', 'target_field' => 'url', 'is_identifier' => false],
+            ['source_field' => 'employeeSocialMedias.socialMediaType.name', 'target_model' => 'SocialLink', 'target_field' => 'platform', 'is_identifier' => false],
         ];
 
         IntegrationMapping::updateOrCreate(

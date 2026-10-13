@@ -245,6 +245,14 @@ class MyProfile extends Page
         $this->mount();
     }
 
+    
+    protected function getHeaderActions(): array
+    {
+        return [
+            \App\Filament\Resources\Teachers\Actions\CompareTeacherErpAction::make(),
+        ];
+    }
+
     public function getFormActions(): array
     {
         return [

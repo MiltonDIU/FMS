@@ -160,34 +160,71 @@ class EducationsRelationManager extends RelationManager
                     return !in_array($resultType?->type_name, ['CGPA', 'GPA']);
                 }),
 
-            // Marks (for Percentage type)
-            TextInput::make('marks')
-                ->label('Marks/Percentage')
-                ->numeric()
-                ->step(0.01)
-                ->minValue(0)
-                ->maxValue(100)
-                ->suffix('%')
+            // Grade (for Grade/Division/Pass-Fail types)
+            TextInput::make('grade')
+                ->label('Grade/Division/Class')
+                ->placeholder('e.g., First Division, First Class, A+, Pass')
+                ->maxLength(200)
                 ->hidden(function ($get) {
                     $resultTypeId = $get('result_type_id');
                     if (!$resultTypeId) return true;
                     $resultType = \App\Models\ResultType::find($resultTypeId);
-                    return $resultType?->type_name !== 'Percentage';
+                    return !in_array($resultType?->type_name, ['Division', 'Grade', 'Pass/Fail', 'Honours']);
                 })
                 ->columnSpan(2),
 
-            // Grade (for Grade/Pass-Fail types)
-            TextInput::make('grade')
-                ->label('Grade/Division/Class')
-                ->placeholder('e.g., First Class, A+, Pass')
-                ->maxLength(50)
+            // Marks (Obtained Marks / Percentage)
+            TextInput::make('marks')
+                ->label(function ($get) {
+                    $resultTypeId = $get('result_type_id');
+                    $typeName = $resultTypeId ? \App\Models\ResultType::find($resultTypeId)?->type_name : null;
+                    return $typeName === 'Percentage' ? 'Percentage' : 'Obtained Marks (Optional)';
+                })
+                ->placeholder(function ($get) {
+                    $resultTypeId = $get('result_type_id');
+                    $typeName = $resultTypeId ? \App\Models\ResultType::find($resultTypeId)?->type_name : null;
+                    return $typeName === 'Percentage' ? 'e.g., 85.50' : 'e.g., 1058';
+                })
+                ->numeric()
+                ->step(0.01)
+                ->minValue(0)
+                ->maxValue(function ($get) {
+                    $resultTypeId = $get('result_type_id');
+                    $typeName = $resultTypeId ? \App\Models\ResultType::find($resultTypeId)?->type_name : null;
+                    return $typeName === 'Percentage' ? 100 : 999999.99;
+                })
+                ->suffix(function ($get) {
+                    $resultTypeId = $get('result_type_id');
+                    $typeName = $resultTypeId ? \App\Models\ResultType::find($resultTypeId)?->type_name : null;
+                    return $typeName === 'Percentage' ? '%' : null;
+                })
                 ->hidden(function ($get) {
                     $resultTypeId = $get('result_type_id');
                     if (!$resultTypeId) return true;
                     $resultType = \App\Models\ResultType::find($resultTypeId);
-                    return !in_array($resultType?->type_name, ['Grade', 'Pass/Fail']);
+                    return !in_array($resultType?->type_name, ['Division', 'Grade', 'Percentage', 'Points', 'Honours']);
                 })
-                ->columnSpan(2),
+                ->columnSpan(function ($get) {
+                    $resultTypeId = $get('result_type_id');
+                    $typeName = $resultTypeId ? \App\Models\ResultType::find($resultTypeId)?->type_name : null;
+                    return $typeName === 'Percentage' ? 2 : 1;
+                }),
+
+            // Total Marks (Optional)
+            TextInput::make('total_marks')
+                ->label('Total Marks (Optional)')
+                ->placeholder('e.g., 1600 or 1000')
+                ->numeric()
+                ->step(0.01)
+                ->minValue(0)
+                ->maxValue(999999.99)
+                ->hidden(function ($get) {
+                    $resultTypeId = $get('result_type_id');
+                    if (!$resultTypeId) return true;
+                    $resultType = \App\Models\ResultType::find($resultTypeId);
+                    return !in_array($resultType?->type_name, ['Division', 'Grade', 'Points', 'Honours']);
+                })
+                ->columnSpan(1),
 
         ]);
     }

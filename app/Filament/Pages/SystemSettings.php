@@ -73,7 +73,7 @@ class SystemSettings extends Page
         }
 
         // Explicitly cast custom boolean settings
-        $boolKeys = ['export_overwrite', 'import_dry_run', 'import_skip_existing', \App\Models\Teacher::HIDE_UNVERIFIED_SETTING, \App\Helpers\MaintenanceMode::ENABLED_KEY, \App\Helpers\MaintenanceMode::ALLOW_ADMINS_KEY];
+        $boolKeys = ['export_overwrite', 'import_dry_run', 'import_skip_existing', \App\Models\Teacher::HIDE_UNVERIFIED_SETTING, \App\Helpers\MaintenanceMode::ENABLED_KEY, \App\Helpers\MaintenanceMode::ALLOW_ADMINS_KEY, 'allow_teacher_erp_sync'];
         foreach (array_keys(static::getAvailableThemes()) as $slug) {
             $boolKeys[] = \App\Helpers\FontManager::settingKey($slug, 'footer_match_theme');
         }
@@ -391,6 +391,14 @@ class SystemSettings extends Page
                                             ])
                                             ->default('individual')
                                             ->required(),
+                                    ]),
+                                Section::make('Teacher ERP Synchronization')
+                                    ->description('Allow faculty members to compare their profile with the DIU ERP system and import data')
+                                    ->schema([
+                                        Toggle::make('allow_teacher_erp_sync')
+                                            ->label('Allow Teachers to Sync with ERP')
+                                            ->helperText('When enabled, teachers will see a "Compare with ERP" option on their My Profile page. They can compare FMS data with ERP and selectively merge or override sections. When disabled, this option is hidden from teachers.')
+                                            ->default(false),
                                     ]),
                                 Section::make('Public Profile Visibility')
                                     ->description('Which teacher profiles the public website, its search, its counts, the sitemap and the API show')

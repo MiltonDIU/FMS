@@ -43,7 +43,7 @@
                         $resultParts[] = 'Grade: ' . $edu->grade;
                     }
                     if ($edu->marks) {
-                        $resultParts[] = 'Marks: ' . $edu->marks . '%';
+                        $resultParts[] = 'Marks: ' . $edu->marks . ($edu->total_marks ? ' / ' . $edu->total_marks : ($edu->resultType?->type_name === 'Percentage' ? '%' : ''));
                     }
                     if (empty($resultParts) && $edu->resultType) {
                         $resultParts[] = $edu->resultType->name;

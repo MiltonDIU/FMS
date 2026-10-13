@@ -63,6 +63,7 @@ class TeacherVersionService
         
         // Tab 13: Social Links (Relation)
         'social_links' => ['socialLinks'],
+        'certifications' => ['certifications'],
         
         // Tab 15: Settings
         // The form's field names, not the old column: `employment_status` no
@@ -82,7 +83,7 @@ class TeacherVersionService
      */
     public const RELATION_NAMES = [
         'educations', 'publications', 'jobExperiences', 'trainingExperiences',
-        'awards', 'skills', 'teachingAreas', 'researchInterests', 'areasOfExpertise', 'memberships', 'socialLinks'
+        'awards', 'skills', 'teachingAreas', 'researchInterests', 'areasOfExpertise', 'memberships', 'socialLinks', 'certifications'
     ];
 
     /**

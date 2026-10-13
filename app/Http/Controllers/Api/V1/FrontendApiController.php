@@ -92,6 +92,8 @@ class FrontendApiController extends Controller
                             'duration' => $e->duration,
                             'cgpa' => $e->cgpa,
                             'scale' => $e->scale,
+                            'marks' => $e->marks,
+                            'total_marks' => $e->total_marks,
                             'grade' => $e->grade,
                         ])->toArray(),
                         'skills' => $teacherObj->skills->map(fn($s) => [

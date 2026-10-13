@@ -380,7 +380,10 @@
                             $resultValue = match (true) {
                                 filled($edu->cgpa) && filled($edu->scale) => $edu->cgpa . ' / ' . $edu->scale,
                                 filled($edu->cgpa) => (string) $edu->cgpa,
+                                filled($edu->grade) && filled($edu->marks) && filled($edu->total_marks) => $edu->grade . ' (Marks: ' . $edu->marks . '/' . $edu->total_marks . ')',
+                                filled($edu->grade) && filled($edu->marks) => $edu->grade . ' (Marks: ' . $edu->marks . ')',
                                 filled($edu->grade) => (string) $edu->grade,
+                                filled($edu->marks) && filled($edu->total_marks) => $edu->marks . ' / ' . $edu->total_marks,
                                 filled($edu->marks) => (string) $edu->marks,
                                 default => null,
                             };

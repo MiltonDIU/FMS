@@ -134,15 +134,35 @@ final class TeacherRelationWriter
                 'degree_type_id' => $item['degree_type_id'],
                 'educational_institution_id' => $item['educational_institution_id'] ?? null,
                 'major_id' => $item['major_id'] ?? null,
-                'major' => self::nameOf(Major::class, $item['major_id'] ?? null),
-                'institution' => self::nameOf(Organization::class, $item['educational_institution_id'] ?? null),
+                'major' => self::nameOf(Major::class, $item['major_id'] ?? null) ?? ($item['major'] ?? null),
+                'institution' => self::nameOf(Organization::class, $item['educational_institution_id'] ?? null) ?? ($item['institution'] ?? ''),
                 'country_id' => $item['country_id'] ?? null,
                 'passing_year' => $item['passing_year'] ?? null,
                 'duration' => $item['duration'] ?? null,
-                'result_type_id' => $item['result_type_id'],
+                'result_type_id' => (function() use ($item) {
+                    $rId = $item['result_type_id'] ?? null;
+                    $gradeStr = strtolower((string) ($item['grade'] ?? ''));
+                    $marksVal = (float) ($item['marks'] ?? 0);
+                    $totalVal = (float) ($item['total_marks'] ?? 0);
+
+                    // Auto-confirm Division if grade mentions division/class or marks exceed 100
+                    if ($rId == 3 || blank($rId)) {
+                        if (str_contains($gradeStr, 'division') || str_contains($gradeStr, 'class') || str_contains($gradeStr, 'distinction') || $marksVal > 100 || $totalVal > 100) {
+                            return \App\Models\ResultType::where('type_name', 'Division')->first()?->id ?? 5;
+                        }
+                    }
+
+                    // Auto-confirm CGPA if cgpa is present
+                    if (($rId == 4 || blank($rId)) && filled($item['cgpa'] ?? null) && (float) $item['cgpa'] > 0) {
+                        return \App\Models\ResultType::where('type_name', 'CGPA')->first()?->id ?? 1;
+                    }
+
+                    return $rId ?? \App\Models\ResultType::first()?->id ?? 1;
+                })(),
                 'cgpa' => $item['cgpa'] ?? null,
                 'scale' => $item['scale'] ?? null,
                 'marks' => $item['marks'] ?? null,
+                'total_marks' => $item['total_marks'] ?? null,
                 'grade' => $item['grade'] ?? null,
                 'sort_order' => $position,
             ],
