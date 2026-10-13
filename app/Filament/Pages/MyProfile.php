@@ -301,7 +301,6 @@ class MyProfile extends Page
     protected function getHeaderActions(): array
     {
         return [
-            \App\Filament\Resources\Teachers\Actions\RefreshProfileScoreAction::make(),
             \App\Filament\Resources\Teachers\Actions\CompareTeacherErpAction::make(),
         ];
     }
