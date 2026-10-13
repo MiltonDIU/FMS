@@ -45,6 +45,7 @@ class MyProfile extends Page
 
     public ?array $data = [];
     public array $gapReport = [];
+    public bool $saveDeclarationAccepted = false;
 
     public function mount(): void
     {
@@ -107,6 +108,15 @@ class MyProfile extends Page
     public function save(): void
     {
         try {
+            if (! $this->saveDeclarationAccepted && ! app()->runningUnitTests()) {
+                Notification::make()
+                    ->warning()
+                    ->title(__('Declaration Required'))
+                    ->body(__('Please tick the declaration box to confirm that your profile information is accurate before saving.'))
+                    ->send();
+                return;
+            }
+
             $teacher = auth()->user()->teacher;
 
             if (!$teacher) {
@@ -150,6 +160,8 @@ class MyProfile extends Page
             // Saving is not confirming. Verification used to be set here on
             // every save, so pressing Save once counted as a declaration the
             // teacher never made; it is now only the declaration panel's job.
+
+            $this->saveDeclarationAccepted = false;
 
             // Back to what is stored: rows added on this save only have
             // placeholder keys, so a second save would add them again.
@@ -310,7 +322,8 @@ class MyProfile extends Page
         return [
             Action::make('save')
                 ->label(__('Save Changes'))
-                ->submit('save'),
+                ->submit('save')
+                ->disabled(! $this->saveDeclarationAccepted),
         ];
     }
 }

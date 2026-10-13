@@ -77,10 +77,61 @@
     <form wire:submit="save" class="space-y-6">
         {{ $this->form }}
 
-        <div style="margin-top: 2rem !important; padding-top: 1.5rem !important; border-top: 1px solid #e5e7eb;" class="dark:border-gray-800">
-            <x-filament::actions
-                :actions="$this->getFormActions()"
-            />
+        <div style="margin-top: 2rem !important; padding-top: 1.5rem !important; border-top: 1px solid #e5e7eb;" class="dark:border-gray-800 space-y-4">
+            {{-- Profile Authenticity Declaration --}}
+            <div
+                class="rounded-xl border transition-all duration-200 {{ $saveDeclarationAccepted ? 'border-emerald-300 bg-emerald-50/70 dark:border-emerald-700/60 dark:bg-emerald-950/20 shadow-sm' : 'border-amber-200/90 bg-amber-50/50 dark:border-amber-800/50 dark:bg-amber-950/20' }}"
+                style="padding: 1rem 1.25rem;"
+            >
+                <div class="flex items-start gap-3.5">
+                    <div class="pt-0.5 shrink-0">
+                        <x-filament::input.checkbox
+                            id="saveDeclarationCheckbox"
+                            wire:model.live="saveDeclarationAccepted"
+                        />
+                    </div>
+                    <label for="saveDeclarationCheckbox" class="text-sm cursor-pointer select-none space-y-1 block flex-1">
+                        <div class="flex items-center justify-between flex-wrap gap-2">
+                            <span class="font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                                <svg class="w-4 h-4 {{ $saveDeclarationAccepted ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                </svg>
+                                {{ __('Profile Information Accuracy Declaration') }}
+                            </span>
+                            @if ($saveDeclarationAccepted)
+                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                    {{ __('Confirmed — Ready to Save') }}
+                                </span>
+                            @else
+                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                                    {{ __('Required to Save') }}
+                                </span>
+                            @endif
+                        </div>
+                        <p class="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
+                            {{ __('I hereby declare and confirm that all information, credentials, experiences, and records provided across all sections of my profile are authentic, accurate, and completely up to date.') }}
+                        </p>
+                    </label>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between flex-wrap gap-4 pt-1">
+                <div class="flex items-center gap-3">
+                    <x-filament::actions
+                        :actions="$this->getFormActions()"
+                    />
+                </div>
+                @if (! $saveDeclarationAccepted)
+                    <div class="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1.5 font-medium">
+                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span>{{ __('Please tick the declaration box above to enable the Save Changes button.') }}</span>
+                    </div>
+                @endif
+            </div>
         </div>
     </form>
 
