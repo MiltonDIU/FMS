@@ -189,10 +189,23 @@
                 </p>
             </div>
         </div>
-        <button type="button" @click="showDiag = true" class="gap-btn gap-mono">
-            <svg style="width:14px;height:14px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-            SHOW METRICS & GAPS
-        </button>
+        <div style="display:flex;align-items:center;gap:8px">
+            <button type="button"
+                    wire:click="refreshProfileScore"
+                    wire:loading.attr="disabled"
+                    wire:target="refreshProfileScore"
+                    class="gap-btn gap-mono"
+                    style="border-color:#CBD5E1;background:#F8FAFC;color:#334155"
+                    title="Recalculate and update profile score">
+                <svg wire:loading.remove wire:target="refreshProfileScore" style="width:14px;height:14px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                <svg wire:loading wire:target="refreshProfileScore" style="width:14px;height:14px;animation:spin 1s linear infinite" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle style="opacity:0.25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path style="opacity:0.75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+                REFRESH SCORE
+            </button>
+            <button type="button" @click="showDiag = true" class="gap-btn gap-mono">
+                <svg style="width:14px;height:14px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                SHOW METRICS & GAPS
+            </button>
+        </div>
     </div>
 
     {{-- ═══════════ EXPANDED DIAGNOSTICS ═══════════ --}}
@@ -277,6 +290,17 @@
                         <span class="gap-pill gap-mono" style="background:{{ $scoreBoxBg }};border-color:{{ $scoreBoxBorder }};color:{{ $scoreBoxText }}">{{ $score }}%</span>
                     </div>
                     <span style="font-size:10px;color:#94A3B8;display:block;margin-top:1px">Compliance shortfalls detected</span>
+                    <button type="button"
+                            wire:click="refreshProfileScore"
+                            wire:loading.attr="disabled"
+                            wire:target="refreshProfileScore"
+                            class="gap-btn gap-mono"
+                            style="margin-top:6px;padding:3px 8px;font-size:9px"
+                            title="Recalculate score">
+                        <svg wire:loading.remove wire:target="refreshProfileScore" style="width:12px;height:12px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        <svg wire:loading wire:target="refreshProfileScore" style="width:12px;height:12px;animation:spin 1s linear infinite" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle style="opacity:0.25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path style="opacity:0.75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+                        REFRESH SCORE
+                    </button>
                 </div>
             </div>
         </div>

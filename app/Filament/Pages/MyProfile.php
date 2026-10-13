@@ -246,9 +246,62 @@ class MyProfile extends Page
     }
 
     
+    /**
+     * Directly recalculate and refresh own profile completion score.
+     */
+    public function refreshProfileScore(): void
+    {
+        $teacher = auth()->user()?->teacher;
+
+        if (! $teacher) {
+            Notification::make()
+                ->danger()
+                ->title(__('Profile not found'))
+                ->send();
+            return;
+        }
+
+        try {
+            $teacher->load([
+                'educations.degreeType.level',
+                'educations.educationalInstitution',
+                'publications',
+                'jobExperiences',
+                'trainingExperiences',
+                'awards',
+                'skills',
+                'teachingAreas',
+                'memberships',
+                'socialLinks',
+            ]);
+
+            $evaluator = new \App\Services\ProfileGapEvaluator();
+            $this->gapReport = $evaluator->evaluate($teacher);
+            $score = (int) ($this->gapReport['completion_percentage'] ?? 0);
+
+            $teacher->updateQuietly([
+                'profile_score' => $score,
+                'profile_score_synced_at' => \Illuminate\Support\Carbon::now(),
+            ]);
+
+            Notification::make()
+                ->success()
+                ->title(__('Profile Score Refreshed'))
+                ->body(__("Profile completion score: :score%", ['score' => $score]))
+                ->send();
+        } catch (\Throwable $e) {
+            Notification::make()
+                ->danger()
+                ->title(__('Failed to refresh score'))
+                ->body($e->getMessage())
+                ->send();
+        }
+    }
+
     protected function getHeaderActions(): array
     {
         return [
+            \App\Filament\Resources\Teachers\Actions\RefreshProfileScoreAction::make(),
             \App\Filament\Resources\Teachers\Actions\CompareTeacherErpAction::make(),
         ];
     }

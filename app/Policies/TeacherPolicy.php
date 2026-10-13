@@ -95,6 +95,11 @@ class TeacherPolicy
 
     public function syncProfileScore(AuthUser $authUser, ?Teacher $teacher = null): bool
     {
+        // Teachers can always refresh their own profile score
+        if ($teacher && $authUser->teacher && $authUser->teacher->id === $teacher->id) {
+            return true;
+        }
+
         return $authUser->can('SyncProfileScore:Teacher');
     }
 

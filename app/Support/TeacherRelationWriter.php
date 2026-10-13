@@ -33,7 +33,7 @@ final class TeacherRelationWriter
     /** The sections written here, by relation name. */
     public const RELATIONS = [
         'educations', 'publications', 'jobExperiences', 'trainingExperiences', 'awards',
-        'skills', 'teachingAreas', 'researchInterests', 'areasOfExpertise', 'memberships', 'socialLinks',
+        'skills', 'teachingAreas', 'researchInterests', 'areasOfExpertise', 'memberships', 'socialLinks', 'certifications',
     ];
 
     /**

@@ -20,6 +20,7 @@ class EditTeacher extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            \App\Filament\Resources\Teachers\Actions\RefreshProfileScoreAction::make(),
             \App\Filament\Resources\Teachers\Actions\CompareTeacherErpAction::make(),
             DeleteAction::make(),
             ForceDeleteAction::make(),
