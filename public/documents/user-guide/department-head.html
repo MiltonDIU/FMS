@@ -4,83 +4,109 @@
 <meta charset="utf-8">
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FMS — Department Head &amp; Dean Guide</title>
-<style>
-  body { font-family: Arial, Helvetica, sans-serif; color: #1f2937; max-width: 860px; margin: 0 auto; padding: 24px 16px 48px; line-height: 1.6; background: #fff; }
-  h1 { color: #003366; font-size: 1.6rem; margin-bottom: 0; }
-  h2 { color: #003366; font-size: 1.2rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 4px; margin-top: 32px; }
-  .sub { color: #64748b; margin-top: 4px; }
-  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: .93rem; }
-  th, td { border: 1px solid #e2e8f0; padding: 7px 9px; text-align: left; vertical-align: top; }
-  th { background: #f8fafc; }
-  .ok { color: #15803d; font-weight: bold; } .no { color: #b91c1c; font-weight: bold; }
-  .box { background: #f0f7ff; border-left: 4px solid #0055a0; padding: 10px 14px; margin: 14px 0; }
-  .warn { background: #fffbeb; border-left: 4px solid #d97706; padding: 10px 14px; margin: 14px 0; }
-  ol li, ul li { margin-bottom: 4px; }
-  a { color: #0055a0; }
-  code { background: #f1f5f9; padding: 2px 5px; border-radius: 4px; font-size: .9rem; }
-</style>
+<title>FMS Head Guide</title>
+<link rel="stylesheet" href="guide.css">
 </head>
 <body>
-<p><a href="index.html">&larr; All guides</a></p>
-<h1>Department Head &amp; Dean Guide</h1>
-<p class="sub">Faculty Management System (FMS) · Academic Review Workflow</p>
+<main>
+<div class="crumb"><a href="index.html">&larr; All guides</a></div>
+<h1>Head &amp; Associate Head Guide</h1>
+<p class="sub">Faculty Management System · Daffodil International University</p>
 
-<div class="box">
-  <strong>In short:</strong> a faculty member edits their profile &rarr; changes are held in a pending version &rarr; you receive an in-app notification &rarr; open <strong>Teacher Versions</strong> &rarr; compare proposed changes with previous records &rarr; click <strong>Approve Version</strong> (or <strong>Reject Version</strong> with remarks) &rarr; the live website and teacher's CV update automatically.
+<div class="summary"><p><strong>In short:</strong> you see your own department's teachers, publications and incentives; you set the order your teachers appear on the department's public page; and, as Head, you approve your teachers' profile changes when the university routes them to you.</p></div>
+
+<div class="tip"><p>You are a teacher too. For your own profile, follow the <a href="teacher.html">Teacher Guide</a>. Changes to your own profile always go to other reviewers; you never approve yourself.</p></div>
+
+<div class="toc">
+  <strong>On this page</strong>
+  <ol>
+    <li><a href="#signin">Signing in</a></li>
+    <li><a href="#scope">What you can see</a></li>
+    <li><a href="#teachers">Following your department's teachers</a></li>
+    <li><a href="#order">Setting the public listing order</a></li>
+    <li><a href="#publications">Publications and incentives</a></li>
+    <li><a href="#approve">Approving profile changes (Head only)</a></li>
+    <li><a href="#cannot">What you cannot do</a></li>
+    <li><a href="#faq">Problems and answers</a></li>
+  </ol>
 </div>
 
-<h2>1. The Review Workflow</h2>
-<p>To preserve institutional data authenticity, faculty profile edits to sensitive sections (qualifications, job titles, experiences)
-do not immediately overwrite the live public directory. Instead, they are held as a <strong>pending version</strong> waiting for your approval.</p>
+<h2 id="signin">1. Signing in</h2>
+<p>Sign in at <code>/admin</code> with your login email and password. First time? Use the activation email, as described in the <a href="teacher.html#signin">Teacher Guide</a>. Use <strong>Forgot password?</strong> on the sign-in page if needed.</p>
 
-<div class="warn">
-  <strong>Public Directory Protection:</strong> While a version is pending your review, public visitors to the university website continue seeing the previously approved profile. No unverified claims are published without head/dean oversight.
+<h2 id="scope">2. What you can see</h2>
+<p>Everything you see is limited to your department. This comes from your administrative post (for example "Head of Department, CSE"), which the administration records. If you see other departments, or nothing, your post has not been recorded or has ended; ask an admin.</p>
+<div class="table-wrap">
+<table>
+  <tr><th>Page</th><th>What you can do</th></tr>
+  <tr><td><strong>Teachers</strong></td><td>View your department's teachers and their profiles</td></tr>
+  <tr><td><strong>Department Teachers</strong></td><td>View the department's teacher list and drag it into the public listing order</td></tr>
+  <tr><td><strong>Publications</strong></td><td>View your department's papers</td></tr>
+  <tr><td><strong>Incentives</strong> / <strong>Incentive Logs</strong></td><td>View incentive records for your department's papers, and their change history</td></tr>
+  <tr><td>Faculties, Departments, Designations, Job Types, Employment Statuses</td><td>Reference lists, view only</td></tr>
+</table>
 </div>
 
-<h2>2. How to review a teacher's submission</h2>
+<h2 id="teachers">3. Following your department's teachers</h2>
 <ol>
-  <li>Sign in to the admin panel at <code>http://localhost:8000/admin</code>.</li>
-  <li>In the left sidebar, click <strong>Teacher Versions</strong>.</li>
-  <li>You will see a list of pending submissions from faculty members in your department.</li>
-  <li>Click on a version to view the review screen.</li>
-  <li>The screen shows side-by-side differences:
+  <li>Open <strong>Teachers</strong>. Only your department's teachers are listed.</li>
+  <li>Use <strong>Filters</strong> to find who needs a reminder, for example by <strong>Verification Status</strong> (not yet confirmed), employment status, or <strong>Has Publications</strong>. The <strong>Completion Score</strong> column shows how complete each profile is.</li>
+  <li>Click <strong>View</strong> on a row to read the full profile.</li>
+</ol>
+<p>You cannot edit a teacher's profile. Teachers change their own; the Registrar Office changes the fields it owns.</p>
+
+<h2 id="order">4. Setting the public listing order</h2>
+<p>You decide the order your teachers appear in on your department's page of the faculty website.</p>
+<ol>
+  <li>Open <strong>Department Teachers</strong>.</li>
+  <li>Filter the list to your department. Reordering is available only while one department is selected.</li>
+  <li>Click the reorder button above the table, drag rows into the order you want, and finish reordering.</li>
+</ol>
+<p>The website follows the new order straight away.</p>
+
+<h2 id="publications">5. Publications and incentives</h2>
+<ul>
+  <li><strong>Publications</strong> lists papers by your department's teachers. Filter by date range, type, quartile, grant type, linkage or collaboration.</li>
+  <li><strong>Incentives</strong> shows the incentive amount for each paper, each author's share, and whether it is pending, approved or paid.</li>
+  <li><strong>Incentive Logs</strong> shows every change to an incentive record, who made it and when.</li>
+</ul>
+<p>These are view only. Corrections go to the Research Team.</p>
+
+<h2 id="approve">6. Approving profile changes (Head only)</h2>
+<p>The university decides who approves each tab of a teacher's profile. When a tab is routed to "Department Head", you approve that tab for your own department's teachers. Associate Heads do not approve.</p>
+<ol>
+  <li>You get a notification when a teacher in your department submits a change you must decide. Click it, or open <strong>Pending Approvals</strong>.</li>
+  <li>Open the submission. Changed items are opened for you; each shows the value before and after.</li>
+  <li>Decide:
     <ul>
-      <li><strong style="color:#15803d">+ Green:</strong> newly added degrees, experiences, or publications.</li>
-      <li><strong style="color:#b91c1c">- Red:</strong> removed items.</li>
-      <li><strong style="color:#d97706">&bull; Yellow:</strong> modified values (e.g. passing year, grade, or institution name).</li>
+      <li><span class="btn">Approve Changes</span>: the change goes live on the profile and the website.</li>
+      <li><span class="btn">Reject Changes</span>: write the reason. The teacher receives it and can correct and resubmit.</li>
+      <li>To decide part of a submission, approve or reject section by section.</li>
     </ul>
   </li>
 </ol>
+<p>You see the decision buttons only for the tabs routed to you. If you are told you are an approver but cannot open Pending Approvals, ask the administration to check your access.</p>
 
-<h2>3. Approving or Rejecting a submission</h2>
-<table>
-  <tr><th>Action</th><th>When to use</th><th>What happens</th></tr>
-  <tr>
-    <td><strong class="ok">Approve Version</strong></td>
-    <td>Information is verified, accurate, and matches university records.</td>
-    <td>The new data is merged into the teacher's active profile, published to the web directory, and a rollback restore point is recorded.</td>
-  </tr>
-  <tr>
-    <td><strong class="no">Reject Version</strong></td>
-    <td>Information is inaccurate, incomplete, or requires revision.</td>
-    <td>You enter mandatory remarks (e.g. "Please attach correct passing year"). The teacher is notified and instructed to correct their profile.</td>
-  </tr>
-</table>
-
-<h2>4. The Self-Review Guard</h2>
-<div class="warn">
-  <strong>Conflict of Interest Rule:</strong> As Department Head, you cannot review or approve your own personal profile revisions.
-  When you update your own profile under <em>My Profile</em>, the review request is automatically routed to your <strong>Faculty Dean</strong> or Central Administration.
-</div>
-
-<h2>5. Monitoring Department Completeness &amp; Roster</h2>
-<p>From the <strong>Teachers</strong> directory table, filter by your department code to monitor:</p>
+<h2 id="cannot">7. What you cannot do</h2>
 <ul>
-  <li><strong>Profile Completion Scores:</strong> see which teachers have high scores vs who has incomplete mandatory information.</li>
-  <li><strong>Active vs Departed Staff:</strong> confirm that only current faculty are marked active in the directory.</li>
-  <li><strong>Publications Count:</strong> keep track of research output across your academic department.</li>
+  <li>See other departments.</li>
+  <li>Edit teachers' profiles, publications or incentives.</li>
+  <li>Approve your own profile.</li>
+  <li>Send emails or create accounts.</li>
 </ul>
 
+<h2 id="faq">8. Problems and answers</h2>
+<div class="table-wrap">
+<table>
+  <tr><th>Problem</th><th>What to do</th></tr>
+  <tr><td>I see every department, not only mine</td><td>Your administrative post is not recorded or has ended. Ask an admin.</td></tr>
+  <tr><td>I cannot drag teachers into order</td><td>Filter Department Teachers to your department first.</td></tr>
+  <tr><td>A teacher's details are wrong</td><td>Ask the teacher to correct them in My Profile. For department, designation or joining date, contact the Registrar Office.</td></tr>
+  <tr><td>A paper or incentive is wrong</td><td>Contact the Research Team.</td></tr>
+</table>
+</div>
+
+<footer>FMS Head &amp; Associate Head Guide · describes the system as of 18 October 2026.</footer>
+</main>
 </body>
 </html>

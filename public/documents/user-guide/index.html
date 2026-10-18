@@ -4,41 +4,43 @@
 <meta charset="utf-8">
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Faculty Management System — Portal User Guides</title>
-<style>
-  body { font-family: Arial, Helvetica, sans-serif; color: #1f2937; max-width: 860px; margin: 0 auto; padding: 24px 16px 48px; line-height: 1.6; background: #fff; }
-  h1 { color: #003366; font-size: 1.7rem; margin-bottom: 4px; }
-  .sub { color: #64748b; margin-top: 0; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-top: 24px; }
-  a.card { display: block; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; text-decoration: none; color: inherit; }
-  a.card:hover { border-color: #0055a0; background: #f0f7ff; }
-  a.card strong { color: #0055a0; font-size: 1.05rem; }
-  a.card span { display: block; color: #64748b; font-size: .9rem; margin-top: 4px; }
-  .note { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; margin-top: 28px; font-size: .92rem; }
-  .back-home { margin-bottom: 16px; font-size: .9rem; }
-  .back-home a { color: #0055a0; text-decoration: none; }
-  .back-home a:hover { text-decoration: underline; }
-</style>
+<title>FMS User Guides</title>
+<link rel="stylesheet" href="guide.css">
 </head>
 <body>
-<div class="back-home"><a href="/">&larr; Back to Faculty Directory</a></div>
-<h1>Faculty Management System — Portal User Guides</h1>
-<p class="sub">Faculty Directory &amp; Academic Profiles · Daffodil International University</p>
+<main>
+<div class="crumb"><a href="/">&larr; Back to Faculty Directory</a></div>
+<h1>FMS User Guides</h1>
+<p class="sub">Faculty Management System · Daffodil International University</p>
 
-<p>Each guide explains what one role does in the faculty portal, in the order the work happens, what is mandatory,
-and what is locked at each step. Pick the guide for your role.</p>
+<p>Each guide covers one role: what you can do in FMS, step by step, and what is out of your hands. Open the guide for your role. If you hold more than one role, for example Head and Teacher, read both.</p>
 
 <div class="grid">
-  <a class="card" href="teacher.html"><strong>Teacher / Faculty Member</strong><span>Activate account, complete the 13 profile sections, add publications, co-author consent, declaration checkbox, and profile score.</span></a>
-  <a class="card" href="department-head.html"><strong>Department Head &amp; Dean</strong><span>Review pending profile submissions, compare revision diffs, approve or reject with remarks, and department roster.</span></a>
-  <a class="card" href="admin.html"><strong>Administrator &amp; Registrar</strong><span>Account provisioning, activation emails, university ERP comparison &amp; sync, roles &amp; permissions, and batch scoring.</span></a>
-  <a class="card" href="research.html"><strong>Research Division &amp; Scopus Team</strong><span>Scopus workbook imports, online review &amp; author tie-breaking, author ID binding, and incentive report exports.</span></a>
+  <a class="card" href="teacher.html"><strong>Teacher</strong><span>Activate your account, keep your profile up to date, add publications, confirm co-authorship and track approvals.</span></a>
+  <a class="card" href="department-head.html"><strong>Head &amp; Associate Head</strong><span>See your department's teachers, publications and incentives, set the public listing order, and approve changes when routed.</span></a>
+  <a class="card" href="dean.html"><strong>Dean &amp; Associate Dean</strong><span>See your faculty's teachers, publications and incentives across all its departments.</span></a>
+  <a class="card" href="registrar.html"><strong>Registrar Office</strong><span>Create and maintain teacher records, review profile changes, and roll a profile back.</span></a>
+  <a class="card" href="research.html"><strong>Research Team</strong><span>Publications, incentives, Scopus review, exports and the research directory.</span></a>
+  <a class="card" href="admin.html"><strong>Admin</strong><span>Users, roles, administrative posts, approval rules, routing, email templates and ERP mapping.</span></a>
+  <a class="card" href="super-admin.html"><strong>Super Admin</strong><span>System settings, activation and bulk email, bulk import, completion scores and the activity log.</span></a>
 </div>
 
-<div class="note">
-  <strong>Key Principle:</strong> Profile updates submitted by faculty undergo review before public publication.
-  Profile completeness scores reflect verified data. To refresh your own live score at any time, use the
-  <strong>REFRESH SCORE</strong> button on your profile banner.
+<h2>The roles in one table</h2>
+<div class="table-wrap">
+<table>
+  <tr><th>Role</th><th>Sees</th><th>In one line</th></tr>
+  <tr><td>Teacher</td><td>Own profile</td><td>Keeps their own profile and confirms papers they were added to</td></tr>
+  <tr><td>Associate Head</td><td>Own department</td><td>Views the department and sets its listing order</td></tr>
+  <tr><td>Head</td><td>Own department</td><td>Same as Associate Head, plus approves the department's profile changes when routed</td></tr>
+  <tr><td>Associate Dean / Dean</td><td>Own faculty</td><td>Views the faculty's teachers, publications and incentives</td></tr>
+  <tr><td>Registrar</td><td>Whole university</td><td>Maintains teacher records and reviews profile changes</td></tr>
+  <tr><td>Research Team</td><td>Whole university</td><td>Owns publications, incentives, Scopus intake and the research directory</td></tr>
+  <tr><td>Admin</td><td>Whole university</td><td>Manages users, roles, approval rules and all records</td></tr>
+  <tr><td>Super Admin</td><td>Everything</td><td>All of the above, plus system settings, bulk email and imports</td></tr>
+</table>
 </div>
+
+<footer>These guides describe the default role setup as of 18 October 2026. Your administrator can change what a role may do, so your screen may differ slightly.</footer>
+</main>
 </body>
 </html>

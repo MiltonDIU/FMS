@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FMS Registrar Guide</title>
+<link rel="stylesheet" href="guide.css">
+</head>
+<body>
+<main>
+<div class="crumb"><a href="index.html">&larr; All guides</a></div>
+<h1>Registrar Office Guide</h1>
+<p class="sub">Faculty Management System · Daffodil International University</p>
+
+<div class="summary"><p><strong>In short:</strong> you keep the official teacher record for the whole university: create and edit teacher records, record departures, fill fields from the ERP, and review the profile changes routed to you.</p></div>
+
+<div class="toc">
+  <strong>On this page</strong>
+  <ol>
+    <li><a href="#signin">Signing in</a></li>
+    <li><a href="#menu">What is in your menu</a></li>
+    <li><a href="#create">Adding a teacher</a></li>
+    <li><a href="#edit">Editing a teacher</a></li>
+    <li><a href="#leaving">Recording a departure or return</a></li>
+    <li><a href="#erp">Filling fields from the ERP</a></li>
+    <li><a href="#review">Reviewing profile changes</a></li>
+    <li><a href="#rollback">Rolling a profile back</a></li>
+    <li><a href="#email">Sent and blocked emails</a></li>
+    <li><a href="#lists">Keeping the lists up to date</a></li>
+    <li><a href="#cannot">What you cannot do</a></li>
+  </ol>
+</div>
+
+<h2 id="signin">1. Signing in</h2>
+<p>Sign in at <code>/admin</code> with your login email and password. Use <strong>Forgot password?</strong> on the sign-in page if needed.</p>
+
+<h2 id="menu">2. What is in your menu</h2>
+<div class="table-wrap">
+<table>
+  <tr><th>Page</th><th>What you can do</th></tr>
+  <tr><td><strong>Teachers</strong></td><td>Create, view, edit, delete and restore teacher records</td></tr>
+  <tr><td><strong>Department Teachers</strong></td><td>Assign teachers to additional departments</td></tr>
+  <tr><td><strong>Pending Approvals</strong></td><td>Review submitted profile changes; read any profile's history</td></tr>
+  <tr><td><strong>Publications</strong></td><td>View all papers</td></tr>
+  <tr><td><strong>Sent Emails</strong> / <strong>Blocked Emails</strong></td><td>See what was sent to teachers and what happened; block or unblock addresses</td></tr>
+  <tr><td>Faculties, Departments, Designations, Job Types, Employment Statuses, Degree Levels and Types, Majors, Result Types</td><td>Add and edit the lists used in teacher forms</td></tr>
+  <tr><td>Genders, Religions, Blood Groups, Organizations, Positions, Membership Types, Social Media Platforms</td><td>Add and edit; Countries are view only</td></tr>
+</table>
+</div>
+
+<h2 id="create">3. Adding a teacher</h2>
+<ol>
+  <li>Open <strong>Teachers</strong> and click <strong>New teacher</strong>.</li>
+  <li>If the teacher was on the old website, search for them to bring their details across.</li>
+  <li>Enter at least the employee ID, name, login email, department and designation, then save.</li>
+  <li>Ask a Super Admin to send the activation email so the teacher can sign in.</li>
+</ol>
+
+<h2 id="edit">4. Editing a teacher</h2>
+<ol>
+  <li>On <strong>Teachers</strong>, find the teacher (search by name, ID or email, or use the filters) and click <strong>Edit</strong>.</li>
+  <li>You see the same tabs as the teacher, plus the fields only your office may change: department, designation, employee ID, login email, profile URL, joining date, work location, and the Settings tab (employment status, job type, profile status, publicly visible, active, archived).</li>
+  <li>Save. Your edits to another teacher's profile apply immediately and are recorded in that profile's history. They do not wait for approval.</li>
+</ol>
+<div class="tip"><p>To take a profile off the public website without deleting it, turn off <strong>Publicly Visible</strong> on the Settings tab.</p></div>
+
+<h2 id="leaving">5. Recording a departure or return</h2>
+<ul>
+  <li>Set <strong>Employment Status</strong> on the Settings tab. The <strong>Leaving Date</strong> opens for any status other than Active, and is required for Retired, Resigned and Terminated.</li>
+  <li>A retired, resigned or terminated teacher leaves the public directory but stays in the record.</li>
+  <li>When someone returns, set the status back to Active. The leaving date clears, a new period of service opens, and earlier periods are kept. Do not create a second profile.</li>
+  <li>The Teachers list can be filtered by leaving date, joining date and <strong>Rejoined</strong>.</li>
+</ul>
+
+<h2 id="erp">6. Filling fields from the ERP</h2>
+<ol>
+  <li>On a teacher's row, click <strong>Fill from ERP</strong>.</li>
+  <li>Choose the fields to fill and what to do when FMS already holds a value.</li>
+  <li>Run it. The result says what was filled and why anything was not. These fills do not create approval requests.</li>
+</ol>
+<p>On the edit page, <strong>Compare with ERP</strong> shows the FMS and ERP data side by side and lets you merge or override whole sections.</p>
+
+<h2 id="review">7. Reviewing profile changes</h2>
+<p>The university decides which tabs need approval and who approves each one. You decide the tabs routed to the Registrar Office.</p>
+<ol>
+  <li>Open <strong>Approvals &rarr; Pending Approvals</strong>. The badge shows how many are waiting. Filter by teacher if needed.</li>
+  <li>Click <strong>View</strong>. Changed items are opened, unchanged ones folded; each shows before and after.</li>
+  <li>Decide:
+    <ul>
+      <li><span class="btn">Approve Changes</span> or <span class="btn">Approve All</span>: the change goes live on the profile and website.</li>
+      <li><span class="btn">Approve Sections</span> / <span class="btn">Reject Sections</span>: decide part of a submission.</li>
+      <li><span class="btn">Reject Changes</span> or <span class="btn">Reject All</span>: a written reason is required and is sent to the teacher.</li>
+    </ul>
+  </li>
+</ol>
+<p>Decision buttons appear only for the tabs routed to you. Every decision is kept with who made it and when.</p>
+
+<h2 id="rollback">8. Rolling a profile back</h2>
+<ol>
+  <li>In <strong>Pending Approvals</strong>, filter to the teacher and find an approved version or restore point.</li>
+  <li>Click <strong>Rollback</strong> and confirm.</li>
+</ol>
+<p>The profile returns to that state, except Publications, which are left as they are. The rollback is recorded like any other change.</p>
+
+<h2 id="email">9. Sent and blocked emails</h2>
+<ul>
+  <li><strong>Sent Emails</strong> shows each message sent to teachers, and for every recipient whether it was delivered, opened and clicked.</li>
+  <li>An address that bounces should be added to <strong>Blocked Emails</strong>. The system sends nothing to it until it is corrected and unblocked.</li>
+</ul>
+
+<h2 id="lists">10. Keeping the lists up to date</h2>
+<p>Faculties, departments, designations, job types, employment statuses and the degree lists feed the teacher forms and the public site. Add or rename items there rather than typing free text into profiles.</p>
+
+<h2 id="cannot">11. What you cannot do</h2>
+<ul>
+  <li>Create user accounts or change roles (Admin).</li>
+  <li>Change approval rules or routing (Admin).</li>
+  <li>Send activation or bulk email (Super Admin).</li>
+  <li>Edit publications or incentives (Research Team).</li>
+</ul>
+
+<footer>FMS Registrar Office Guide · describes the system as of 18 October 2026.</footer>
+</main>
+</body>
+</html>

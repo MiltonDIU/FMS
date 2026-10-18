@@ -4,135 +4,213 @@
 <meta charset="utf-8">
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FMS — Teacher / Faculty Member Guide</title>
-<style>
-  body { font-family: Arial, Helvetica, sans-serif; color: #1f2937; max-width: 860px; margin: 0 auto; padding: 24px 16px 48px; line-height: 1.6; background: #fff; }
-  h1 { color: #003366; font-size: 1.6rem; margin-bottom: 0; }
-  h2 { color: #003366; font-size: 1.2rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 4px; margin-top: 32px; }
-  .sub { color: #64748b; margin-top: 4px; }
-  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: .93rem; }
-  th, td { border: 1px solid #e2e8f0; padding: 7px 9px; text-align: left; vertical-align: top; }
-  th { background: #f8fafc; }
-  .ok { color: #15803d; font-weight: bold; } .no { color: #b91c1c; font-weight: bold; }
-  .box { background: #f0f7ff; border-left: 4px solid #0055a0; padding: 10px 14px; margin: 14px 0; }
-  .warn { background: #fffbeb; border-left: 4px solid #d97706; padding: 10px 14px; margin: 14px 0; }
-  ol li, ul li { margin-bottom: 4px; }
-  a { color: #0055a0; }
-  code { background: #f1f5f9; padding: 2px 5px; border-radius: 4px; font-size: .9rem; }
-</style>
+<title>FMS Teacher Guide</title>
+<link rel="stylesheet" href="guide.css">
 </head>
 <body>
-<p><a href="index.html">&larr; All guides</a></p>
-<h1>Teacher / Faculty Member Guide</h1>
-<p class="sub">Faculty Management System (FMS) · Daffodil International University</p>
+<main>
+<div class="crumb"><a href="index.html">&larr; All guides</a></div>
+<h1>Teacher Guide</h1>
+<p class="sub">Faculty Management System · Daffodil International University</p>
 
-<div class="box">
-  <strong>In short:</strong> receive activation email &rarr; set your password &rarr; sign in to <code>/admin</code> &rarr; open <strong>My Profile</strong> &rarr; complete the 13 profile tabs &rarr; add degrees with division/marks &rarr; add publications and name co-authors &rarr; confirm papers in <em>"Assigned to Me"</em> &rarr; tick the <strong>Accuracy Declaration</strong> checkbox &rarr; click <strong>Save Changes</strong> &rarr; once audited by your Department Head, click <strong>REFRESH SCORE</strong> to update your percentage ring.
+<div class="summary"><p><strong>In short:</strong> open your activation email &rarr; set a password &rarr; sign in at <code>/admin</code> &rarr; open <strong>My Profile</strong> &rarr; fill in each tab &rarr; tick the declaration &rarr; <span class="btn">Save Changes</span> &rarr; confirm your profile once &rarr; confirm papers colleagues added you to.</p></div>
+
+<div class="toc">
+  <strong>On this page</strong>
+  <ol>
+    <li><a href="#signin">Signing in</a></li>
+    <li><a href="#menu">What is in your menu</a></li>
+    <li><a href="#profile">Updating your profile</a></li>
+    <li><a href="#approval">What happens after you save</a></li>
+    <li><a href="#confirm">Confirming your profile once</a></li>
+    <li><a href="#score">Your completion score</a></li>
+    <li><a href="#publications">Publications and co-authors</a></li>
+    <li><a href="#erp">Compare with ERP</a></li>
+    <li><a href="#history">Your profile history</a></li>
+    <li><a href="#public">Your public profile</a></li>
+    <li><a href="#faq">Problems and answers</a></li>
+  </ol>
 </div>
 
-<h2>1. Activating your account</h2>
+<h2 id="signin">1. Signing in</h2>
+<h3>The first time</h3>
 <ol>
-  <li>The Registrar or ICT team creates your account and sends an activation email with a secure link.</li>
-  <li>Open the email and click <strong>Activate Faculty Profile</strong>.</li>
-  <li>Set a permanent password (at least 8 characters) and confirm it.</li>
-  <li>Go to <code>http://localhost:8000/admin</code> and sign in using your official institutional email and password.</li>
+  <li>Open the activation email from FMS and click its link. The link works once, and only for the number of days stated in the email.</li>
+  <li>You are signed in and taken to <strong>Set password</strong>. Choose a password; each rule is ticked as you meet it.</li>
+  <li>You are taken into the panel. From now on you sign in with your login email and this password.</li>
 </ol>
+<h3>Every time after that</h3>
+<ul>
+  <li>Go to <code>/admin</code> on the FMS site and sign in.</li>
+  <li>Forgot your password? Click <strong>Forgot password?</strong> on the sign-in page and follow the email.</li>
+  <li>Link expired or already used? Ask the Registrar Office for a new activation email.</li>
+</ul>
 
-<h2>2. Opening your profile</h2>
-<p>Once signed in, click <strong>My Profile</strong> from the left sidebar navigation (or go to <code>/admin/my-profile</code>).
-Your profile contains 13 vertical tabs on the left:</p>
-
+<h2 id="menu">2. What is in your menu</h2>
+<div class="table-wrap">
 <table>
-  <tr><th>Tab Name</th><th>What to enter</th><th>Required / Optional</th></tr>
-  <tr><td><strong>Basic Info</strong></td><td>Employee ID, name, designation, department. (Administrative fields are locked).</td><td><span class="ok">Mandatory</span></td></tr>
-  <tr><td><strong>Contact Info</strong></td><td>Work mobile, personal mobile, PBX extension, email addresses, campus office room.</td><td><span class="ok">Mandatory</span></td></tr>
-  <tr><td><strong>Personal Details</strong></td><td>Date of birth, blood group, gender, nationality, religion, and a brief Bio.</td><td><span class="ok">Mandatory</span></td></tr>
-  <tr><td><strong>Research Interest</strong></td><td>Keywords and research areas (used for search and collaborator matching).</td><td><span class="ok">Mandatory</span></td></tr>
-  <tr><td><strong>Educations</strong></td><td>SSC, HSC, Bachelor, Master, PhD degrees, institutions, passing year, result.</td><td><span class="ok">Mandatory</span></td></tr>
-  <tr><td><strong>Publications</strong></td><td>Journal articles, conference papers, books, DOI, Scopus IDs, co-authors.</td><td>Recommended</td></tr>
-  <tr><td><strong>Job Experience</strong></td><td>Previous academic or corporate positions, duration, organization names.</td><td>Optional</td></tr>
-  <tr><td><strong>Training Experience</strong></td><td>Workshops, pedagogical training, certificate courses.</td><td>Optional</td></tr>
-  <tr><td><strong>Awards</strong></td><td>Honors, scholarships, research awards, university recognitions.</td><td>Optional</td></tr>
-  <tr><td><strong>Skills</strong></td><td>Technical tools, lab instruments, programming languages, methodologies.</td><td>Optional</td></tr>
-  <tr><td><strong>Teaching Areas</strong></td><td>Subjects taught, courses, academic topics.</td><td>Optional</td></tr>
-  <tr><td><strong>Memberships</strong></td><td>Professional bodies (IEEE, ACM, IEB, BCS, etc.).</td><td>Optional</td></tr>
-  <tr><td><strong>Social Links</strong></td><td>Google Scholar URL, ORCID ID, ResearchGate, LinkedIn, GitHub.</td><td>Optional</td></tr>
+  <tr><th>Page</th><th>What it is for</th></tr>
+  <tr><td><strong>Dashboard</strong></td><td>Quick actions, your profile figures, and any co-authorship requests waiting for you</td></tr>
+  <tr><td><strong>My Profile</strong></td><td>Your whole profile, where you make changes</td></tr>
+  <tr><td><strong>My Profile History</strong></td><td>Every change to your profile and what happened to it</td></tr>
+  <tr><td><strong>Publications</strong></td><td>Every paper you are attached to (view only)</td></tr>
+  <tr><td><strong>Assigned to Me</strong></td><td>Papers colleagues added you to, waiting for your answer or already answered</td></tr>
 </table>
+</div>
+<p>The bell icon at the top shows notifications: approvals, rejections with the reviewer's reason, and co-authorship requests. Each one links to what it is about. <strong>View Site</strong> in the user menu (top right) opens the public website.</p>
 
-<h2>3. Entering Educational Qualifications (Marks &amp; Division)</h2>
-<p>Under the <strong>Educations</strong> tab, click <strong>Add Education</strong> for each degree:</p>
-<ul>
-  <li>Choose the <strong>Degree Type</strong> (e.g. B.Sc., M.Sc., Ph.D., H.S.C, S.S.C).</li>
-  <li>Select or type the <strong>Educational Institution</strong> and Country.</li>
-  <li>Choose the <strong>Result Type</strong>:
+<h2 id="profile">3. Updating your profile</h2>
+<ol>
+  <li>Open <strong>My Profile</strong>. The tabs down the left side are:
+    <div class="table-wrap">
+    <table>
+      <tr><th>Tab</th><th>What goes in it</th></tr>
+      <tr><td>Basic Info</td><td>Photo, name, biography. Department, designation, employee ID and similar are shown but locked.</td></tr>
+      <tr><td>Contact Info</td><td>Phones, PBX extension, office room, secondary email, addresses</td></tr>
+      <tr><td>Personal Details</td><td>Date of birth, gender, blood group, nationality, religion</td></tr>
+      <tr><td>Research Interest</td><td>Your research interests</td></tr>
+      <tr><td>Area of Expertise</td><td>Your areas of expertise</td></tr>
+      <tr><td>Educations</td><td>Each degree: level, type, institution, country, year, and result (CGPA and scale, or marks and total marks)</td></tr>
+      <tr><td>Publications</td><td>Your papers and their authors (see <a href="#publications">section 7</a>)</td></tr>
+      <tr><td>Job Experience</td><td>Previous posts and organisations, with dates</td></tr>
+      <tr><td>Training Experience</td><td>Trainings, workshops and courses</td></tr>
+      <tr><td>Awards</td><td>Awards, honours and scholarships</td></tr>
+      <tr><td>Skills</td><td>Technical and professional skills</td></tr>
+      <tr><td>Teaching Areas</td><td>Subjects you teach</td></tr>
+      <tr><td>Memberships</td><td>Professional bodies</td></tr>
+      <tr><td>Social Links</td><td>Google Scholar, ORCID, ResearchGate, LinkedIn, your website and so on</td></tr>
+      <tr><td>Documents</td><td>Certificates and other documents</td></tr>
+      <tr><td>Settings</td><td>Employment status, job type and visibility, shown for information only</td></tr>
+    </table>
+    </div>
+  </li>
+  <li>Change what you need. Inside a tab, use <strong>Add</strong> to add another degree, job, award and so on, and the delete icon on a row to remove it.</li>
+  <li>At the bottom of the page, tick the accuracy declaration. <span class="btn">Save Changes</span> stays disabled until you do. The tick is needed on every save.</li>
+  <li>Click <span class="btn">Save Changes</span>. You will see one of:
     <ul>
-      <li><strong>CGPA / Grade:</strong> enter your CGPA (e.g. 3.85) and Scale (e.g. 4.00).</li>
-      <li><strong>First / Second Division or Class:</strong> enter your marks obtained (e.g. 750) and Total Marks (e.g. 1000). Both fields are supported.</li>
+      <li><strong>Profile update submitted successfully</strong>: your changes are saved (see the next section for when they go live).</li>
+      <li><strong>No changes to save</strong>: nothing was different from what is already stored.</li>
+      <li>An error that names the tab and the field to correct.</li>
     </ul>
   </li>
-  <li>Select your passing year and duration.</li>
-</ul>
-
-<h2>4. Adding Publications &amp; Co-Authors</h2>
-<ol>
-  <li>Open the <strong>Publications</strong> tab and click <strong>Add to Publications</strong>.</li>
-  <li>Enter the title, journal/conference name, year, volume, issue, and DOI.</li>
-  <li>Specify authorship roles:
-    <ul>
-      <li><strong>First Author:</strong> select yourself or another colleague.</li>
-      <li><strong>Corresponding Author:</strong> select who handles publication correspondence.</li>
-      <li><strong>Co-authors:</strong> select all contributing DIU faculty members from the dropdown.</li>
-    </ul>
-  </li>
 </ol>
+<div class="warn"><p><strong>Fields you cannot change yourself:</strong> department, designation, employee ID, login email, profile URL, joining date, work location, and everything on the Settings tab. The Registrar Office owns these; ask them for a correction.</p></div>
+<div class="tip"><p>There are no drafts. Every save is sent at once. To change something you already submitted, edit it and save again.</p></div>
 
-<div class="box">
-  <strong>Co-author notification:</strong> When you select a colleague as a co-author, they receive a notification. The paper waits in their <em>"Assigned to Me"</em> tab for their confirmation before appearing on their public profile.
-</div>
+<h2 id="approval">4. What happens after you save</h2>
+<p>The university decides which tabs need a reviewer's approval. A tab that does not need approval goes live as soon as you save. A tab that does waits for its reviewer, and until then the public site keeps showing your previous details.</p>
+<figure>
+<svg class="flow" viewBox="0 0 760 360" role="img" aria-label="A change that needs approval goes live only after a reviewer accepts it" font-size="13">
+  <defs><marker id="t-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="head" d="M0 0L10 5L0 10z"/></marker></defs>
+  <g class="lines">
+    <path class="line" d="M172 70H216" marker-end="url(#t-arrow)"/>
+    <path class="line" d="M344 70H386" marker-end="url(#t-arrow)"/>
+    <path class="line" d="M534 70H566" marker-end="url(#t-arrow)"/>
+    <path class="line" d="M280 110V164" marker-end="url(#t-arrow)"/>
+    <path class="line" d="M354 190H566" marker-end="url(#t-arrow)"/>
+    <path class="line" d="M640 96V164" marker-end="url(#t-arrow)"/>
+    <path class="line" d="M714 70H738V300H534" marker-end="url(#t-arrow)"/>
+    <path class="line" d="M386 300H98V96" marker-end="url(#t-arrow)"/>
+  </g>
+  <rect class="box" x="24" y="44" width="148" height="52" rx="8"/>
+  <text x="98" y="67" text-anchor="middle" font-weight="600">You save</text>
+  <text class="quiet" x="98" y="84" text-anchor="middle" font-size="11.5">declaration ticked</text>
+  <polygon class="box" points="216,70 280,30 344,70 280,110"/>
+  <text x="280" y="67" text-anchor="middle">Tab needs</text>
+  <text x="280" y="83" text-anchor="middle">approval?</text>
+  <rect class="box" x="386" y="44" width="148" height="52" rx="8"/>
+  <text x="460" y="67" text-anchor="middle" font-weight="600">Waiting</text>
+  <text class="quiet" x="460" y="84" text-anchor="middle" font-size="11.5">reviewer notified</text>
+  <rect class="box" x="566" y="44" width="148" height="52" rx="8"/>
+  <text x="640" y="67" text-anchor="middle" font-weight="600">Reviewer</text>
+  <text class="quiet" x="640" y="84" text-anchor="middle" font-size="11.5">decides each tab</text>
+  <rect class="box" x="206" y="164" width="148" height="52" rx="8"/>
+  <text x="280" y="187" text-anchor="middle" font-weight="600">Saved at once</text>
+  <text class="quiet" x="280" y="204" text-anchor="middle" font-size="11.5">kept in history</text>
+  <rect class="box main" x="566" y="164" width="148" height="52" rx="8"/>
+  <text x="640" y="187" text-anchor="middle" font-weight="600">Live on your</text>
+  <text x="640" y="204" text-anchor="middle" font-size="11.5">profile and public site</text>
+  <rect class="box bad" x="386" y="274" width="148" height="52" rx="8"/>
+  <text x="460" y="297" text-anchor="middle" font-weight="600">Rejected</text>
+  <text x="460" y="314" text-anchor="middle" font-size="11.5">reason sent to you</text>
+  <text class="quiet" x="365" y="62" text-anchor="middle" font-size="11.5">yes</text>
+  <text class="quiet" x="290" y="140" font-size="11.5">no</text>
+  <text class="quiet" x="650" y="136" font-size="11.5">approve</text>
+  <text class="quiet" x="730" y="260" text-anchor="end" font-size="11.5">reject</text>
+  <text class="quiet" x="242" y="292" text-anchor="middle" font-size="11.5">correct it and save again</text>
+</svg>
+<figcaption>If a change is rejected, the notification and My Profile History show the reviewer's reason.</figcaption>
+</figure>
 
-<h2>5. Confirming papers added by colleagues ("Assigned to Me")</h2>
-<p>If another teacher adds a publication and lists you as an author, you will see it in the <strong>Assigned to Me</strong> tab inside Publications:</p>
+<h2 id="confirm">5. Confirming your profile once</h2>
+<p>Most profiles were brought over from the old website. Until you confirm yours, My Profile shows a confirmation panel.</p>
+<ol>
+  <li>Go through every tab and correct anything wrong. Save your corrections.</li>
+  <li>In the confirmation panel, tick the box and click the confirm button.</li>
+</ol>
+<p>This is asked only once. It marks your profile as verified, which the university may require before a profile appears in the public directory.</p>
+
+<h2 id="score">6. Your completion score</h2>
 <ul>
-  <li>Review the paper title and who added you.</li>
-  <li>Click <strong>Confirm</strong> if you are an author &mdash; the publication immediately appears on your CV.</li>
-  <li>Click <strong>Decline</strong> if you were tagged by mistake &mdash; you will not be listed.</li>
+  <li>The banner at the top of My Profile shows how complete your profile is, from 0 to 100%.</li>
+  <li>Open the metrics to see what is missing. Each <strong>Needs Attention</strong> item takes you straight to the field.</li>
+  <li>The score counts what is saved and approved. After a reviewer approves your changes, click <strong>Refresh score</strong> to recalculate it.</li>
 </ul>
 
-<h2>6. Saving your profile (The Accuracy Declaration)</h2>
-<p>Whenever you make changes to your profile:</p>
+<h2 id="publications">7. Publications and co-authors</h2>
+<h3>Adding a paper</h3>
 <ol>
-  <li>Scroll down to the bottom of the page.</li>
-  <li>You will notice the <strong>Save Changes</strong> button is in a <span class="no">Disabled</span> state by default.</li>
-  <li>Directly above the button, read the <strong>Profile Information Accuracy Declaration</strong> box.</li>
-  <li>Tick the checkbox: <em>"I hereby declare and confirm that all information, credentials, experiences, and records provided across all sections of my profile are authentic, accurate, and completely up to date."</em></li>
-  <li>The <strong>Save Changes</strong> button will immediately become <span class="ok">Active</span>.</li>
-  <li>Click <strong>Save Changes</strong>.</li>
+  <li>Go to <strong>My Profile &rarr; Publications</strong> and click <strong>Add</strong>.</li>
+  <li>Enter the title, journal or conference, year, DOI and type.</li>
+  <li>Under Authorship, choose the <strong>First Author</strong>, <strong>Corresponding Author</strong> and <strong>Co-Authors</strong>.</li>
+  <li>Tick the declaration and save.</li>
+</ol>
+<p>If you name a DIU colleague as an author, they are asked to confirm. The paper appears on their profile only after they do, and you are notified of their answer.</p>
+<h3>When a colleague adds you</h3>
+<ol>
+  <li>The request appears on your <strong>Dashboard</strong>, with a notification and a count beside <strong>Assigned to Me</strong>.</li>
+  <li>Click <span class="btn">Confirm</span> if you are an author: the paper joins your profile and your counts.</li>
+  <li>Click <span class="btn">Decline</span> if you are not: you will not be listed on it.</li>
+</ol>
+<p><strong>Assigned to Me</strong> keeps the full record: who added you, as what, when, and your answer.</p>
+<div class="tip"><p>Papers entered by the Research Team or brought in from Scopus attach to you directly, without a request. If a paper is wrong or missing, contact the Research Team.</p></div>
+
+<h2 id="erp">8. Compare with ERP</h2>
+<p>If the university has switched this on, a <span class="btn">Compare with ERP</span> button appears at the top of My Profile. It needs your employee ID to be on your profile.</p>
+<ol>
+  <li>Click it. Your FMS data is shown beside your ERP record, section by section, with differences marked.</li>
+  <li>Choose <strong>Merge</strong> (fills only empty fields and adds records you do not have yet) or <strong>Override</strong> (replaces the chosen sections with the ERP data).</li>
+  <li>Tick the sections to bring in and click <span class="btn">Import &amp; Synchronize</span>.</li>
 </ol>
 
-<div class="warn">
-  <strong>Why is the checkbox required every time?</strong> Under institutional governance rules, you take personal legal responsibility for the authenticity of your submitted degrees, marks, and publications. Each time you save, confirming the checkbox is mandatory.
-</div>
+<h2 id="history">9. Your profile history</h2>
+<p><strong>My Profile History</strong> lists every change to your profile: waiting, approved, rejected, or saved at once. Open a row to see what changed, before and after, and any reviewer remarks. Only you and the reviewing offices can see your history.</p>
 
-<h2>7. Understanding your Profile Score &amp; the REFRESH SCORE button</h2>
-<p>At the top of your profile is the <strong>Overall Integrity &amp; Assessment Banner</strong>:</p>
+<h2 id="public">10. Your public profile</h2>
 <ul>
-  <li><strong>Score Percentage (0&ndash;100%):</strong> shows your profile completeness based on UGC and university accreditation requirements.</li>
-  <li><strong>SHOW METRICS &amp; GAPS:</strong> click this button to open the audit checklist. It shows which tabs have empty mandatory or optional fields, with a <strong>GO &rsaquo;</strong> button to jump right to each field.</li>
-  <li><strong>HIDE METRICS &amp; GAPS:</strong> click this button (beside the score ring) to collapse the panel.</li>
-  <li><strong>REFRESH SCORE:</strong> whenever you update your profile or after your Department Head approves your updates, click <strong>REFRESH SCORE</strong>. The system recalculates your percentage ring in real time.</li>
+  <li>Your profile appears on the faculty website under your faculty and department, and in the site search.</li>
+  <li>Visitors can download your CV as a PDF and your contact card (vCard), when the university has these switched on.</li>
+  <li>Each of your publications has its own page with ready citations (APA, IEEE, BibTeX).</li>
+  <li>Use <strong>View Site</strong> in the user menu to check how your profile looks.</li>
+  <li>Not showing? A profile is public only when it is active, not archived and marked publicly visible. Ask the Registrar Office.</li>
 </ul>
 
-<div class="box">
-  <strong>Why doesn't the score jump up immediately upon saving?</strong> FMS uses an approval review system. When you submit new degrees or designations, they undergo review by your Department Head first. Only approved, verified data contributes to your official score.
+<h2 id="faq">11. Problems and answers</h2>
+<div class="table-wrap">
+<table>
+  <tr><th>Problem</th><th>What to do</th></tr>
+  <tr><td>The activation link has expired or was already used</td><td>Ask the Registrar Office for a new one.</td></tr>
+  <tr><td><span class="btn">Save Changes</span> is greyed out</td><td>Tick the declaration just above it.</td></tr>
+  <tr><td>I saved, but the website shows my old details</td><td>That tab needs approval. Check My Profile History; it goes live once approved.</td></tr>
+  <tr><td>My change was rejected</td><td>Read the reason in the notification or My Profile History, correct it and save again.</td></tr>
+  <tr><td>I cannot change my department, designation or joining date</td><td>These belong to the Registrar Office. Ask them.</td></tr>
+  <tr><td>A paper I co-wrote is not on my profile</td><td>Look in Assigned to Me and click Confirm. If it is not there, ask the colleague who added it or the Research Team.</td></tr>
+  <tr><td>My score did not change</td><td>Click Refresh score after your changes are approved.</td></tr>
+  <tr><td>I cannot see Compare with ERP</td><td>Your profile needs an employee ID, and the university must have switched the feature on.</td></tr>
+</table>
 </div>
 
-<h2>8. Syncing with ERP</h2>
-<p>If your official records (promotions, contact details, degrees) have been updated in the university ERP:</p>
-<ol>
-  <li>Click the <strong>Sync with ERP</strong> button at the top header of My Profile.</li>
-  <li>A comparison window will show your current FMS records on the left and ERP data on the right.</li>
-  <li>You can inspect differences and apply updates to merge them directly into your profile.</li>
-</ol>
-
+<footer>FMS Teacher Guide · describes the system as of 18 October 2026.</footer>
+</main>
 </body>
 </html>

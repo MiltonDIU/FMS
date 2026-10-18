@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FMS Super Admin Guide</title>
+<link rel="stylesheet" href="guide.css">
+</head>
+<body>
+<main>
+<div class="crumb"><a href="index.html">&larr; All guides</a></div>
+<h1>Super Admin Guide</h1>
+<p class="sub">Faculty Management System · Daffodil International University</p>
+
+<div class="summary"><p><strong>In short:</strong> you hold every permission. Everything in the <a href="admin.html">Admin</a>, <a href="registrar.html">Registrar</a> and <a href="research.html">Research Team</a> guides applies to you. This guide covers what only you can do: system settings, activation and bulk email, bulk import, completion scores, and the activity log.</p></div>
+
+<div class="warn"><p>Super Admin does not by itself let you approve profile changes. To decide a tab, add yourself or the Super Admin role to its <strong>Notification Routing</strong>.</p></div>
+
+<div class="toc">
+  <strong>On this page</strong>
+  <ol>
+    <li><a href="#settings">System Settings</a></li>
+    <li><a href="#activation">Activating teachers</a></li>
+    <li><a href="#email">Emailing teachers</a></li>
+    <li><a href="#import">Importing teachers in bulk</a></li>
+    <li><a href="#scores">Completion scores</a></li>
+    <li><a href="#teachers">Other teacher actions</a></li>
+    <li><a href="#people">Team Directory and Activity Log</a></li>
+    <li><a href="#names">Name Prefixes and Academic Suffixes</a></li>
+    <li><a href="#scopus">Scopus runs</a></li>
+  </ol>
+</div>
+
+<h2 id="settings">1. System Settings</h2>
+<p>One page with one <span class="btn">Save</span> button. Its tabs:</p>
+<div class="table-wrap">
+<table>
+  <tr><th>Tab</th><th>What it controls</th></tr>
+  <tr><td>Maintenance Mode</td><td>Close the public website for maintenance. The admin panel keeps working.</td></tr>
+  <tr><td>Teacher API Integration</td><td>HR/ERP credentials and endpoint paths, with a button to test the connection</td></tr>
+  <tr><td>Teacher Settings</td><td>Whether a welcome email is sent, whether teachers may use <strong>Compare with ERP</strong>, and whether unverified profiles are hidden from the public site</td></tr>
+  <tr><td>Profile Integrity &amp; Thresholds</td><td>How completion scores are judged</td></tr>
+  <tr><td>Dashboard Settings</td><td>Dashboard options</td></tr>
+  <tr><td>Mail Configuration</td><td>The mail server the system sends from</td></tr>
+  <tr><td>Frontend Settings</td><td>The public theme (DIU, Modern, Ledger, Aurora, Lumina), colours, fonts and directory options</td></tr>
+  <tr><td>Profile Downloads</td><td>Whether visitors can download a teacher's CV (PDF) and vCard</td></tr>
+  <tr><td>Branding &amp; Site Identity</td><td>Site name, logo, favicon, address, contact details, footer text</td></tr>
+  <tr><td>Data Migration</td><td>Options for importing data from the old system</td></tr>
+</table>
+</div>
+<div class="tip"><p>Hiding unverified profiles removes every profile whose teacher has not yet confirmed it. Switch it on only once most teachers have confirmed.</p></div>
+
+<h2 id="activation">2. Activating teachers</h2>
+<ol>
+  <li>On <strong>Teachers</strong>, click <strong>Send Activation Email</strong> on the teacher's row (also on the teacher's view page).</li>
+  <li>Set how many days the link stays valid and send.</li>
+  <li>The teacher opens the link, sets a password and is signed in. Teachers who have already set a password are skipped.</li>
+</ol>
+<p>The Teachers list shows activation progress: sent, activated, awaiting, expired or failed. The activation link is never click-tracked, so a mail scanner cannot use it up.</p>
+
+<h2 id="email">3. Emailing teachers</h2>
+<ul>
+  <li><strong>Send Email to Teachers</strong> (Teachers page header): target by faculties, departments, employment statuses and job types; the number of recipients is shown before you send. Then select an email template, adjust the subject and body, and for activation emails set the link validity and whether to skip teachers who have already activated. A person in several selected departments gets one copy.</li>
+  <li><strong>Send Email to Selected</strong>: tick teachers in the list and use this bulk action.</li>
+  <li><strong>Send Email</strong> on a row: one teacher.</li>
+</ul>
+<p><strong>Sent Emails</strong> shows each send and, per recipient, whether it was delivered, opened and clicked. Add bounced addresses to <strong>Blocked Emails</strong>; nothing is sent to them until unblocked. Only you can delete Sent Emails records.</p>
+
+<h2 id="import">4. Importing teachers in bulk</h2>
+<ol>
+  <li>Open <strong>Import Teachers (Bulk)</strong> and click <strong>Download Template</strong>.</li>
+  <li>Fill the JSON file in the template's format.</li>
+  <li>Upload it with <strong>Select JSON File</strong> and click <strong>Start Import</strong>.</li>
+  <li>If rows fail, click <strong>Download Error Log</strong>, fix them and import those rows again.</li>
+</ol>
+<p>Import options such as dry run, skip existing teachers and overwrite are on the <strong>Data Migration</strong> tab of System Settings.</p>
+
+<h2 id="scores">5. Completion scores</h2>
+<ul>
+  <li><strong>Batch Calculate Completion Scores</strong> (Teachers page header): choose employment statuses, optionally force a re-sync or include archived teachers, check the count, and run.</li>
+  <li><strong>Sync Selected Scores</strong> (bulk action) or <strong>Sync Score</strong> (one row) for a few teachers.</li>
+</ul>
+<p>The <strong>Completion Score</strong> and <strong>Score Synced</strong> columns show the result.</p>
+
+<h2 id="teachers">6. Other teacher actions</h2>
+<ul>
+  <li><strong>Login Allowed</strong> switch on a row: stop or allow one teacher's sign-in.</li>
+  <li><strong>Sync Photo</strong>: restore a teacher's missing photo from the legacy source.</li>
+  <li><strong>Sync Old Data</strong>: re-import one teacher's data from the old system, choosing what to do with existing data.</li>
+</ul>
+
+<h2 id="people">7. Team Directory and Activity Log</h2>
+<ul>
+  <li><strong>Team Directory</strong>: every staff account with its roles, filterable by role. Use it to check who holds Admin, Research Team and similar roles.</li>
+  <li><strong>Activity Log</strong>: who changed what, and when, across the system.</li>
+</ul>
+
+<h2 id="names">8. Name Prefixes and Academic Suffixes</h2>
+<p>Titles (Prof., Dr.) and qualifications (PhD) are kept as lists so every name is shown the same way on screens, CVs and the API. Edit them here; merge duplicates rather than deleting them.</p>
+
+<h2 id="scopus">9. Scopus runs</h2>
+<p>You can do everything in the <a href="research.html#scopus">Research Team's Scopus Review</a>, and you are the only one who can <strong>Delete</strong> a run. A run is the record of what was reviewed and on what rules, so delete only when you are sure.</p>
+
+<footer>FMS Super Admin Guide · describes the system as of 18 October 2026.</footer>
+</main>
+</body>
+</html>

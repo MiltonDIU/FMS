@@ -4,62 +4,120 @@
 <meta charset="utf-8">
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FMS — Research Division &amp; Scopus Guide</title>
-<style>
-  body { font-family: Arial, Helvetica, sans-serif; color: #1f2937; max-width: 860px; margin: 0 auto; padding: 24px 16px 48px; line-height: 1.6; background: #fff; }
-  h1 { color: #003366; font-size: 1.6rem; margin-bottom: 0; }
-  h2 { color: #003366; font-size: 1.2rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 4px; margin-top: 32px; }
-  .sub { color: #64748b; margin-top: 4px; }
-  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: .92rem; }
-  th, td { border: 1px solid #e2e8f0; padding: 7px 9px; text-align: left; vertical-align: top; }
-  th { background: #f8fafc; }
-  code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: .88rem; }
-  .box { background: #f0f7ff; border-left: 4px solid #0055a0; padding: 10px 14px; margin: 14px 0; }
-  .warn { background: #fffbeb; border-left: 4px solid #d97706; padding: 10px 14px; margin: 14px 0; }
-  ol li, ul li { margin-bottom: 4px; }
-  a { color: #0055a0; }
-</style>
+<title>FMS Research Team Guide</title>
+<link rel="stylesheet" href="guide.css">
 </head>
 <body>
-<p><a href="index.html">&larr; All guides</a></p>
-<h1>Research Division &amp; Scopus Operations Guide</h1>
-<p class="sub">Faculty Management System (FMS) · Institutional Research &amp; Incentives</p>
+<main>
+<div class="crumb"><a href="index.html">&larr; All guides</a></div>
+<h1>Research Team Guide</h1>
+<p class="sub">Faculty Management System · Daffodil International University</p>
 
-<div class="box">
-  <strong>In short:</strong> download university Scopus publication export &rarr; upload workbook under <strong>Scopus Operations</strong> &rarr; review author matches in the online disambiguation interface &rarr; bind Scopus Author IDs to faculty records &rarr; calculate and export financial incentive sheets for Accounts &amp; Finance.
+<div class="summary"><p><strong>In short:</strong> you own the university's publication record: enter and classify papers, record incentives, bring in Scopus exports under review, export data for reports, and keep the research directory.</p></div>
+
+<div class="toc">
+  <strong>On this page</strong>
+  <ol>
+    <li><a href="#signin">Signing in</a></li>
+    <li><a href="#menu">What is in your menu</a></li>
+    <li><a href="#publications">Entering and correcting publications</a></li>
+    <li><a href="#authors">Authors</a></li>
+    <li><a href="#incentives">Recording incentives</a></li>
+    <li><a href="#export">Exporting for reports</a></li>
+    <li><a href="#scopus">Scopus Review</a></li>
+    <li><a href="#identity">Institution Identity</a></li>
+    <li><a href="#directory">The research directory</a></li>
+    <li><a href="#cannot">What you cannot do</a></li>
+  </ol>
 </div>
 
-<h2>1. Uploading the Scopus Dataset</h2>
-<ol>
-  <li>Export institutional publications from Elsevier Scopus in CSV or Excel format. Ensure columns for Author Names, Affiliation, Title, DOI, Source Title, and Scopus Author ID are included.</li>
-  <li>In FMS, navigate to <strong>Scopus Operations &rarr; Review Runs</strong> and click <strong>New Review Run</strong>.</li>
-  <li>Upload the workbook. The engine automatically handles UTF-8 BOM, validates headers, and separates internal university authors from external international collaborators.</li>
-</ol>
+<h2 id="signin">1. Signing in</h2>
+<p>Sign in at <code>/admin</code> with your login email and password. Use <strong>Forgot password?</strong> on the sign-in page if needed. Your Dashboard shows publication charts by year, type, quartile, grant type, linkage and collaboration; click a figure to open the papers behind it.</p>
 
-<h2>2. Online Disambiguation Review Interface</h2>
-<p>Because multiple faculty members may share common surnames or initials:</p>
+<h2 id="menu">2. What is in your menu</h2>
+<div class="table-wrap">
+<table>
+  <tr><th>Page</th><th>What you can do</th></tr>
+  <tr><td><strong>Publications</strong></td><td>Create, edit, delete and restore papers; export</td></tr>
+  <tr><td><strong>Incentives</strong></td><td>Create, edit and delete incentive records; export</td></tr>
+  <tr><td><strong>Incentive Logs</strong></td><td>Read every change to an incentive record</td></tr>
+  <tr><td><strong>Authors</strong>, Author Types</td><td>Maintain authors, including people outside DIU</td></tr>
+  <tr><td>Publication Types, Linkages, Quartiles, Grant Types, Research Collaborations</td><td>Maintain the classification lists</td></tr>
+  <tr><td><strong>Scopus Review</strong>, <strong>Institution Identity</strong></td><td>Bring in Scopus exports and set how DIU affiliations are recognised</td></tr>
+  <tr><td><strong>Teachers</strong></td><td>View teachers, open a teacher's dashboard, mark researchers</td></tr>
+</table>
+</div>
+
+<h2 id="publications">3. Entering and correcting publications</h2>
+<ol>
+  <li>Open <strong>Publications</strong> and click <strong>New publication</strong>.</li>
+  <li>Choose the faculty and department, then fill in the title, journal or conference, publication date or year, DOI and the other details.</li>
+  <li>Classify it: <strong>type</strong>, <strong>quartile</strong>, <strong>grant type</strong>, <strong>linkage</strong> and <strong>research collaboration</strong>. Every paper needs all five so reports add up; use "N/Q" or "Not Assigned" where the value is not known.</li>
+  <li>Under Authorship, choose the <strong>First Author</strong>, <strong>Corresponding Author</strong> and <strong>Co-Authors</strong>.</li>
+  <li>Save. The paper appears on its DIU authors' public profiles.</li>
+</ol>
+<p>To correct a paper, click <strong>Edit</strong> on its row. Use the filters (date range, type, quartile, grant type, linkage, collaboration, incentive status, source, faculty, department, internal teacher attached) to find papers that need work.</p>
+<div class="tip"><p>Teachers also add papers from their own profiles. When they name DIU colleagues, those colleagues must confirm. Papers you enter attach to their authors directly.</p></div>
+
+<h2 id="authors">4. Authors</h2>
 <ul>
-  <li>Open the active review run and click <strong>Online Review</strong>.</li>
-  <li><strong>Automatic Matches:</strong> papers whose DOI or author Scopus ID already exists in FMS are matched with 100% confidence.</li>
-  <li><strong>Candidate Selection:</strong> for ambiguous names, the interface suggests potential departmental candidates. Reviewers select the exact faculty member based on research discipline.</li>
+  <li>An author who is not a DIU teacher can be created on the spot: click <strong>New Author</strong> on the publication form and enter the name, email, category and Scopus author ID.</li>
+  <li><strong>Authors</strong> lists every author. Filter by <strong>Ours, and not yet merged</strong> to find authors who wrote under DIU's affiliation but are not yet tied to a teacher.</li>
+  <li>If an author record turns out to be a DIU teacher, select it and use the bulk action <strong>Merge into Teacher</strong>; their papers move to the teacher.</li>
+  <li>The same person entered twice as an author: select both and use <strong>Merge Selected Authors</strong>, choosing which record survives.</li>
 </ul>
 
-<h2>3. Binding Scopus Author IDs</h2>
-<p>When you confirm an author match in the review run:</p>
+<h2 id="incentives">5. Recording incentives</h2>
 <ol>
-  <li>The teacher's official <strong>Scopus Author ID</strong> is permanently bound to their profile record.</li>
-  <li>All future dataset uploads automatically recognize that author ID, eliminating manual disambiguation on future runs.</li>
-  <li>The paper is added to the teacher's publications list and appears on their public directory CV.</li>
+  <li>On a paper's row in <strong>Publications</strong>, click <strong>Incentive</strong>, or open <strong>Incentives</strong> and click <strong>New</strong>.</li>
+  <li>Enter the total amount in taka.</li>
+  <li>Add each author's share, with their role: 1st Author, Corresponding Author or Co-Author. The shares are checked against the total.</li>
+  <li>Set the status: <strong>Pending</strong>, <strong>Approved</strong> or <strong>Paid</strong>, and add remarks if useful.</li>
+  <li>Save. Who created, approved and paid it is recorded, and every later change is kept in <strong>Incentive Logs</strong>.</li>
 </ol>
+<p>Incentives can be filtered by faculty and department, status and publication date. To see what each teacher has received, use <strong>Export by Author</strong>.</p>
 
-<h2>4. Generating Research Incentive Workbooks</h2>
-<p>To reward faculty research under university incentive policies:</p>
+<h2 id="export">6. Exporting for reports</h2>
 <ul>
-  <li>Navigate to <strong>Research Incentives</strong>.</li>
-  <li>Filter papers by publication year, index, quartile (Q1, Q2, Q3, Q4), or department.</li>
-  <li>The incentive engine calculates monetary rewards based on first author, corresponding author, and co-author split weightings.</li>
-  <li>Click <strong>Export Incentives Sheet</strong> to download an audited Excel workbook ready for submission to the university Finance Office.</li>
+  <li>On <strong>Publications</strong>: <strong>Export Publications</strong> (one row per paper) or <strong>Export by Author</strong> (one row per author and paper).</li>
+  <li>On <strong>Incentives</strong>: <strong>Export Incentives</strong> or <strong>Export by Author</strong>, the sheet for Finance.</li>
+</ul>
+<p>Set the filters first; the export uses them. The file is built in the background and you are notified when it is ready to download.</p>
+
+<h2 id="scopus">7. Scopus Review</h2>
+<p>Brings papers from a Scopus export into FMS, reviewed paper by paper and author by author, instead of retyping them.</p>
+<ol>
+  <li>Open <strong>Scopus Review</strong> and click <strong>Upload a Scopus export</strong>. Set the matching options and upload the file.</li>
+  <li>Wait for the run to show <strong>Ready</strong>. Its row shows how many papers FMS already holds and how many are new, and how many DIU authors are teachers, external authors or unknown. <strong>Summary</strong> shows the same figures.</li>
+  <li>Decide each paper and author, in one of two ways:
+    <ul>
+      <li><strong>Review Online</strong>: decide in the browser, then click <strong>Import Decisions Online</strong>.</li>
+      <li><strong>Download</strong> the workbook, fill in the Decision column in Excel, then use <strong>Import checked workbook</strong> to upload it.</li>
+    </ul>
+  </li>
+  <li>Approved papers are created and teachers' Scopus author IDs are linked, so future runs recognise them automatically.</li>
+</ol>
+<p>If matching looks wrong, adjust <a href="#identity">Institution Identity</a> and click <strong>Run again</strong> on the run. Only a Super Admin can delete a run.</p>
+
+<h2 id="identity">8. Institution Identity</h2>
+<p>Sets the words a Scopus run is judged by: which affiliation text counts as DIU, which similarly named institutions are not DIU, and how a student's address is told apart from a staff member's. If nothing is ever changed here, the built-in DIU defaults apply. Wrong settings do not cause an error; the run simply recognises nobody, so check the counts after a change.</p>
+
+<h2 id="directory">9. The research directory</h2>
+<ol>
+  <li>Open <strong>Teachers</strong>. Filter by <strong>In research directory</strong> to see who is in it.</li>
+  <li>Turn the <strong>Researcher</strong> switch on or off on a teacher's row. The research website reads this list.</li>
+  <li>Click <strong>Dashboard</strong> on a row to look at a teacher's profile figures before deciding.</li>
+</ol>
+<p>You cannot edit teachers' profiles; this switch is the one thing you change about a teacher.</p>
+
+<h2 id="cannot">10. What you cannot do</h2>
+<ul>
+  <li>Edit teacher profiles or approve profile changes.</li>
+  <li>Create accounts or change roles.</li>
+  <li>Send emails to teachers.</li>
 </ul>
 
+<footer>FMS Research Team Guide · describes the system as of 18 October 2026.</footer>
+</main>
 </body>
 </html>

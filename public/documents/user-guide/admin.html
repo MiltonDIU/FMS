@@ -4,89 +4,126 @@
 <meta charset="utf-8">
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FMS — Administrator &amp; Registrar Guide</title>
-<style>
-  body { font-family: Arial, Helvetica, sans-serif; color: #1f2937; max-width: 860px; margin: 0 auto; padding: 24px 16px 48px; line-height: 1.6; background: #fff; }
-  h1 { color: #003366; font-size: 1.6rem; margin-bottom: 0; }
-  h2 { color: #003366; font-size: 1.2rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 4px; margin-top: 32px; }
-  .sub { color: #64748b; margin-top: 4px; }
-  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: .92rem; }
-  th, td { border: 1px solid #e2e8f0; padding: 7px 9px; text-align: left; vertical-align: top; }
-  th { background: #f8fafc; }
-  code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: .88rem; }
-  .box { background: #f0f7ff; border-left: 4px solid #0055a0; padding: 10px 14px; margin: 14px 0; }
-  .warn { background: #fffbeb; border-left: 4px solid #d97706; padding: 10px 14px; margin: 14px 0; }
-  ol li, ul li { margin-bottom: 4px; }
-  a { color: #0055a0; }
-</style>
+<title>FMS Admin Guide</title>
+<link rel="stylesheet" href="guide.css">
 </head>
 <body>
-<p><a href="index.html">&larr; All guides</a></p>
-<h1>Administrator &amp; Registrar Guide</h1>
-<p class="sub">Faculty Management System (FMS) · Institutional Administration</p>
+<main>
+<div class="crumb"><a href="index.html">&larr; All guides</a></div>
+<h1>Admin Guide</h1>
+<p class="sub">Faculty Management System · Daffodil International University</p>
 
-<div class="box">
-  <strong>In short:</strong> create or import teacher profiles &rarr; send secure activation emails &rarr; sync &amp; compare records with the University ERP &rarr; assign Spatie roles and permissions &rarr; run batch profile completeness scores for UGC/IQAC accreditation &rarr; manage active themes and university branding.
+<div class="summary"><p><strong>In short:</strong> you can do everything the <a href="registrar.html">Registrar Office</a> and the <a href="research.html">Research Team</a> do, and you also set the rules the system runs on: user accounts, roles, administrative posts, which profile tabs need approval, and who approves them.</p></div>
+
+<div class="toc">
+  <strong>On this page</strong>
+  <ol>
+    <li><a href="#menu">What is in your menu</a></li>
+    <li><a href="#users">User accounts</a></li>
+    <li><a href="#roles">Roles and permissions</a></li>
+    <li><a href="#posts">Administrative posts (deans, heads)</a></li>
+    <li><a href="#approval">Approval Settings</a></li>
+    <li><a href="#routing">Notification Routings</a></li>
+    <li><a href="#teachers">Teacher records at scale</a></li>
+    <li><a href="#templates">Email Templates</a></li>
+    <li><a href="#mapping">Integration Mappings</a></li>
+    <li><a href="#lookups">Lists and lookups</a></li>
+    <li><a href="#cannot">What only a Super Admin can do</a></li>
+  </ol>
 </div>
 
-<h2>1. Creating teachers &amp; sending activation emails</h2>
-<ol>
-  <li>In the admin panel, open <strong>Teachers &rarr; Create</strong> (or import via roster).</li>
-  <li>Enter the teacher's Employee ID, Full Name, official institutional email, faculty, and primary department.</li>
-  <li>To send them their first login link, open <strong>Email Batches</strong> or trigger the activation email action on the teacher's row.</li>
-  <li>The teacher receives an email with an unguessable 64-character token valid for single-use password setup.</li>
-  <li>The <strong>Email Batches</strong> screen tracks who opened and clicked their activation email.</li>
-</ol>
-
-<h2>2. ERP Synchronization &amp; Conflict Resolution</h2>
-<p>To keep the faculty directory aligned with the central University ERP:</p>
-<ul>
-  <li>Under <strong>Teachers</strong>, open any teacher record and click <strong>Sync with ERP</strong>.</li>
-  <li>The modal displays FMS data on the left and live ERP API data on the right.</li>
-  <li>The engine maps: Employee details, Educations (CGPA, Marks, Total Marks, Division/Class), Job Experience, Awards, and Certifications.</li>
-  <li>You can inspect differences section-by-section and selectively overwrite or merge ERP data into FMS.</li>
-</ul>
-
-<h2>3. User Roles &amp; Permissions</h2>
+<h2 id="menu">1. What is in your menu</h2>
+<p>Sign in at <code>/admin</code>. Your Dashboard shows teacher and publication summaries; click a figure to open the filtered list. The sidebar groups are:</p>
+<div class="table-wrap">
 <table>
-  <tr><th>Role</th><th>Primary Capabilities</th><th>Typical Assignee</th></tr>
-  <tr>
-    <td><strong>Teacher</strong></td>
-    <td>Accesses <em>My Profile</em>, edits credentials, manages publications, confirms co-authors, and recalculates own score.</td>
-    <td>All active teaching faculty.</td>
-  </tr>
-  <tr>
-    <td><strong>Department Head</strong></td>
-    <td>Reviews pending profile version submissions, approves/rejects with remarks, monitors departmental completeness.</td>
-    <td>Heads of Academic Departments &amp; Deans.</td>
-  </tr>
-  <tr>
-    <td><strong>Research Team</strong></td>
-    <td>Uploads Scopus workbooks, conducts online review of author matches, binds Scopus author IDs, exports incentive sheets.</td>
-    <td>Research Division Officers.</td>
-  </tr>
-  <tr>
-    <td><strong>Super Admin</strong></td>
-    <td>Full system-wide configuration, ERP mappings, theme settings, user role assignment.</td>
-    <td>System Administrators &amp; Registrar IT.</td>
-  </tr>
+  <tr><th>Group</th><th>Pages</th></tr>
+  <tr><td>User Management</td><td>Teachers, Users, Department Teachers, Administrative Role Users</td></tr>
+  <tr><td>Publications</td><td>Publications, Incentives, Incentive Logs, Authors, Publication Types, Linkages, Quartiles, Grant Types, Research Collaborations</td></tr>
+  <tr><td>Publication Management</td><td>Scopus Review, Institution Identity</td></tr>
+  <tr><td>Approvals</td><td>Pending Approvals, Approval Settings, Notification Routings</td></tr>
+  <tr><td>Academic Structure / Lookups</td><td>Faculties, Departments, Designations, Administrative Roles, Job Types, Employment Statuses, Degree Levels and Types, Majors, Result Types</td></tr>
+  <tr><td>General Lookups / Settings</td><td>Genders, Religions, Blood Groups, Countries, Author Types, Organizations, Positions, Membership Types, Social Media Platforms, Integration Mappings</td></tr>
+  <tr><td>Settings &amp; System</td><td>Email Templates, Sent Emails, Blocked Emails</td></tr>
+  <tr><td>Other</td><td>Roles, Research Projects</td></tr>
 </table>
+</div>
 
-<h2>4. Batch Calculating Profile Scores</h2>
-<p>For institutional quality assurance (IQAC / UGC audit reporting):</p>
+<h2 id="users">2. User accounts</h2>
 <ol>
-  <li>Open the <strong>Teachers</strong> list table.</li>
-  <li>Select all teachers (or filter by specific department).</li>
-  <li>From the bulk actions dropdown, select <strong>Batch Calculate Profile Scores</strong>.</li>
-  <li>The system iterates through all selected faculty, runs the <code>ProfileGapEvaluator</code>, and updates their score (0&ndash;100%) and <code>profile_score_synced_at</code> timestamp.</li>
+  <li>Open <strong>Users</strong> and click <strong>New user</strong>.</li>
+  <li>Enter the name, email and a password, choose one or more <strong>roles</strong>, and leave <strong>Active</strong> on.</li>
+  <li>Save.</li>
 </ol>
-
-<h2>5. Appearance, Branding &amp; Active Theme</h2>
-<p>Under <strong>System Settings &rarr; Appearance Settings</strong>:</p>
 <ul>
-  <li><strong>Active Theme:</strong> select among the 5 installed themes (<em>Theme DIU, Lumina, Aurora, Ledger, Modern</em>).</li>
-  <li><strong>Branding:</strong> update university logo, favicon, site name, institutional address, contact email, and footer copyright text.</li>
+  <li>A person can hold several roles. A head of department usually needs both <strong>Teacher</strong> and <strong>Head</strong>.</li>
+  <li>Teacher accounts are normally created with the teacher record and activated by email; you rarely create them here.</li>
+  <li>To stop someone signing in, turn <strong>Active</strong> off rather than deleting the account.</li>
 </ul>
 
+<h2 id="roles">3. Roles and permissions</h2>
+<p><strong>Roles</strong> lists the nine roles: Teacher, Associate Head, Head, Associate Dean, Dean, Registrar, Research Team, Admin and Super Admin. Open a role to tick or untick what it may do, page by page and action by action, and save.</p>
+<div class="warn"><p>Change roles carefully. Removing a permission can hide a page someone relies on; adding one can show data to people outside its unit.</p></div>
+
+<h2 id="posts">4. Administrative posts (deans, heads)</h2>
+<p>A dean or head sees only their own faculty or department because of their post, recorded in <strong>Administrative Role Users</strong>, not because of the role alone.</p>
+<ol>
+  <li>Open <strong>Administrative Role Users</strong> and click <strong>New</strong>.</li>
+  <li>Choose the person and the administrative role (for example Dean, Head of Department, Associate Head, Program Coordinator).</li>
+  <li>Choose the faculty (for faculty posts) or department (for department posts).</li>
+  <li>Set the start date, mark <strong>Acting</strong> if it is an acting post, keep <strong>Active</strong> on, and save.</li>
+  <li>Make sure the user also has the matching role (Dean, Head and so on) in <strong>Users</strong>.</li>
+</ol>
+<p>When a term ends, set the <strong>end date</strong>. The person then loses the unit view and, for heads, approval of that department. The post also appears as a dated block on their public profile.</p>
+
+<h2 id="approval">5. Approval Settings</h2>
+<p>One row per profile tab (Basic Information, Contact Information, Personal Details, Research Interest, Area of Expertise, Education, Publications, Job Experience, Training, Awards, Skills, Teaching Areas, Memberships, Social Links, Documents, Profile Settings). For each, choose:</p>
+<ul>
+  <li><strong>Requires approval</strong> on: a teacher's change waits for a reviewer.</li>
+  <li><strong>Requires approval</strong> off: it goes live when the teacher saves, and is still recorded in history.</li>
+</ul>
+
+<h2 id="routing">6. Notification Routings</h2>
+<p>Decides who approves each tab. Only the people a tab is routed to can decide it; a senior role on its own is not enough.</p>
+<ol>
+  <li>Open <strong>Notification Routings</strong> and click <strong>New</strong>.</li>
+  <li>Choose the sections (leave empty for all sections).</li>
+  <li>Choose the recipient type:
+    <ul>
+      <li><strong>Role</strong>: everyone holding the chosen roles.</li>
+      <li><strong>User</strong>: named people.</li>
+      <li><strong>Department Head</strong>: the head of the teacher's own department only, never the teacher themselves.</li>
+    </ul>
+  </li>
+  <li>Keep it active and save.</li>
+</ol>
+<p>Routed people are notified of each change and see decision buttons for those tabs in <strong>Pending Approvals</strong>. They also need permission to open Pending Approvals (view Teacher Versions) on their role.</p>
+
+<h2 id="teachers">7. Teacher records at scale</h2>
+<ul>
+  <li><strong>Fill Fields from ERP</strong> (Teachers page header): fills chosen fields for all teachers of the selected employment statuses. It shows how many teachers the run will call first, and reports the result.</li>
+  <li><strong>Merge Selected</strong> (bulk action): when two profiles are the same person, select both, choose the profile to keep, and review what will move before confirming.</li>
+  <li><strong>Researcher</strong> switch and <strong>Rollback</strong> work as in the Research Team and Registrar guides.</li>
+</ul>
+
+<h2 id="templates">8. Email Templates</h2>
+<p>The wording of system emails, such as the activation email and approval notices. Edit the subject and body. Keep any placeholders already in a template, since the system fills them in for each recipient.</p>
+
+<h2 id="mapping">9. Integration Mappings</h2>
+<p>How fields in the HR/ERP data map onto FMS fields. Change a mapping when the ERP renames or moves a field, then test with one teacher using <strong>Compare with ERP</strong> before a bulk fill.</p>
+
+<h2 id="lookups">10. Lists and lookups</h2>
+<p>Faculties, departments, designations, administrative roles and the other lists feed every form and the public site. Rename an item rather than creating a near-duplicate. Research Projects is ready for use when the university starts entering projects.</p>
+
+<h2 id="cannot">11. What only a Super Admin can do</h2>
+<ul>
+  <li>System Settings (maintenance mode, ERP credentials, mail, theme, branding).</li>
+  <li>Send activation emails and bulk email to teachers.</li>
+  <li>Import teachers in bulk, Team Directory, Activity Log.</li>
+  <li>Calculate completion scores in bulk, switch Login Allowed, restore photos.</li>
+</ul>
+<p>See the <a href="super-admin.html">Super Admin Guide</a>.</p>
+
+<footer>FMS Admin Guide · describes the system as of 18 October 2026.</footer>
+</main>
 </body>
 </html>
