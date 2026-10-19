@@ -111,6 +111,21 @@ class User extends Authenticatable implements FilamentUser
     }
 
     /**
+     * Whether being a teacher is all this user is: a teacher record or the
+     * teacher role, and no other role.
+     *
+     * The lists that narrow a teacher to their own records used to ask only
+     * whether the user was a teacher. Most staff with another role teach as
+     * well, so a registrar, admin or research team member with a teacher
+     * profile saw nobody in the Teachers list but themselves.
+     */
+    public function holdsOnlyTeacherRole(): bool
+    {
+        return ($this->hasRole('teacher') || $this->isTeacher())
+            && $this->roles->pluck('name')->diff(['teacher'])->isEmpty();
+    }
+
+    /**
      * Roles this user is allowed to hand out.
      *
      * Update:User governs editing a user, but says nothing about which roles may

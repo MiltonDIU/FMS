@@ -179,8 +179,8 @@ class TeacherResource extends Resource
                 return $query;
             }
 
-            // 3. Regular teacher check (only own profile)
-            if ($user->hasRole('teacher') || $user->isTeacher()) {
+            // 3. Someone who is only a teacher sees only their own profile
+            if ($user->holdsOnlyTeacherRole()) {
                 return $query->where('user_id', $user->id);
             }
         }

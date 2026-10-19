@@ -350,7 +350,7 @@ class Organization extends Model
             });
 
         // Check if console or admin/staff
-        $isAdmin = app()->runningInConsole() || (auth()->check() && !auth()->user()->hasRole('teacher'));
+        $isAdmin = app()->runningInConsole() || (auth()->check() && !auth()->user()->holdsOnlyTeacherRole());
 
         if ($existing) {
             $update = [];

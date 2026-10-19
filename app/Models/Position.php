@@ -28,7 +28,7 @@ class Position extends Model
         $existing = self::whereRaw('LOWER(name) = ?', [strtolower($name)])->first();
 
         // Check if current user is admin/staff
-        $isAdmin = auth()->check() && !auth()->user()->hasRole('teacher');
+        $isAdmin = auth()->check() && !auth()->user()->holdsOnlyTeacherRole();
 
         if ($existing) {
             // Auto-approval logic:

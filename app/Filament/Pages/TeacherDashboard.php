@@ -102,8 +102,11 @@ class TeacherDashboard extends Page
     {
         $user = Auth::user();
 
-        // Teachers ALWAYS see their own dashboard, ignore URL parameter
-        if ($user?->isTeacher()) {
+        // A teacher sees their own dashboard unless they asked for another
+        // teacher's and may open other teachers' dashboards, which is what the
+        // Dashboard button on the teachers list checks. A research team member
+        // who teaches used to get their own page from every teacher's button.
+        if ($user?->isTeacher() && (! $teacher || ! $user->can('ViewDashboard:Teacher'))) {
             $this->teacherId = $user->teacher?->id;
             return;
         }
