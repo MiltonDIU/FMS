@@ -65,11 +65,6 @@ class TeacherProfileStatsWidget extends BaseWidget
                 ->descriptionIcon('heroicon-m-document-text')
                 ->color('success'),
 
-            Stat::make('Research Projects', $teacher->researchProjects()->count())
-                ->description('Projects Led/Joined')
-                ->descriptionIcon('heroicon-m-beaker')
-                ->color('info'),
-
             Stat::make('Job Experience', $teacher->jobExperiences()->count())
                 ->description('Roles Held')
                 ->descriptionIcon('heroicon-m-briefcase')

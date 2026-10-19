@@ -53,7 +53,6 @@ class TeacherDashboardOverview extends Widget
                 'awards',
                 'certifications',
                 'trainingExperiences',
-                'researchProjects', // Research Projects
                 'teachingAreas',
                 'skills',
                 'memberships',

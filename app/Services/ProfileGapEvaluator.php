@@ -241,25 +241,26 @@ class ProfileGapEvaluator
                 $totalEarnedRatio += $recordScore;
             }
 
-            $ratio = $totalEduRecords > 0 ? ($totalEarnedRatio / $totalEduRecords) : 0.0;
+            // Degree chain validation check, read from the degree type's level.
+            // It used to match the type names by pattern, and the short
+            // patterns found degrees that were not there: "ma" matched inside
+            // "Diploma", "ba" inside "Baccalaureate", "graduate" inside
+            // "Postgraduate". Every type belongs to a level, so the level says
+            // it exactly.
+            $levels = $educations->map(fn ($edu) => $edu->degreeType?->level?->slug)->filter();
 
-            // Degree chain validation check
-            $degreeNames = $educations->map(function ($edu) {
-                return strtolower(
-                    $edu->degreeType?->name ??
-                    $edu->degreeType?->level?->name ??
-                    $edu->degree ??
-                    $edu->degree_name ?? ''
-                );
-            })->implode(' ');
+            $hasBachelor = $levels->contains('bachelor');
+            $hasHigher   = $levels->contains(fn (string $slug) => in_array($slug, ['master', 'doctoral', 'post-doctoral'], true));
 
-            $hasBachelor = (bool) preg_match('/(bachelor|bsc|ba|bba|llb|graduate|undergraduate|b\.s|b\.a|honours|honors)/i', $degreeNames);
-            $hasMaster   = (bool) preg_match('/(master|msc|ma|mba|llm|postgraduate|m\.s|m\.a)/i', $degreeNames);
-            $hasPhD      = (bool) preg_match('/(phd|doctor|ph\.d|doctorate)/i', $degreeNames);
-
-            if (!$hasBachelor && ($hasMaster || $hasPhD)) {
+            // The missing Bachelor's counts as one more record, empty. It was
+            // only reported before, so a Master's and a PhD entered in full
+            // scored the whole section beside a REQUIRED gap.
+            if (!$hasBachelor && $hasHigher) {
                 $addGap('education', 'degree_type_id', 'Pre-requisite Bachelor\'s degree record is missing', 'Academic Qualification', 'warning');
+                $totalEduRecords++;
             }
+
+            $ratio = $totalEduRecords > 0 ? ($totalEarnedRatio / $totalEduRecords) : 0.0;
 
             $sectionRatios['education'] = min(1.0, $ratio);
         } else {

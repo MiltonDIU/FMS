@@ -462,10 +462,6 @@
                             <span class="stat-label">Publications</span>
                         </div>
                         <div class="stat-card">
-                            <span class="stat-value">{{ $teacher->research_projects_count }}</span>
-                            <span class="stat-label">Research Projects</span>
-                        </div>
-                        <div class="stat-card">
                             <span class="stat-value">{{ $teacher->awards_count }}</span>
                             <span class="stat-label">Awards</span>
                         </div>
