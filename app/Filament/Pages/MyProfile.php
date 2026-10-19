@@ -145,10 +145,19 @@ class MyProfile extends Page
             /** @var \App\Services\TeacherVersionService $service */
             $service = app(\App\Services\TeacherVersionService::class);
 
+            // The "full snapshot" box is not a teacher column: read it from the
+            // form, before mount() below resets it.
+            $fullSnapshot = $this->canSaveFullSnapshot() && (bool) data_get($this->data, 'save_full_snapshot');
+
             // This handles:
             // 1. Direct update if no approval needed
             // 2. Version creation if approval needed
-            $changed = $service->handleUpdateFromForm($teacher, $data);
+            $changed = $service->handleUpdateFromForm($teacher, $data, false, $fullSnapshot);
+
+            // A restore point asked for on a save that changed nothing.
+            if ($fullSnapshot && ! $changed) {
+                $service->recordFullSnapshot($teacher, $data);
+            }
 
             // Photo and documents are saved apart from the service, so a new
             // photo alone is a change it never sees.
@@ -170,7 +179,7 @@ class MyProfile extends Page
             // Said only when something was saved. It used to be said every
             // time, so a change the service did not pick up looked saved and
             // was simply gone after a refresh.
-            if (! $changed) {
+            if (! $changed && ! $fullSnapshot) {
                 Notification::make()
                     ->info()
                     ->title(__('No changes to save'))
@@ -182,8 +191,10 @@ class MyProfile extends Page
 
             Notification::make()
                 ->success()
-                ->title(__('Profile update submitted successfully'))
-                ->body(__('Your changes have been saved.'))
+                ->title($changed ? __('Profile update submitted successfully') : __('Full snapshot saved'))
+                ->body($fullSnapshot
+                    ? __('A full snapshot of your profile was kept as a restore point.')
+                    : __('Your changes have been saved.'))
                 ->send();
 
         } catch (Halt $exception) {
@@ -308,6 +319,23 @@ class MyProfile extends Page
                 ->body($e->getMessage())
                 ->send();
         }
+    }
+
+    /**
+     * Whether the teacher may keep a save as a full snapshot, a restore point
+     * the profile can be rolled back to.
+     *
+     * Only while no section of the profile needs approval. The service keeps
+     * the snapshot only on a save that applies directly; with approval on, a
+     * submission is the restore point once approved, and a box that did
+     * nothing on those saves would mislead.
+     */
+    public function canSaveFullSnapshot(): bool
+    {
+        return auth()->user()?->teacher !== null
+            && ! \App\Models\ApprovalSetting::where('requires_approval', true)
+                ->where('is_active', true)
+                ->exists();
     }
 
     protected function getHeaderActions(): array

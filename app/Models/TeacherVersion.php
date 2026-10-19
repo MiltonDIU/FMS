@@ -127,13 +127,14 @@ class TeacherVersion extends Model
 
     /**
      * Whether the version holds the whole profile rather than only the
-     * sections it changed: every repeated section is present in its data.
+     * sections it changed: every repeated section the profile form holds is
+     * present in its data.
      */
     public function isFullSnapshot(): bool
     {
         $data = $this->data ?? [];
 
-        foreach (TeacherVersionService::RELATION_NAMES as $relation) {
+        foreach (TeacherVersionService::snapshotRelations() as $relation) {
             if (! array_key_exists($relation, $data)) {
                 return false;
             }

@@ -87,6 +87,23 @@ class TeacherVersionService
     ];
 
     /**
+     * Relations the service writes but the profile form never holds.
+     *
+     * Certifications arrive from the ERP comparison only; the form has no
+     * repeater for them, so no save from the form carries them. When they
+     * joined RELATION_NAMES, every full snapshot stopped counting as one and
+     * no profile could be rolled back to anything saved since. A rollback
+     * leaves a section the snapshot does not hold untouched.
+     */
+    public const FORMLESS_RELATIONS = ['certifications'];
+
+    /** The relations a save from the profile form holds, so a full snapshot holds. */
+    public static function snapshotRelations(): array
+    {
+        return array_values(array_diff(self::RELATION_NAMES, self::FORMLESS_RELATIONS));
+    }
+
+    /**
      * Many-to-many relations, which arrive as a list of ids rather than rows.
      *
      * Kept apart from RELATION_NAMES because everything in that list is a
@@ -563,7 +580,7 @@ class TeacherVersionService
                 $query->whereIn('status', ['approved', 'partially_approved', 'completed'])
                     ->orWhere(function ($query) {
                         $query->where('status', 'applied_directly');
-                        foreach (self::RELATION_NAMES as $relation) {
+                        foreach (self::snapshotRelations() as $relation) {
                             $query->whereNotNull("data->{$relation}");
                         }
                     });
