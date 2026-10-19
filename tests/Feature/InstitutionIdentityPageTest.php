@@ -96,6 +96,29 @@ class InstitutionIdentityPageTest extends TestCase
         $this->assertFalse(SystemSettings::canAccess());
     }
 
+    public function test_publication_permissions_alone_do_not_open_the_scopus_pages(): void
+    {
+        // A role set up for the Publications screen only. Before the pages had
+        // their own permissions, these two were exactly what opened both.
+        $role = \Spatie\Permission\Models\Role::create(['name' => 'publication_clerk_test', 'guard_name' => 'web']);
+        $role->givePermissionTo(['ViewAny:Publication', 'Create:Publication']);
+
+        $user = User::factory()->create();
+        $user->assignRole($role);
+
+        $this->actingAs($user);
+
+        $this->assertFalse(ScopusReview::canAccess());
+        $this->assertFalse(InstitutionIdentity::canAccess());
+
+        // Each page answers to its own tick, and only to its own.
+        $role->givePermissionTo('View:ScopusReview');
+        $user->refresh();
+
+        $this->assertTrue(ScopusReview::canAccess());
+        $this->assertFalse(InstitutionIdentity::canAccess());
+    }
+
     public function test_a_teacher_cannot_reach_it(): void
     {
         $user = $this->userWithRole('teacher');

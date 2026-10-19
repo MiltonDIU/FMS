@@ -55,13 +55,13 @@ class InstitutionIdentity extends Page
     public ?array $data = [];
 
     /**
-     * The same test the Scopus review itself applies.
+     * The page's own permission, the one Shield lists for it on the role screen.
      *
-     * Deliberately not the System Settings permission. Somebody who can upload
-     * an export already decides, run by run, what the matcher is allowed to
-     * conclude — the switches on the upload form do exactly that. Setting the
-     * words those switches operate on is the same job, so it asks for the same
-     * thing rather than inventing a permission nobody has been granted yet.
+     * Deliberately not the System Settings permission: the people who set these
+     * words are the people who run the Scopus review, not everybody who needs
+     * mail configuration or theme colours. It used to borrow ViewAny:Publication
+     * and Create:Publication for that, which handed the page to any role given
+     * those two and left the View:InstitutionIdentity tick doing nothing.
      */
     public static function canAccess(): bool
     {
@@ -71,8 +71,7 @@ class InstitutionIdentity extends Page
             return false;
         }
 
-        return $user->hasRole('super_admin')
-            || ($user->can('ViewAny:Publication') && $user->can('Create:Publication'));
+        return $user->hasRole('super_admin') || $user->can('View:InstitutionIdentity');
     }
 
     public function mount(): void

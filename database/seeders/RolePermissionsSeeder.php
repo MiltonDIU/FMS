@@ -374,6 +374,11 @@ class RolePermissionsSeeder extends Seeder
              * different decisions, and the second belongs to the research team.
              */
             'ToggleResearcher:Teacher',
+
+            // Scopus Review and Institution Identity, each behind its own page
+            // permission rather than the publication ones.
+            'View:ScopusReview',
+            'View:InstitutionIdentity',
         ];
 
         // The widget permissions belong in the same list — they have to exist
@@ -631,6 +636,10 @@ class RolePermissionsSeeder extends Seeder
             'Restore:Author', 'ForceDelete:Author',
             'ViewAny:AuthorType', 'View:AuthorType',
             'Create:AuthorType', 'Update:AuthorType', 'Delete:AuthorType',
+
+            // Scopus intake and the affiliation words it is judged by
+            'View:ScopusReview',
+            'View:InstitutionIdentity',
         ];
 
         // --- ASSOCIATE_DEAN ---

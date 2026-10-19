@@ -53,8 +53,11 @@ class ScopusReview extends Page implements HasTable
     protected static ?int $navigationSort = 9;
 
     /**
-     * Reading the file means reading every publication, teacher and author we
-     * hold, so the page asks for the permission that covers the widest of those.
+     * The page's own permission, the one Shield lists for it on the role screen.
+     *
+     * It used to ask for ViewAny:Publication and Create:Publication instead, so
+     * the View:ScopusReview tick on the role screen did nothing, and any role
+     * given those two publication permissions got this page with them.
      */
     public static function canAccess(): bool
     {
@@ -64,8 +67,7 @@ class ScopusReview extends Page implements HasTable
             return false;
         }
 
-        return $user->hasRole('super_admin')
-            || ($user->can('ViewAny:Publication') && $user->can('Create:Publication'));
+        return $user->hasRole('super_admin') || $user->can('View:ScopusReview');
     }
 
     protected function getHeaderActions(): array
