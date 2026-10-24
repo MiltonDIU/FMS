@@ -69,16 +69,7 @@ class AuthController extends Controller
             ]);
         }
 
-        /*
-         * A teacher who has left keeps an active account — the departure
-         * changes the profile, not the user row — so the profile is asked too,
-         * as the panel asks it. Without this, a resigned teacher whose tokens
-         * the departure revoked could simply sign in for a new one.
-         */
-        $teacher = $user->teacher;
-        $teacherClosed = $teacher && (! $teacher->is_active || ! $teacher->login_allowed);
-
-        if (! $user->is_active || $teacherClosed) {
+        if (! $user->is_active) {
             event(new Failed(self::GUARD, $user, ['email' => $credentials['email']]));
 
             throw ValidationException::withMessages([

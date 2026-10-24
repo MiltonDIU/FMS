@@ -2,13 +2,11 @@
 
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\DirectoryController;
-use App\Http\Controllers\Api\V1\HrDepartureController;
 use App\Http\Controllers\Api\V1\LookupController;
 use App\Http\Controllers\Api\V1\PublicationController;
 use App\Http\Controllers\Api\V1\TeacherProfileController;
 use App\Http\Controllers\Frontend\TeacherController;
 use App\Http\Middleware\RequirePasswordChangeApi;
-use App\Http\Middleware\RequireTokenAbility;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -53,25 +51,6 @@ Route::prefix('v1')->name('api.')->group(function () {
         Route::post('password/forgot', [AuthController::class, 'forgotPassword'])->name('password.forgot');
         Route::post('password/reset', [AuthController::class, 'resetPassword'])->name('password.reset');
     });
-
-    /*
-    |----------------------------------------------------------------------
-    | HR
-    |----------------------------------------------------------------------
-    | HR telling us a teacher has left. Not for the apps: RequireTokenAbility
-    | admits only a token issued for it by teachers:issue-hr-token, and a
-    | sign-in token from the app is refused whoever it belongs to.
-    |
-    | Outside the group below on purpose. RequirePasswordChangeApi is about
-    | a teacher's emailed password, and an HR system never signs in with one.
-    |
-    | Declared before the three free segments at the bottom, which would
-    | otherwise take /hr/departures for a teacher's address.
-    */
-    Route::middleware(['auth:sanctum', 'throttle:60,1', RequireTokenAbility::class . ':hr:departures'])
-        ->prefix('hr')->name('hr.')->group(function () {
-            Route::post('departures', [HrDepartureController::class, 'store'])->name('departures.store');
-        });
 
     /*
     |----------------------------------------------------------------------
