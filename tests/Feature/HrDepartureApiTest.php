@@ -129,6 +129,24 @@ class HrDepartureApiTest extends TestCase
         $this->assertNull($phone->accessToken->fresh());
     }
 
+    public function test_a_departed_teacher_cannot_sign_in_to_the_app_for_a_new_token(): void
+    {
+        $this->teacher->user->forceFill([
+            'password' => Hash::make('correct-horse-battery'),
+            'password_set_at' => now(),
+            'is_active' => true,
+        ])->save();
+
+        $this->asHr()->postJson('/api/v1/hr/departures', $this->departure())->assertOk();
+
+        $this->postJson('/api/v1/auth/login', [
+            'email' => $this->teacher->user->email,
+            'password' => 'correct-horse-battery',
+        ])->assertStatus(422);
+
+        $this->assertSame(0, $this->teacher->user->tokens()->count());
+    }
+
     public function test_sending_the_same_departure_twice_changes_nothing_the_second_time(): void
     {
         $this->asHr()->postJson('/api/v1/hr/departures', $this->departure())->assertOk();
