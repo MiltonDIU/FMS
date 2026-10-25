@@ -47,7 +47,8 @@ class EmailTemplate extends Model
         }
 
         $replacements = [
-            '{teacher_name}'        => $teacher->full_name,
+            // Written as the teacher list writes it: "Professor Dr. ..., PhD".
+            '{teacher_name}'        => $teacher->display_name,
             '{employee_id}'         => $teacher->employee_id ?? 'N/A',
             '{department}'          => $teacher->department?->name ?? 'N/A',
             '{designation}'         => $teacher->designation_title ?? 'N/A',

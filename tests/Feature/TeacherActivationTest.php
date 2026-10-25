@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Filament\Resources\Teachers\Support\TeacherEmailComposer;
 use App\Jobs\SendCustomTemplatedEmailJob;
+use App\Models\AcademicSuffix;
+use App\Models\NamePrefix;
 use App\Jobs\SendTeacherActivationEmailJob;
 use App\Models\Department;
 use App\Models\Designation;
@@ -283,6 +285,24 @@ class TeacherActivationTest extends TestCase
                 Carbon::now()->addDays(11),
                 Carbon::now()->addDays(13),
             ),
+        );
+    }
+
+    /**
+     * {teacher_name} is the name as the teacher list writes it — title and
+     * qualifications included — not the bare first and last name.
+     */
+    public function test_teacher_name_placeholder_carries_prefix_and_suffixes(): void
+    {
+        $prefix = NamePrefix::firstOrCreate(['name' => 'Professor Dr.'], ['is_active' => true]);
+        $suffix = AcademicSuffix::firstOrCreate(['name' => 'PhD'], ['is_active' => true]);
+
+        $teacher = $this->makePendingTeacher(['name_prefix_id' => $prefix->id]);
+        $teacher->academicSuffixes()->attach($suffix->id, ['sort_order' => 1]);
+
+        $this->assertSame(
+            'Dear Professor Dr. Activation Probe, PhD',
+            EmailTemplate::replacePlaceholders('Dear {teacher_name}', $teacher->fresh()),
         );
     }
 

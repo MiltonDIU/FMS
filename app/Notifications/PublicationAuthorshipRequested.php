@@ -30,7 +30,7 @@ class PublicationAuthorshipRequested extends Notification
 
     public function toDatabase(object $notifiable): array
     {
-        $who = $this->askedBy?->teacher?->full_name ?? $this->askedBy?->name ?? 'A colleague';
+        $who = $this->askedBy?->teacher?->display_name ?? $this->askedBy?->name ?? 'A colleague';
 
         return FilamentNotification::make()
             ->title('Confirm your authorship')

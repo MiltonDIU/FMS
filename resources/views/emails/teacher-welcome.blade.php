@@ -1,7 +1,7 @@
 <x-mail::message>
 # Welcome to Faculty Management System
 
-Dear **{{ $user->name }}**,
+Dear **{{ $user->teacher?->display_name ?? $user->name }}**,
 
 Your teacher account has been created successfully.
 

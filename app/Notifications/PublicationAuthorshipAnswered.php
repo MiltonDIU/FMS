@@ -31,8 +31,8 @@ class PublicationAuthorshipAnswered extends Notification
         return FilamentNotification::make()
             ->title($this->accepted ? 'Authorship confirmed' : 'Authorship declined')
             ->body($this->accepted
-                ? "{$this->author->full_name} confirmed being an author of {$title}."
-                : "{$this->author->full_name} declined being an author of {$title}, and has been taken off it.")
+                ? "{$this->author->display_name} confirmed being an author of {$title}."
+                : "{$this->author->display_name} declined being an author of {$title}, and has been taken off it.")
             ->icon($this->accepted ? 'heroicon-o-check-circle' : 'heroicon-o-x-circle')
             ->iconColor($this->accepted ? 'success' : 'danger')
             ->getDatabaseMessage();

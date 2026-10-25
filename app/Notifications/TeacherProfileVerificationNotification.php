@@ -37,7 +37,7 @@ class TeacherProfileVerificationNotification extends Notification implements Sho
 
         return (new MailMessage)
             ->subject('Action Required: Please Review & Confirm Your Profile Data')
-            ->greeting('Dear ' . $this->teacher->full_name . ',')
+            ->greeting('Dear ' . $this->teacher->display_name . ',')
             ->line('Our Faculty Management System is now ready. We request you to review your imported profile information, fill in any missing details, and confirm its accuracy.')
             ->action('Review & Confirm Profile', $verificationUrl)
             ->line('If you find any missing or incomplete information, you can complete it directly on your profile page.')
