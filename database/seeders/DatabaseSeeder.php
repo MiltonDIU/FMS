@@ -57,6 +57,7 @@ class DatabaseSeeder extends Seeder
             EmailSuppressionPermissionSeeder::class,
             TeacherPhotoDownloadPermissionSeeder::class,
             NameAffixPermissionSeeder::class,
+            FeedbackPermissionSeeder::class,
 
             // ── Configuration ───────────────────────────────────────────────
             SettingsSeeder::class,

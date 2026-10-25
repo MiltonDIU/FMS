@@ -73,7 +73,7 @@ class SystemSettings extends Page
         }
 
         // Explicitly cast custom boolean settings
-        $boolKeys = ['export_overwrite', 'import_dry_run', 'import_skip_existing', \App\Models\Teacher::HIDE_UNVERIFIED_SETTING, \App\Helpers\MaintenanceMode::ENABLED_KEY, \App\Helpers\MaintenanceMode::ALLOW_ADMINS_KEY, 'allow_teacher_erp_sync'];
+        $boolKeys = ['export_overwrite', 'import_dry_run', 'import_skip_existing', \App\Models\Teacher::HIDE_UNVERIFIED_SETTING, \App\Helpers\MaintenanceMode::ENABLED_KEY, \App\Helpers\MaintenanceMode::ALLOW_ADMINS_KEY, 'allow_teacher_erp_sync', \App\Models\Feedback::ENABLED_SETTING, \App\Models\Feedback::EMAIL_UPDATES_SETTING];
         foreach (array_keys(static::getAvailableThemes()) as $slug) {
             $boolKeys[] = \App\Helpers\FontManager::settingKey($slug, 'footer_match_theme');
         }
@@ -156,6 +156,8 @@ class SystemSettings extends Page
             'import_skip_existing' => true,
             'teacher_login_mode' => 'individual',
             \App\Models\Teacher::HIDE_UNVERIFIED_SETTING => false,
+            \App\Models\Feedback::ENABLED_SETTING => true,
+            \App\Models\Feedback::EMAIL_UPDATES_SETTING => true,
             \App\Helpers\MaintenanceMode::ENABLED_KEY => false,
             \App\Helpers\MaintenanceMode::ALLOW_ADMINS_KEY => true,
             'teacher_integration_api_url' => 'http://localhost:8000/api/v1/teachers/preview',
@@ -399,6 +401,18 @@ class SystemSettings extends Page
                                             ->label('Allow Teachers to Sync with ERP')
                                             ->helperText('When enabled, teachers will see a "Compare with ERP" option on their My Profile page. They can compare FMS data with ERP and selectively merge or override sections. When disabled, this option is hidden from teachers.')
                                             ->default(false),
+                                    ]),
+                                Section::make('Feedback')
+                                    ->description('Let users report problems and suggest features from the panel. Answers are given from the Feedback Inbox.')
+                                    ->schema([
+                                        Toggle::make(\App\Models\Feedback::ENABLED_SETTING)
+                                            ->label('Show the Feedback menu')
+                                            ->default(true)
+                                            ->helperText('On: everybody signed in sees a Feedback menu to send problems and ideas and follow the answers. Off: the menu is hidden and nothing new can be sent. The Feedback Inbox and everything already in it stay available to the team.'),
+                                        Toggle::make(\App\Models\Feedback::EMAIL_UPDATES_SETTING)
+                                            ->label('Email the user when the team answers')
+                                            ->default(true)
+                                            ->helperText('A panel notification is always sent. With this on, an email goes out too — including the "done, please check" message. Internal notes are never sent.'),
                                     ]),
                                 Section::make('Public Profile Visibility')
                                     ->description('Which teacher profiles the public website, its search, its counts, the sitemap and the API show')
