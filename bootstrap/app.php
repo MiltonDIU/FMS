@@ -26,6 +26,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo(fn () => route('filament.admin.auth.login'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // The API is for apps, never a browser: a missing token is a 401 JSON
+        // answer there, not a redirect to the panel's login page, whatever the
+        // Accept header says.
+        $exceptions->shouldRenderJsonWhen(fn (\Illuminate\Http\Request $request) => $request->is('api/*') || $request->expectsJson());
+
         // While maintenance mode is on, an unknown URL or a failing page must
         // not show its 404 or error screen either — only the maintenance page.
         // Returns null (normal rendering) for the admin panel and when off.
