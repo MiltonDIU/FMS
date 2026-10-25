@@ -280,12 +280,26 @@ class TeacherActivationService
      */
     protected function creditClick(Teacher $teacher): void
     {
-        EmailBatchRecipient::query()
+        $this->latestActivationRecipient($teacher)?->registerClick();
+    }
+
+    /**
+     * Record on the same row that the teacher went on to choose a password —
+     * the step that actually lets them in, and the one a click alone does not
+     * prove.
+     */
+    public function creditPasswordSet(Teacher $teacher): void
+    {
+        $this->latestActivationRecipient($teacher)?->registerPasswordSet();
+    }
+
+    protected function latestActivationRecipient(Teacher $teacher): ?EmailBatchRecipient
+    {
+        return EmailBatchRecipient::query()
             ->where('teacher_id', $teacher->id)
             ->where('status', EmailBatchRecipient::STATUS_SENT)
             ->whereHas('batch', fn (Builder $q) => $q->where('uses_activation_link', true))
             ->latest('id')
-            ->first()
-            ?->registerClick();
+            ->first();
     }
 }

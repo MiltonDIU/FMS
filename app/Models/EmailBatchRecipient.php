@@ -47,6 +47,7 @@ class EmailBatchRecipient extends Model
         'failed_at',
         'opened_at',
         'clicked_at',
+        'password_set_at',
         'open_count',
         'click_count',
         'track_token',
@@ -58,6 +59,7 @@ class EmailBatchRecipient extends Model
         'failed_at' => 'datetime',
         'opened_at' => 'datetime',
         'clicked_at' => 'datetime',
+        'password_set_at' => 'datetime',
         'open_count' => 'integer',
         'click_count' => 'integer',
     ];
@@ -140,6 +142,20 @@ class EmailBatchRecipient extends Model
             // recipient's mail client may never fetch. Without this, somebody
             // who clicked straight through with images off would still be
             // counted among those who had not read it.
+            'opened_at' => $this->opened_at ?? Carbon::now(),
+        ])->save();
+    }
+
+    /**
+     * The activation link in this message was used all the way through: the
+     * teacher chose a password. Like the click, it also proves the message
+     * was read.
+     */
+    public function registerPasswordSet(): void
+    {
+        $this->forceFill([
+            'password_set_at' => $this->password_set_at ?? Carbon::now(),
+            'clicked_at' => $this->clicked_at ?? Carbon::now(),
             'opened_at' => $this->opened_at ?? Carbon::now(),
         ])->save();
     }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Services\TeacherActivationService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -55,6 +56,10 @@ class TeacherPasswordSetupController extends Controller
             'password' => Hash::make($request->string('password')->toString()),
             'password_set_at' => Carbon::now(),
         ])->save();
+
+        if ($user->teacher) {
+            app(TeacherActivationService::class)->creditPasswordSet($user->teacher);
+        }
 
         // Re-authenticate user so the session password hash matches the new password,
         // preventing AuthenticateSession middleware from terminating the session.

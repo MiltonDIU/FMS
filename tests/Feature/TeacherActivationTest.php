@@ -9,6 +9,7 @@ use App\Models\NamePrefix;
 use App\Jobs\SendTeacherActivationEmailJob;
 use App\Models\Department;
 use App\Models\Designation;
+use App\Models\EmailBatch;
 use App\Models\EmailTemplate;
 use App\Models\Teacher;
 use App\Models\User;
@@ -210,6 +211,39 @@ class TeacherActivationTest extends TestCase
         $this->assertNotNull($user->password_set_at);
 
         $this->get('/admin')->assertOk();
+    }
+
+    /**
+     * The delivery report used to stop at "clicked", which could not tell a
+     * teacher who finished from one who closed the tab on the password page.
+     */
+    public function test_setting_a_password_is_recorded_on_the_activation_email(): void
+    {
+        $teacher = $this->makePendingTeacher();
+
+        $batch = EmailBatch::create([
+            'subject' => 'Activate',
+            'body' => 'Use {activation_link}.',
+            'source' => EmailBatch::SOURCE_INDIVIDUAL,
+            'uses_activation_link' => true,
+            'link_validity_days' => 7,
+            'total_recipients' => 1,
+        ]);
+        $recipient = $batch->addRecipient($teacher);
+        $recipient->markSent();
+
+        $this->get(route('teacher.activate', ['token' => $this->tokenFor($teacher)]));
+
+        $this->assertNotNull($recipient->fresh()->clicked_at);
+        $this->assertNull($recipient->fresh()->password_set_at);
+
+        $this->post(route('teacher.password.store'), [
+            'password' => 'Str0ng-Probe-Passw0rd',
+            'password_confirmation' => 'Str0ng-Probe-Passw0rd',
+        ])->assertRedirect(route('filament.admin.pages.dashboard'));
+
+        $this->assertNotNull($recipient->fresh()->password_set_at);
+        $this->assertSame(1, EmailBatch::withStats()->find($batch->id)->password_set_count);
     }
 
     public function test_a_weak_password_is_rejected(): void

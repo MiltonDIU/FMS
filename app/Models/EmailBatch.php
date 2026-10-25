@@ -105,6 +105,8 @@ class EmailBatch extends Model
                 ->whereNotNull('opened_at'),
             'recipients as clicked_count' => fn (Builder $q) => $q
                 ->whereNotNull('clicked_at'),
+            'recipients as password_set_count' => fn (Builder $q) => $q
+                ->whereNotNull('password_set_at'),
         ]);
     }
 

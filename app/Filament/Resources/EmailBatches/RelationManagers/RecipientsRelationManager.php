@@ -85,6 +85,15 @@ class RecipientsRelationManager extends RelationManager
                     ->dateTime('d M Y, H:i')
                     ->placeholder('—')
                     ->sortable(),
+
+                // Only an activation email leads to a password page.
+                TextColumn::make('password_set_at')
+                    ->label('Password set')
+                    ->dateTime('d M Y, H:i')
+                    ->placeholder('Not yet')
+                    ->color(fn (EmailBatchRecipient $record): ?string => $record->password_set_at ? 'success' : null)
+                    ->visible(fn (): bool => (bool) $this->getOwnerRecord()->uses_activation_link)
+                    ->sortable(),
             ])
             ->filters([
                 SelectFilter::make('status')
@@ -105,6 +114,18 @@ class RecipientsRelationManager extends RelationManager
                 Filter::make('still_waiting')
                     ->label('Sent, but still unread')
                     ->query(fn (Builder $query): Builder => $query->unopened()),
+
+                TernaryFilter::make('password_set')
+                    ->label('Password')
+                    ->placeholder('Everyone')
+                    ->trueLabel('Has set a password')
+                    ->falseLabel('Has not set a password')
+                    ->queries(
+                        true: fn (Builder $query) => $query->whereNotNull('password_set_at'),
+                        false: fn (Builder $query) => $query->whereNull('password_set_at'),
+                        blank: fn (Builder $query) => $query,
+                    )
+                    ->visible(fn (): bool => (bool) $this->getOwnerRecord()->uses_activation_link),
             ])
             ->headerActions([])
             ->recordActions([

@@ -75,6 +75,17 @@ class EmailBatchesTable
                     ->color(fn ($state): string => $state > 0 ? 'success' : 'gray')
                     ->sortable(),
 
+                // The end of an activation email: a password was chosen.
+                // Blank for any other kind of batch, where it cannot happen.
+                TextColumn::make('password_set_count')
+                    ->label('Password set')
+                    ->alignRight()
+                    ->badge()
+                    ->state(fn (EmailBatch $record): ?int => $record->uses_activation_link ? $record->password_set_count : null)
+                    ->placeholder('—')
+                    ->color(fn ($state): string => $state > 0 ? 'success' : 'gray')
+                    ->sortable(),
+
                 TextColumn::make('queued_count')
                     ->label('In queue')
                     ->alignRight()

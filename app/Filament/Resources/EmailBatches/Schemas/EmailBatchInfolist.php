@@ -92,6 +92,14 @@ class EmailBatchInfolist
                         ->state(fn (EmailBatch $record): int => $record->unopenedCount())
                         ->helperText('The people a follow-up is for.'),
 
+                    TextEntry::make('password_set')
+                        ->label('Set a password')
+                        ->badge()
+                        ->color('success')
+                        ->visible(fn (EmailBatch $record): bool => $record->uses_activation_link)
+                        ->state(fn (EmailBatch $record): int => $record->recipients()->whereNotNull('password_set_at')->count())
+                        ->helperText('Used the link and chose a password — the account is ready to use.'),
+
                     TextEntry::make('queued')
                         ->label('Still in the queue')
                         ->badge()
