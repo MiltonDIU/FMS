@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class DegreeType extends Model
 {
+    use Concerns\RecordsActivity;
+
     protected $fillable = ['degree_level_id', 'code', 'name','slug', 'is_active', 'sort_order'];
 
     protected $casts = [

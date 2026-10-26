@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class EmailTemplate extends Model
 {
+    use Concerns\RecordsActivity;
+
     use HasFactory;
 
     protected $fillable = [

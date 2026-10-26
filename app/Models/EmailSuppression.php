@@ -19,6 +19,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class EmailSuppression extends Model
 {
+    use Concerns\RecordsActivity;
+
     public const REASON_BOUNCED = 'bounced';
 
     public const REASON_INVALID = 'invalid';

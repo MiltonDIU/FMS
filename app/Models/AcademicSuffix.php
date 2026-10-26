@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  */
 class AcademicSuffix extends Model
 {
+    use Concerns\RecordsActivity;
+
     use HasFactory;
 
     protected $fillable = [

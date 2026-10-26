@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Auth;
 
 class PublicationIncentive extends Model
 {
+    use Concerns\RecordsActivity;
+
     use HasFactory;
 
     protected $fillable = [

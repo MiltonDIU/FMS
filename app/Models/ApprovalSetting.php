@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class ApprovalSetting extends Model
 {
+    use Concerns\RecordsActivity;
+
     protected $fillable = [
         'section_key',
         'section_label',

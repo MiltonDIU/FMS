@@ -20,7 +20,34 @@ use Filament\Panel;
 class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasRoles, SoftDeletes, LogsActivity, HasApiTokens;
+    use HasFactory, Notifiable, SoftDeletes, LogsActivity, HasApiTokens;
+    use HasRoles {
+        assignRole as protected assignRoleUnrecorded;
+        removeRole as protected removeRoleUnrecorded;
+        syncRoles as protected syncRolesUnrecorded;
+    }
+
+    /*
+     * A user's roles are a pivot the model events never see; these record what
+     * each call gave or took away. See App\Support\AccessAudit. The account
+     * form saves the roles through its relationship instead, and records them
+     * in EditUser and CreateUser.
+     */
+
+    public function assignRole(...$roles): static
+    {
+        return \App\Support\AccessAudit::watch($this, 'roles', fn () => $this->assignRoleUnrecorded(...$roles));
+    }
+
+    public function removeRole(...$role): static
+    {
+        return \App\Support\AccessAudit::watch($this, 'roles', fn () => $this->removeRoleUnrecorded(...$role));
+    }
+
+    public function syncRoles(...$roles): static
+    {
+        return \App\Support\AccessAudit::watch($this, 'roles', fn () => $this->syncRolesUnrecorded(...$roles));
+    }
 
     /**
      * Record changes to a user account in the activity log.

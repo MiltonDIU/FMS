@@ -14,6 +14,8 @@ use Illuminate\Support\Str;
 
 class Publication extends Model
 {
+    use Concerns\RecordsActivity;
+
     use HasFactory, SoftDeletes;
 
     protected static function boot()

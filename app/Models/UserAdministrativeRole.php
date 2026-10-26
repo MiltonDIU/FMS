@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class UserAdministrativeRole extends Model
 {
+    use Concerns\RecordsActivity;
+
     use HasFactory, SoftDeletes;
 
     protected $table = 'administrative_role_user';

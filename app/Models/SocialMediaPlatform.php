@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class SocialMediaPlatform extends Model
 {
+    use Concerns\RecordsActivity;
+
     use HasFactory, SoftDeletes;
 
     protected $fillable = [

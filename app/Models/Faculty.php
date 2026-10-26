@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Faculty extends Model
 {
+    use Concerns\RecordsActivity;
+
     use HasFactory, SoftDeletes;
 
     protected $fillable = [

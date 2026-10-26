@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class FieldOfStudy extends Model
 {
+    use Concerns\RecordsActivity;
+
     protected $table = 'fields_of_study'; // Explicitly set table name if convention fails, though plural is correct
     protected $fillable = ['name', 'category', 'is_active'];
 

@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class IncentiveLog extends Model
 {
+    use Concerns\RecordsActivity;
+
     use HasFactory;
 
     protected $fillable = [

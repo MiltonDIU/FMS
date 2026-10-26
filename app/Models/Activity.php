@@ -31,6 +31,17 @@ class Activity extends SpatieActivity
 
     public const AGENT_KEY = 'user_agent';
 
+    /**
+     * Whether record changes are logged in this process. Not for artisan
+     * commands and queue workers unless asked: the imports and syncs there
+     * rewrite thousands of rows at a time with nobody signed in.
+     * See activitylog.log_console_model_events.
+     */
+    public static function recordsChangesHere(): bool
+    {
+        return ! app()->runningInConsole() || (bool) config('activitylog.log_console_model_events');
+    }
+
     /** The teacher version a profile entry points at, for what it changed. */
     public const VERSION_KEY = 'version_id';
 

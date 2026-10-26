@@ -14,6 +14,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class NamePrefix extends Model
 {
+    use Concerns\RecordsActivity;
+
     use HasFactory;
 
     protected $fillable = [

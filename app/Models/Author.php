@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\DB;
 
 class Author extends Model
 {
+    use Concerns\RecordsActivity;
+
     use HasFactory, SoftDeletes;
 
     protected $fillable = [

@@ -30,6 +30,12 @@ class ActivitiesTable
         'locked' => 'danger',
         'password_reset' => 'warning',
         'declared' => 'success',
+        'detached' => 'danger',
+        'roles_changed' => 'warning',
+        'permissions_changed' => 'warning',
+        'authors_changed' => 'info',
+        'authorship_confirmed' => 'success',
+        'authorship_declined' => 'danger',
     ];
 
     public static function configure(Table $table): Table
@@ -78,9 +84,13 @@ class ActivitiesTable
                         : '—')
                     // A teacher's profile save names the version holding what
                     // changed, and opens it.
+                    // The version a profile save kept, or what the record is
+                    // called ("updated · Computer Science").
                     ->description(fn (Activity $record): ?string => isset($record->properties[Activity::VERSION_KEY])
                         ? 'Version #' . $record->properties[Activity::VERSION_KEY]
-                        : null)
+                        : (str_contains((string) $record->description, ' · ')
+                            ? mb_strimwidth(explode(' · ', $record->description, 2)[1], 0, 60, '…')
+                            : null))
                     ->url(fn (Activity $record): ?string => $record->versionUrl())
                     ->color('gray'),
 
@@ -164,15 +174,25 @@ class ActivitiesTable
              */
             ->toolbarActions([])
             ->emptyStateHeading('Nothing recorded yet')
-            ->emptyStateDescription('Account changes and sign-in activity appear here as they happen.');
+            ->emptyStateDescription('Changes to records and accounts, and sign-in activity, appear here as they happen.');
     }
 
     /** The field names an entry touched, for a glance down the column. */
     protected static function changedFields(Activity $record): string
     {
-        $changes = $record->properties['attributes']
-            ?? $record->properties['old']
+        // Version 5 of the package keeps a change in attribute_changes, not in
+        // properties where version 4 put it.
+        $changes = $record->attribute_changes['attributes']
+            ?? $record->attribute_changes['old']
+            ?? $record->properties['added']
+            ?? $record->properties['removed']
             ?? [];
+
+        $changes = $changes instanceof \Illuminate\Support\Collection ? $changes->all() : $changes;
+
+        if (is_array($changes) && array_is_list($changes)) {
+            $changes = array_flip($changes);
+        }
 
         if (! is_array($changes) || $changes === []) {
             return '—';

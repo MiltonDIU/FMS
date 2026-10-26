@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Major extends Model
 {
+    use Concerns\RecordsActivity;
+
     protected $fillable = ['name', 'is_active', 'created_by', 'approved_by'];
 
     protected $casts = [

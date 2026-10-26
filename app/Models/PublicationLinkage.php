@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PublicationLinkage extends Model
 {
+    use Concerns\RecordsActivity;
+
     protected $fillable = [
         'name',
         'slug',

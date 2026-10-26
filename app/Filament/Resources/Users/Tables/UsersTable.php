@@ -132,6 +132,7 @@ class UsersTable
                         // Sync roles
                         if (!empty($data['roles'])) {
                             $replica->roles()->sync($data['roles']);
+                            \App\Support\AccessAudit::record($replica, 'roles', []);
                         }
 
                         return $replica;

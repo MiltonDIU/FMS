@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class ResultType extends Model
 {
+    use Concerns\RecordsActivity;
+
     protected $fillable = ['type_name', 'is_active','sort_order', 'description'];
     public function education()
     {

@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Organization extends Model
 {
+    use Concerns\RecordsActivity;
+
     protected $fillable = [
         'name',
         'country_id',

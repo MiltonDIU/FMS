@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PublicationType extends Model
 {
+    use Concerns\RecordsActivity;
+
     protected $fillable = [
         'name',
         'slug',

@@ -89,6 +89,15 @@ final class TeacherRelationWriter
             // and leaving one profile must not take it off the others.
             if ($remove !== []) {
                 $teacher->publications()->detach($remove);
+
+                // A pivot row; no model event would record it.
+                if (\App\Models\Activity::recordsChangesHere()) {
+                    activity('Publication')
+                        ->performedOn($teacher)
+                        ->withProperties(['publication_ids' => array_values($remove)])
+                        ->event('detached')
+                        ->log('publications removed from profile');
+                }
             }
 
             return;
@@ -97,8 +106,12 @@ final class TeacherRelationWriter
         $query = $teacher->$relation();
 
         $removedIds === null
-            ? $query->whereNotIn('id', $kept)->delete()
-            : $query->whereIn('id', $removedIds)->delete();
+            ? $query->whereNotIn('id', $kept)
+            : $query->whereIn('id', $removedIds);
+
+        // One by one rather than in one query, so each removal is recorded in
+        // the activity log the way an edit or an addition is.
+        $query->get()->each->delete();
     }
 
     /**

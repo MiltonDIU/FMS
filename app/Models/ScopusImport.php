@@ -16,6 +16,16 @@ use Illuminate\Support\Facades\Storage;
  */
 class ScopusImport extends Model
 {
+    use Concerns\RecordsActivity;
+
+    /** The run's own report, shown on the import page. */
+    protected array $activityLogIgnore = ['summary', 'options'];
+
+    public function activityLogLabel(): ?string
+    {
+        return $this->original_filename;
+    }
+
     public const STATUS_UPLOADED = 'uploaded';
 
     public const STATUS_PROCESSING = 'processing';

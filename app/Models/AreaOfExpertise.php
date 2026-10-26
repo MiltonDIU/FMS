@@ -14,6 +14,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class AreaOfExpertise extends Model
 {
+    use Concerns\RecordsActivity;
+
     use SoftDeletes;
 
     protected $table = 'area_of_expertises';

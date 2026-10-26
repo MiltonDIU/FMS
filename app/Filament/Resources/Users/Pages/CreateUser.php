@@ -24,4 +24,10 @@ class CreateUser extends CreateRecord
 
         return $record;
     }
+
+    /** The roles field saves through its relationship, which nothing else records. */
+    protected function afterCreate(): void
+    {
+        \App\Support\AccessAudit::record($this->record, 'roles', []);
+    }
 }

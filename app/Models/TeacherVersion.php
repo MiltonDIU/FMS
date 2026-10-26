@@ -10,6 +10,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class TeacherVersion extends Model
 {
+    use Concerns\RecordsActivity;
+
+    /** The profile copies themselves: large, and readable on the version's own page. */
+    protected array $activityLogIgnore = ['data', 'previous_data', 'replaced_data'];
+
     use HasFactory, SoftDeletes;
 
     protected $fillable = [

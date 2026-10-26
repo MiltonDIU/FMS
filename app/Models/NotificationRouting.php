@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\DB;
 
 class NotificationRouting extends Model
 {
+    use Concerns\RecordsActivity;
+
     protected $fillable = [
         'trigger_type',
         'trigger_sections', // Changed to plural for array

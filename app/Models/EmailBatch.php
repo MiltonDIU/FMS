@@ -18,6 +18,11 @@ use Illuminate\Support\Carbon;
  */
 class EmailBatch extends Model
 {
+    use Concerns\RecordsActivity;
+
+    /** The message is the template's, kept on the batch's own page. */
+    protected array $activityLogIgnore = ['body', 'filters'];
+
     /** Where a batch was sent from. */
     public const SOURCE_INDIVIDUAL = 'individual';
 

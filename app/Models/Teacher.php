@@ -24,6 +24,22 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 #[ObservedBy([TeacherObserver::class])]
 class Teacher extends Model implements HasMedia
 {
+    use Concerns\RecordsActivity;
+
+    /**
+     * Left out of the activity log: tallies the public site and the score job
+     * keep moving, and the activation token, which signs somebody in.
+     */
+    protected array $activityLogIgnore = [
+        'views_count', 'last_viewed_at', 'profile_score', 'profile_score_synced_at',
+        'verification_token', 'verification_token_expires_at', 'verification_token_used_at',
+    ];
+
+    public function activityLogLabel(): ?string
+    {
+        return trim($this->first_name . ' ' . $this->last_name) ?: null;
+    }
+
     /**
      * Where the legacy system serves teacher photographs from.
      *

@@ -19,6 +19,8 @@ use Illuminate\Support\Facades\Auth;
  */
 class ScopusAuthorId extends Model
 {
+    use Concerns\RecordsActivity;
+
     public const SOURCE_REVIEW = 'review';
 
     public const SOURCE_MANUAL = 'manual';

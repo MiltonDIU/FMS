@@ -29,6 +29,11 @@ use Illuminate\Support\Facades\DB;
  */
 class Feedback extends Model
 {
+    use Concerns\RecordsActivity;
+
+    /** The text and files are in the thread; last_activity_at moves on every reply. */
+    protected array $activityLogIgnore = ['message', 'attachments', 'last_activity_at'];
+
     protected $table = 'feedback';
 
     /** Switches the teachers' Feedback menu on and off. */

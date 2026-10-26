@@ -52,6 +52,14 @@ return [
     'default_except_attributes' => [],
 
     /*
+     * Whether models using App\Models\Concerns\RecordsActivity log their changes
+     * when nobody is at the keyboard: artisan commands and queue workers. Off,
+     * because the imports and syncs that run there rewrite thousands of rows at
+     * a time and would bury what people did. The User model is not affected.
+     */
+    'log_console_model_events' => env('ACTIVITYLOG_CONSOLE_MODEL_EVENTS', false),
+
+    /*
      * When enabled, activities are buffered in memory and inserted in a
      * single bulk query after the response has been sent to the client.
      * This can significantly reduce the number of database queries when

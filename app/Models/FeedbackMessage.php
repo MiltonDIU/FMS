@@ -13,6 +13,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class FeedbackMessage extends Model
 {
+    use Concerns\RecordsActivity;
+
+    /** What was said is in the thread; the entry records that it was said. */
+    protected array $activityLogIgnore = ['body', 'attachments'];
+
     protected $fillable = [
         'feedback_id',
         'user_id',

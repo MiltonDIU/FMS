@@ -63,13 +63,16 @@ class ActivityInfolist
                 ->columns(2)
                 ->visible(fn (Activity $record): bool => self::hasChange($record))
                 ->schema([
-                    KeyValueEntry::make('properties.old')
+                    // In attribute_changes since version 5 of the package.
+                    KeyValueEntry::make('attribute_changes.old')
+                        ->state(fn (Activity $record): array => self::readable($record->attribute_changes['old'] ?? []))
                         ->label('Before')
                         ->keyLabel('Field')
                         ->valueLabel('Previous value')
                         ->placeholder('Nothing — this record was created'),
 
-                    KeyValueEntry::make('properties.attributes')
+                    KeyValueEntry::make('attribute_changes.attributes')
+                        ->state(fn (Activity $record): array => self::readable($record->attribute_changes['attributes'] ?? []))
                         ->label('After')
                         ->keyLabel('Field')
                         ->valueLabel('New value')
@@ -112,7 +115,7 @@ class ActivityInfolist
     protected static function hasChange(Activity $record): bool
     {
         foreach (self::CHANGE_KEYS as $key) {
-            if (filled($record->properties[$key] ?? null)) {
+            if (filled($record->attribute_changes[$key] ?? null)) {
                 return true;
             }
         }
@@ -123,11 +126,24 @@ class ActivityInfolist
     /** @return array<string, string> */
     protected static function extra(Activity $record): array
     {
-        return collect($record->properties ?? [])
+        return self::readable(collect($record->properties ?? [])
             ->except(array_merge(self::CONTEXT_KEYS, self::CHANGE_KEYS))
+            ->all());
+    }
+
+    /**
+     * Every value as text: the key-value list shows strings, and the audited
+     * models carry booleans, nulls and JSON columns too.
+     *
+     * @return array<string, string>
+     */
+    protected static function readable(mixed $values): array
+    {
+        return collect(is_iterable($values) ? $values : [])
             ->map(fn ($value) => match (true) {
                 is_bool($value) => $value ? 'Yes' : 'No',
-                is_array($value) => json_encode($value),
+                is_null($value) => '—',
+                is_array($value) => json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                 default => (string) $value,
             })
             ->all();

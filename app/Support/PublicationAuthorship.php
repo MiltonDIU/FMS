@@ -152,6 +152,42 @@ final class PublicationAuthorship
         if ($newlyPending !== []) {
             self::askForConsent($publication, array_keys($newlyPending), $actor);
         }
+
+        self::recordChange($publication, $carried);
+    }
+
+    /**
+     * The author list is rewritten from scratch through the query builder, so
+     * no model event sees it. Compared here instead, and recorded once, only
+     * when somebody was added, removed or moved to another role.
+     *
+     * @param  \Illuminate\Support\Collection<int, object>  $before
+     */
+    private static function recordChange(Publication $publication, \Illuminate\Support\Collection $before): void
+    {
+        if (! \App\Models\Activity::recordsChangesHere()) {
+            return;
+        }
+
+        $describe = fn ($rows): array => collect($rows)
+            ->map(fn ($row): string => class_basename($row->authorable_type) . ' #' . $row->authorable_id . ' (' . $row->author_role . ')')
+            ->sort()->values()->all();
+
+        $was = $describe($before);
+        $now = $describe(DB::table('publication_authors')->where('publication_id', $publication->id)->get());
+
+        $added = array_values(array_diff($now, $was));
+        $removed = array_values(array_diff($was, $now));
+
+        if ($added === [] && $removed === []) {
+            return;
+        }
+
+        activity('Publication')
+            ->performedOn($publication)
+            ->withProperties(array_filter(['added' => $added, 'removed' => $removed]))
+            ->event('authors_changed')
+            ->log('authors changed · ' . mb_substr((string) $publication->title, 0, 120));
     }
 
     /** Whether this author must agree before the paper is credited to them. */
@@ -188,6 +224,14 @@ final class PublicationAuthorship
             'answered_at' => now(),
             'updated_at' => now(),
         ]);
+
+        if ($changed > 0 && \App\Models\Activity::recordsChangesHere()) {
+            activity('Publication')
+                ->performedOn($publication)
+                ->withProperties(['teacher_id' => $teacher->id])
+                ->event($accept ? 'authorship_confirmed' : 'authorship_declined')
+                ->log(($accept ? 'authorship confirmed · ' : 'authorship declined · ') . mb_substr((string) $publication->title, 0, 120));
+        }
 
         if ($changed > 0) {
             User::whereIn('id', $askers)->get()

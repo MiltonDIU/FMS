@@ -7,6 +7,35 @@ use Illuminate\Support\Facades\Cache;
 
 class Setting extends Model
 {
+    use Concerns\RecordsActivity {
+        getActivitylogOptions as defaultActivitylogOptions;
+        shouldLogEvent as defaultShouldLogEvent;
+    }
+
+    /** set() rewrites the group to "system" on every save; it says nothing. */
+    protected array $activityLogIgnore = ['group'];
+
+    /**
+     * A credential's change is recorded, never its value: the log is written
+     * to be read, and the HR API secret and password sign the system in.
+     */
+    public function getActivitylogOptions(): \Spatie\Activitylog\Support\LogOptions
+    {
+        $options = $this->defaultActivitylogOptions();
+
+        if (preg_match('/secret|password|token/i', (string) $this->key)) {
+            $options->logExcept(['value', 'group', 'created_at', 'updated_at', 'sort_order'])->logEmptyChanges();
+        }
+
+        return $options;
+    }
+
+    /** Progress counters the import and export screens poll, not settings anyone chose. */
+    protected function shouldLogEvent(string $eventName): bool
+    {
+        return ! str_ends_with((string) $this->key, '_progress') && $this->defaultShouldLogEvent($eventName);
+    }
+
     protected $fillable = [
         'group',
         'key',

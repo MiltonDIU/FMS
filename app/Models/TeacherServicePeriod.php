@@ -14,6 +14,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class TeacherServicePeriod extends Model
 {
+    use Concerns\RecordsActivity;
+
     protected $fillable = [
         'teacher_id',
         'joined_on',
