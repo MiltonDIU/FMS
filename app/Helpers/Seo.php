@@ -158,6 +158,26 @@ class Seo
     }
 
     /**
+     * teacherUrl(), but only when the page would actually open.
+     *
+     * teacherUrl() says where a profile lives, not whether it is shown: the
+     * public controller also wants the faculty and department active and the
+     * teacher published — active, not archived, Publicly Visible, and verified
+     * while unverified profiles are hidden. A name on a public page linking to
+     * any other teacher sent the visitor to a 404, so for them it is text.
+     */
+    public static function publicTeacherUrl(?Teacher $teacher, ?Department $department = null): ?string
+    {
+        $department ??= $teacher?->department;
+
+        if (! $teacher?->isPublished() || ! $department?->is_active || ! $department->faculty?->is_active) {
+            return null;
+        }
+
+        return self::teacherUrl($teacher, $department);
+    }
+
+    /**
      * The teacher a publication canonicalises onto.
      */
     public static function primaryAuthor(Publication $publication): ?Teacher

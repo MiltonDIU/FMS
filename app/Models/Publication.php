@@ -202,7 +202,8 @@ class Publication extends Model
                     'is_ours' => $first['teacher'] !== null && $standing === true,
                     'used_our_affiliation' => $standing,
                     'affiliation' => $affiliation,
-                    'url' => $first['teacher'] ? \App\Helpers\Seo::teacherUrl($first['teacher']) : null,
+                    // Only a profile that would open: a hidden or unverified one is a 404.
+                    'url' => $first['teacher'] ? \App\Helpers\Seo::publicTeacherUrl($first['teacher']) : null,
                     'sort_order' => (int) $rows->min('pivot.sort_order'),
                     'rank' => $roles->contains('first') ? 0 : ($roles->contains('corresponding') ? 1 : 2),
                 ];

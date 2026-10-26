@@ -1,15 +1,14 @@
 {{--
-    The paper's authors, and which of them wrote it as one of ours.
+    The paper's authors, in published order, each with their role on it.
 
-    Every author is listed, in published order — a paper is not ours alone and a
-    byline that hid the collaborators would be wrong. What is marked is the
-    narrower thing: which of them carried this institution's affiliation on this
-    paper. Per paper, not per person, because a teacher who joined last year has
-    papers written under a previous employer, and those are that employer's.
+    Every author is listed — a paper is not ours alone and a byline that hid the
+    collaborators would be wrong. Each carries a role: first author,
+    corresponding, or co-author for everybody else.
 
-    Rows nothing has established are shown, and said to be unestablished. Most
-    of the table predates the column, and reading "we never looked" as "no"
-    would drop real authors off the university's own count.
+    The affiliation each author wrote under is not shown for now. Almost every
+    authorship row predates the column that records it, so the page said
+    "affiliation not verified" against nearly everybody, our own teachers
+    included. Publication::byline() still carries it for when it is filled.
 
     Ledger's own copy, in Ledger's own language: a numbered roll, the position
     in the gutter the way a year is everywhere else on the site, and roles set
@@ -42,30 +41,13 @@
                                 <span class="record-what">{{ $author['name'] }}</span>
                             @endif
 
-                            @foreach($author['roles'] as $role)
-                                @if($role !== 'co_author')
-                                    <span class="stamp" style="margin-left: 0;">
-                                        {{ $role === 'first' ? 'first author' : 'corresponding' }}
-                                    </span>
-                                @endif
+                            {{-- Co-author only when nothing more particular is true of them. --}}
+                            @foreach(array_diff($author['roles'], ['co_author']) ?: ['co_author'] as $role)
+                                <span class="stamp" style="margin-left: 0;">
+                                    {{ match ($role) { 'first' => 'first author', 'corresponding' => 'corresponding', default => 'co-author' } }}
+                                </span>
                             @endforeach
-
-                            @if($author['is_ours'])
-                                <span class="stamp" style="margin-left: 0; color: var(--brand-ink); border-color: var(--brand-ink);">
-                                    {{ \App\Helpers\Institution::shortName() }}
-                                </span>
-                            @endif
                         </div>
-
-                        @if(! $author['is_ours'])
-                            @if($author['used_our_affiliation'] === null)
-                                <span class="record-note block italic">affiliation not verified</span>
-                            @elseif($author['affiliation'])
-                                <span class="record-note block">
-                                    {{ \Illuminate\Support\Str::limit($author['affiliation'], 70) }}
-                                </span>
-                            @endif
-                        @endif
                     </div>
                 </li>
             @endforeach

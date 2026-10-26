@@ -524,6 +524,20 @@ class Teacher extends Model implements HasMedia
                 ->where('teachers.verification_status', '!=', 'unverified'));
     }
 
+    /**
+     * scopePublished() for a teacher already loaded, so a page that has one in
+     * hand can tell whether their profile would open without asking again.
+     * The two must agree; a change to one belongs in the other.
+     */
+    public function isPublished(): bool
+    {
+        return $this->is_active
+            && ! $this->is_archived
+            && $this->is_public
+            && (! static::hidesUnverifiedPublicly()
+                || ($this->verification_status !== null && $this->verification_status !== 'unverified'));
+    }
+
     /** The teacher setting that keeps unverified profiles off the public site. */
     public const HIDE_UNVERIFIED_SETTING = 'teacher_hide_unverified_publicly';
 
