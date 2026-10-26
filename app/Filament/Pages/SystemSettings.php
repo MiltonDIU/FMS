@@ -73,7 +73,7 @@ class SystemSettings extends Page
         }
 
         // Explicitly cast custom boolean settings
-        $boolKeys = ['export_overwrite', 'import_dry_run', 'import_skip_existing', \App\Models\Teacher::HIDE_UNVERIFIED_SETTING, \App\Helpers\MaintenanceMode::ENABLED_KEY, \App\Helpers\MaintenanceMode::ALLOW_ADMINS_KEY, \App\Helpers\AdminNotice::ENABLED_KEY, 'allow_teacher_erp_sync', \App\Models\Feedback::ENABLED_SETTING, \App\Models\Feedback::EMAIL_UPDATES_SETTING];
+        $boolKeys = ['export_overwrite', 'import_dry_run', 'import_skip_existing', \App\Models\Teacher::HIDE_UNVERIFIED_SETTING, \App\Helpers\MaintenanceMode::ENABLED_KEY, \App\Helpers\MaintenanceMode::ALLOW_ADMINS_KEY, \App\Helpers\AdminNotice::ENABLED_KEY, \App\Helpers\GoogleAnalytics::ENABLED_KEY, \App\Helpers\GoogleAnalytics::SKIP_SIGNED_IN_KEY, \App\Helpers\SearchEngines::BLOCKED_KEY, 'allow_teacher_erp_sync', \App\Models\Feedback::ENABLED_SETTING, \App\Models\Feedback::EMAIL_UPDATES_SETTING];
         foreach (array_keys(static::getAvailableThemes()) as $slug) {
             $boolKeys[] = \App\Helpers\FontManager::settingKey($slug, 'footer_match_theme');
         }
@@ -162,6 +162,9 @@ class SystemSettings extends Page
             \App\Helpers\MaintenanceMode::ALLOW_ADMINS_KEY => true,
             \App\Helpers\AdminNotice::ENABLED_KEY => false,
             \App\Helpers\AdminNotice::STYLE_KEY => \App\Helpers\AdminNotice::DEFAULT_STYLE,
+            \App\Helpers\GoogleAnalytics::ENABLED_KEY => false,
+            \App\Helpers\GoogleAnalytics::SKIP_SIGNED_IN_KEY => true,
+            \App\Helpers\SearchEngines::BLOCKED_KEY => false,
             'teacher_integration_api_url' => 'http://localhost:8000/api/v1/teachers/preview',
             'teacher_integration_mapping' => 'erp_teacher_profile',
             'hr_api_base_url' => '',
@@ -769,7 +772,44 @@ class SystemSettings extends Page
                             ]),
                         Tab::make('Frontend Settings')
                             ->icon('heroicon-o-globe-alt')
+                            // A reminder that will be wanted on launch day.
+                            ->badge(fn (): ?string => \App\Helpers\SearchEngines::blocked() ? 'NOINDEX' : null)
+                            ->badgeColor('warning')
                             ->schema([
+                                Section::make('Search Engines')
+                                    ->description('For while the site runs on a demo or staging address. Every page is sent with "noindex, nofollow", so Google and other search engines leave it out of their results; pages already listed drop out the next time they are crawled. Turn it off when the site moves to its real address.')
+                                    ->schema([
+                                        Toggle::make(\App\Helpers\SearchEngines::BLOCKED_KEY)
+                                            ->label('Hide this site from search engines')
+                                            ->default(false)
+                                            ->onColor('warning')
+                                            ->helperText('robots.txt is left as it is on purpose: a page a crawler is not allowed to fetch can still be listed, because the crawler never reads the noindex.'),
+                                    ]),
+
+                                Section::make('Google Analytics')
+                                    ->description('Adds Google Analytics (GA4) to every public page, whichever theme is active. The admin panel and the maintenance page are never tracked.')
+                                    ->schema([
+                                        Toggle::make(\App\Helpers\GoogleAnalytics::ENABLED_KEY)
+                                            ->label('Enable Google Analytics')
+                                            ->default(false)
+                                            ->live(),
+
+                                        TextInput::make(\App\Helpers\GoogleAnalytics::ID_KEY)
+                                            ->label('Measurement ID')
+                                            ->placeholder('G-XXXXXXXXXX')
+                                            ->helperText('From Google Analytics → Admin → Data streams → your web stream.')
+                                            ->dehydrateStateUsing(fn (?string $state): ?string => filled($state) ? strtoupper(trim($state)) : null)
+                                            ->regex('/^\s*[gG]-[A-Za-z0-9]{4,16}\s*$/')
+                                            ->validationMessages(['regex' => 'A GA4 measurement ID looks like G-XXXXXXXXXX.'])
+                                            ->required(fn (Get $get): bool => (bool) $get(\App\Helpers\GoogleAnalytics::ENABLED_KEY)),
+
+                                        Toggle::make(\App\Helpers\GoogleAnalytics::SKIP_SIGNED_IN_KEY)
+                                            ->label("Don't count signed-in users")
+                                            ->default(true)
+                                            ->helperText('On: visits from anyone signed in — the team, and teachers looking at their own profiles — are not sent to Google, so the numbers are public visitors only.'),
+                                    ]),
+
+
                                 \Filament\Schemas\Components\Section::make('Global Custom Font Library')
                                     ->description('Add any Google Fonts family by name, upload your own font file, or point at an externally hosted one. Everything added here becomes selectable in the per-theme font dropdowns below.')
                                     ->collapsed()

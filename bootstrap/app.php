@@ -20,6 +20,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToGroup('web', \App\Http\Middleware\ShowMaintenancePage::class);
         $middleware->appendToGroup('api', \App\Http\Middleware\ShowMaintenancePage::class);
 
+        // System Settings → Frontend Settings → Google Analytics. After the
+        // maintenance check, so the maintenance page never carries the tag.
+        $middleware->appendToGroup('web', \App\Http\Middleware\AddGoogleAnalytics::class);
+
+        // System Settings → Frontend Settings → Search engines: keep the whole
+        // site out of search results while it is on a demo address.
+        $middleware->append(\App\Http\Middleware\BlockSearchEngines::class);
+
         // Authentication lives in the Filament panel, so there is no "login"
         // named route for Laravel's Authenticate middleware to fall back on.
         // Without this, any `auth`-guarded web route 500s on a guest request.
