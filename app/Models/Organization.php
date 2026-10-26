@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Organization extends Model
 {
     use Concerns\RecordsActivity;
+    use Concerns\RecordsCreator;
 
     protected $fillable = [
         'name',
@@ -36,18 +37,6 @@ class Organization extends Model
         'is_certifying_authority' => 'boolean',
         'is_funding_agency' => 'boolean',
     ];
-
-    /**
-     * created_by is the teacher who added the name, taken from whoever is
-     * signed in. An admin with no teacher profile leaves it empty, which the
-     * list reads as "System / Bulk Imported".
-     */
-    protected static function booted(): void
-    {
-        static::creating(function (self $organization): void {
-            $organization->created_by ??= auth()->user()?->teacher?->id;
-        });
-    }
 
     public static function detectCountryFromName(string $name): ?int
     {
@@ -366,6 +355,9 @@ class Organization extends Model
         // Check if console or admin/staff
         $isAdmin = app()->runningInConsole() || (auth()->check() && !auth()->user()->holdsOnlyTeacherRole());
 
+        // created_by holds a users id; see Concerns\RecordsCreator.
+        $userId = static::creatorUserFor($teacherId);
+
         if ($existing) {
             $update = [];
             // Merge flags if they are not set yet
@@ -380,7 +372,7 @@ class Organization extends Model
             if ($parentId && !$existing->parent_id) {
                 $update['parent_id'] = $parentId;
             }
-            if (!$existing->is_active && ($isAdmin || ($teacherId && $existing->created_by !== $teacherId))) {
+            if (!$existing->is_active && ($isAdmin || ($userId && (int) $existing->created_by !== (int) $userId))) {
                 $update['is_active'] = true;
                 $update['approved_by'] = auth()->check() ? auth()->id() : null;
             }
@@ -395,7 +387,7 @@ class Organization extends Model
             'country_id'  => $countryId,
             'parent_id'   => $parentId,
             'is_active'   => $isAdmin,
-            'created_by'  => $teacherId,
+            'created_by'  => $userId,
             'approved_by' => $isAdmin && auth()->check() ? auth()->id() : null,
         ], $flags);
 
@@ -428,11 +420,6 @@ class Organization extends Model
 
             throw $e;
         }
-    }
-
-    public function creator(): BelongsTo
-    {
-        return $this->belongsTo(Teacher::class, 'created_by');
     }
 
     public function approver(): BelongsTo

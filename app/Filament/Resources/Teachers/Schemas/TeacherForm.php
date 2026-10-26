@@ -69,19 +69,21 @@ class TeacherForm
      */
     protected static function organizationOptions($query, Get $get, string $kind, string $field)
     {
-        $teacherId = auth()->user()?->teacher?->id;
+        // created_by is a users id: the names this person added themselves,
+        // still waiting for approval, are offered to them too.
+        $userId = auth()->id();
         $countryId = $get('country_id');
         $current = $get($field);
 
         return $query
-            ->where(function ($q) use ($kind, $countryId, $teacherId, $current) {
-                $q->where(function ($q) use ($kind, $countryId, $teacherId) {
+            ->where(function ($q) use ($kind, $countryId, $userId, $current) {
+                $q->where(function ($q) use ($kind, $countryId, $userId) {
                     $q->where($kind, true)
                         ->when($countryId, fn ($q) => $q->where('country_id', $countryId))
-                        ->where(function ($q) use ($teacherId) {
+                        ->where(function ($q) use ($userId) {
                             $q->where('is_active', true);
-                            if ($teacherId) {
-                                $q->orWhere('created_by', $teacherId);
+                            if ($userId) {
+                                $q->orWhere('created_by', $userId);
                             }
                         });
                 });
@@ -675,11 +677,12 @@ class TeacherForm
                                                   'majorRelation',
                                                   'name',
                                                   modifyQueryUsing: function ($query) {
-                                                      $teacherId = auth()->user()?->teacher?->id;
-                                                      return $query->where(function ($q) use ($teacherId) {
+                                                      // created_by is a users id.
+                                                      $userId = auth()->id();
+                                                      return $query->where(function ($q) use ($userId) {
                                                           $q->where('is_active', true);
-                                                          if ($teacherId) {
-                                                              $q->orWhere('created_by', $teacherId);
+                                                          if ($userId) {
+                                                              $q->orWhere('created_by', $userId);
                                                           }
                                                       })->orderBy('name');
                                                   }
@@ -1088,11 +1091,12 @@ class TeacherForm
                                                 'positionRelation',
                                                 'name',
                                                 modifyQueryUsing: function ($query) {
-                                                    $teacherId = auth()->user()?->teacher?->id;
-                                                    return $query->where(function ($q) use ($teacherId) {
+                                                    // created_by is a users id.
+                                                    $userId = auth()->id();
+                                                    return $query->where(function ($q) use ($userId) {
                                                         $q->where('is_active', true);
-                                                        if ($teacherId) {
-                                                            $q->orWhere('created_by', $teacherId);
+                                                        if ($userId) {
+                                                            $q->orWhere('created_by', $userId);
                                                         }
                                                     })->orderBy('name');
                                                 }

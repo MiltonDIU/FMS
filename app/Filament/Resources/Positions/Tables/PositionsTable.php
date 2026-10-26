@@ -36,7 +36,7 @@ class PositionsTable
                 IconColumn::make('is_active')
                     ->boolean()
                     ->sortable(),
-                TextColumn::make('creator.full_name')
+                TextColumn::make('creator.name')
                     ->label('Created By')
                     ->placeholder('System')
                     ->sortable(),

@@ -8,24 +8,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Position extends Model
 {
     use Concerns\RecordsActivity;
+    use Concerns\RecordsCreator;
 
     protected $fillable = ['name', 'is_active', 'created_by', 'approved_by'];
 
     protected $casts = [
         'is_active' => 'boolean',
     ];
-
-    /**
-     * created_by is the teacher who added the name, taken from whoever is
-     * signed in. An admin with no teacher profile leaves it empty, which the
-     * list reads as "System / Bulk Imported".
-     */
-    protected static function booted(): void
-    {
-        static::creating(function (self $position): void {
-            $position->created_by ??= auth()->user()?->teacher?->id;
-        });
-    }
 
     /**
      * Case-insensitive find or create with auto-approval logic.
@@ -44,9 +33,12 @@ class Position extends Model
         // Check if current user is admin/staff
         $isAdmin = auth()->check() && !auth()->user()->holdsOnlyTeacherRole();
 
+        // created_by holds a users id; see Concerns\RecordsCreator.
+        $userId = static::creatorUserFor($teacherId);
+
         if ($existing) {
-            // Auto-approval logic:
-            if (!$existing->is_active && ($isAdmin || ($teacherId && $existing->created_by !== $teacherId))) {
+            // Auto-approval logic: somebody other than whoever added it asks too.
+            if (!$existing->is_active && ($isAdmin || ($userId && (int) $existing->created_by !== (int) $userId))) {
                 $existing->update([
                     'is_active'   => true,
                     'approved_by' => auth()->id(),
@@ -59,14 +51,9 @@ class Position extends Model
         return self::create([
             'name'        => $name,
             'is_active'   => $isAdmin, // Admins create active records directly!
-            'created_by'  => $teacherId,
+            'created_by'  => $userId,
             'approved_by' => $isAdmin ? auth()->id() : null,
         ]);
-    }
-
-    public function creator(): BelongsTo
-    {
-        return $this->belongsTo(Teacher::class, 'created_by');
     }
 
     public function approver(): BelongsTo

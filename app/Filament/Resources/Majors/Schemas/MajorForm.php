@@ -21,8 +21,8 @@ class MajorForm
                 Toggle::make('is_active')
                     ->label('Is Active')
                     ->default(true),
-                // No Created By field: it is filled from whoever is signed in,
-                // in Major::booted(), and is nobody's to pick.
+                // No Created By field: it is filled from whoever is signed in
+                // (Concerns\RecordsCreator), and is nobody's to pick.
                 Select::make('approved_by')
                     ->label('Approved By User')
                     ->relationship('approver', 'name')

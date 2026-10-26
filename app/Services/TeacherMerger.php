@@ -51,15 +51,12 @@ class TeacherMerger
         'email_batch_recipients' => 'teacher_id',
     ];
 
-    /**
-     * Lookup rows stamped with who created them. Not the teacher's data, but
-     * the foreign key still has to stop pointing at a retired profile.
+    /*
+     * majors, organizations and positions are not repointed. Their created_by
+     * used to be a teachers id and was moved here; it is a users id now, and
+     * rewriting it by teacher id would hand those rows to whichever account
+     * shares the retired profile's number.
      */
-    protected const AUTHORED_TABLES = [
-        'majors' => 'created_by',
-        'organizations' => 'created_by',
-        'positions' => 'created_by',
-    ];
 
     /**
      * Columns worth carrying over when the surviving profile has nothing in
@@ -191,10 +188,6 @@ class TeacherMerger
                 if ($n > 0) {
                     $moved[$table] = $n;
                 }
-            }
-
-            foreach (self::AUTHORED_TABLES as $table => $column) {
-                DB::table($table)->where($column, $from->id)->update([$column => $into->id]);
             }
 
             // Authors already pointed at the retired profile follow it.

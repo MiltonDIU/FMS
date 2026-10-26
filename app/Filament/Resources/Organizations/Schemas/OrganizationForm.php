@@ -56,7 +56,7 @@ class OrganizationForm
                 Section::make('Metadata')
                     ->schema([
                         // No Created By field: it is filled from whoever is
-                        // signed in, in Organization::booted(), and is nobody's
+                        // signed in (Concerns\RecordsCreator), and is nobody's
                         // to pick.
                         Select::make('approved_by')
                             ->label('Approved By User')

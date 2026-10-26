@@ -97,6 +97,39 @@ class PublicationStatusTest extends TestCase
         $this->assertSame($admin->id, Publication::where('title', $title)->value('created_by'));
     }
 
+    /**
+     * Not every user is a teacher. One with no teacher profile — super_admin,
+     * admin, research_team — is recorded as the creator of a lookup and of a
+     * paper alike, and still sees the status.
+     */
+    public function test_a_user_without_a_teacher_profile(): void
+    {
+        $staff = User::whereDoesntHave('teacher')
+            ->whereHas('roles', fn ($q) => $q->whereIn('name', ['super_admin', 'admin', 'research_team']))
+            ->first() ?? $this->markTestSkipped('no staff account without a teacher profile');
+        $this->actingAs($staff);
+
+        $this->assertFalse(\App\Filament\Resources\Publications\Schemas\PublicationForm::isTeacherOnly());
+
+        foreach ([\App\Models\Major::class, \App\Models\Position::class, \App\Models\Organization::class] as $model) {
+            $record = $model::create(['name' => 'Creator probe ' . uniqid()]);
+            $this->assertSame($staff->id, $record->created_by, class_basename($model) . ' records the admin');
+            $this->assertSame($staff->name, $record->creator?->name);
+        }
+
+        $title = 'Staff probe ' . uniqid();
+
+        Livewire::test(CreatePublication::class)
+            ->assertFormFieldVisible('status')
+            ->fillForm($this->paperData($title) + ['status' => 'draft'])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $paper = Publication::where('title', $title)->firstOrFail();
+        $this->assertSame($staff->id, $paper->created_by);
+        $this->assertSame('draft', $paper->status, 'their chosen status is kept');
+    }
+
     public function test_the_lookup_screens_still_open_without_the_field(): void
     {
         $this->actingAs($this->admin());
@@ -106,8 +139,8 @@ class PublicationStatusTest extends TestCase
         }
     }
 
-    /** Major, Position and Organization name the teacher who added them. */
-    public function test_lookup_records_take_the_signed_in_teacher(): void
+    /** Major, Position and Organization record the user who added them, as a paper does. */
+    public function test_lookup_records_take_the_signed_in_user(): void
     {
         $user = $this->teacherOnly();
         $this->actingAs($user);
@@ -115,12 +148,63 @@ class PublicationStatusTest extends TestCase
         foreach ([\App\Models\Major::class, \App\Models\Position::class, \App\Models\Organization::class] as $model) {
             $record = $model::create(['name' => 'Creator probe ' . uniqid(), 'is_active' => false]);
 
-            $this->assertSame($user->teacher->id, $record->created_by, class_basename($model));
+            $this->assertSame($user->id, $record->created_by, class_basename($model));
+            $this->assertInstanceOf(User::class, $record->creator);
         }
 
         $this->actingAs($this->admin());
-        $explicit = \App\Models\Major::create(['name' => 'Creator probe ' . uniqid(), 'created_by' => $user->teacher->id]);
-        $this->assertSame($user->teacher->id, $explicit->created_by, 'a value set in code is kept');
+        $explicit = \App\Models\Major::create(['name' => 'Creator probe ' . uniqid(), 'created_by' => $user->id]);
+        $this->assertSame($user->id, $explicit->created_by, 'a value set in code is kept');
+    }
+
+    /**
+     * A name a teacher adds waits for approval, and is approved when somebody
+     * else asks for it too. Comparing users now, it must still tell the two
+     * apart — and an import with nobody signed in records the teacher's account.
+     */
+    public function test_auto_approval_still_tells_the_adder_from_anybody_else(): void
+    {
+        $first = $this->teacherOnly();
+        $second = User::whereHas('teacher')->whereKeyNot($first->id)
+            ->whereHas('roles', fn ($r) => $r->where('name', 'teacher'))
+            ->whereDoesntHave('roles', fn ($r) => $r->where('name', '!=', 'teacher'))
+            ->first() ?? $this->markTestSkipped('needs two teacher-only accounts');
+
+        foreach ([\App\Models\Major::class, \App\Models\Position::class] as $model) {
+            $name = 'Approval probe ' . uniqid();
+
+            $this->actingAs($first);
+            $added = $model::findOrCreateWithAutoApproval($name, $first->teacher->id);
+            $this->assertFalse($added->is_active, class_basename($model) . ' from a teacher waits');
+            $this->assertSame($first->id, $added->created_by);
+
+            $model::findOrCreateWithAutoApproval($name, $first->teacher->id);
+            $this->assertFalse($added->fresh()->is_active, 'asking again yourself approves nothing');
+
+            $this->actingAs($second);
+            $model::findOrCreateWithAutoApproval($name, $second->teacher->id);
+            $this->assertTrue($added->fresh()->is_active, 'a second teacher asking approves it');
+        }
+
+        auth()->logout();
+        $imported = \App\Models\Major::findOrCreateWithAutoApproval('Import probe ' . uniqid(), $first->teacher->id);
+        $this->assertSame($first->id, $imported->created_by, 'an import records the teacher\'s account');
+    }
+
+    /** After the migration the key points at users, on whatever database it ran. */
+    public function test_the_lookup_keys_point_at_users(): void
+    {
+        foreach (['majors', 'positions', 'organizations'] as $table) {
+            $references = \Illuminate\Support\Facades\DB::table('information_schema.KEY_COLUMN_USAGE')
+                ->where('TABLE_SCHEMA', \Illuminate\Support\Facades\DB::getDatabaseName())
+                ->where('TABLE_NAME', $table)
+                ->where('COLUMN_NAME', 'created_by')
+                ->whereNotNull('REFERENCED_TABLE_NAME')
+                ->pluck('REFERENCED_TABLE_NAME')
+                ->all();
+
+            $this->assertSame(['users'], $references, $table);
+        }
     }
 
     public function test_a_teachers_paper_follows_the_approval_setting_and_is_theirs(): void
