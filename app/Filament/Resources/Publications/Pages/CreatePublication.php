@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Publications\Pages;
 
 use App\Filament\Resources\Publications\PublicationResource;
+use App\Filament\Resources\Publications\Schemas\PublicationForm;
 use App\Support\PublicationAuthorship;
 use Filament\Resources\Pages\CreateRecord;
 
@@ -20,6 +21,15 @@ class CreatePublication extends CreateRecord
         ];
 
         unset($data['first_author_id'], $data['corresponding_author_id'], $data['co_author_ids']);
+
+        // Never from the form: the model fills it with whoever is signed in.
+        unset($data['created_by']);
+
+        // Hidden from a teacher; set here as well, so a value sent without the
+        // form is not taken either.
+        if (PublicationForm::isTeacherOnly()) {
+            $data['status'] = PublicationForm::statusForTeacher();
+        }
 
         return $data;
     }

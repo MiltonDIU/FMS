@@ -219,7 +219,7 @@ class TeacherSearch extends Component
             // publications_count instead of loading every paper to call count()
             // on it: three of the four themes print the number on each card,
             // which fetched a teacher's whole bibliography per card.
-            ->withCount('publications');
+            ->withCount(['publications' => \App\Models\Publication::onlyApproved()]);
 
         return TeacherDirectoryOrder::apply($listing, administrativeFirst: true)->get();
     }
@@ -237,7 +237,7 @@ class TeacherSearch extends Component
             // publications_count instead of loading every paper to call count()
             // on it: three of the four themes print the number on each card,
             // which fetched a teacher's whole bibliography per card.
-            ->withCount('publications');
+            ->withCount(['publications' => \App\Models\Publication::onlyApproved()]);
 
         return TeacherDirectoryOrder::apply($listing)->paginate(20);
     }

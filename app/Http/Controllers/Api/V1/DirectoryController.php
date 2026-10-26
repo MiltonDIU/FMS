@@ -142,7 +142,7 @@ class DirectoryController extends Controller
     {
         $query = Teacher::published()
             ->with(['designation', 'jobType', 'department.faculty', 'employmentStatus', 'user', 'media'])
-            ->withCount('publications');
+            ->withCount(['publications' => \App\Models\Publication::onlyApproved()]);
 
         /*
          * The same search the site's own boxes run, so a term that finds

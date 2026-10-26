@@ -187,21 +187,39 @@ class PublicationForm
                                     && !$user->administrativeRoles()->where('administrative_role_user.is_active', true)->exists();
                                 return $isTeacherOnly ? 'Featured status can only be set by administrators or role managers.' : null;
                             }),
+                        // Not a teacher's to set: choosing it, a teacher approved
+                        // their own paper. For them it follows the approval
+                        // settings — see CreatePublication.
                         Select::make('status')
                             ->options(['draft' => 'Draft', 'pending' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected'])
                             ->default('draft')
-                            ->required(),
-                        Select::make('created_by')
-                            ->label('Created By')
-                            ->relationship('creator', 'name')
-                            ->searchable()
-                            ->preload()
-                            ->nullable()
-                            ->placeholder('System Generated'),
+                            ->required()
+                            ->hidden(fn (): bool => static::isTeacherOnly()),
+                        // No Created By field for anyone. It listed every account
+                        // on the system to pick from; the model fills it with
+                        // whoever is signed in when the paper is created.
                        TextInput::make('sort_order')->numeric()->default(0),
                     ])->columns(5),
                     ]),
             ]);
+    }
+
+    /** A teacher and nothing else: no admin, research or reviewing role. */
+    public static function isTeacherOnly(): bool
+    {
+        return (bool) auth()->user()?->holdsOnlyTeacherRole();
+    }
+
+    /**
+     * The status a teacher's new paper starts with: waiting for review when
+     * the "Publications" approval setting asks for it, approved when it does
+     * not.
+     */
+    public static function statusForTeacher(): string
+    {
+        return \App\Models\ApprovalSetting::requiresApproval('publications')
+            ? 'pending'
+            : \App\Models\Publication::STATUS_APPROVED;
     }
 
     /**

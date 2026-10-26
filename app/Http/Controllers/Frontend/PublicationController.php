@@ -28,6 +28,10 @@ class PublicationController extends Controller
             ->published()
             ->firstOrFail();
 
+        // Approved papers only, set as the relation so the page's "other
+        // publications by" list reads the same set.
+        $teacher->setRelation('publications', $teacher->publications()->approved()->get());
+
         // Find publication by slug (computed from title as a fallback).
         $publication = $teacher->publications->first(function ($pub) use ($publication_slug) {
             return ($pub->slug ?: Str::slug($pub->title)) === $publication_slug;

@@ -18,6 +18,32 @@ class Publication extends Model
 
     use HasFactory, SoftDeletes;
 
+    /** The status a paper must have to be seen anywhere public. */
+    public const STATUS_APPROVED = 'approved';
+
+    /**
+     * Only approved papers: what the public website, the API and the sitemap
+     * show. A draft, pending or rejected paper stays in the panel.
+     *
+     * Not a global scope, because the panel has to see every status, and not
+     * built into Teacher::publications(), because the profile form and the
+     * relation writer read that to know which rows a teacher has — hiding a
+     * pending paper there would make a save delete it.
+     */
+    public function scopeApproved(Builder $query): Builder
+    {
+        return $query->where('publications.status', self::STATUS_APPROVED);
+    }
+
+    /**
+     * The same, as a constraint for eager loads and counts:
+     * ->with(['publications' => Publication::onlyApproved()]).
+     */
+    public static function onlyApproved(): \Closure
+    {
+        return fn ($query) => $query->where('publications.status', self::STATUS_APPROVED);
+    }
+
     protected static function boot()
     {
         parent::boot();

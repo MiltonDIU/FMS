@@ -65,7 +65,8 @@ class TeacherController extends Controller
                 'educations.degreeLevel',
                 'educations.degreeType',
                 'educations.resultType',
-                'publications.creator',
+                // Approved papers only; the rest stay in the panel.
+                'publications' => fn ($q) => $q->where('publications.status', \App\Models\Publication::STATUS_APPROVED)->with('creator'),
                 'trainingExperiences',
                 'certifications',
                 'skills',
@@ -214,7 +215,7 @@ class TeacherController extends Controller
             'designation', 'jobType', 'department', 'department.faculty',
             'educations.degreeLevel', 'educations.degreeType', 'educations.resultType',
             'educations.educationalInstitution',
-            'publications', 'trainingExperiences', 'skills',
+            'publications' => \App\Models\Publication::onlyApproved(), 'trainingExperiences', 'skills',
             'certifications.issuingAuthorityOrganizationRelation',
             'teachingAreas', 'researchInterests', 'memberships.membershipType', 'memberships.membershipOrganization',
             'awards.awardingBodyOrganizationRelation',

@@ -62,7 +62,7 @@ class HomeController extends Controller
             ->count();
 
         $totalFaculties  = $faculties->count();
-        $totalPublications = Publication::count();
+        $totalPublications = Publication::approved()->count();
 
         return view(Theme::view('home'), compact(
             'faculties',

@@ -27,7 +27,7 @@ class PublicationController extends Controller
      */
     public function index(Request $request): AnonymousResourceCollection
     {
-        $query = Publication::query()->with(['type', 'quartile']);
+        $query = Publication::query()->approved()->with(['type', 'quartile']);
 
         if (filled($search = $request->query('q'))) {
             $like = '%' . $search . '%';
@@ -84,9 +84,10 @@ class PublicationController extends Controller
 
         // Matched against the slug the model stores, with the title as a
         // fallback for rows imported before slugs existed, then the id.
-        $publication = $teacher->publications
-            ->first(fn ($p) => ($p->slug ?: Str::slug($p->title)) === $slug)
-            ?? $teacher->publications->firstWhere('id', $slug);
+        $approved = $teacher->publications()->approved()->get();
+
+        $publication = $approved->first(fn ($p) => ($p->slug ?: Str::slug($p->title)) === $slug)
+            ?? $approved->firstWhere('id', $slug);
 
         abort_if($publication === null, 404);
 

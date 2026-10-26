@@ -16,6 +16,18 @@ class Position extends Model
     ];
 
     /**
+     * created_by is the teacher who added the name, taken from whoever is
+     * signed in. An admin with no teacher profile leaves it empty, which the
+     * list reads as "System / Bulk Imported".
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (self $position): void {
+            $position->created_by ??= auth()->user()?->teacher?->id;
+        });
+    }
+
+    /**
      * Case-insensitive find or create with auto-approval logic.
      *
      * @param string $name

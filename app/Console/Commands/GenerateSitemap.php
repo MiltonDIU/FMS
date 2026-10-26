@@ -242,6 +242,7 @@ class GenerateSitemap extends Command
         $n = 0;
 
         Publication::with('teachers.department.faculty')
+            ->approved()
             ->whereHas('teachers')
             ->chunkById(self::CHUNK, function ($publications) use ($writer, &$n) {
                 foreach ($publications as $publication) {
@@ -336,6 +337,7 @@ class GenerateSitemap extends Command
             ->join('publications', 'publications.id', '=', 'publication_authors.publication_id')
             ->where('publication_authors.authorable_type', Teacher::class)
             ->where('publication_authors.confirmation_status', \App\Support\PublicationAuthorship::CONFIRMED)
+            ->where('publications.status', Publication::STATUS_APPROVED)
             ->select(
                 'publication_authors.authorable_id as teacher_id',
                 \Illuminate\Support\Facades\DB::raw('MAX(publications.updated_at) as latest'),

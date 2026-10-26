@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Organizations\Schemas;
 
-use App\Models\Teacher;
 use App\Models\Country;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -56,20 +55,9 @@ class OrganizationForm
                     ->columns(2),
                 Section::make('Metadata')
                     ->schema([
-                        Select::make('created_by')
-                            ->label('Created By Teacher')
-                            ->relationship('creator', 'first_name',
-                                modifyQueryUsing: fn ($query, $search) =>
-                                    $query->when($search, fn ($q) =>
-                                        $q->where(fn ($q) =>
-                                            $q->where('first_name', 'like', "%{$search}%")
-                                              ->orWhere('last_name', 'like', "%{$search}%")
-                                        )
-                                    )
-                            )
-                            ->getOptionLabelFromRecordUsing(fn (Teacher $record) => $record->full_name)
-                            ->searchable()
-                            ->placeholder('System / Bulk Imported'),
+                        // No Created By field: it is filled from whoever is
+                        // signed in, in Organization::booted(), and is nobody's
+                        // to pick.
                         Select::make('approved_by')
                             ->label('Approved By User')
                             ->relationship('approver', 'name')

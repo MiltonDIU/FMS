@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Publications\Pages;
 
 use App\Filament\Resources\Publications\PublicationResource;
+use App\Filament\Resources\Publications\Schemas\PublicationForm;
 use App\Support\PublicationAuthorship;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
@@ -32,6 +33,14 @@ class EditPublication extends EditRecord
         ];
 
         unset($data['first_author_id'], $data['corresponding_author_id'], $data['co_author_ids']);
+
+        // Who created a paper does not change when it is edited.
+        unset($data['created_by']);
+
+        // Hidden from a teacher, and kept as it is on their saves.
+        if (PublicationForm::isTeacherOnly()) {
+            unset($data['status']);
+        }
 
         return $data;
     }

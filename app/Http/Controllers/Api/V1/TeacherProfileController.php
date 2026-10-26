@@ -34,7 +34,7 @@ class TeacherProfileController extends Controller
         $teacher = $this->resolveTeacher($faculty, $department, $webpage);
 
         $teacher->load($this->relations($request));
-        $teacher->loadCount('publications');
+        $teacher->loadCount(['publications' => \App\Models\Publication::onlyApproved()]);
 
         return new TeacherResource($teacher);
     }
@@ -44,6 +44,7 @@ class TeacherProfileController extends Controller
         $teacher = $this->resolveTeacher($faculty, $department, $webpage);
 
         $publications = $teacher->publications()
+            ->approved()
             ->with(['type', 'quartile'])
             // Newest first, by year: an exact date exists for about one record
             // in twelve, so ordering by it would scatter the rest arbitrarily.
