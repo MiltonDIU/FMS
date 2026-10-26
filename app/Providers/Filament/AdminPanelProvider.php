@@ -218,8 +218,8 @@ class AdminPanelProvider extends PanelProvider
                     }
                 </style>'
             )
-            // System Settings → Maintenance Mode → Internal Notice.
-            ->renderHook('panels::body.start', fn (): string => \App\Helpers\AdminNotice::render());
+            // System Settings → Maintenance Mode → Internal Notice, under the top bar.
+            ->renderHook(\Filament\View\PanelsRenderHook::TOPBAR_AFTER, fn (): string => \App\Helpers\AdminNotice::render());
         /*
          * A companion 'panels::body.end' script used to try the same repair from
          * JavaScript, clearing the inline overflow on every Livewire commit and

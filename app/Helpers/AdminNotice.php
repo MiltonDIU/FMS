@@ -5,7 +5,8 @@ namespace App\Helpers;
 use App\Models\Setting;
 
 /**
- * A notice across the top of the admin panel, for everyone signed in.
+ * A notice under the admin panel's top bar, for everyone signed in, which each
+ * of them can close for the rest of the day.
  *
  * The other half of System Settings → Maintenance Mode: for work that does not
  * need the site taken down — a planned update, data being re-imported, a
@@ -25,11 +26,30 @@ class AdminNotice
 
     public const VIEW = 'filament.admin-notice';
 
-    /** Banner colours: background, border and text, readable in light and dark. */
+    /**
+     * Banner colours, one set for the light panel and one for dark.
+     *
+     * Solid, not translucent: the first version laid a mid-blue text on a
+     * tint of the same blue, which read poorly in light mode and almost not at
+     * all in dark. Each pair here is a pale ground with near-black text of its
+     * hue, or the reverse, and clears 7:1 contrast.
+     */
     public const STYLES = [
-        'info' => ['label' => 'Information (blue)', 'bg' => 'rgba(59,130,246,0.12)', 'border' => 'rgba(59,130,246,0.45)', 'text' => '#2563eb'],
-        'warning' => ['label' => 'Warning (amber)', 'bg' => 'rgba(245,158,11,0.14)', 'border' => 'rgba(245,158,11,0.5)', 'text' => '#b45309'],
-        'danger' => ['label' => 'Important (red)', 'bg' => 'rgba(239,68,68,0.12)', 'border' => 'rgba(239,68,68,0.45)', 'text' => '#dc2626'],
+        'info' => [
+            'label' => 'Information (blue)',
+            'bg' => '#eff6ff', 'border' => '#93c5fd', 'text' => '#1e3a8a',
+            'dark_bg' => '#172554', 'dark_border' => '#1e40af', 'dark_text' => '#dbeafe',
+        ],
+        'warning' => [
+            'label' => 'Warning (amber)',
+            'bg' => '#fffbeb', 'border' => '#fcd34d', 'text' => '#78350f',
+            'dark_bg' => '#451a03', 'dark_border' => '#92400e', 'dark_text' => '#fef3c7',
+        ],
+        'danger' => [
+            'label' => 'Important (red)',
+            'bg' => '#fef2f2', 'border' => '#fca5a5', 'text' => '#7f1d1d',
+            'dark_bg' => '#450a0a', 'dark_border' => '#991b1b', 'dark_text' => '#fee2e2',
+        ],
     ];
 
     public const DEFAULT_STYLE = 'warning';
@@ -46,7 +66,7 @@ class AdminNotice
             && self::message() !== '';
     }
 
-    /** @return array{label: string, bg: string, border: string, text: string} */
+    /** @return array<string, string> */
     public static function style(): array
     {
         return self::STYLES[Setting::get(self::STYLE_KEY, self::DEFAULT_STYLE)] ?? self::STYLES[self::DEFAULT_STYLE];
@@ -62,6 +82,9 @@ class AdminNotice
         return view(self::VIEW, [
             'message' => self::message(),
             'style' => self::style(),
+            // What "closed for today" is remembered against: a changed notice
+            // is a new one, and shows again.
+            'id' => substr(md5(self::message() . '|' . Setting::get(self::STYLE_KEY, self::DEFAULT_STYLE)), 0, 12),
         ])->render();
     }
 }

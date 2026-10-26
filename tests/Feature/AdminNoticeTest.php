@@ -44,6 +44,36 @@ class AdminNoticeTest extends TestCase
             ->assertSee('&lt;b&gt;today&lt;/b&gt;', false);
     }
 
+    /** Closing is remembered against the notice, so an edited one shows again. */
+    public function test_the_notice_can_be_closed_and_a_new_one_is_a_new_notice(): void
+    {
+        $this->actingAs($this->admin());
+
+        $this->notice(true, 'First notice');
+        $first = AdminNotice::render();
+
+        $this->notice(true, 'Second notice');
+        $second = AdminNotice::render();
+
+        $this->assertStringContainsString('x-on:click="close()"', $first);
+        $this->assertStringContainsString('fms-admin-notice-closed', $first);
+
+        preg_match("/id: '([0-9a-f]+)'/", $first, $a);
+        preg_match("/id: '([0-9a-f]+)'/", $second, $b);
+        $this->assertNotEmpty($a[1] ?? null);
+        $this->assertNotSame($a[1], $b[1] ?? null);
+    }
+
+    /** Under the top bar, not above it. */
+    public function test_the_notice_sits_under_the_top_bar(): void
+    {
+        $this->notice(true);
+
+        $html = $this->actingAs($this->admin())->get('/admin')->assertOk()->getContent();
+
+        $this->assertGreaterThan(strpos($html, 'fi-topbar'), strpos($html, 'Profile editing pauses at 6 PM'));
+    }
+
     public function test_the_notice_is_not_shown_while_off(): void
     {
         $this->notice(false);
