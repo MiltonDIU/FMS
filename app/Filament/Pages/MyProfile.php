@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Filament\Concerns\HasWindowedRepeaters;
 use App\Filament\Concerns\SavesTeacherProfile;
 use App\Filament\Resources\Teachers\Schemas\TeacherForm;
+use App\Models\Activity;
 use App\Models\Teacher;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
@@ -42,6 +43,14 @@ class MyProfile extends Page
         // "teacher" role, since that is what mount() reads.
         return $user->can('View:MyProfile') && $user->isTeacher();
     }
+
+    /**
+     * The teacher's own actions on their profile — each save and the one-time
+     * confirmation — are kept in the activity log under this name: who, when
+     * and from where. What changed is in teacher_versions, and the entry only
+     * points at the version.
+     */
+    public const LOG_NAME = 'profile';
 
     public ?array $data = [];
     public array $gapReport = [];
@@ -149,6 +158,11 @@ class MyProfile extends Page
             // form, before mount() below resets it.
             $fullSnapshot = $this->canSaveFullSnapshot() && (bool) data_get($this->data, 'save_full_snapshot');
 
+            // So the log entry can point at the version this save creates.
+            // Not through versions(): its ORDER BY is refused by MySQL on an
+            // aggregate.
+            $lastVersionId = (int) \App\Models\TeacherVersion::where('teacher_id', $teacher->id)->max('id');
+
             // This handles:
             // 1. Direct update if no approval needed
             // 2. Version creation if approval needed
@@ -165,6 +179,17 @@ class MyProfile extends Page
             $mediaBefore = $mediaState();
             $this->saveTeacherMedia($teacher);
             $changed = $changed || $mediaBefore !== $mediaState();
+
+            if ($changed || $fullSnapshot) {
+                $version = $teacher->versions()->where('id', '>', $lastVersionId)->latest('id')->first();
+
+                activity(self::LOG_NAME)
+                    ->causedBy(auth()->user())
+                    ->performedOn($teacher)
+                    ->withProperties(array_filter([Activity::VERSION_KEY => $version?->id]))
+                    ->event('updated')
+                    ->log('profile updated');
+            }
 
             // Saving is not confirming. Verification used to be set here on
             // every save, so pressing Save once counted as a declaration the
@@ -256,6 +281,19 @@ class MyProfile extends Page
         }
 
         $teacher->markAsVerified();
+
+        // markAsVerified() bypasses the versioning, so without this the
+        // confirmation leaves nothing behind but verified_at.
+        activity(self::LOG_NAME)
+            ->causedBy(auth()->user())
+            ->performedOn($teacher)
+            // The version that was live when they confirmed.
+            ->withProperties(array_filter([
+                Activity::VERSION_KEY => \App\Models\TeacherVersion::where('teacher_id', $teacher->id)->where('is_active', true)->value('id'),
+            ]))
+            ->event('declared')
+            ->log('profile confirmed');
+
         $this->declarationAccepted = false;
 
         Notification::make()

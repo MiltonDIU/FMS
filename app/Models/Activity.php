@@ -31,6 +31,25 @@ class Activity extends SpatieActivity
 
     public const AGENT_KEY = 'user_agent';
 
+    /** The teacher version a profile entry points at, for what it changed. */
+    public const VERSION_KEY = 'version_id';
+
+    /**
+     * The version's page, for an entry that has one and a viewer who may open
+     * it. Built when shown rather than stored, so it follows the site's address.
+     */
+    public function versionUrl(): ?string
+    {
+        $id = $this->properties[self::VERSION_KEY] ?? null;
+        $version = $id ? TeacherVersion::find($id) : null;
+
+        if (! $version || ! auth()->user()?->can('view', $version)) {
+            return null;
+        }
+
+        return \App\Filament\Resources\TeacherVersions\TeacherVersionResource::getUrl('view', ['record' => $version]);
+    }
+
     protected static function booted(): void
     {
         static::creating(function (self $activity): void {

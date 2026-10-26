@@ -10,8 +10,8 @@ use Filament\Schemas\Schema;
 
 class ActivityInfolist
 {
-    /** Keys that describe the request rather than the change itself. */
-    protected const CONTEXT_KEYS = [Activity::IP_KEY, Activity::AGENT_KEY];
+    /** Keys that describe the request, or the version, rather than the change itself. */
+    protected const CONTEXT_KEYS = [Activity::IP_KEY, Activity::AGENT_KEY, Activity::VERSION_KEY];
 
     /** Keys holding the change itself, shown as before and after instead. */
     protected const CHANGE_KEYS = ['attributes', 'old'];
@@ -42,6 +42,15 @@ class ActivityInfolist
                             : '—'),
 
                     TextEntry::make('description')->label('Description'),
+
+                    TextEntry::make('version')
+                        ->label('Version')
+                        ->state(fn (Activity $record): ?string => isset($record->properties[Activity::VERSION_KEY])
+                            ? 'Version #' . $record->properties[Activity::VERSION_KEY]
+                            : null)
+                        ->url(fn (Activity $record): ?string => $record->versionUrl())
+                        ->color('primary')
+                        ->visible(fn (Activity $record): bool => isset($record->properties[Activity::VERSION_KEY])),
                 ]),
 
             /*

@@ -29,6 +29,7 @@ class ActivitiesTable
         'failed' => 'warning',
         'locked' => 'danger',
         'password_reset' => 'warning',
+        'declared' => 'success',
     ];
 
     public static function configure(Table $table): Table
@@ -75,6 +76,12 @@ class ActivitiesTable
                     ->state(fn (Activity $record): string => $record->subject_type
                         ? class_basename($record->subject_type) . ' #' . $record->subject_id
                         : '—')
+                    // A teacher's profile save names the version holding what
+                    // changed, and opens it.
+                    ->description(fn (Activity $record): ?string => isset($record->properties[Activity::VERSION_KEY])
+                        ? 'Version #' . $record->properties[Activity::VERSION_KEY]
+                        : null)
+                    ->url(fn (Activity $record): ?string => $record->versionUrl())
                     ->color('gray'),
 
                 TextColumn::make('changed')
