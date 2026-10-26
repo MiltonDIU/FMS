@@ -73,7 +73,7 @@ class SystemSettings extends Page
         }
 
         // Explicitly cast custom boolean settings
-        $boolKeys = ['export_overwrite', 'import_dry_run', 'import_skip_existing', \App\Models\Teacher::HIDE_UNVERIFIED_SETTING, \App\Helpers\MaintenanceMode::ENABLED_KEY, \App\Helpers\MaintenanceMode::ALLOW_ADMINS_KEY, 'allow_teacher_erp_sync', \App\Models\Feedback::ENABLED_SETTING, \App\Models\Feedback::EMAIL_UPDATES_SETTING];
+        $boolKeys = ['export_overwrite', 'import_dry_run', 'import_skip_existing', \App\Models\Teacher::HIDE_UNVERIFIED_SETTING, \App\Helpers\MaintenanceMode::ENABLED_KEY, \App\Helpers\MaintenanceMode::ALLOW_ADMINS_KEY, \App\Helpers\AdminNotice::ENABLED_KEY, 'allow_teacher_erp_sync', \App\Models\Feedback::ENABLED_SETTING, \App\Models\Feedback::EMAIL_UPDATES_SETTING];
         foreach (array_keys(static::getAvailableThemes()) as $slug) {
             $boolKeys[] = \App\Helpers\FontManager::settingKey($slug, 'footer_match_theme');
         }
@@ -160,6 +160,8 @@ class SystemSettings extends Page
             \App\Models\Feedback::EMAIL_UPDATES_SETTING => true,
             \App\Helpers\MaintenanceMode::ENABLED_KEY => false,
             \App\Helpers\MaintenanceMode::ALLOW_ADMINS_KEY => true,
+            \App\Helpers\AdminNotice::ENABLED_KEY => false,
+            \App\Helpers\AdminNotice::STYLE_KEY => \App\Helpers\AdminNotice::DEFAULT_STYLE,
             'teacher_integration_api_url' => 'http://localhost:8000/api/v1/teachers/preview',
             'teacher_integration_mapping' => 'erp_teacher_profile',
             'hr_api_base_url' => '',
@@ -191,9 +193,37 @@ class SystemSettings extends Page
                     ->tabs([
                         Tab::make('Maintenance Mode')
                             ->icon('heroicon-o-wrench-screwdriver')
-                            ->badge(fn (): ?string => \App\Helpers\MaintenanceMode::enabled() ? 'ON' : null)
-                            ->badgeColor('danger')
+                            ->badge(fn (): ?string => match (true) {
+                                \App\Helpers\MaintenanceMode::enabled() => 'ON',
+                                \App\Helpers\AdminNotice::active() => 'NOTICE',
+                                default => null,
+                            })
+                            ->badgeColor(fn (): string => \App\Helpers\MaintenanceMode::enabled() ? 'danger' : 'warning')
                             ->schema([
+                                Section::make('Internal Notice')
+                                    ->description('A message across the top of every admin panel page, for everyone signed in. The public site keeps working as usual — use this for work that does not need it taken down.')
+                                    ->schema([
+                                        Toggle::make(\App\Helpers\AdminNotice::ENABLED_KEY)
+                                            ->label('Show the notice to signed-in users')
+                                            ->default(false)
+                                            ->live()
+                                            ->onColor('warning')
+                                            ->helperText('Takes effect as soon as you press Save Settings.'),
+
+                                        \Filament\Forms\Components\Textarea::make(\App\Helpers\AdminNotice::MESSAGE_KEY)
+                                            ->label('Notice')
+                                            ->placeholder('e.g. Profile editing will be paused on Friday from 6 PM to 8 PM for a system update.')
+                                            ->rows(3)
+                                            ->maxLength(1000)
+                                            ->required(fn (Get $get): bool => (bool) $get(\App\Helpers\AdminNotice::ENABLED_KEY)),
+
+                                        Select::make(\App\Helpers\AdminNotice::STYLE_KEY)
+                                            ->label('Colour')
+                                            ->options(collect(\App\Helpers\AdminNotice::STYLES)->map(fn (array $s): string => $s['label'])->all())
+                                            ->default(\App\Helpers\AdminNotice::DEFAULT_STYLE)
+                                            ->selectablePlaceholder(false),
+                                    ]),
+
                                 Section::make('Site Maintenance')
                                     ->description('While on, every public page — including unknown URLs and error pages — shows only the maintenance message below, with a 503 status so search engines keep the site indexed. The admin panel keeps working so you can do the internal work and switch it back off.')
                                     ->schema([

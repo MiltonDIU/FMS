@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Helpers\AdminNotice;
 use App\Helpers\MaintenanceMode;
 use App\Models\Setting;
 use Illuminate\Database\Seeder;
@@ -52,6 +53,24 @@ class MaintenanceModeSettingsSeeder extends Seeder
                 'type' => 'string',
                 'label' => 'Maintenance Background Image',
                 'description' => 'Path on the public disk of the page background. Empty shows the plain page.',
+            ],
+            AdminNotice::ENABLED_KEY => [
+                'value' => 'false',
+                'type' => 'boolean',
+                'label' => 'Internal Notice Enabled',
+                'description' => 'While on, a notice runs across the top of every admin panel page. The public site is not affected.',
+            ],
+            AdminNotice::MESSAGE_KEY => [
+                'value' => '',
+                'type' => 'string',
+                'label' => 'Internal Notice',
+                'description' => 'Text of the notice shown to signed-in users.',
+            ],
+            AdminNotice::STYLE_KEY => [
+                'value' => AdminNotice::DEFAULT_STYLE,
+                'type' => 'string',
+                'label' => 'Internal Notice Colour',
+                'description' => 'info, warning or danger.',
             ],
         ];
 
