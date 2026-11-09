@@ -74,7 +74,9 @@ class DepartmentTeachersTable
             ->defaultSort(function (Builder $query, string $direction, $livewire) use ($currentDepartmentId) {
                 // One department on screen: honour the manual per-department order.
                 if ($currentDepartmentId($livewire)) {
-                    return $query->orderBy('sort_order', $direction);
+                    // Row id breaks ties between equal serials, the same way the
+                    // public department page does (TeacherDirectoryOrder::bySerial).
+                    return $query->orderBy('sort_order', $direction)->orderBy('id', $direction);
                 }
 
                 // Unfiltered (global) list: rank by the teacher's designation first,

@@ -329,7 +329,6 @@
                                     'teacher' => $teacher,
                                     'faculty' => $this->all ? ($teacher->department->faculty ?? null) : ($this->department?->faculty),
                                     'department' => $this->all ? $teacher->department : ($this->department ?? $teacher->department),
-                                    'showAdminRole' => false,
                                 ])
                             @endif
                         @endforeach

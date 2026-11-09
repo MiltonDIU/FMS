@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use App\Models\UserAdministrativeRole;
+use App\Support\DepartmentAdminPlacement;
 use Spatie\Permission\Models\Role;
 
 /**
@@ -56,6 +57,7 @@ class UserAdministrativeRoleObserver
     {
         if ($record->is_active && ! $record->end_date) {
             $this->assignSpatieRole($record);
+            DepartmentAdminPlacement::place($record);
         }
     }
 
@@ -69,9 +71,28 @@ class UserAdministrativeRoleObserver
         $hadEndDate = $record->getOriginal('end_date');
         $hasEndDate = $record->end_date;
 
+        // Ended, or moved to another role / faculty / department: take them
+        // out of the departments the old appointment put them in. Before the
+        // placement below, so a department the new one covers is kept.
+        $wasCurrent = $wasActive && ! $hadEndDate;
+        $isCurrent = $isNowActive && ! $hasEndDate;
+        $moved = $record->wasChanged(['administrative_role_id', 'faculty_id', 'department_id', 'user_id']);
+
+        if ($wasCurrent && (! $isCurrent || $moved)) {
+            DepartmentAdminPlacement::release(
+                (new UserAdministrativeRole)->forceFill($record->getRawOriginal())
+            );
+        }
+
         // Activated or end_date cleared: assign role
         if ($isNowActive && ! $hasEndDate) {
             $this->assignSpatieRole($record);
+
+            // Only when the appointment itself changed — editing the remarks
+            // must not undo an admin's manual reordering.
+            if ($record->wasChanged(['is_active', 'end_date', 'administrative_role_id', 'faculty_id', 'department_id', 'user_id'])) {
+                DepartmentAdminPlacement::place($record);
+            }
         }
 
         // Deactivated or end_date set: maybe remove role
@@ -86,6 +107,10 @@ class UserAdministrativeRoleObserver
     public function deleted(UserAdministrativeRole $record): void
     {
         $this->removeSpatieRoleIfOrphaned($record);
+
+        if ($record->is_active && ! $record->end_date) {
+            DepartmentAdminPlacement::release($record);
+        }
     }
 
     /**
@@ -95,6 +120,7 @@ class UserAdministrativeRoleObserver
     {
         if ($record->is_active && ! $record->end_date) {
             $this->assignSpatieRole($record);
+            DepartmentAdminPlacement::place($record);
         }
     }
 

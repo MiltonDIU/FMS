@@ -10,7 +10,9 @@
     // naming neither a faculty nor a department — nine of the forty-one on file
     // — matched nothing. Those teachers appeared in Administration with no
     // badge and, here, without the admin styling either.
-    $roles = $teacher->administrativeRoles;
+    // Only appointments in force: the relation also returns ended and
+    // switched-off ones, and the badge must last exactly as long as the role.
+    $roles = $teacher->administrativeRoles->filter(fn ($r) => $r->is_active && ! $r->end_date)->values();
 
     $adminRole = ($pageDeptId ? $roles->firstWhere('department_id', $pageDeptId) : null)
         ?: ($pageFacId ? $roles->first(fn ($r) => $r->department_id === null && (int) $r->faculty_id === (int) $pageFacId) : null)

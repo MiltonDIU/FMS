@@ -245,9 +245,9 @@ class DepartmentSearch extends Component
 
         $query = Teacher::query()
             ->select('teachers.*')
-            ->selectRaw("EXISTS (SELECT 1 FROM administrative_role_user aru WHERE aru.user_id = teachers.user_id AND ({$adminScope}) AND aru.is_active = 1 AND aru.deleted_at IS NULL) as has_admin_role")
-            ->selectRaw("(SELECT MIN(admin_roles.sort_order) FROM administrative_role_user aru JOIN administrative_roles admin_roles ON admin_roles.id = aru.administrative_role_id WHERE aru.user_id = teachers.user_id AND ({$adminScope}) AND aru.is_active = 1 AND aru.deleted_at IS NULL) as admin_role_sort")
-            ->selectRaw("(SELECT MIN(aru.sort_order) FROM administrative_role_user aru JOIN administrative_roles admin_roles ON admin_roles.id = aru.administrative_role_id WHERE aru.user_id = teachers.user_id AND ({$adminScope}) AND aru.is_active = 1 AND aru.deleted_at IS NULL AND admin_roles.sort_order = (SELECT MIN(ar2.sort_order) FROM administrative_role_user aru2 JOIN administrative_roles ar2 ON ar2.id = aru2.administrative_role_id WHERE aru2.user_id = teachers.user_id AND ({$adminScope}) AND aru2.is_active = 1 AND aru2.deleted_at IS NULL)) as admin_user_sort")
+            ->selectRaw("EXISTS (SELECT 1 FROM administrative_role_user aru WHERE aru.user_id = teachers.user_id AND ({$adminScope}) AND aru.is_active = 1 AND aru.end_date IS NULL AND aru.deleted_at IS NULL) as has_admin_role")
+            ->selectRaw("(SELECT MIN(admin_roles.sort_order) FROM administrative_role_user aru JOIN administrative_roles admin_roles ON admin_roles.id = aru.administrative_role_id WHERE aru.user_id = teachers.user_id AND ({$adminScope}) AND aru.is_active = 1 AND aru.end_date IS NULL AND aru.deleted_at IS NULL) as admin_role_sort")
+            ->selectRaw("(SELECT MIN(aru.sort_order) FROM administrative_role_user aru JOIN administrative_roles admin_roles ON admin_roles.id = aru.administrative_role_id WHERE aru.user_id = teachers.user_id AND ({$adminScope}) AND aru.is_active = 1 AND aru.end_date IS NULL AND aru.deleted_at IS NULL AND admin_roles.sort_order = (SELECT MIN(ar2.sort_order) FROM administrative_role_user aru2 JOIN administrative_roles ar2 ON ar2.id = aru2.administrative_role_id WHERE aru2.user_id = teachers.user_id AND ({$adminScope}) AND aru2.is_active = 1 AND aru2.end_date IS NULL AND aru2.deleted_at IS NULL)) as admin_user_sort")
             ->join('departments', 'departments.id', '=', 'teachers.department_id')
             ->leftJoin('designations', 'designations.id', '=', 'teachers.designation_id')
             // Joined for the ordering, not for the search — see the sort on the
@@ -295,7 +295,7 @@ class DepartmentSearch extends Component
         [$query, $adminScope] = $this->getBaseTeachersQuery();
 
         $listing = $query
-            ->whereRaw("EXISTS (SELECT 1 FROM administrative_role_user aru WHERE aru.user_id = teachers.user_id AND ({$adminScope}) AND aru.is_active = 1 AND aru.deleted_at IS NULL)")
+            ->whereRaw("EXISTS (SELECT 1 FROM administrative_role_user aru WHERE aru.user_id = teachers.user_id AND ({$adminScope}) AND aru.is_active = 1 AND aru.end_date IS NULL AND aru.deleted_at IS NULL)")
             // jobType because designation_title falls back to it for the rows
             // that are not ranks; without it the card asks per teacher.
             ->with(['designation', 'jobType', 'department.faculty', 'teachingAreas',
@@ -305,7 +305,7 @@ class DepartmentSearch extends Component
             // which fetched a teacher's whole bibliography per card.
             ->withCount(['publications' => \App\Models\Publication::onlyApproved()]);
 
-        return TeacherDirectoryOrder::apply($listing, administrativeFirst: true)->get();
+        return TeacherDirectoryOrder::apply($listing, administrativeFirst: true, departmentId: $this->serialDepartmentId())->get();
     }
 
     public function getTeachersProperty()
@@ -313,7 +313,7 @@ class DepartmentSearch extends Component
         [$query, $adminScope] = $this->getBaseTeachersQuery();
 
         $listing = $query
-            ->whereRaw("NOT EXISTS (SELECT 1 FROM administrative_role_user aru WHERE aru.user_id = teachers.user_id AND ({$adminScope}) AND aru.is_active = 1 AND aru.deleted_at IS NULL)")
+            ->whereRaw("NOT EXISTS (SELECT 1 FROM administrative_role_user aru WHERE aru.user_id = teachers.user_id AND ({$adminScope}) AND aru.is_active = 1 AND aru.end_date IS NULL AND aru.deleted_at IS NULL)")
             // jobType because designation_title falls back to it for the rows
             // that are not ranks; without it the card asks per teacher.
             ->with(['designation', 'jobType', 'department.faculty', 'teachingAreas',
@@ -323,7 +323,13 @@ class DepartmentSearch extends Component
             // which fetched a teacher's whole bibliography per card.
             ->withCount(['publications' => \App\Models\Publication::onlyApproved()]);
 
-        return TeacherDirectoryOrder::apply($listing)->paginate(20);
+        return TeacherDirectoryOrder::apply($listing, departmentId: $this->serialDepartmentId())->paginate(20);
+    }
+
+    /** The department whose admin-panel serial orders the list, if one is on screen. */
+    private function serialDepartmentId(): ?int
+    {
+        return (! $this->all && $this->departmentId) ? (int) $this->departmentId : null;
     }
 
     public function render(): View

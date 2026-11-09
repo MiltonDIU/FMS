@@ -14,8 +14,9 @@
      * being scannable, which is the one thing a directory has to be.
      *
      * Expects $teacher, and $faculty / $department for the URL. $showAdminRole
-     * is passed false by the general-faculty list, where the roles have already
-     * been shown in their own group above.
+     * defaults to true and the listings leave it so: the group above only holds
+     * the roles over the page in view (on a faculty page, the deans), so a Head
+     * listed below would otherwise lose the badge for as long as they hold it.
      */
     $pageDeptId = $department?->id;
     $pageFacId = $faculty?->id;
@@ -41,7 +42,9 @@
      * A role that names no faculty and no department is still a role held. It
      * is tried last, so a more specific one wins wherever there is one.
      */
-    $roles = $teacher->administrativeRoles;
+    // Only appointments in force: the relation also returns ended and
+    // switched-off ones, and the badge must last exactly as long as the role.
+    $roles = $teacher->administrativeRoles->filter(fn ($r) => $r->is_active && ! $r->end_date)->values();
 
     $adminRole = ($pageDeptId ? $roles->firstWhere('department_id', $pageDeptId) : null)
         ?: ($pageFacId ? $roles->first(fn ($r) => $r->department_id === null && (int) $r->faculty_id === (int) $pageFacId) : null)

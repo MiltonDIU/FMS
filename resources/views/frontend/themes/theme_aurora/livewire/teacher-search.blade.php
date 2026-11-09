@@ -304,7 +304,6 @@
                                     'teacher' => $teacher,
                                     'faculty' => $teacher->department->faculty,
                                     'department' => $teacher->department,
-                                    'showAdminRole' => false,
                                 ])
                             @endif
                         @endforeach
