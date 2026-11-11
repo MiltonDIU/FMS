@@ -324,7 +324,7 @@ class DepartmentSearch extends Component
             ->withCount(['publications' => \App\Models\Publication::onlyApproved()]);
 
         // "All" (the whole university) is ordered the way the home page is:
-        // designation, then home-department serial, then joining date, then age.
+        // designation, then joining date, then age.
         return TeacherDirectoryOrder::apply($listing, departmentId: $this->serialDepartmentId(), byDepartment: true)->paginate(20);
     }
 

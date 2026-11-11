@@ -233,10 +233,10 @@ class DepartmentAdminPlacementTest extends TestCase
         }
     }
 
-    public function test_the_faculty_page_goes_by_designation_then_serial_then_seniority(): void
+    public function test_the_faculty_page_goes_by_designation_then_seniority_not_serial(): void
     {
-        // Reverse every department's serial so the order the rows happen to
-        // be stored in cannot pass this by chance.
+        // Reverse every department's serial: a serial cannot be compared
+        // across departments, so it must not move anyone on this page.
         foreach (Department::where('faculty_id', $this->department->faculty_id)->pluck('id') as $departmentId) {
             $rows = DepartmentTeacher::where('department_id', $departmentId)->orderBy('sort_order')->orderBy('id')->get();
             foreach ($rows->values() as $i => $row) {
@@ -247,8 +247,8 @@ class DepartmentAdminPlacementTest extends TestCase
         $search = new \App\Livewire\Frontend\TeacherSearch;
         $search->mount((string) $this->department->faculty_id);
 
-        $this->assertRankThenSerial($search->getAdminTeachersProperty(), 'administration group');
-        $this->assertRankThenSerial($this->listAll((string) $this->department->faculty_id), 'list');
+        $this->assertRankThenSeniority($search->getAdminTeachersProperty(), 'administration group');
+        $this->assertRankThenSeniority($this->listAll((string) $this->department->faculty_id), 'list');
     }
 
     public function test_the_home_page_orders_like_the_faculty_page(): void
@@ -256,15 +256,15 @@ class DepartmentAdminPlacementTest extends TestCase
         $search = new \App\Livewire\Frontend\TeacherSearch;
         $search->mount(null);
 
-        $this->assertRankThenSerial($search->getAdminTeachersProperty(), 'administration group');
-        $this->assertRankThenSerial($this->listAll(null), 'list');
+        $this->assertRankThenSeniority($search->getAdminTeachersProperty(), 'administration group');
+        $this->assertRankThenSeniority($this->listAll(null), 'list');
     }
 
     /**
-     * Listed in this order: designation, then serial in the home department,
-     * then joining date, then date of birth (missing values last).
+     * Listed in this order: designation, then joining date, then date of
+     * birth (missing values last). No serial: it belongs to one department.
      */
-    protected function assertRankThenSerial(\Illuminate\Support\Collection $listed, string $what): void
+    protected function assertRankThenSeniority(\Illuminate\Support\Collection $listed, string $what): void
     {
         $ids = $listed->pluck('id')->values()->all();
 
@@ -272,7 +272,6 @@ class DepartmentAdminPlacementTest extends TestCase
             ->leftJoin('designations as d', 'd.id', '=', 't.designation_id')
             ->whereIn('t.id', $ids ?: [0])
             ->orderByRaw('COALESCE(d.sort_order, 9999)')
-            ->orderByRaw('COALESCE((SELECT MIN(dt.sort_order) FROM department_teacher dt WHERE dt.teacher_id = t.id AND dt.department_id = t.department_id AND dt.deleted_at IS NULL), ?)', [PHP_INT_MAX])
             ->orderByRaw('t.joining_date IS NULL')->orderBy('t.joining_date')
             ->orderByRaw('t.date_of_birth IS NULL')->orderBy('t.date_of_birth')
             ->orderBy('t.id')

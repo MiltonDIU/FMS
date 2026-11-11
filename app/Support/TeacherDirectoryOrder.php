@@ -58,16 +58,15 @@ final class TeacherDirectoryOrder
      *                                  panel's Department Teachers table does when
      *                                  filtered to it (see byRankThenSerial).
      * @param  bool  $byDepartment  No department on screen (faculty or home page):
-     *                              the same order, with each teacher's serial
-     *                              taken from their home department.
+     *                              the same order without the serial, which
+     *                              cannot be compared across departments.
      * @return Builder<\App\Models\Teacher>
      */
     public static function apply(Builder $query, bool $administrativeFirst = false, ?int $departmentId = null, bool $byDepartment = false): Builder
     {
-        // Designation first, the department's serial only within a designation,
-        // then seniority. One department on screen: its serial. A faculty or
-        // the whole university: each teacher's home-department serial. Both
-        // the administration group and the list below it.
+        // Designation first, then — on a department's own page only — its
+        // serial, then seniority. Both the administration group and the list
+        // below it.
         if ($departmentId || $byDepartment) {
             return self::byRankThenSerial($query, $departmentId);
         }
@@ -89,16 +88,16 @@ final class TeacherDirectoryOrder
     }
 
     /**
-     * The one order every public listing uses:
+     * The order every public listing uses:
      *
      *   1. designation (Professor before Associate Professor, and so on)
-     *   2. serial set in the admin panel (Department Teachers) — in the given
-     *      department, or each teacher's home department when none is given
+     *   2. one department on screen only: the serial set for it in the admin
+     *      panel (Department Teachers) — skipped on faculty and home pages
      *   3. joining date — whoever joined earlier
      *   4. date of birth — the elder
      *
      * The admin panel's Department Teachers table, filtered to a department,
-     * sorts the same way, so the two read alike.
+     * sorts the same way, so it reads like the department page.
      *
      * The serial is a subquery rather than a join: department_teacher has no
      * unique key on (teacher, department), and a join would list a duplicated
@@ -114,14 +113,22 @@ final class TeacherDirectoryOrder
      */
     public static function byRankThenSerial(Builder $query, ?int $departmentId = null): Builder
     {
-        $serial = '(SELECT MIN(dt_serial.sort_order) FROM department_teacher dt_serial'
-            . ' WHERE dt_serial.teacher_id = teachers.id AND dt_serial.department_id = '
-            . ($departmentId ? '?' : 'teachers.department_id')
-            . ' AND dt_serial.deleted_at IS NULL)';
+        $query->orderByRaw('COALESCE(designations.sort_order, ?)', [self::UNRANKED]);
+
+        // The serial only means something inside one department: CSE's 199th
+        // is not junior to MCT's 15th. So it is used on a department's own
+        // page, and on a faculty or the home page seniority alone decides
+        // within a designation.
+        if ($departmentId) {
+            $query->orderByRaw(
+                'COALESCE((SELECT MIN(dt_serial.sort_order) FROM department_teacher dt_serial'
+                . ' WHERE dt_serial.teacher_id = teachers.id AND dt_serial.department_id = ?'
+                . ' AND dt_serial.deleted_at IS NULL), ?)',
+                [$departmentId, PHP_INT_MAX]
+            );
+        }
 
         return $query
-            ->orderByRaw('COALESCE(designations.sort_order, ?)', [self::UNRANKED])
-            ->orderByRaw("COALESCE({$serial}, ?)", $departmentId ? [$departmentId, PHP_INT_MAX] : [PHP_INT_MAX])
             ->orderByRaw('teachers.joining_date IS NULL')
             ->orderBy('teachers.joining_date')
             ->orderByRaw('teachers.date_of_birth IS NULL')

@@ -249,8 +249,8 @@ class TeacherSearch extends Component
             $listing,
             departmentId: $this->departmentId ? (int) $this->departmentId : null,
             // No department picked — one faculty, or the whole university on
-            // the home page: designation, then home-department serial, then
-            // joining date, then age (TeacherDirectoryOrder::byRankThenSerial).
+            // the home page: designation, then joining date, then age. No
+            // serial here (TeacherDirectoryOrder::byRankThenSerial).
             byDepartment: true,
         )->paginate(20);
     }
