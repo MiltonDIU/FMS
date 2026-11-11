@@ -214,14 +214,13 @@ class DepartmentAdminPlacementTest extends TestCase
         }
     }
 
-    public function test_teachers_sharing_a_serial_appear_in_the_admin_lists_order(): void
+    public function test_teachers_sharing_a_serial_go_by_seniority(): void
     {
-        // Everyone on one serial: only the tie-break decides, and it must be
-        // the admin list's — the row id — not the rank order.
+        // Everyone on one serial: only the tie-break decides — designation,
+        // then joining date, then age.
         DepartmentTeacher::where('department_id', $this->department->id)->update(['sort_order' => 1]);
 
-        $adminOrder = DepartmentTeacher::where('department_id', $this->department->id)
-            ->orderBy('sort_order')->orderBy('id')->pluck('teacher_id')->unique()->values();
+        $adminOrder = $this->serialOrder($this->department->id);
 
         $page = new \App\Livewire\Frontend\DepartmentSearch;
         $page->mount($this->department->id);
@@ -234,16 +233,76 @@ class DepartmentAdminPlacementTest extends TestCase
         }
     }
 
-    public function test_the_faculty_list_keeps_each_departments_serial(): void
+    public function test_the_faculty_page_goes_by_designation_then_serial_then_seniority(): void
     {
-        // Reverse the department's order so rank order cannot pass by chance.
-        $rows = DepartmentTeacher::where('department_id', $this->department->id)->orderBy('sort_order')->orderBy('id')->get();
-        foreach ($rows->values() as $i => $row) {
-            DepartmentTeacher::whereKey($row->id)->update(['sort_order' => $rows->count() - $i]);
+        // Reverse every department's serial so the order the rows happen to
+        // be stored in cannot pass this by chance.
+        foreach (Department::where('faculty_id', $this->department->faculty_id)->pluck('id') as $departmentId) {
+            $rows = DepartmentTeacher::where('department_id', $departmentId)->orderBy('sort_order')->orderBy('id')->get();
+            foreach ($rows->values() as $i => $row) {
+                DepartmentTeacher::whereKey($row->id)->update(['sort_order' => $rows->count() - $i]);
+            }
         }
 
         $search = new \App\Livewire\Frontend\TeacherSearch;
         $search->mount((string) $this->department->faculty_id);
+
+        $this->assertRankThenSerial($search->getAdminTeachersProperty(), 'administration group');
+        $this->assertRankThenSerial($this->listAll((string) $this->department->faculty_id), 'list');
+    }
+
+    public function test_the_home_page_orders_like_the_faculty_page(): void
+    {
+        $search = new \App\Livewire\Frontend\TeacherSearch;
+        $search->mount(null);
+
+        $this->assertRankThenSerial($search->getAdminTeachersProperty(), 'administration group');
+        $this->assertRankThenSerial($this->listAll(null), 'list');
+    }
+
+    /**
+     * Listed in this order: designation, then serial in the home department,
+     * then joining date, then date of birth (missing values last).
+     */
+    protected function assertRankThenSerial(\Illuminate\Support\Collection $listed, string $what): void
+    {
+        $ids = $listed->pluck('id')->values()->all();
+
+        $expected = DB::table('teachers as t')
+            ->leftJoin('designations as d', 'd.id', '=', 't.designation_id')
+            ->whereIn('t.id', $ids ?: [0])
+            ->orderByRaw('COALESCE(d.sort_order, 9999)')
+            ->orderByRaw('COALESCE((SELECT MIN(dt.sort_order) FROM department_teacher dt WHERE dt.teacher_id = t.id AND dt.department_id = t.department_id AND dt.deleted_at IS NULL), ?)', [PHP_INT_MAX])
+            ->orderByRaw('t.joining_date IS NULL')->orderBy('t.joining_date')
+            ->orderByRaw('t.date_of_birth IS NULL')->orderBy('t.date_of_birth')
+            ->orderBy('t.id')
+            ->pluck('t.id')
+            ->all();
+
+        $this->assertSame($expected, $ids, $what);
+    }
+
+    public function test_a_head_stays_in_the_administration_group_on_the_faculty_page(): void
+    {
+        // Anyone the site actually shows; the faculty set up above may have nobody published.
+        $head = Teacher::published()->whereNotNull('user_id')->first()
+            ?? $this->markTestSkipped('no published teacher with an account');
+
+        $this->department = Department::find($head->department_id);
+        $this->appoint($head, 'Head of Department');
+
+        $search = new \App\Livewire\Frontend\TeacherSearch;
+        $search->mount((string) $this->department->faculty_id);
+
+        $this->assertTrue($search->getAdminTeachersProperty()->contains('id', $head->id), 'in the administration group');
+        $this->assertFalse($this->listAll((string) $this->department->faculty_id)->contains('id', $head->id), 'not in the general list');
+    }
+
+    /** Every page of the directory's general list, for a faculty or (null) the whole university. */
+    protected function listAll(?string $facultyId): \Illuminate\Support\Collection
+    {
+        $search = new \App\Livewire\Frontend\TeacherSearch;
+        $search->mount($facultyId);
 
         $listed = collect();
         for ($page = 1; ; $page++) {
@@ -255,22 +314,28 @@ class DepartmentAdminPlacementTest extends TestCase
             }
         }
 
-        // Each department appears as one run, not scattered through the list.
-        $runs = $listed->pluck('department_id')->chunkWhile(fn ($v, $k, $c) => $v === $c->last())->map->first();
-        $this->assertSame($runs->unique()->values()->all(), $runs->values()->all());
+        return $listed;
+    }
 
-        // And inside its run, in the department's own serial.
-        foreach ($listed->groupBy('department_id') as $departmentId => $teachers) {
-            $serial = DepartmentTeacher::where('department_id', $departmentId)
-                ->orderBy('sort_order')->orderBy('id')->pluck('teacher_id')->unique()->values();
-            $ids = $teachers->pluck('id');
-
-            $this->assertSame(
-                $serial->intersect($ids)->values()->all(),
-                $ids->filter(fn ($id) => $serial->contains($id))->values()->all(),
-                "department {$departmentId}"
-            );
-        }
+    /**
+     * A department's teachers as the admin list orders them: serial, then
+     * designation, then joining date, then date of birth (missing dates last).
+     */
+    protected function serialOrder(int $departmentId): \Illuminate\Support\Collection
+    {
+        return DB::table('department_teacher as dt')
+            ->join('teachers as t', 't.id', '=', 'dt.teacher_id')
+            ->leftJoin('designations as d', 'd.id', '=', 't.designation_id')
+            ->where('dt.department_id', $departmentId)
+            ->whereNull('dt.deleted_at')
+            ->orderBy('dt.sort_order')
+            ->orderByRaw('COALESCE(d.sort_order, 9999)')
+            ->orderByRaw('t.joining_date IS NULL')->orderBy('t.joining_date')
+            ->orderByRaw('t.date_of_birth IS NULL')->orderBy('t.date_of_birth')
+            ->orderBy('t.id')
+            ->pluck('t.id')
+            ->unique()
+            ->values();
     }
 
     /** @return array<int, int> */

@@ -155,6 +155,12 @@ class TeacherSearch extends Component
             $facCond = 'aru.faculty_id = ' . $facId;
             if ($deptId) {
                 $facCond = '(aru.department_id IS NULL AND ' . $facCond . ')';
+            } else {
+                // The whole faculty on screen: a Head or Associate Head of one
+                // of its departments is part of its administration too, and
+                // stays in the administration group rather than dropping into
+                // the general list.
+                $facCond = '(' . $facCond . ' OR aru.department_id IN (SELECT id FROM departments WHERE faculty_id = ' . $facId . '))';
             }
             $scopeParts[] = $facCond;
         }
@@ -221,7 +227,7 @@ class TeacherSearch extends Component
             // which fetched a teacher's whole bibliography per card.
             ->withCount(['publications' => \App\Models\Publication::onlyApproved()]);
 
-        return TeacherDirectoryOrder::apply($listing, administrativeFirst: true, departmentId: $this->departmentId ? (int) $this->departmentId : null)->get();
+        return TeacherDirectoryOrder::apply($listing, administrativeFirst: true, departmentId: $this->departmentId ? (int) $this->departmentId : null, byDepartment: true)->get();
     }
 
     public function getTeachersProperty()
@@ -242,9 +248,10 @@ class TeacherSearch extends Component
         return TeacherDirectoryOrder::apply(
             $listing,
             departmentId: $this->departmentId ? (int) $this->departmentId : null,
-            // One faculty, no department picked: department by department,
-            // each in its own serial, rather than the whole faculty by rank.
-            byDepartment: filled($this->facultyId),
+            // No department picked — one faculty, or the whole university on
+            // the home page: designation, then home-department serial, then
+            // joining date, then age (TeacherDirectoryOrder::byRankThenSerial).
+            byDepartment: true,
         )->paginate(20);
     }
     public function getStaticTeacherCountProperty(): int

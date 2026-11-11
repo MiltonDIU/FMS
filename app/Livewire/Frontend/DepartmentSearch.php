@@ -305,7 +305,7 @@ class DepartmentSearch extends Component
             // which fetched a teacher's whole bibliography per card.
             ->withCount(['publications' => \App\Models\Publication::onlyApproved()]);
 
-        return TeacherDirectoryOrder::apply($listing, administrativeFirst: true, departmentId: $this->serialDepartmentId())->get();
+        return TeacherDirectoryOrder::apply($listing, administrativeFirst: true, departmentId: $this->serialDepartmentId(), byDepartment: true)->get();
     }
 
     public function getTeachersProperty()
@@ -323,7 +323,9 @@ class DepartmentSearch extends Component
             // which fetched a teacher's whole bibliography per card.
             ->withCount(['publications' => \App\Models\Publication::onlyApproved()]);
 
-        return TeacherDirectoryOrder::apply($listing, departmentId: $this->serialDepartmentId())->paginate(20);
+        // "All" (the whole university) is ordered the way the home page is:
+        // designation, then home-department serial, then joining date, then age.
+        return TeacherDirectoryOrder::apply($listing, departmentId: $this->serialDepartmentId(), byDepartment: true)->paginate(20);
     }
 
     /** The department whose admin-panel serial orders the list, if one is on screen. */

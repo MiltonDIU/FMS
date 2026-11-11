@@ -64,10 +64,15 @@ final class TeacherDirectoryOrder
      */
     public static function apply(Builder $query, bool $administrativeFirst = false, ?int $departmentId = null, bool $byDepartment = false): Builder
     {
+        // No one department on screen (a faculty, or the whole university on
+        // the home page): rank first, the department's serial only within a
+        // rank. Both the administration group and the list below it.
+        if ($byDepartment && ! $departmentId) {
+            return self::byRankThenSerial($query);
+        }
+
         if ($departmentId) {
             self::bySerial($query, $departmentId);
-        } elseif ($byDepartment && ! $administrativeFirst) {
-            self::byHomeDepartmentSerial($query);
         }
 
         if ($administrativeFirst) {
@@ -87,28 +92,60 @@ final class TeacherDirectoryOrder
     }
 
     /**
-     * A whole faculty on screen: department by department, in the order the
-     * faculty lists its departments, and inside each one the serial set for
-     * it in the admin panel — so a department's teachers stand in the same
-     * order here as on the department's own page.
+     * A faculty page or the home page — several departments in one list:
      *
-     * A teacher is placed under their home department. The caller must
-     * already have joined `departments` on teachers.department_id.
+     *   1. designation (Professor before Associate Professor, and so on)
+     *   2. the serial in their home department, set in the admin panel
+     *   3. joining date — whoever joined earlier
+     *   4. date of birth — the elder
+     *
+     * Missing values go last rather than first (MySQL sorts NULL first); the
+     * id only makes the order stable when everything else is equal. Whether
+     * someone holds an administrative role is decided before this, by which
+     * group they are listed in.
      *
      * @param  Builder<\App\Models\Teacher>  $query
      * @return Builder<\App\Models\Teacher>
      */
-    public static function byHomeDepartmentSerial(Builder $query): Builder
+    public static function byRankThenSerial(Builder $query): Builder
     {
-        $row = ' FROM department_teacher dt_serial'
+        $serial = '(SELECT MIN(dt_serial.sort_order) FROM department_teacher dt_serial'
             . ' WHERE dt_serial.teacher_id = teachers.id AND dt_serial.department_id = teachers.department_id'
-            . ' AND dt_serial.deleted_at IS NULL';
+            . ' AND dt_serial.deleted_at IS NULL)';
 
         return $query
-            ->orderBy('departments.sort_order')
-            ->orderBy('departments.id')
-            ->orderByRaw("COALESCE((SELECT MIN(dt_serial.sort_order){$row}), ?)", [PHP_INT_MAX])
-            ->orderByRaw("COALESCE((SELECT MIN(dt_serial.id){$row}), ?)", [PHP_INT_MAX]);
+            ->orderByRaw('COALESCE(designations.sort_order, ?)', [self::UNRANKED])
+            ->orderByRaw("COALESCE({$serial}, ?)", [PHP_INT_MAX])
+            ->orderByRaw('teachers.joining_date IS NULL')
+            ->orderBy('teachers.joining_date')
+            ->orderByRaw('teachers.date_of_birth IS NULL')
+            ->orderBy('teachers.date_of_birth')
+            ->orderBy('teachers.id');
+    }
+
+    /**
+     * Who goes first when two teachers share a serial: the higher
+     * designation, then whoever joined earlier, then the elder. Missing dates
+     * go last rather than first (MySQL sorts NULL first). The id only makes
+     * the order stable when everything else is equal.
+     *
+     * The admin list (DepartmentTeachersTable) breaks ties the same way, so a
+     * shared serial reads the same in both places.
+     *
+     * The caller must already have joined `designations`.
+     *
+     * @param  Builder<\App\Models\Teacher>  $query
+     * @return Builder<\App\Models\Teacher>
+     */
+    public static function seniority(Builder $query): Builder
+    {
+        return $query
+            ->orderByRaw('COALESCE(designations.sort_order, ?)', [self::UNRANKED])
+            ->orderByRaw('teachers.joining_date IS NULL')
+            ->orderBy('teachers.joining_date')
+            ->orderByRaw('teachers.date_of_birth IS NULL')
+            ->orderBy('teachers.date_of_birth')
+            ->orderBy('teachers.id');
     }
 
     /**
@@ -127,12 +164,10 @@ final class TeacherDirectoryOrder
             . ' WHERE dt_serial.teacher_id = teachers.id AND dt_serial.department_id = ?'
             . ' AND dt_serial.deleted_at IS NULL';
 
-        return $query
-            ->orderByRaw("COALESCE((SELECT MIN(dt_serial.sort_order){$row}), ?)", [$departmentId, PHP_INT_MAX])
-            // Several teachers can share a serial (imported rows, or two typed
-            // the same number). The admin list breaks that tie by row id, so
-            // this does too — otherwise the rank order below would decide, and
-            // the two lists would disagree exactly where the serials collide.
-            ->orderByRaw("COALESCE((SELECT MIN(dt_serial.id){$row}), ?)", [$departmentId, PHP_INT_MAX]);
+        $query->orderByRaw("COALESCE((SELECT MIN(dt_serial.sort_order){$row}), ?)", [$departmentId, PHP_INT_MAX]);
+
+        // Several teachers can share a serial (imported rows, or two typed the
+        // same number): seniority decides, as it does in the admin list.
+        return self::seniority($query);
     }
 }

@@ -74,9 +74,22 @@ class DepartmentTeachersTable
             ->defaultSort(function (Builder $query, string $direction, $livewire) use ($currentDepartmentId) {
                 // One department on screen: honour the manual per-department order.
                 if ($currentDepartmentId($livewire)) {
-                    // Row id breaks ties between equal serials, the same way the
-                    // public department page does (TeacherDirectoryOrder::bySerial).
-                    return $query->orderBy('sort_order', $direction)->orderBy('id', $direction);
+                    // Equal serials go by seniority — designation, then joining
+                    // date, then age — exactly as the public site orders them
+                    // (TeacherDirectoryOrder::seniority), so both read alike.
+                    $teacher = fn (string $column): string => "(SELECT {$column} FROM teachers t_rank"
+                        . ' LEFT JOIN designations d_rank ON d_rank.id = t_rank.designation_id'
+                        . ' WHERE t_rank.id = department_teacher.teacher_id)';
+
+                    return $query
+                        ->orderBy('sort_order', $direction)
+                        ->orderByRaw('COALESCE(' . $teacher('d_rank.sort_order') . ', 9999)')
+                        ->orderByRaw($teacher('t_rank.joining_date') . ' IS NULL')
+                        ->orderByRaw($teacher('t_rank.joining_date'))
+                        ->orderByRaw($teacher('t_rank.date_of_birth') . ' IS NULL')
+                        ->orderByRaw($teacher('t_rank.date_of_birth'))
+                        ->orderBy('teacher_id')
+                        ->orderBy('id');
                 }
 
                 // Unfiltered (global) list: rank by the teacher's designation first,
