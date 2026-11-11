@@ -203,14 +203,14 @@ class DepartmentAdminPlacementTest extends TestCase
         $page = new \App\Livewire\Frontend\DepartmentSearch;
         $page->mount($this->department->id);
 
-        $serials = DepartmentTeacher::where('department_id', $this->department->id)->pluck('sort_order', 'teacher_id');
+        // Designation first, the serial within a designation, then seniority.
+        $adminOrder = $this->serialOrder($this->department->id);
 
-        foreach ([$page->getAdminTeachersProperty(), collect($page->getTeachersProperty()->items())] as $listed) {
-            $shown = $listed->pluck('id')->filter(fn ($id) => $serials->has($id))->map(fn ($id) => $serials[$id])->values()->all();
-            $sorted = $shown;
-            sort($sorted);
-
-            $this->assertSame($sorted, $shown);
+        foreach ([$page->getAdminTeachersProperty()->pluck('id'), collect($page->getTeachersProperty()->items())->pluck('id')] as $listed) {
+            $this->assertSame(
+                $adminOrder->intersect($listed)->values()->all(),
+                $listed->filter(fn ($id) => $adminOrder->contains($id))->values()->all()
+            );
         }
     }
 
@@ -318,8 +318,8 @@ class DepartmentAdminPlacementTest extends TestCase
     }
 
     /**
-     * A department's teachers as the admin list orders them: serial, then
-     * designation, then joining date, then date of birth (missing dates last).
+     * A department's teachers as the admin list orders them: designation,
+     * then serial, then joining date, then date of birth (missing dates last).
      */
     protected function serialOrder(int $departmentId): \Illuminate\Support\Collection
     {
@@ -328,8 +328,8 @@ class DepartmentAdminPlacementTest extends TestCase
             ->leftJoin('designations as d', 'd.id', '=', 't.designation_id')
             ->where('dt.department_id', $departmentId)
             ->whereNull('dt.deleted_at')
-            ->orderBy('dt.sort_order')
             ->orderByRaw('COALESCE(d.sort_order, 9999)')
+            ->orderBy('dt.sort_order')
             ->orderByRaw('t.joining_date IS NULL')->orderBy('t.joining_date')
             ->orderByRaw('t.date_of_birth IS NULL')->orderBy('t.date_of_birth')
             ->orderBy('t.id')

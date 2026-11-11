@@ -107,12 +107,12 @@ class DirectoryController extends Controller
         $departmentModel = $this->resolveDepartment($facultyModel, $department);
 
         $teachers = $this->teacherQuery($request)
-            // The department's own serial first, as on the website; a shared
-            // serial goes by seniority, which reads the designation's rank.
+            // As on the website: designation, then this department's serial,
+            // then joining date, then age.
             ->select('teachers.*')
             ->leftJoin('designations', 'designations.id', '=', 'teachers.designation_id')
             ->reorder()
-            ->tap(fn ($q) => \App\Support\TeacherDirectoryOrder::bySerial($q, $departmentModel->id))
+            ->tap(fn ($q) => \App\Support\TeacherDirectoryOrder::byRankThenSerial($q, $departmentModel->id))
             ->where(fn ($q) => $q
                 ->where('teachers.department_id', $departmentModel->id)
                 // A teacher can be attached to a second department through the
